@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HarmonyAI</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -143,6 +144,13 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
 .size-opt.lg .lbl-a{font-size:19px;}
 .size-opt .lbl-b{display:block;font-size:10px;opacity:.5;font-weight:600;margin-top:4px;}
 
+/* Auth form */
+.auth-input{width:100%;background:var(--glass);border:1px solid var(--glass-border2);border-radius:12px;padding:13px 14px;font-size:var(--font-base);color:var(--text);font-family:'Inter',sans-serif;outline:none;}
+.auth-input::placeholder{color:var(--text);opacity:.4;}
+.auth-error{color:#ff7a7a;font-size:12px;font-weight:600;display:none;}
+.auth-switch{text-align:center;font-size:13px;font-weight:600;color:var(--text);opacity:.7;cursor:pointer;margin-top:4px;}
+.auth-submit{text-align:center;cursor:pointer;}
+
 /* Memory toggles */
 .mem-row{padding:16px;display:flex;align-items:center;gap:14px;}
 .mem-row+.mem-row{border-top:1px solid var(--row-border);}
@@ -180,7 +188,7 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
   <div class="sidebar-footer">
     <div class="account-row" onclick="openSettings()">
       <div class="avatar">🎵</div>
-      Гость
+      <span id="sidebarAccountName">Гость</span>
     </div>
     <div class="glass-btn" style="width:34px;height:34px;padding:0" onclick="openSettings()">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.3"/><path d="M8 1V3M8 13V15M1 8H3M13 8H15M2.9 2.9L4.3 4.3M11.7 11.7L13.1 13.1M2.9 13.1L4.3 11.7M11.7 4.3L13.1 2.9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
@@ -200,9 +208,9 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
       </div>
     </div>
     <div class="profile">
-      <div class="avatar-lg">🎵</div>
-      <div class="profile-name">Гость</div>
-      <div class="login-btn">Войти / Зарегистрироваться</div>
+      <div class="avatar-lg" id="profileAvatar">🎵</div>
+      <div class="profile-name" id="profileName">Гость</div>
+      <div class="login-btn" id="loginBtn" onclick="onLoginBtnClick()">Войти / Зарегистрироваться</div>
     </div>
 
     <div class="section-label">Настроить HarmonyAI</div>
@@ -324,6 +332,24 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
       </div>
     </div>
   </div>
+  <!-- Login / Register screen -->
+  <div class="settings-screen" id="screen-login" style="display:none">
+    <div class="settings-header">
+      <div class="back-btn" onclick="showScreen('main')">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 1L2 7L9 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="settings-title" id="authTitle">Вход</div>
+      <div style="width:36px"></div>
+    </div>
+
+    <div class="section" style="margin-top:18px;padding:16px;display:flex;flex-direction:column;gap:12px;">
+      <input class="auth-input" id="authNickname" placeholder="Никнейм" autocomplete="username">
+      <input class="auth-input" id="authPassword" type="password" placeholder="Пароль" autocomplete="current-password">
+      <div class="auth-error" id="authError"></div>
+      <div class="login-btn auth-submit" id="authSubmitBtn" onclick="submitAuth()">Войти</div>
+      <div class="auth-switch" id="authSwitch" onclick="toggleAuthMode()">Нет аккаунта? Зарегистрироваться</div>
+    </div>
+  </div>
 
 </div>
 
@@ -377,6 +403,169 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
 <script>
 const SYSTEM = "Ты HarmonyAI — музыкальный ИИ-помощник для учеников музыкальной школы. Ты отлично знаешь сольфеджио, музыкальную грамоту, ноты, интервалы, аккорды, лады, ритм, размеры, динамику, темп, музыкальные термины. Отвечай на русском языке. Будь дружелюбным и понятным для детей и подростков. Объясняй просто и с примерами. Если пользователь присылает фото с нотами, аккордами или интервалами — внимательно их разбери и объясни.";
 
+/* ===== Supabase ===== */
+const SUPABASE_URL = 'https://cqthnymltqpcxtpiryka.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNxdGhueW1sdHFwY3h0cGlyeWthIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MjY3NzYsImV4cCI6MjA5NzAwMjc3Nn0.b-6lSdjT7XwWkt607ORwGfKYSn3CLZJB3mcs4QQUSoE';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const FAKE_EMAIL_DOMAIN = 'harmonyai.local';
+
+let currentUser = null; // {id, nickname, role}
+let authMode = 'login';
+
+function nicknameToEmail(nick){
+  const clean = nick.trim().toLowerCase().replace(/[^a-z0-9._-]/g,'');
+  return clean + '@' + FAKE_EMAIL_DOMAIN;
+}
+
+function translateAuthError(msg){
+  if(!msg) return 'Что-то пошло не так, попробуй ещё раз';
+  if(msg.includes('already registered')) return 'Этот никнейм уже занят';
+  if(msg.includes('Invalid login credentials')) return 'Неверный никнейм или пароль';
+  if(msg.includes('Password should be')) return 'Пароль слишком короткий (минимум 6 символов)';
+  if(msg.includes('Unable to validate email')) return 'Никнейм содержит недопустимые символы';
+  return 'Ошибка: ' + msg;
+}
+
+function toggleAuthMode(){
+  authMode = authMode==='login' ? 'register' : 'login';
+  document.getElementById('authTitle').textContent = authMode==='login' ? 'Вход' : 'Регистрация';
+  document.getElementById('authSubmitBtn').textContent = authMode==='login' ? 'Войти' : 'Создать аккаунт';
+  document.getElementById('authSwitch').textContent = authMode==='login' ? 'Нет аккаунта? Зарегистрироваться' : 'Уже есть аккаунт? Войти';
+  document.getElementById('authError').style.display='none';
+}
+
+function onLoginBtnClick(){
+  if(currentUser){
+    logoutUser();
+  }else{
+    authMode='login';
+    document.getElementById('authTitle').textContent='Вход';
+    document.getElementById('authSubmitBtn').textContent='Войти';
+    document.getElementById('authSwitch').textContent='Нет аккаунта? Зарегистрироваться';
+    document.getElementById('authNickname').value='';
+    document.getElementById('authPassword').value='';
+    showScreen('login');
+  }
+}
+
+async function submitAuth(){
+  const nickname = document.getElementById('authNickname').value.trim();
+  const password = document.getElementById('authPassword').value;
+  const errEl = document.getElementById('authError');
+  errEl.style.display='none';
+
+  if(!nickname || !password){
+    errEl.textContent='Заполни никнейм и пароль';
+    errEl.style.display='block';
+    return;
+  }
+  if(!/^[a-zA-Z0-9_]{3,20}$/.test(nickname)){
+    errEl.textContent='Никнейм: 3-20 символов, латиница, цифры, "_"';
+    errEl.style.display='block';
+    return;
+  }
+  if(password.length<6){
+    errEl.textContent='Пароль должен быть не короче 6 символов';
+    errEl.style.display='block';
+    return;
+  }
+
+  const btn=document.getElementById('authSubmitBtn');
+  const oldText=btn.textContent;
+  btn.textContent='Подождите...';
+
+  try{
+    const email = nicknameToEmail(nickname);
+    if(authMode==='register'){
+      const { error } = await sb.auth.signUp({
+        email, password,
+        options: { data: { nickname } }
+      });
+      if(error) throw error;
+    }else{
+      const { error } = await sb.auth.signInWithPassword({ email, password });
+      if(error) throw error;
+    }
+    await initAuth();
+    showScreen('main');
+  }catch(e){
+    errEl.textContent = translateAuthError(e.message);
+    errEl.style.display='block';
+  }finally{
+    btn.textContent=oldText;
+  }
+}
+
+async function logoutUser(){
+  await sb.auth.signOut();
+  currentUser = null;
+  chats = JSON.parse(localStorage.getItem('harmonyai_chats') || '[]');
+  updateAccountUI();
+  newChat();
+}
+
+function updateAccountUI(){
+  const nameEl = document.getElementById('profileName');
+  const btnEl = document.getElementById('loginBtn');
+  const sidebarName = document.getElementById('sidebarAccountName');
+  if(currentUser){
+    nameEl.textContent = currentUser.nickname;
+    sidebarName.textContent = currentUser.nickname;
+    btnEl.textContent = 'Выйти';
+  }else{
+    nameEl.textContent = 'Гость';
+    sidebarName.textContent = 'Гость';
+    btnEl.textContent = 'Войти / Зарегистрироваться';
+  }
+}
+
+async function loadProfile(userId){
+  const { data, error } = await sb.from('profiles').select('*').eq('id', userId).single();
+  if(!error && data){
+    currentUser = { id: userId, nickname: data.nickname, role: data.role };
+  }
+}
+
+async function loadCloudChats(){
+  const { data, error } = await sb.from('chats').select('*').order('updated_at',{ascending:false});
+  if(!error && data){
+    chats = data.map(c=>({ id:c.id, title:c.title, history:c.history||[] }));
+    renderChatList();
+  }
+}
+
+async function initAuth(){
+  const { data:{ session } } = await sb.auth.getSession();
+  if(session){
+    await loadProfile(session.user.id);
+    await loadCloudChats();
+  }else{
+    currentUser = null;
+    chats = JSON.parse(localStorage.getItem('harmonyai_chats') || '[]');
+  }
+  updateAccountUI();
+  renderChatList();
+}
+
+/* ===== Memory toggles ===== */
+function memOn(key){
+  const el = document.getElementById('toggle-'+key);
+  return !!(el && el.classList.contains('on'));
+}
+
+async function getSystemPrompt(){
+  let sys = SYSTEM;
+  if(memOn('recall')){
+    try{
+      const { data, error } = await sb.from('knowledge_base').select('content').limit(20);
+      if(!error && data && data.length){
+        sys += '\n\nДополнительные материалы из базы знаний (используй при необходимости):\n' + data.map(d=>d.content).join('\n---\n');
+      }
+    }catch(e){}
+  }
+  return sys;
+}
+
 let history = [];
 let dropOpen = false;
 let pendingImage = null;
@@ -411,6 +600,7 @@ function toggleMem(key){
     document.getElementById('toggle-'+k).classList.toggle('on', on);
   });
 })();
+initAuth();
 
 /* ===== Animated background ===== */
 const canvas = document.getElementById('bg');
@@ -488,9 +678,12 @@ function closeSettings(){
   document.getElementById('settingsOverlay').classList.remove('open');
 }
 function showScreen(name){
-  ['main','personalization','memory'].forEach(s=>{
+  ['main','personalization','memory','login'].forEach(s=>{
     document.getElementById('screen-'+s).style.display = (s===name) ? 'flex' : 'none';
   });
+  if(name==='login'){
+    document.getElementById('authError').style.display='none';
+  }
 }
 
 /* ===== Chat history (saved on this device) ===== */
@@ -505,7 +698,7 @@ function renderChatList(){
     list.appendChild(div);
   });
 }
-function saveCurrentChat(){
+async function saveCurrentChat(){
   if(history.length===0) return;
   let chat=chats.find(c=>c.id===currentChatId);
   if(!chat){
@@ -521,7 +714,19 @@ function saveCurrentChat(){
       chat.title=t.slice(0,32);
     }
   }
-  localStorage.setItem('harmonyai_chats',JSON.stringify(chats));
+  if(currentUser && memOn('save')){
+    try{
+      await sb.from('chats').upsert({
+        id: chat.id,
+        user_id: currentUser.id,
+        title: chat.title,
+        history: chat.history,
+        updated_at: new Date().toISOString()
+      });
+    }catch(e){}
+  }else{
+    localStorage.setItem('harmonyai_chats',JSON.stringify(chats));
+  }
   renderChatList();
 }
 function loadChat(id){
@@ -598,14 +803,15 @@ async function send(){
 
   addBubble(displayText,'user');
   history.push({role:'user',content:userContent});
-  saveCurrentChat();
+  await saveCurrentChat();
   showTyping();
 
   try{
+    const sysPrompt = await getSystemPrompt();
     const res=await fetch('/api/chat',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({messages:[{role:'system',content:SYSTEM},...history]})
+      body:JSON.stringify({messages:[{role:'system',content:sysPrompt},...history]})
     });
     const data=await res.json();
     if(data.error){
@@ -617,7 +823,7 @@ async function send(){
     hideTyping();
     addBubble(reply,'ai');
     history.push({role:'assistant',content:reply});
-    saveCurrentChat();
+    await saveCurrentChat();
   }catch(e){
     hideTyping();
     addBubble('Ошибка соединения: '+e.message,'ai');
