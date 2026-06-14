@@ -144,11 +144,24 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
 .size-opt.lg .lbl-a{font-size:19px;}
 .size-opt .lbl-b{display:block;font-size:10px;opacity:.5;font-weight:600;margin-top:4px;}
 
+/* Auth gate */
+.auth-gate{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(36px);-webkit-backdrop-filter:blur(36px);background:var(--panel-bg);}
+.auth-gate-content{width:100%;max-width:380px;display:flex;flex-direction:column;align-items:center;}
+.auth-logo{font-size:36px;font-weight:900;letter-spacing:-.5px;background:linear-gradient(135deg,#a855f7,#60a5fa,#f472b6);-webkit-background-clip:text;background-clip:text;color:transparent;}
+.auth-tagline{font-size:13px;color:var(--text);opacity:.55;margin:6px 0 28px;text-align:center;}
+.auth-card{width:100%;backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);background:var(--glass);border:1px solid var(--glass-border);border-radius:24px;padding:26px 22px;display:flex;flex-direction:column;gap:14px;}
+.auth-card-title{font-size:18px;font-weight:800;color:var(--text);text-align:center;margin-bottom:2px;}
+.auth-subtitle{font-size:12.5px;color:var(--text);opacity:.55;text-align:center;margin-top:-6px;margin-bottom:4px;word-break:break-all;}
+.code-input{text-align:center;font-size:26px;font-weight:800;letter-spacing:10px;}
+.auth-hint{font-size:11.5px;color:var(--text);opacity:.4;text-align:center;}
+.auth-resend{font-size:12.5px;font-weight:700;color:var(--text);opacity:.8;text-align:center;cursor:pointer;}
+.auth-resend.disabled{opacity:.35;cursor:default;}
+.auth-back{font-size:12.5px;font-weight:600;color:var(--text);opacity:.5;text-align:center;cursor:pointer;margin-top:-2px;}
+
 /* Auth form */
 .auth-input{width:100%;background:var(--glass);border:1px solid var(--glass-border2);border-radius:12px;padding:13px 14px;font-size:var(--font-base);color:var(--text);font-family:'Inter',sans-serif;outline:none;}
 .auth-input::placeholder{color:var(--text);opacity:.4;}
-.auth-error{color:#ff7a7a;font-size:12px;font-weight:600;display:none;}
-.auth-switch{text-align:center;font-size:13px;font-weight:600;color:var(--text);opacity:.7;cursor:pointer;margin-top:4px;}
+.auth-error{color:#ff7a7a;font-size:12px;font-weight:600;display:none;text-align:center;}
 .auth-submit{text-align:center;cursor:pointer;}
 
 /* Memory toggles */
@@ -165,6 +178,78 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
 </head>
 <body data-theme="dark" data-size="md">
 <canvas id="bg"></canvas>
+
+<!-- Auth gate -->
+<div class="auth-gate" id="authGate">
+  <div class="auth-gate-content">
+    <div class="auth-logo">HarmonyAI</div>
+    <div class="auth-tagline">Твой путь к музыкальной гармонии</div>
+
+    <!-- Регистрация -->
+    <div class="auth-card" id="authStepRegister">
+      <div class="auth-card-title">Регистрация</div>
+      <input class="auth-input" id="regEmail" type="email" placeholder="Email" autocomplete="email" inputmode="email">
+      <input class="auth-input" id="regPassword" type="password" placeholder="Пароль" autocomplete="new-password">
+      <input class="auth-input" id="regPassword2" type="password" placeholder="Повторите пароль" autocomplete="new-password">
+      <div class="auth-error" id="regError"></div>
+      <div class="login-btn auth-submit" id="regBtn" onclick="registerUser()">Зарегистрироваться</div>
+      <div class="auth-back" onclick="switchAuth('login')">Уже есть аккаунт? Войти</div>
+    </div>
+
+    <!-- Подтверждение email после регистрации -->
+    <div class="auth-card" id="authStepVerify" style="display:none">
+      <div class="auth-card-title">Введите код</div>
+      <div class="auth-subtitle" id="verifyEmailDisplay"></div>
+      <input class="auth-input code-input" id="verifyCode" type="text" inputmode="numeric" maxlength="6" placeholder="••••••" onkeydown="if(event.key==='Enter')verifyRegCode()">
+      <div class="auth-error" id="verifyError"></div>
+      <div class="login-btn auth-submit" id="verifyBtn" onclick="verifyRegCode()">Подтвердить</div>
+      <div class="auth-resend" id="verifyResendBtn" onclick="resendVerifyCode()">Не приходит код? Отправить снова</div>
+      <div class="auth-back" onclick="switchAuth('register')">Изменить email</div>
+    </div>
+
+    <!-- Вход -->
+    <div class="auth-card" id="authStepLogin" style="display:none">
+      <div class="auth-card-title">Вход в HarmonyAI</div>
+      <input class="auth-input" id="loginEmail" type="email" placeholder="Email" autocomplete="email" inputmode="email">
+      <input class="auth-input" id="loginPassword" type="password" placeholder="Пароль" autocomplete="current-password">
+      <div class="auth-error" id="loginError"></div>
+      <div class="login-btn auth-submit" id="loginBtn2" onclick="loginUser()">Войти</div>
+      <div class="auth-back" onclick="switchAuth('forgot')" style="opacity:.7">Забыли пароль?</div>
+      <div class="auth-back" onclick="switchAuth('register')">Нет аккаунта? Зарегистрироваться</div>
+    </div>
+
+    <!-- Забыл пароль — шаг 1: email -->
+    <div class="auth-card" id="authStepForgot" style="display:none">
+      <div class="auth-card-title">Сброс пароля</div>
+      <div class="auth-hint" style="margin-bottom:4px">Введите email — пришлём код для сброса пароля</div>
+      <input class="auth-input" id="forgotEmail" type="email" placeholder="Email" autocomplete="email" inputmode="email">
+      <div class="auth-error" id="forgotError"></div>
+      <div class="login-btn auth-submit" id="forgotBtn" onclick="sendResetCode()">Отправить код</div>
+      <div class="auth-back" onclick="switchAuth('login')">Вернуться ко входу</div>
+    </div>
+
+    <!-- Забыл пароль — шаг 2: код -->
+    <div class="auth-card" id="authStepResetCode" style="display:none">
+      <div class="auth-card-title">Введите код</div>
+      <div class="auth-subtitle" id="resetEmailDisplay"></div>
+      <input class="auth-input code-input" id="resetCode" type="text" inputmode="numeric" maxlength="6" placeholder="••••••">
+      <div class="auth-error" id="resetCodeError"></div>
+      <div class="login-btn auth-submit" id="resetCodeBtn" onclick="verifyResetCode()">Подтвердить</div>
+      <div class="auth-resend" id="resetResendBtn" onclick="resendResetCode()">Не приходит код? Отправить снова</div>
+    </div>
+
+    <!-- Забыл пароль — шаг 3: новый пароль -->
+    <div class="auth-card" id="authStepNewPassword" style="display:none">
+      <div class="auth-card-title">Новый пароль</div>
+      <input class="auth-input" id="newPassword" type="password" placeholder="Придумайте пароль">
+      <input class="auth-input" id="newPassword2" type="password" placeholder="Повторите пароль">
+      <div class="auth-error" id="newPasswordError"></div>
+      <div class="login-btn auth-submit" id="newPasswordBtn" onclick="setNewPassword()">Сохранить пароль</div>
+    </div>
+
+  </div>
+</div>
+
 
 <!-- Sidebar -->
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
@@ -210,7 +295,7 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
     <div class="profile">
       <div class="avatar-lg" id="profileAvatar">🎵</div>
       <div class="profile-name" id="profileName">Гость</div>
-      <div class="login-btn" id="loginBtn" onclick="onLoginBtnClick()">Войти / Зарегистрироваться</div>
+      <div class="login-btn" id="loginBtn" onclick="logoutUser()" style="background:rgba(255,80,80,0.18);border:1px solid rgba(255,80,80,0.4);color:#ff6b6b;">Выйти</div>
     </div>
 
     <div class="section-label">Настроить HarmonyAI</div>
@@ -237,12 +322,12 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
 
     <div class="section-label">Учётная запись</div>
     <div class="section">
-      <div class="row disabled">
+      <div class="row" onclick="showEmailInfo()">
         <div class="row-icon">
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="4" width="16" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M3 5.5L10 11L17 5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
         <div class="row-text">Электронная почта</div>
-        <div class="row-value soon">скоро</div>
+        <div class="row-value" id="accountEmailValue" style="font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:.55"></div>
       </div>
       <div class="row disabled">
         <div class="row-icon">
@@ -332,24 +417,6 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
       </div>
     </div>
   </div>
-  <!-- Login / Register screen -->
-  <div class="settings-screen" id="screen-login" style="display:none">
-    <div class="settings-header">
-      <div class="back-btn" onclick="showScreen('main')">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 1L2 7L9 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <div class="settings-title" id="authTitle">Вход</div>
-      <div style="width:36px"></div>
-    </div>
-
-    <div class="section" style="margin-top:18px;padding:16px;display:flex;flex-direction:column;gap:12px;">
-      <input class="auth-input" id="authNickname" placeholder="Никнейм" autocomplete="username">
-      <input class="auth-input" id="authPassword" type="password" placeholder="Пароль" autocomplete="current-password">
-      <div class="auth-error" id="authError"></div>
-      <div class="login-btn auth-submit" id="authSubmitBtn" onclick="submitAuth()">Войти</div>
-      <div class="auth-switch" id="authSwitch" onclick="toggleAuthMode()">Нет аккаунта? Зарегистрироваться</div>
-    </div>
-  </div>
 
 </div>
 
@@ -407,122 +474,253 @@ const SYSTEM = "Ты HarmonyAI — музыкальный ИИ-помощник 
 const SUPABASE_URL = 'https://cqthnymltqpcxtpiryka.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNxdGhueW1sdHFwY3h0cGlyeWthIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MjY3NzYsImV4cCI6MjA5NzAwMjc3Nn0.b-6lSdjT7XwWkt607ORwGfKYSn3CLZJB3mcs4QQUSoE';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-const FAKE_EMAIL_DOMAIN = 'harmonyai.local';
 
-let currentUser = null; // {id, nickname, role}
-let authMode = 'login';
+let currentUser = null;
+let resetEmail = '';
+let verifyEmail = '';
+let resendVerifyTimer = null;
+let resendVerifyLeft = 0;
+let resendResetTimer = null;
+let resendResetLeft = 0;
 
-function nicknameToEmail(nick){
-  const clean = nick.trim().toLowerCase().replace(/[^a-z0-9._-]/g,'');
-  return clean + '@' + FAKE_EMAIL_DOMAIN;
-}
-
-function translateAuthError(msg){
+function translateError(msg){
   if(!msg) return 'Что-то пошло не так, попробуй ещё раз';
-  if(msg.includes('already registered')) return 'Этот никнейм уже занят';
-  if(msg.includes('Invalid login credentials')) return 'Неверный никнейм или пароль';
-  if(msg.includes('Password should be')) return 'Пароль слишком короткий (минимум 6 символов)';
-  if(msg.includes('Unable to validate email')) return 'Никнейм содержит недопустимые символы';
+  if(msg.includes('Invalid login') || msg.includes('Invalid email or password') || msg.includes('invalid_grant')) return 'Неверный email или пароль';
+  if(msg.includes('Email not confirmed')) return 'Email не подтверждён. Проверьте почту';
+  if(msg.includes('User already registered')) return 'Аккаунт с таким email уже существует';
+  if(msg.includes('Unable to validate email') || msg.includes('invalid email')) return 'Введите корректный email';
+  if(msg.includes('Password should be')) return 'Пароль должен быть не менее 6 символов';
+  if(msg.includes('Token has expired') || msg.includes('expired')) return 'Код устарел, запросите новый';
+  if(msg.includes('Invalid token') || msg.includes('Invalid OTP') || msg.includes('otp_expired')) return 'Неверный код, попробуйте ещё раз';
+  if(msg.includes('rate limit') || msg.includes('Email rate limit')) return 'Слишком много попыток. Подождите немного';
   return 'Ошибка: ' + msg;
 }
 
-function toggleAuthMode(){
-  authMode = authMode==='login' ? 'register' : 'login';
-  document.getElementById('authTitle').textContent = authMode==='login' ? 'Вход' : 'Регистрация';
-  document.getElementById('authSubmitBtn').textContent = authMode==='login' ? 'Войти' : 'Создать аккаунт';
-  document.getElementById('authSwitch').textContent = authMode==='login' ? 'Нет аккаунта? Зарегистрироваться' : 'Уже есть аккаунт? Войти';
-  document.getElementById('authError').style.display='none';
+function isValidEmail(e){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
+
+function showAuthGate(){ document.getElementById('authGate').style.display='flex'; }
+function hideAuthGate(){ document.getElementById('authGate').style.display='none'; }
+
+function switchAuth(mode){
+  ['authStepRegister','authStepVerify','authStepLogin','authStepForgot','authStepResetCode','authStepNewPassword'].forEach(id=>{
+    document.getElementById(id).style.display='none';
+  });
+  if(mode==='register') document.getElementById('authStepRegister').style.display='flex';
+  if(mode==='login') document.getElementById('authStepLogin').style.display='flex';
+  if(mode==='forgot') document.getElementById('authStepForgot').style.display='flex';
 }
 
-function onLoginBtnClick(){
-  if(currentUser){
-    logoutUser();
-  }else{
-    authMode='login';
-    document.getElementById('authTitle').textContent='Вход';
-    document.getElementById('authSubmitBtn').textContent='Войти';
-    document.getElementById('authSwitch').textContent='Нет аккаунта? Зарегистрироваться';
-    document.getElementById('authNickname').value='';
-    document.getElementById('authPassword').value='';
-    showScreen('login');
-  }
-}
-
-async function submitAuth(){
-  const nickname = document.getElementById('authNickname').value.trim();
-  const password = document.getElementById('authPassword').value;
-  const errEl = document.getElementById('authError');
+/* ===== РЕГИСТРАЦИЯ ===== */
+async function registerUser(){
+  const email = document.getElementById('regEmail').value.trim();
+  const pass = document.getElementById('regPassword').value;
+  const pass2 = document.getElementById('regPassword2').value;
+  const errEl = document.getElementById('regError');
   errEl.style.display='none';
-
-  if(!nickname || !password){
-    errEl.textContent='Заполни никнейм и пароль';
-    errEl.style.display='block';
-    return;
-  }
-  if(!/^[a-zA-Z0-9_]{3,20}$/.test(nickname)){
-    errEl.textContent='Никнейм: 3-20 символов, латиница, цифры, "_"';
-    errEl.style.display='block';
-    return;
-  }
-  if(password.length<6){
-    errEl.textContent='Пароль должен быть не короче 6 символов';
-    errEl.style.display='block';
-    return;
-  }
-
-  const btn=document.getElementById('authSubmitBtn');
-  const oldText=btn.textContent;
-  btn.textContent='Подождите...';
-
+  if(!isValidEmail(email)){ errEl.textContent='Введите корректный email'; errEl.style.display='block'; return; }
+  if(pass.length < 6){ errEl.textContent='Пароль должен быть не менее 6 символов'; errEl.style.display='block'; return; }
+  if(pass !== pass2){ errEl.textContent='Пароли не совпадают'; errEl.style.display='block'; return; }
+  const btn = document.getElementById('regBtn');
+  btn.textContent='Регистрируем...';
   try{
-    const email = nicknameToEmail(nickname);
-    if(authMode==='register'){
-      const { error } = await sb.auth.signUp({
-        email, password,
-        options: { data: { nickname } }
-      });
-      if(error) throw error;
-    }else{
-      const { error } = await sb.auth.signInWithPassword({ email, password });
-      if(error) throw error;
-    }
-    await initAuth();
-    showScreen('main');
+    const { error } = await sb.auth.signUp({ email, password: pass });
+    if(error) throw error;
+    verifyEmail = email;
+    document.getElementById('verifyEmailDisplay').textContent = email;
+    document.getElementById('verifyCode').value='';
+    document.getElementById('verifyError').style.display='none';
+    ['authStepRegister'].forEach(id=>document.getElementById(id).style.display='none');
+    document.getElementById('authStepVerify').style.display='flex';
+    document.getElementById('verifyCode').focus();
+    startCooldown('verify');
   }catch(e){
-    errEl.textContent = translateAuthError(e.message);
+    errEl.textContent = translateError(e.message);
     errEl.style.display='block';
-  }finally{
-    btn.textContent=oldText;
+  }finally{ btn.textContent='Зарегистрироваться'; }
+}
+
+async function verifyRegCode(){
+  const code = document.getElementById('verifyCode').value.trim();
+  const errEl = document.getElementById('verifyError');
+  errEl.style.display='none';
+  if(!/^\d{6}$/.test(code)){ errEl.textContent='Введите 6-значный код из письма'; errEl.style.display='block'; return; }
+  const btn = document.getElementById('verifyBtn');
+  btn.textContent='Проверяем...';
+  try{
+    const { error } = await sb.auth.verifyOtp({ email: verifyEmail, token: code, type:'signup' });
+    if(error) throw error;
+    await initAuth();
+  }catch(e){
+    errEl.textContent = translateError(e.message);
+    errEl.style.display='block';
+  }finally{ btn.textContent='Подтвердить'; }
+}
+
+async function resendVerifyCode(){
+  if(resendVerifyLeft>0) return;
+  try{
+    await sb.auth.resend({ type:'signup', email: verifyEmail });
+    startCooldown('verify');
+  }catch(e){}
+}
+
+/* ===== ВХОД ===== */
+async function loginUser(){
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPassword').value;
+  const errEl = document.getElementById('loginError');
+  errEl.style.display='none';
+  if(!isValidEmail(email)){ errEl.textContent='Введите корректный email'; errEl.style.display='block'; return; }
+  if(!pass){ errEl.textContent='Введите пароль'; errEl.style.display='block'; return; }
+  const btn = document.getElementById('loginBtn2');
+  btn.textContent='Входим...';
+  try{
+    const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+    if(error) throw error;
+    await initAuth();
+  }catch(e){
+    errEl.textContent = translateError(e.message);
+    errEl.style.display='block';
+  }finally{ btn.textContent='Войти'; }
+}
+
+/* ===== СБРОС ПАРОЛЯ ===== */
+async function sendResetCode(){
+  const email = document.getElementById('forgotEmail').value.trim();
+  const errEl = document.getElementById('forgotError');
+  errEl.style.display='none';
+  if(!isValidEmail(email)){ errEl.textContent='Введите корректный email'; errEl.style.display='block'; return; }
+  const btn = document.getElementById('forgotBtn');
+  btn.textContent='Отправляем...';
+  try{
+    const { error } = await sb.auth.signInWithOtp({ email, options:{ shouldCreateUser:false } });
+    if(error) throw error;
+    resetEmail = email;
+    document.getElementById('resetEmailDisplay').textContent = email;
+    document.getElementById('resetCode').value='';
+    document.getElementById('resetCodeError').style.display='none';
+    document.getElementById('authStepForgot').style.display='none';
+    document.getElementById('authStepResetCode').style.display='flex';
+    document.getElementById('resetCode').focus();
+    startCooldown('reset');
+  }catch(e){
+    errEl.textContent = translateError(e.message);
+    errEl.style.display='block';
+  }finally{ btn.textContent='Отправить код'; }
+}
+
+async function verifyResetCode(){
+  const code = document.getElementById('resetCode').value.trim();
+  const errEl = document.getElementById('resetCodeError');
+  errEl.style.display='none';
+  if(!/^\d{6}$/.test(code)){ errEl.textContent='Введите 6-значный код'; errEl.style.display='block'; return; }
+  const btn = document.getElementById('resetCodeBtn');
+  btn.textContent='Проверяем...';
+  try{
+    const { error } = await sb.auth.verifyOtp({ email: resetEmail, token: code, type:'magiclink' });
+    if(error) throw error;
+    document.getElementById('authStepResetCode').style.display='none';
+    document.getElementById('authStepNewPassword').style.display='flex';
+    document.getElementById('newPassword').focus();
+  }catch(e){
+    errEl.textContent = translateError(e.message);
+    errEl.style.display='block';
+  }finally{ btn.textContent='Подтвердить'; }
+}
+
+async function resendResetCode(){
+  if(resendResetLeft>0) return;
+  try{
+    await sb.auth.signInWithOtp({ email: resetEmail, options:{ shouldCreateUser:false } });
+    startCooldown('reset');
+  }catch(e){}
+}
+
+async function setNewPassword(){
+  const pass = document.getElementById('newPassword').value;
+  const pass2 = document.getElementById('newPassword2').value;
+  const errEl = document.getElementById('newPasswordError');
+  errEl.style.display='none';
+  if(pass.length < 6){ errEl.textContent='Пароль должен быть не менее 6 символов'; errEl.style.display='block'; return; }
+  if(pass !== pass2){ errEl.textContent='Пароли не совпадают'; errEl.style.display='block'; return; }
+  const btn = document.getElementById('newPasswordBtn');
+  btn.textContent='Сохраняем...';
+  try{
+    const { error } = await sb.auth.updateUser({ password: pass });
+    if(error) throw error;
+    await initAuth();
+  }catch(e){
+    errEl.textContent = translateError(e.message);
+    errEl.style.display='block';
+  }finally{ btn.textContent='Сохранить пароль'; }
+}
+
+/* ===== Cooldown helper ===== */
+function startCooldown(type){
+  if(type==='verify'){
+    resendVerifyLeft=60;
+    if(resendVerifyTimer) clearInterval(resendVerifyTimer);
+    resendVerifyTimer = setInterval(()=>{
+      resendVerifyLeft--;
+      const btn = document.getElementById('verifyResendBtn');
+      if(resendVerifyLeft>0){ btn.textContent='Отправить снова через '+resendVerifyLeft+' с'; btn.classList.add('disabled'); }
+      else{ btn.textContent='Не приходит код? Отправить снова'; btn.classList.remove('disabled'); clearInterval(resendVerifyTimer); }
+    },1000);
+    const btn = document.getElementById('verifyResendBtn');
+    btn.textContent='Отправить снова через 60 с'; btn.classList.add('disabled');
+  }
+  if(type==='reset'){
+    resendResetLeft=60;
+    if(resendResetTimer) clearInterval(resendResetTimer);
+    resendResetTimer = setInterval(()=>{
+      resendResetLeft--;
+      const btn = document.getElementById('resetResendBtn');
+      if(resendResetLeft>0){ btn.textContent='Отправить снова через '+resendResetLeft+' с'; btn.classList.add('disabled'); }
+      else{ btn.textContent='Не приходит код? Отправить снова'; btn.classList.remove('disabled'); clearInterval(resendResetTimer); }
+    },1000);
+    const btn = document.getElementById('resetResendBtn');
+    btn.textContent='Отправить снова через 60 с'; btn.classList.add('disabled');
+  }
+}
+
+/* ===== Email info popup ===== */
+function showEmailInfo(){
+  if(currentUser && currentUser.email){
+    alert('Ваш email: ' + currentUser.email);
   }
 }
 
 async function logoutUser(){
   await sb.auth.signOut();
   currentUser = null;
-  chats = JSON.parse(localStorage.getItem('harmonyai_chats') || '[]');
-  updateAccountUI();
-  newChat();
+  closeSettings();
+  closeSidebar();
+  history=[]; currentChatId=null; chats=[];
+  switchAuth('login');
+  showAuthGate();
 }
 
 function updateAccountUI(){
   const nameEl = document.getElementById('profileName');
-  const btnEl = document.getElementById('loginBtn');
   const sidebarName = document.getElementById('sidebarAccountName');
+  const emailVal = document.getElementById('accountEmailValue');
   if(currentUser){
-    nameEl.textContent = currentUser.nickname;
-    sidebarName.textContent = currentUser.nickname;
-    btnEl.textContent = 'Выйти';
+    nameEl.textContent = currentUser.nickname || currentUser.email;
+    sidebarName.textContent = currentUser.nickname || currentUser.email;
+    if(emailVal) emailVal.textContent = currentUser.email;
   }else{
     nameEl.textContent = 'Гость';
     sidebarName.textContent = 'Гость';
-    btnEl.textContent = 'Войти / Зарегистрироваться';
+    if(emailVal) emailVal.textContent = '';
   }
 }
 
-async function loadProfile(userId){
+async function loadProfile(userId, email){
   const { data, error } = await sb.from('profiles').select('*').eq('id', userId).single();
   if(!error && data){
-    currentUser = { id: userId, nickname: data.nickname, role: data.role };
+    currentUser = { id:userId, email, nickname:data.nickname, role:data.role };
+  }else{
+    currentUser = { id:userId, email, nickname:email.split('@')[0], role:'user' };
   }
 }
 
@@ -537,11 +735,14 @@ async function loadCloudChats(){
 async function initAuth(){
   const { data:{ session } } = await sb.auth.getSession();
   if(session){
-    await loadProfile(session.user.id);
+    await loadProfile(session.user.id, session.user.email);
     await loadCloudChats();
+    hideAuthGate();
+    newChat();
   }else{
     currentUser = null;
-    chats = JSON.parse(localStorage.getItem('harmonyai_chats') || '[]');
+    switchAuth('login');
+    showAuthGate();
   }
   updateAccountUI();
   renderChatList();
@@ -678,12 +879,9 @@ function closeSettings(){
   document.getElementById('settingsOverlay').classList.remove('open');
 }
 function showScreen(name){
-  ['main','personalization','memory','login'].forEach(s=>{
+  ['main','personalization','memory'].forEach(s=>{
     document.getElementById('screen-'+s).style.display = (s===name) ? 'flex' : 'none';
   });
-  if(name==='login'){
-    document.getElementById('authError').style.display='none';
-  }
 }
 
 /* ===== Chat history (saved on this device) ===== */
