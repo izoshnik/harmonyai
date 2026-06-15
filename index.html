@@ -237,65 +237,106 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
 .toggle::after{content:'';position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s;}
 .toggle.on::after{transform:translateX(18px);}
 
-/* Auth modal */
-.auth-modal-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.5);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;visibility:hidden;transition:opacity .25s;}
+/* Auth screens (standalone, dark/black, per design mockups) */
+.auth-modal-overlay{position:fixed;inset:0;z-index:200;opacity:0;visibility:hidden;transition:opacity .25s;}
 .auth-modal-overlay.open{opacity:1;visibility:visible;}
-.auth-modal{
-  width:100%;max-width:380px;position:relative;
-  backdrop-filter:blur(28px) saturate(180%);-webkit-backdrop-filter:blur(28px) saturate(180%);
-  background-color:var(--glass-strong);
-  background-image:linear-gradient(180deg,var(--glass-gloss),transparent 55%);
-  border:1px solid var(--glass-border);border-radius:28px;padding:30px 24px;
-  box-shadow:inset 0 1px 0 var(--glass-highlight),0 20px 60px rgba(0,0,0,0.35);
-  display:flex;flex-direction:column;gap:14px;
+.auth-screen{
+  position:absolute;inset:0;display:flex;flex-direction:column;justify-content:space-between;
+  padding:54px 26px 38px;
+  background-color:#0b0b0e;
 }
-.auth-modal-close{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:50%;background:var(--glass);border:1px solid var(--glass-border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--icon);}
-.auth-modal-logo{font-size:26px;font-weight:900;letter-spacing:-.5px;background:linear-gradient(135deg,#a855f7,#60a5fa,#f472b6);-webkit-background-clip:text;background-clip:text;color:transparent;text-align:center;margin-top:6px;}
-.auth-modal-tagline{font-size:12.5px;color:var(--text);opacity:.55;text-align:center;margin-bottom:4px;}
-.auth-input{
-  width:100%;background-color:var(--glass);background-image:linear-gradient(180deg,var(--glass-gloss),transparent 60%);
-  border:1px solid var(--glass-border2);box-shadow:inset 0 1px 0 var(--glass-highlight);
-  border-radius:12px;padding:13px 14px;font-size:var(--font-base);color:var(--text);font-family:'Inter',sans-serif;outline:none;
+.auth-screen-logo{font-size:16px;font-weight:800;letter-spacing:.5px;color:rgba(255,255,255,0.5);}
+.auth-screen-body{display:flex;flex-direction:column;gap:16px;margin-top:60px;}
+.auth-welcome-heading{font-size:29px;font-weight:900;line-height:1.28;color:#ffffff;letter-spacing:-.5px;}
+.auth-welcome-sub{font-size:14px;color:rgba(255,255,255,0.45);line-height:1.6;}
+.auth-bottom-card{
+  background-color:rgba(255,255,255,0.05);
+  border:1px solid rgba(255,255,255,0.08);border-radius:24px;padding:18px;
 }
-.auth-input::placeholder{color:var(--text);opacity:.4;}
-.code-input{text-align:center;font-size:26px;font-weight:800;letter-spacing:10px;}
+.auth-bottom-area{display:flex;flex-direction:column;gap:14px;}
+.auth-pill-input{
+  width:100%;background-color:rgba(255,255,255,0.08);
+  border:1px solid rgba(255,255,255,0.06);
+  border-radius:999px;padding:18px 22px;font-size:15px;font-weight:700;color:#ffffff;font-family:'Inter',sans-serif;outline:none;
+}
+.auth-pill-input::placeholder{color:rgba(255,255,255,0.35);font-weight:700;}
 .auth-primary-btn{
-  text-align:center;cursor:pointer;padding:13px;border-radius:14px;font-weight:700;font-size:14px;
-  background:#7c3aed;color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,0.25),0 4px 16px rgba(124,58,237,0.4);
+  text-align:center;cursor:pointer;padding:17px;border-radius:999px;font-weight:800;font-size:15px;
+  background:#f5f5f0;color:#0b0b0e;
 }
-.auth-subtitle{font-size:12.5px;color:var(--text);opacity:.55;text-align:center;margin-top:-6px;margin-bottom:2px;word-break:break-all;}
+.otp-pill{
+  display:flex;justify-content:space-between;align-items:center;gap:6px;
+  background:#f5f5f0;border-radius:999px;padding:20px 18px;
+}
+.otp-digit{
+  flex:1;min-width:0;text-align:center;font-size:24px;font-weight:800;color:#0b0b0e;
+  background:transparent;border:none;border-bottom:3px dashed rgba(0,0,0,0.22);outline:none;
+  font-family:'Inter',sans-serif;padding-bottom:5px;
+}
+.auth-subtitle{font-size:12.5px;color:rgba(255,255,255,0.4);word-break:break-all;}
 .auth-error{color:#ff7a7a;font-size:12px;font-weight:600;display:none;text-align:center;}
-.auth-resend{font-size:12.5px;font-weight:700;color:var(--text);opacity:.8;text-align:center;cursor:pointer;}
-.auth-resend.disabled{opacity:.35;cursor:default;}
-.auth-back{font-size:12.5px;font-weight:600;color:var(--text);opacity:.5;text-align:center;cursor:pointer;margin-top:-2px;}
+.auth-resend{font-size:13px;font-weight:700;color:rgba(255,255,255,0.55);cursor:pointer;}
+.auth-resend.disabled{opacity:.5;cursor:default;}
+.auth-beta{font-size:11px;color:rgba(255,255,255,0.3);text-align:center;letter-spacing:1.5px;}
+.auth-back{font-size:13px;font-weight:600;color:rgba(255,255,255,0.45);text-align:center;cursor:pointer;}
 </style>
+
+
 </head>
 <body data-theme="dark" data-size="md">
 <canvas id="bg"></canvas>
 
-<!-- Auth modal -->
+<!-- Auth screens -->
 <div class="auth-modal-overlay open" id="authModalOverlay">
-  <div class="auth-modal">
-    <div id="authStepChoice" style="display:flex;flex-direction:column;gap:12px;">
-      <div class="auth-modal-logo">HarmonyAI</div>
-      <div class="auth-modal-tagline">ИИ для учеников музыкальной школы</div>
-      <div class="auth-modal-tagline" style="margin-top:-6px;opacity:.7">Подойдёт любая почта: Mail.ru, Яндекс, Gmail и др.</div>
 
-      <input class="auth-input" id="authEmailInput" type="email" placeholder="Email" autocomplete="email" inputmode="email" onkeydown="if(event.key==='Enter')sendEmailCode()">
-      <div class="auth-error" id="authEmailError"></div>
-      <div class="auth-primary-btn" id="authSendCodeBtn" onclick="sendEmailCode()">Отправить код</div>
+  <div class="auth-screen" id="authStepWelcome">
+    <div class="auth-screen-logo">HarmonyAI</div>
+    <div class="auth-screen-body">
+      <div class="auth-welcome-heading">ИИ для учеников музыкальной школы</div>
+      <div class="auth-welcome-sub">Подходит не только для музыкальной тематики. Он умеет всё!</div>
     </div>
-
-    <div id="authStepCode" style="display:none;flex-direction:column;gap:12px;">
-      <div class="auth-modal-logo" style="font-size:18px">Введите код</div>
-      <div class="auth-subtitle" id="authCodeEmailDisplay"></div>
-      <input class="auth-input code-input" id="authCodeInput" type="text" inputmode="numeric" maxlength="6" placeholder="••••••" onkeydown="if(event.key==='Enter')verifyEmailCode()">
-      <div class="auth-error" id="authCodeError"></div>
-      <div class="auth-primary-btn" id="authVerifyBtn" onclick="verifyEmailCode()">Подтвердить</div>
-      <div class="auth-resend" id="authResendBtn" onclick="resendEmailCode()">Не приходит код? Отправить снова</div>
-      <div class="auth-back" onclick="backToChoice()">← Изменить email</div>
+    <div class="auth-bottom-card">
+      <div class="auth-primary-btn" onclick="goToEmailStep()">Продолжить с Email</div>
     </div>
   </div>
+
+  <div class="auth-screen" id="authStepChoice" style="display:none">
+    <div class="auth-screen-logo">HarmonyAI</div>
+    <div class="auth-screen-body">
+      <div class="auth-welcome-heading" style="font-size:25px">Введите ваш Email адрес</div>
+      <input class="auth-pill-input" id="authEmailInput" type="email" placeholder="Введите email.." autocomplete="email" inputmode="email" onkeydown="if(event.key==='Enter')sendEmailCode()">
+      <div class="auth-error" id="authEmailError"></div>
+    </div>
+    <div class="auth-bottom-area">
+      <div class="auth-primary-btn" id="authSendCodeBtn" onclick="sendEmailCode()">Продолжить</div>
+      <div class="auth-back" onclick="backToWelcome()">← Назад</div>
+      <div class="auth-beta">beta version 1.0</div>
+    </div>
+  </div>
+
+  <div class="auth-screen" id="authStepCode" style="display:none">
+    <div class="auth-screen-logo">HarmonyAI</div>
+    <div class="auth-screen-body">
+      <div class="auth-welcome-heading" style="font-size:25px">Введите 6-ти значный код</div>
+      <div class="auth-subtitle" id="authCodeEmailDisplay"></div>
+      <div class="otp-pill">
+        <input class="otp-digit" type="text" inputmode="numeric" maxlength="1">
+        <input class="otp-digit" type="text" inputmode="numeric" maxlength="1">
+        <input class="otp-digit" type="text" inputmode="numeric" maxlength="1">
+        <input class="otp-digit" type="text" inputmode="numeric" maxlength="1">
+        <input class="otp-digit" type="text" inputmode="numeric" maxlength="1">
+        <input class="otp-digit" type="text" inputmode="numeric" maxlength="1">
+      </div>
+      <div class="auth-error" id="authCodeError"></div>
+      <div class="auth-resend" id="authResendBtn" onclick="resendEmailCode()">Не приходит код? Отправить снова</div>
+    </div>
+    <div class="auth-bottom-area">
+      <div class="auth-primary-btn" id="authVerifyBtn" onclick="verifyEmailCode()">Подтвердить</div>
+      <div class="auth-back" onclick="backToChoice()">← Изменить email</div>
+      <div class="auth-beta">beta version 1.0</div>
+    </div>
+  </div>
+
 </div>
 
 <!-- Sidebar -->
@@ -542,20 +583,62 @@ function isValidEmail(e){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
 /* ===== Auth modal ===== */
 function openAuthModal(){
   document.getElementById('authModalOverlay').classList.add('open');
-  document.getElementById('authStepChoice').style.display='flex';
+  document.getElementById('authStepWelcome').style.display='flex';
+  document.getElementById('authStepChoice').style.display='none';
   document.getElementById('authStepCode').style.display='none';
   document.getElementById('authEmailInput').value='';
-  document.getElementById('authCodeInput').value='';
+  clearOtpInputs();
   document.getElementById('authEmailError').style.display='none';
   document.getElementById('authCodeError').style.display='none';
 }
 function closeAuthModal(){
   document.getElementById('authModalOverlay').classList.remove('open');
 }
+function goToEmailStep(){
+  document.getElementById('authStepWelcome').style.display='none';
+  document.getElementById('authStepChoice').style.display='flex';
+  document.getElementById('authEmailInput').focus();
+}
+function backToWelcome(){
+  document.getElementById('authStepChoice').style.display='none';
+  document.getElementById('authStepWelcome').style.display='flex';
+}
 function backToChoice(){
   document.getElementById('authStepCode').style.display='none';
   document.getElementById('authStepChoice').style.display='flex';
 }
+
+/* OTP digit inputs */
+function getOtpInputs(){
+  return Array.from(document.querySelectorAll('#authStepCode .otp-digit'));
+}
+function getOtpCode(){
+  return getOtpInputs().map(i=>i.value).join('');
+}
+function clearOtpInputs(){
+  getOtpInputs().forEach(i=>i.value='');
+}
+function setupOtpInputs(){
+  const inputs = getOtpInputs();
+  inputs.forEach((inp,idx)=>{
+    inp.addEventListener('input',()=>{
+      inp.value = inp.value.replace(/[^0-9]/g,'').slice(0,1);
+      if(inp.value && idx<inputs.length-1) inputs[idx+1].focus();
+    });
+    inp.addEventListener('keydown',(e)=>{
+      if(e.key==='Backspace' && !inp.value && idx>0) inputs[idx-1].focus();
+      if(e.key==='Enter') verifyEmailCode();
+    });
+    inp.addEventListener('paste',(e)=>{
+      e.preventDefault();
+      const text=(e.clipboardData.getData('text')||'').replace(/[^0-9]/g,'').slice(0,6);
+      text.split('').forEach((ch,i)=>{ if(inputs[i]) inputs[i].value=ch; });
+      const last = Math.min(text.length,6)-1;
+      if(inputs[last]) inputs[last].focus();
+    });
+  });
+}
+setupOtpInputs();
 async function sendEmailCode(){
   const email = document.getElementById('authEmailInput').value.trim();
   const errEl = document.getElementById('authEmailError');
@@ -568,17 +651,19 @@ async function sendEmailCode(){
     if(error) throw error;
     authEmail = email;
     document.getElementById('authCodeEmailDisplay').textContent = email;
+    clearOtpInputs();
+    document.getElementById('authCodeError').style.display='none';
     document.getElementById('authStepChoice').style.display='none';
     document.getElementById('authStepCode').style.display='flex';
-    document.getElementById('authCodeInput').focus();
+    getOtpInputs()[0].focus();
     startResendCooldown();
   }catch(e){
     errEl.textContent = translateError(e.message);
     errEl.style.display='block';
-  }finally{ btn.textContent='Отправить код'; }
+  }finally{ btn.textContent='Продолжить'; }
 }
 async function verifyEmailCode(){
-  const code = document.getElementById('authCodeInput').value.trim();
+  const code = getOtpCode();
   const errEl = document.getElementById('authCodeError');
   errEl.style.display='none';
   if(!/^\d{6}$/.test(code)){ errEl.textContent='Введите 6-значный код из письма'; errEl.style.display='block'; return; }
