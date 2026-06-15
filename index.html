@@ -274,12 +274,8 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
 <canvas id="bg"></canvas>
 
 <!-- Auth modal -->
-<div class="auth-modal-overlay" id="authModalOverlay">
+<div class="auth-modal-overlay open" id="authModalOverlay">
   <div class="auth-modal">
-    <div class="auth-modal-close" onclick="closeAuthModal()">
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-    </div>
-
     <div id="authStepChoice" style="display:flex;flex-direction:column;gap:12px;">
       <div class="auth-modal-logo">HarmonyAI</div>
       <div class="auth-modal-tagline">ИИ для учеников музыкальной школы</div>
@@ -625,9 +621,10 @@ async function logoutUser(){
   currentUser = null;
   closeSettings();
   history=[]; currentChatId=null;
-  chats = JSON.parse(localStorage.getItem('harmonyai_chats') || '[]');
-  newChat();
+  chats=[];
+  document.getElementById('chat').innerHTML='';
   updateAccountUI();
+  openAuthModal();
 }
 function updateAccountUI(){
   const nameEl = document.getElementById('profileName');
@@ -686,8 +683,10 @@ async function initAuth(){
     await loadProfile(session.user.id, session.user.email);
     await migrateLocalChats();
     await loadCloudChats();
+    closeAuthModal();
   }else{
     currentUser = null;
+    openAuthModal();
   }
   updateAccountUI();
   renderChatList();
@@ -924,8 +923,8 @@ function addAiMessage(text, opts={}){
   actions.className='msg-actions';
   actions.innerHTML =
     '<div class="msg-action-btn" onclick="copyMsg(this)" title="Копировать">'+ICON_COPY+'</div>'+
-    '<div class="msg-action-btn" onclick="likeMsg(this,\\'like\\')" title="Нравится">'+ICON_LIKE+'</div>'+
-    '<div class="msg-action-btn" onclick="likeMsg(this,\\'dislike\\')" title="Не нравится">'+ICON_DISLIKE+'</div>'+
+    '<div class="msg-action-btn" onclick="likeMsg(this,\'like\')" title="Нравится">'+ICON_LIKE+'</div>'+
+    '<div class="msg-action-btn" onclick="likeMsg(this,\'dislike\')" title="Не нравится">'+ICON_DISLIKE+'</div>'+
     '<div class="msg-action-btn" onclick="shareMsg(this)" title="Поделиться">'+ICON_SHARE+'</div>'+
     '<div class="msg-action-btn" onclick="toggleMoreMenu(this)" title="Ещё">'+ICON_MORE+'</div>'+
     '<div class="msg-more-menu"><div class="msg-more-item" onclick="regenerateMsg(this)">↻ Повторить</div></div>';
