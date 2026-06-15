@@ -17,10 +17,10 @@
   --glass-strong:rgba(255,255,255,0.16);
   --glass-border:rgba(255,255,255,0.28);
   --glass-border2:rgba(255,255,255,0.14);
+  --glass-highlight:rgba(255,255,255,0.28);
+  --glass-gloss:rgba(255,255,255,0.10);
   --row-hover:rgba(255,255,255,0.08);
   --row-border:rgba(255,255,255,0.1);
-  --ai-bubble:rgba(255,255,255,0.1);
-  --ai-bubble-border:rgba(255,255,255,0.15);
   --send-bg:rgba(255,255,255,0.9);
   --send-icon:#222;
   --panel-bg:rgba(8,8,15,0.55);
@@ -35,10 +35,10 @@
   --glass-strong:rgba(255,255,255,0.8);
   --glass-border:rgba(0,0,0,0.08);
   --glass-border2:rgba(0,0,0,0.07);
+  --glass-highlight:rgba(255,255,255,0.9);
+  --glass-gloss:rgba(255,255,255,0.55);
   --row-hover:rgba(0,0,0,0.04);
   --row-border:rgba(0,0,0,0.07);
-  --ai-bubble:rgba(255,255,255,0.65);
-  --ai-bubble-border:rgba(0,0,0,0.06);
   --send-bg:#15152b;
   --send-icon:#ffffff;
   --panel-bg:rgba(238,240,246,0.6);
@@ -51,30 +51,93 @@ body{font-family:'Inter',sans-serif;background:var(--bg);min-height:100vh;displa
 canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
 .app{position:relative;z-index:2;width:100%;max-width:420px;min-height:100vh;display:flex;flex-direction:column;padding:20px 16px 32px;}
 .top-bar{display:flex;justify-content:space-between;align-items:center;}
-.glass-btn{backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);background:var(--glass);border:1px solid var(--glass-border);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:10px;color:var(--icon);}
-.chat-area{flex:1;display:flex;flex-direction:column;gap:10px;padding:20px 0;overflow-y:auto;min-height:300px;}
+.glass-btn{
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  background-color:var(--glass);
+  background-image:linear-gradient(180deg,var(--glass-gloss),transparent 60%);
+  border:1px solid var(--glass-border);border-radius:50%;
+  box-shadow:inset 0 1px 0 var(--glass-highlight);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;padding:10px;color:var(--icon);
+}
+.chat-area{flex:1;display:flex;flex-direction:column;gap:14px;padding:20px 0;overflow-y:auto;min-height:300px;}
 .greeting{flex:1;display:flex;align-items:center;justify-content:center;padding:60px 0;}
 .greeting-text{font-size:var(--font-greeting);font-weight:900;color:var(--text);line-height:1.25;text-align:center;}
 .bottom{display:flex;flex-direction:column;gap:8px;margin-top:auto;}
-.model-pill{backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);background:var(--glass);border:1px solid var(--glass-border);border-radius:18px;padding:6px 12px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-weight:600;color:var(--text);align-self:flex-start;position:relative;}
+.model-pill{
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  background-color:var(--glass);
+  background-image:linear-gradient(180deg,var(--glass-gloss),transparent 60%);
+  border:1px solid var(--glass-border);border-radius:18px;
+  box-shadow:inset 0 1px 0 var(--glass-highlight);
+  padding:6px 12px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-weight:600;color:var(--text);align-self:flex-start;position:relative;
+}
 .model-dot{width:6px;height:6px;border-radius:50%;background:#a8ff78;box-shadow:0 0 4px #a8ff78;flex-shrink:0;}
-.input-glass{backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);background:var(--glass);border:1px solid var(--glass-border);border-radius:22px;padding:12px 14px;display:flex;align-items:center;gap:10px;}
+.input-glass{
+  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  background-color:var(--glass);
+  background-image:linear-gradient(180deg,var(--glass-gloss),transparent 60%);
+  border:1px solid var(--glass-border);border-radius:22px;
+  box-shadow:inset 0 1px 0 var(--glass-highlight);
+  padding:12px 14px;display:flex;align-items:center;gap:10px;
+}
 .input-glass input{flex:1;background:transparent;border:none;outline:none;font-family:'Inter',sans-serif;font-size:var(--font-base);color:var(--text);}
 .input-glass input::placeholder{color:var(--text);opacity:.4;}
-.icon-btn{width:32px;height:32px;border-radius:50%;background:var(--glass);border:1px solid var(--glass-border);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:var(--icon);}
-.send-btn{width:34px;height:34px;border-radius:50%;background:var(--send-bg);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:var(--send-icon);}
-.bubble{max-width:80%;padding:10px 14px;border-radius:16px;font-size:var(--font-base);line-height:1.5;word-break:break-word;white-space:pre-wrap;}
-.bubble.ai{background:var(--ai-bubble);border:1px solid var(--ai-bubble-border);color:var(--text);align-self:flex-start;border-bottom-left-radius:4px;}
-.bubble.user{background:#7c3aed;color:#fff;align-self:flex-end;border-bottom-right-radius:4px;}
-.dropdown{position:absolute;bottom:36px;left:0;width:200px;backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);background:var(--panel-bg);border:1px solid var(--glass-border);border-radius:16px;overflow:hidden;z-index:30;display:none;}
+.icon-btn{
+  width:32px;height:32px;border-radius:50%;
+  background-color:var(--glass);
+  background-image:linear-gradient(180deg,var(--glass-gloss),transparent 60%);
+  border:1px solid var(--glass-border);
+  box-shadow:inset 0 1px 0 var(--glass-highlight);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:var(--icon);
+}
+.send-btn{width:34px;height:34px;border-radius:50%;background:var(--send-bg);box-shadow:inset 0 1px 0 rgba(255,255,255,0.35);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:var(--send-icon);}
+
+/* Messages */
+.msg-user{
+  align-self:flex-end;max-width:85%;
+  background-color:var(--glass);
+  background-image:linear-gradient(180deg,var(--glass-gloss),transparent 60%);
+  border:1px solid var(--glass-border);
+  box-shadow:inset 0 1px 0 var(--glass-highlight);
+  border-radius:18px;padding:10px 16px;font-size:var(--font-base);line-height:1.5;color:var(--text);word-break:break-word;white-space:pre-wrap;
+}
+.msg-ai-wrap{display:flex;flex-direction:column;align-self:stretch;}
+.msg-ai{font-size:var(--font-base);line-height:1.65;color:var(--text);word-break:break-word;white-space:pre-wrap;user-select:text;-webkit-user-select:text;}
+.msg-actions{display:flex;align-items:center;gap:6px;margin-top:8px;position:relative;}
+.msg-action-btn{
+  width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  background-color:var(--glass);border:1px solid var(--glass-border2);color:var(--icon);opacity:.55;cursor:pointer;
+  transition:opacity .15s,background .15s;
+}
+.msg-action-btn:hover{opacity:1;background:var(--row-hover);}
+.msg-action-btn.liked{color:#86efac;opacity:1;border-color:rgba(134,239,172,0.4);}
+.msg-action-btn.disliked{color:#ff8a8a;opacity:1;border-color:rgba(255,138,138,0.4);}
+.msg-more-menu{
+  position:absolute;bottom:36px;left:0;
+  background:var(--panel-bg);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  border:1px solid var(--glass-border);border-radius:14px;padding:6px;display:none;z-index:20;
+  box-shadow:0 10px 30px rgba(0,0,0,0.25);
+}
+.msg-more-menu.open{display:block;}
+.msg-more-item{padding:9px 18px;font-size:13px;font-weight:600;color:var(--text);border-radius:10px;cursor:pointer;white-space:nowrap;}
+.msg-more-item:hover{background:var(--row-hover);}
+
+.dropdown{
+  position:absolute;bottom:36px;left:0;width:210px;
+  backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);
+  background:var(--panel-bg);border:1px solid var(--glass-border);border-radius:18px;overflow:hidden;z-index:30;display:none;
+  box-shadow:inset 0 1px 0 var(--glass-highlight),0 12px 30px rgba(0,0,0,0.25);
+}
 .dropdown.open{display:block;}
 .d-option{padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text);border-bottom:0.5px solid var(--row-border);}
 .d-option:last-child{border-bottom:none;}
 .d-option:hover{background:var(--row-hover);}
-.d-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
-.check{margin-left:auto;color:#a8ff78;}
-.typing{display:flex;gap:4px;padding:10px 14px;background:var(--ai-bubble);border:1px solid var(--ai-bubble-border);border-radius:16px;border-bottom-left-radius:4px;align-self:flex-start;}
-.typing span{width:6px;height:6px;border-radius:50%;background:var(--text);opacity:.5;animation:bounce 1.2s infinite;}
+.d-icon{width:30px;height:30px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:inset 0 1px 0 rgba(255,255,255,0.35);}
+.d-icon.lite{background:linear-gradient(135deg,#34d399,#0ea5a5);}
+.d-icon.pro{background:linear-gradient(135deg,#a855f7,#6366f1);}
+.check{margin-left:auto;color:#86efac;}
+.typing{display:flex;gap:5px;padding:4px 2px;align-self:flex-start;}
+.typing span{width:7px;height:7px;border-radius:50%;background:var(--text);opacity:.35;animation:bounce 1.2s infinite;}
 .typing span:nth-child(2){animation-delay:.2s;}
 .typing span:nth-child(3){animation-delay:.4s;}
 @keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
@@ -82,7 +145,15 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
 /* Sidebar */
 .overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.45);z-index:40;opacity:0;visibility:hidden;transition:opacity .3s;}
 .overlay.open{opacity:1;visibility:visible;}
-.sidebar{position:fixed;top:0;left:0;width:82%;max-width:300px;height:100%;background:var(--panel-bg);backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);border-right:1px solid var(--glass-border2);z-index:50;transform:translateX(-105%);transition:transform .32s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;padding:20px 14px;}
+.sidebar{
+  position:fixed;top:0;left:0;width:82%;max-width:300px;height:100%;
+  background-color:var(--panel-bg);
+  background-image:linear-gradient(180deg,var(--glass-gloss),transparent 40%);
+  backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);
+  border-right:1px solid var(--glass-border2);z-index:50;transform:translateX(-105%);
+  transition:transform .32s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;padding:20px 14px;
+  box-shadow:inset -1px 0 0 var(--glass-highlight);
+}
 .sidebar.open{transform:translateX(0);}
 .sidebar-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;padding:0 4px;}
 .sidebar-title{font-size:22px;font-weight:900;color:var(--text);}
@@ -96,7 +167,7 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
 .sidebar-footer{display:flex;align-items:center;justify-content:space-between;padding:12px 6px 0;border-top:1px solid var(--row-border);margin-top:8px;}
 .account-row{display:flex;align-items:center;gap:10px;color:var(--text);font-size:13px;font-weight:700;cursor:pointer;padding:6px;border-radius:10px;}
 .account-row:hover{background:var(--row-hover);}
-.avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#a855f7,#60a5fa);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#a855f7,#60a5fa);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;box-shadow:inset 0 1px 0 rgba(255,255,255,0.4);}
 
 /* Settings */
 .settings-overlay{position:fixed;inset:0;z-index:70;background:var(--panel-bg);backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);transform:translateY(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;}
@@ -104,13 +175,24 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
 .settings-screen{flex:1;display:flex;flex-direction:column;padding:20px 18px 28px;overflow-y:auto;max-width:420px;width:100%;margin:0 auto;}
 .settings-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;min-height:36px;}
 .settings-title{font-size:16px;font-weight:800;color:var(--text);}
-.back-btn{width:36px;height:36px;border-radius:50%;backdrop-filter:blur(20px);background:var(--glass);border:1px solid var(--glass-border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--icon);}
+.back-btn{width:36px;height:36px;border-radius:50%;backdrop-filter:blur(20px);background:var(--glass);border:1px solid var(--glass-border);box-shadow:inset 0 1px 0 var(--glass-highlight);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--icon);}
 .profile{display:flex;flex-direction:column;align-items:center;margin:8px 0 22px;}
-.avatar-lg{width:76px;height:76px;border-radius:50%;background:linear-gradient(135deg,#a855f7,#60a5fa);display:flex;align-items:center;justify-content:center;font-size:30px;margin-bottom:10px;box-shadow:0 6px 24px rgba(168,85,247,0.35);}
+.avatar-lg{width:76px;height:76px;border-radius:50%;background:linear-gradient(135deg,#a855f7,#60a5fa);display:flex;align-items:center;justify-content:center;font-size:30px;margin-bottom:10px;box-shadow:inset 0 2px 0 rgba(255,255,255,0.4),0 6px 24px rgba(168,85,247,0.35);}
 .profile-name{font-size:17px;font-weight:800;color:var(--text);margin-bottom:10px;}
-.login-btn{backdrop-filter:blur(20px);background:var(--glass);border:1px solid var(--glass-border);border-radius:16px;padding:9px 20px;font-size:13px;font-weight:700;color:var(--text);cursor:pointer;}
+.login-btn{
+  backdrop-filter:blur(20px);background-color:var(--glass);
+  background-image:linear-gradient(180deg,var(--glass-gloss),transparent 60%);
+  border:1px solid var(--glass-border);box-shadow:inset 0 1px 0 var(--glass-highlight);
+  border-radius:16px;padding:9px 20px;font-size:13px;font-weight:700;color:var(--text);cursor:pointer;
+}
 .section-label{font-size:12px;font-weight:700;color:var(--text);opacity:.45;text-transform:uppercase;letter-spacing:.6px;margin:0 6px 8px;}
-.section{backdrop-filter:blur(24px);background:var(--glass);border:1px solid var(--glass-border2);border-radius:18px;overflow:hidden;margin-bottom:22px;}
+.section{
+  backdrop-filter:blur(24px);
+  background-color:var(--glass);
+  background-image:linear-gradient(180deg,var(--glass-gloss),transparent 50%);
+  border:1px solid var(--glass-border2);border-radius:18px;overflow:hidden;margin-bottom:22px;
+  box-shadow:inset 0 1px 0 var(--glass-highlight);
+}
 .row{display:flex;align-items:center;gap:14px;padding:14px 16px;cursor:pointer;transition:background .15s;}
 .row:hover{background:var(--row-hover);}
 .row+.row{border-top:1px solid var(--row-border);}
@@ -126,7 +208,7 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
 
 /* Theme cards */
 .theme-row{display:flex;gap:12px;margin-bottom:22px;}
-.theme-card{flex:1;border-radius:16px;border:2px solid var(--glass-border2);overflow:hidden;cursor:pointer;background:var(--glass);}
+.theme-card{flex:1;border-radius:16px;border:2px solid var(--glass-border2);overflow:hidden;cursor:pointer;background:var(--glass);box-shadow:inset 0 1px 0 var(--glass-highlight);}
 .theme-card.active{border-color:#a855f7;}
 .theme-preview{height:78px;display:flex;align-items:center;justify-content:center;gap:6px;}
 .theme-preview.dark{background:linear-gradient(135deg,#1c1c30,#08080f);}
@@ -136,33 +218,13 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
 
 /* Size selector */
 .size-row{display:flex;gap:8px;margin-bottom:22px;}
-.size-opt{flex:1;padding:13px;border-radius:14px;background:var(--glass);border:2px solid var(--glass-border2);text-align:center;cursor:pointer;color:var(--text);font-weight:700;}
+.size-opt{flex:1;padding:13px;border-radius:14px;background:var(--glass);border:2px solid var(--glass-border2);box-shadow:inset 0 1px 0 var(--glass-highlight);text-align:center;cursor:pointer;color:var(--text);font-weight:700;}
 .size-opt.active{border-color:#a855f7;background:rgba(168,85,247,0.15);}
 .size-opt .lbl-a{display:block;}
 .size-opt.sm .lbl-a{font-size:13px;}
 .size-opt.md .lbl-a{font-size:16px;}
 .size-opt.lg .lbl-a{font-size:19px;}
 .size-opt .lbl-b{display:block;font-size:10px;opacity:.5;font-weight:600;margin-top:4px;}
-
-/* Auth gate */
-.auth-gate{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(36px);-webkit-backdrop-filter:blur(36px);background:var(--panel-bg);}
-.auth-gate-content{width:100%;max-width:380px;display:flex;flex-direction:column;align-items:center;}
-.auth-logo{font-size:36px;font-weight:900;letter-spacing:-.5px;background:linear-gradient(135deg,#a855f7,#60a5fa,#f472b6);-webkit-background-clip:text;background-clip:text;color:transparent;}
-.auth-tagline{font-size:13px;color:var(--text);opacity:.55;margin:6px 0 28px;text-align:center;}
-.auth-card{width:100%;backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);background:var(--glass);border:1px solid var(--glass-border);border-radius:24px;padding:26px 22px;display:flex;flex-direction:column;gap:14px;}
-.auth-card-title{font-size:18px;font-weight:800;color:var(--text);text-align:center;margin-bottom:2px;}
-.auth-subtitle{font-size:12.5px;color:var(--text);opacity:.55;text-align:center;margin-top:-6px;margin-bottom:4px;word-break:break-all;}
-.code-input{text-align:center;font-size:26px;font-weight:800;letter-spacing:10px;}
-.auth-hint{font-size:11.5px;color:var(--text);opacity:.4;text-align:center;}
-.auth-resend{font-size:12.5px;font-weight:700;color:var(--text);opacity:.8;text-align:center;cursor:pointer;}
-.auth-resend.disabled{opacity:.35;cursor:default;}
-.auth-back{font-size:12.5px;font-weight:600;color:var(--text);opacity:.5;text-align:center;cursor:pointer;margin-top:-2px;}
-
-/* Auth form */
-.auth-input{width:100%;background:var(--glass);border:1px solid var(--glass-border2);border-radius:12px;padding:13px 14px;font-size:var(--font-base);color:var(--text);font-family:'Inter',sans-serif;outline:none;}
-.auth-input::placeholder{color:var(--text);opacity:.4;}
-.auth-error{color:#ff7a7a;font-size:12px;font-weight:600;display:none;text-align:center;}
-.auth-submit{text-align:center;cursor:pointer;}
 
 /* Memory toggles */
 .mem-row{padding:16px;display:flex;align-items:center;gap:14px;}
@@ -174,82 +236,71 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
 .toggle.on{background:#7c3aed;border-color:#7c3aed;}
 .toggle::after{content:'';position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s;}
 .toggle.on::after{transform:translateX(18px);}
+
+/* Auth modal */
+.auth-modal-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.5);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;visibility:hidden;transition:opacity .25s;}
+.auth-modal-overlay.open{opacity:1;visibility:visible;}
+.auth-modal{
+  width:100%;max-width:380px;position:relative;
+  backdrop-filter:blur(28px) saturate(180%);-webkit-backdrop-filter:blur(28px) saturate(180%);
+  background-color:var(--glass-strong);
+  background-image:linear-gradient(180deg,var(--glass-gloss),transparent 55%);
+  border:1px solid var(--glass-border);border-radius:28px;padding:30px 24px;
+  box-shadow:inset 0 1px 0 var(--glass-highlight),0 20px 60px rgba(0,0,0,0.35);
+  display:flex;flex-direction:column;gap:14px;
+}
+.auth-modal-close{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:50%;background:var(--glass);border:1px solid var(--glass-border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--icon);}
+.auth-modal-logo{font-size:26px;font-weight:900;letter-spacing:-.5px;background:linear-gradient(135deg,#a855f7,#60a5fa,#f472b6);-webkit-background-clip:text;background-clip:text;color:transparent;text-align:center;margin-top:6px;}
+.auth-modal-tagline{font-size:12.5px;color:var(--text);opacity:.55;text-align:center;margin-bottom:4px;}
+.auth-input{
+  width:100%;background-color:var(--glass);background-image:linear-gradient(180deg,var(--glass-gloss),transparent 60%);
+  border:1px solid var(--glass-border2);box-shadow:inset 0 1px 0 var(--glass-highlight);
+  border-radius:12px;padding:13px 14px;font-size:var(--font-base);color:var(--text);font-family:'Inter',sans-serif;outline:none;
+}
+.auth-input::placeholder{color:var(--text);opacity:.4;}
+.code-input{text-align:center;font-size:26px;font-weight:800;letter-spacing:10px;}
+.auth-primary-btn{
+  text-align:center;cursor:pointer;padding:13px;border-radius:14px;font-weight:700;font-size:14px;
+  background:#7c3aed;color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,0.25),0 4px 16px rgba(124,58,237,0.4);
+}
+.auth-subtitle{font-size:12.5px;color:var(--text);opacity:.55;text-align:center;margin-top:-6px;margin-bottom:2px;word-break:break-all;}
+.auth-error{color:#ff7a7a;font-size:12px;font-weight:600;display:none;text-align:center;}
+.auth-resend{font-size:12.5px;font-weight:700;color:var(--text);opacity:.8;text-align:center;cursor:pointer;}
+.auth-resend.disabled{opacity:.35;cursor:default;}
+.auth-back{font-size:12.5px;font-weight:600;color:var(--text);opacity:.5;text-align:center;cursor:pointer;margin-top:-2px;}
 </style>
 </head>
 <body data-theme="dark" data-size="md">
 <canvas id="bg"></canvas>
 
-<!-- Auth gate -->
-<div class="auth-gate" id="authGate">
-  <div class="auth-gate-content">
-    <div class="auth-logo">HarmonyAI</div>
-    <div class="auth-tagline">Твой путь к музыкальной гармонии</div>
-
-    <!-- Регистрация -->
-    <div class="auth-card" id="authStepRegister">
-      <div class="auth-card-title">Регистрация</div>
-      <input class="auth-input" id="regEmail" type="email" placeholder="Email" autocomplete="email" inputmode="email">
-      <input class="auth-input" id="regPassword" type="password" placeholder="Пароль" autocomplete="new-password">
-      <input class="auth-input" id="regPassword2" type="password" placeholder="Повторите пароль" autocomplete="new-password">
-      <div class="auth-error" id="regError"></div>
-      <div class="login-btn auth-submit" id="regBtn" onclick="registerUser()">Зарегистрироваться</div>
-      <div class="auth-back" onclick="switchAuth('login')">Уже есть аккаунт? Войти</div>
+<!-- Auth modal -->
+<div class="auth-modal-overlay" id="authModalOverlay">
+  <div class="auth-modal">
+    <div class="auth-modal-close" onclick="closeAuthModal()">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
     </div>
 
-    <!-- Подтверждение email после регистрации -->
-    <div class="auth-card" id="authStepVerify" style="display:none">
-      <div class="auth-card-title">Введите код</div>
-      <div class="auth-subtitle" id="verifyEmailDisplay"></div>
-      <input class="auth-input code-input" id="verifyCode" type="text" inputmode="numeric" maxlength="6" placeholder="••••••" onkeydown="if(event.key==='Enter')verifyRegCode()">
-      <div class="auth-error" id="verifyError"></div>
-      <div class="login-btn auth-submit" id="verifyBtn" onclick="verifyRegCode()">Подтвердить</div>
-      <div class="auth-resend" id="verifyResendBtn" onclick="resendVerifyCode()">Не приходит код? Отправить снова</div>
-      <div class="auth-back" onclick="switchAuth('register')">Изменить email</div>
+    <div id="authStepChoice" style="display:flex;flex-direction:column;gap:12px;">
+      <div class="auth-modal-logo">HarmonyAI</div>
+      <div class="auth-modal-tagline">ИИ для учеников музыкальной школы</div>
+      <div class="auth-modal-tagline" style="margin-top:-6px;opacity:.7">Подойдёт любая почта: Mail.ru, Яндекс, Gmail и др.</div>
+
+      <input class="auth-input" id="authEmailInput" type="email" placeholder="Email" autocomplete="email" inputmode="email" onkeydown="if(event.key==='Enter')sendEmailCode()">
+      <div class="auth-error" id="authEmailError"></div>
+      <div class="auth-primary-btn" id="authSendCodeBtn" onclick="sendEmailCode()">Отправить код</div>
     </div>
 
-    <!-- Вход -->
-    <div class="auth-card" id="authStepLogin" style="display:none">
-      <div class="auth-card-title">Вход в HarmonyAI</div>
-      <input class="auth-input" id="loginEmail" type="email" placeholder="Email" autocomplete="email" inputmode="email">
-      <input class="auth-input" id="loginPassword" type="password" placeholder="Пароль" autocomplete="current-password">
-      <div class="auth-error" id="loginError"></div>
-      <div class="login-btn auth-submit" id="loginBtn2" onclick="loginUser()">Войти</div>
-      <div class="auth-back" onclick="switchAuth('forgot')" style="opacity:.7">Забыли пароль?</div>
-      <div class="auth-back" onclick="switchAuth('register')">Нет аккаунта? Зарегистрироваться</div>
+    <div id="authStepCode" style="display:none;flex-direction:column;gap:12px;">
+      <div class="auth-modal-logo" style="font-size:18px">Введите код</div>
+      <div class="auth-subtitle" id="authCodeEmailDisplay"></div>
+      <input class="auth-input code-input" id="authCodeInput" type="text" inputmode="numeric" maxlength="6" placeholder="••••••" onkeydown="if(event.key==='Enter')verifyEmailCode()">
+      <div class="auth-error" id="authCodeError"></div>
+      <div class="auth-primary-btn" id="authVerifyBtn" onclick="verifyEmailCode()">Подтвердить</div>
+      <div class="auth-resend" id="authResendBtn" onclick="resendEmailCode()">Не приходит код? Отправить снова</div>
+      <div class="auth-back" onclick="backToChoice()">← Изменить email</div>
     </div>
-
-    <!-- Забыл пароль — шаг 1: email -->
-    <div class="auth-card" id="authStepForgot" style="display:none">
-      <div class="auth-card-title">Сброс пароля</div>
-      <div class="auth-hint" style="margin-bottom:4px">Введите email — пришлём код для сброса пароля</div>
-      <input class="auth-input" id="forgotEmail" type="email" placeholder="Email" autocomplete="email" inputmode="email">
-      <div class="auth-error" id="forgotError"></div>
-      <div class="login-btn auth-submit" id="forgotBtn" onclick="sendResetCode()">Отправить код</div>
-      <div class="auth-back" onclick="switchAuth('login')">Вернуться ко входу</div>
-    </div>
-
-    <!-- Забыл пароль — шаг 2: код -->
-    <div class="auth-card" id="authStepResetCode" style="display:none">
-      <div class="auth-card-title">Введите код</div>
-      <div class="auth-subtitle" id="resetEmailDisplay"></div>
-      <input class="auth-input code-input" id="resetCode" type="text" inputmode="numeric" maxlength="6" placeholder="••••••">
-      <div class="auth-error" id="resetCodeError"></div>
-      <div class="login-btn auth-submit" id="resetCodeBtn" onclick="verifyResetCode()">Подтвердить</div>
-      <div class="auth-resend" id="resetResendBtn" onclick="resendResetCode()">Не приходит код? Отправить снова</div>
-    </div>
-
-    <!-- Забыл пароль — шаг 3: новый пароль -->
-    <div class="auth-card" id="authStepNewPassword" style="display:none">
-      <div class="auth-card-title">Новый пароль</div>
-      <input class="auth-input" id="newPassword" type="password" placeholder="Придумайте пароль">
-      <input class="auth-input" id="newPassword2" type="password" placeholder="Повторите пароль">
-      <div class="auth-error" id="newPasswordError"></div>
-      <div class="login-btn auth-submit" id="newPasswordBtn" onclick="setNewPassword()">Сохранить пароль</div>
-    </div>
-
   </div>
 </div>
-
 
 <!-- Sidebar -->
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
@@ -284,7 +335,6 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
 <!-- Settings overlay -->
 <div class="settings-overlay" id="settingsOverlay">
 
-  <!-- Main settings screen -->
   <div class="settings-screen" id="screen-main">
     <div class="settings-header">
       <div></div>
@@ -295,7 +345,7 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
     <div class="profile">
       <div class="avatar-lg" id="profileAvatar">🎵</div>
       <div class="profile-name" id="profileName">Гость</div>
-      <div class="login-btn" id="loginBtn" onclick="logoutUser()" style="background:rgba(255,80,80,0.18);border:1px solid rgba(255,80,80,0.4);color:#ff6b6b;">Выйти</div>
+      <div class="login-btn" id="loginBtn">Войти / Зарегистрироваться</div>
     </div>
 
     <div class="section-label">Настроить HarmonyAI</div>
@@ -346,7 +396,6 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
     </div>
   </div>
 
-  <!-- Personalization screen -->
   <div class="settings-screen" id="screen-personalization" style="display:none">
     <div class="settings-header">
       <div class="back-btn" onclick="showScreen('main')">
@@ -390,7 +439,6 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
     </div>
   </div>
 
-  <!-- Memory screen -->
   <div class="settings-screen" id="screen-memory" style="display:none">
     <div class="settings-header">
       <div class="back-btn" onclick="showScreen('main')">
@@ -442,12 +490,16 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
       <span style="font-size:9px;opacity:.7">▼</span>
       <div class="dropdown" id="drop">
         <div class="d-option" onclick="selectM(event,'lite')">
-          <div class="d-icon" style="background:rgba(168,255,120,0.2)">🌿</div>
+          <div class="d-icon lite">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M5 14C5 8 9 4 19 4C19 14 15 19 9 19C7 19 5 17 5 14Z" stroke="white" stroke-width="1.8" stroke-linejoin="round"/><path d="M5 19L11 13" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </div>
           <div><div style="font-weight:700">MusMind Lite</div><div style="font-size:10px;opacity:.5">Быстро и легко</div></div>
           <span class="check" id="ck-lite">✓</span>
         </div>
         <div class="d-option" onclick="selectM(event,'pro')">
-          <div class="d-icon" style="background:rgba(180,100,255,0.25)">✨</div>
+          <div class="d-icon pro">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" stroke="white" stroke-width="1.4" stroke-linejoin="round" fill="white" fill-opacity="0.18"/></svg>
+          </div>
           <div><div style="font-weight:700">MusMind Pro</div><div style="font-size:10px;opacity:.5">Максимум возможностей</div></div>
           <span class="check" id="ck-pro" style="opacity:0">✓</span>
         </div>
@@ -468,7 +520,7 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
 </div>
 
 <script>
-const SYSTEM = "Ты HarmonyAI — музыкальный ИИ-помощник для учеников музыкальной школы. Ты отлично знаешь сольфеджио, музыкальную грамоту, ноты, интервалы, аккорды, лады, ритм, размеры, динамику, темп, музыкальные термины. Отвечай на русском языке. Будь дружелюбным и понятным для детей и подростков. Объясняй просто и с примерами. Если пользователь присылает фото с нотами, аккордами или интервалами — внимательно их разбери и объясни.";
+const SYSTEM = "Ты HarmonyAI — музыкальный ИИ-помощник для учеников музыкальной школы. Ты мужского пола: всегда говори о себе в мужском роде (например, 'я готов помочь', 'я понял', а не 'готова'/'поняла'). Ты отлично знаешь сольфеджио, музыкальную грамоту, ноты, интервалы, аккорды, лады, ритм, размеры, динамику, темп, музыкальные термины. Отвечай на русском языке. Будь дружелюбным и понятным для детей и подростков. Объясняй просто и с примерами. Если пользователь присылает фото с нотами, аккордами или интервалами — внимательно их разбери и объясни.";
 
 /* ===== Supabase ===== */
 const SUPABASE_URL = 'https://cqthnymltqpcxtpiryka.supabase.co';
@@ -476,245 +528,132 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let currentUser = null;
-let resetEmail = '';
-let verifyEmail = '';
-let resendVerifyTimer = null;
-let resendVerifyLeft = 0;
-let resendResetTimer = null;
-let resendResetLeft = 0;
+let authEmail = '';
+let resendTimer = null;
+let resendLeft = 0;
 
 function translateError(msg){
   if(!msg) return 'Что-то пошло не так, попробуй ещё раз';
-  if(msg.includes('Invalid login') || msg.includes('Invalid email or password') || msg.includes('invalid_grant')) return 'Неверный email или пароль';
-  if(msg.includes('Email not confirmed')) return 'Email не подтверждён. Проверьте почту';
-  if(msg.includes('User already registered')) return 'Аккаунт с таким email уже существует';
-  if(msg.includes('Unable to validate email') || msg.includes('invalid email')) return 'Введите корректный email';
-  if(msg.includes('Password should be')) return 'Пароль должен быть не менее 6 символов';
   if(msg.includes('Token has expired') || msg.includes('expired')) return 'Код устарел, запросите новый';
-  if(msg.includes('Invalid token') || msg.includes('Invalid OTP') || msg.includes('otp_expired')) return 'Неверный код, попробуйте ещё раз';
+  if(msg.includes('Invalid token') || msg.includes('Invalid OTP') || msg.includes('otp_expired') || msg.includes('Token has')) return 'Неверный код, попробуйте ещё раз';
   if(msg.includes('rate limit') || msg.includes('Email rate limit')) return 'Слишком много попыток. Подождите немного';
+  if(msg.includes('Unable to validate email') || msg.includes('invalid email')) return 'Введите корректный email';
+  if(msg.includes('Unsupported provider') || msg.includes('provider is not enabled')) return 'Вход через Google скоро будет доступен';
   return 'Ошибка: ' + msg;
 }
-
 function isValidEmail(e){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
 
-function showAuthGate(){ document.getElementById('authGate').style.display='flex'; }
-function hideAuthGate(){ document.getElementById('authGate').style.display='none'; }
-
-function switchAuth(mode){
-  ['authStepRegister','authStepVerify','authStepLogin','authStepForgot','authStepResetCode','authStepNewPassword'].forEach(id=>{
-    document.getElementById(id).style.display='none';
-  });
-  if(mode==='register') document.getElementById('authStepRegister').style.display='flex';
-  if(mode==='login') document.getElementById('authStepLogin').style.display='flex';
-  if(mode==='forgot') document.getElementById('authStepForgot').style.display='flex';
+/* ===== Auth modal ===== */
+function openAuthModal(){
+  document.getElementById('authModalOverlay').classList.add('open');
+  document.getElementById('authStepChoice').style.display='flex';
+  document.getElementById('authStepCode').style.display='none';
+  document.getElementById('authEmailInput').value='';
+  document.getElementById('authCodeInput').value='';
+  document.getElementById('authEmailError').style.display='none';
+  document.getElementById('authCodeError').style.display='none';
 }
-
-/* ===== РЕГИСТРАЦИЯ ===== */
-async function registerUser(){
-  const email = document.getElementById('regEmail').value.trim();
-  const pass = document.getElementById('regPassword').value;
-  const pass2 = document.getElementById('regPassword2').value;
-  const errEl = document.getElementById('regError');
+function closeAuthModal(){
+  document.getElementById('authModalOverlay').classList.remove('open');
+}
+function backToChoice(){
+  document.getElementById('authStepCode').style.display='none';
+  document.getElementById('authStepChoice').style.display='flex';
+}
+async function sendEmailCode(){
+  const email = document.getElementById('authEmailInput').value.trim();
+  const errEl = document.getElementById('authEmailError');
   errEl.style.display='none';
   if(!isValidEmail(email)){ errEl.textContent='Введите корректный email'; errEl.style.display='block'; return; }
-  if(pass.length < 6){ errEl.textContent='Пароль должен быть не менее 6 символов'; errEl.style.display='block'; return; }
-  if(pass !== pass2){ errEl.textContent='Пароли не совпадают'; errEl.style.display='block'; return; }
-  const btn = document.getElementById('regBtn');
-  btn.textContent='Регистрируем...';
-  try{
-    const { error } = await sb.auth.signUp({ email, password: pass });
-    if(error) throw error;
-    verifyEmail = email;
-    document.getElementById('verifyEmailDisplay').textContent = email;
-    document.getElementById('verifyCode').value='';
-    document.getElementById('verifyError').style.display='none';
-    ['authStepRegister'].forEach(id=>document.getElementById(id).style.display='none');
-    document.getElementById('authStepVerify').style.display='flex';
-    document.getElementById('verifyCode').focus();
-    startCooldown('verify');
-  }catch(e){
-    errEl.textContent = translateError(e.message);
-    errEl.style.display='block';
-  }finally{ btn.textContent='Зарегистрироваться'; }
-}
-
-async function verifyRegCode(){
-  const code = document.getElementById('verifyCode').value.trim();
-  const errEl = document.getElementById('verifyError');
-  errEl.style.display='none';
-  if(!/^\d{6}$/.test(code)){ errEl.textContent='Введите 6-значный код из письма'; errEl.style.display='block'; return; }
-  const btn = document.getElementById('verifyBtn');
-  btn.textContent='Проверяем...';
-  try{
-    const { error } = await sb.auth.verifyOtp({ email: verifyEmail, token: code, type:'signup' });
-    if(error) throw error;
-    await initAuth();
-  }catch(e){
-    errEl.textContent = translateError(e.message);
-    errEl.style.display='block';
-  }finally{ btn.textContent='Подтвердить'; }
-}
-
-async function resendVerifyCode(){
-  if(resendVerifyLeft>0) return;
-  try{
-    await sb.auth.resend({ type:'signup', email: verifyEmail });
-    startCooldown('verify');
-  }catch(e){}
-}
-
-/* ===== ВХОД ===== */
-async function loginUser(){
-  const email = document.getElementById('loginEmail').value.trim();
-  const pass = document.getElementById('loginPassword').value;
-  const errEl = document.getElementById('loginError');
-  errEl.style.display='none';
-  if(!isValidEmail(email)){ errEl.textContent='Введите корректный email'; errEl.style.display='block'; return; }
-  if(!pass){ errEl.textContent='Введите пароль'; errEl.style.display='block'; return; }
-  const btn = document.getElementById('loginBtn2');
-  btn.textContent='Входим...';
-  try{
-    const { error } = await sb.auth.signInWithPassword({ email, password: pass });
-    if(error) throw error;
-    await initAuth();
-  }catch(e){
-    errEl.textContent = translateError(e.message);
-    errEl.style.display='block';
-  }finally{ btn.textContent='Войти'; }
-}
-
-/* ===== СБРОС ПАРОЛЯ ===== */
-async function sendResetCode(){
-  const email = document.getElementById('forgotEmail').value.trim();
-  const errEl = document.getElementById('forgotError');
-  errEl.style.display='none';
-  if(!isValidEmail(email)){ errEl.textContent='Введите корректный email'; errEl.style.display='block'; return; }
-  const btn = document.getElementById('forgotBtn');
+  const btn = document.getElementById('authSendCodeBtn');
   btn.textContent='Отправляем...';
   try{
-    const { error } = await sb.auth.signInWithOtp({ email, options:{ shouldCreateUser:false } });
+    const { error } = await sb.auth.signInWithOtp({ email });
     if(error) throw error;
-    resetEmail = email;
-    document.getElementById('resetEmailDisplay').textContent = email;
-    document.getElementById('resetCode').value='';
-    document.getElementById('resetCodeError').style.display='none';
-    document.getElementById('authStepForgot').style.display='none';
-    document.getElementById('authStepResetCode').style.display='flex';
-    document.getElementById('resetCode').focus();
-    startCooldown('reset');
+    authEmail = email;
+    document.getElementById('authCodeEmailDisplay').textContent = email;
+    document.getElementById('authStepChoice').style.display='none';
+    document.getElementById('authStepCode').style.display='flex';
+    document.getElementById('authCodeInput').focus();
+    startResendCooldown();
   }catch(e){
     errEl.textContent = translateError(e.message);
     errEl.style.display='block';
   }finally{ btn.textContent='Отправить код'; }
 }
-
-async function verifyResetCode(){
-  const code = document.getElementById('resetCode').value.trim();
-  const errEl = document.getElementById('resetCodeError');
+async function verifyEmailCode(){
+  const code = document.getElementById('authCodeInput').value.trim();
+  const errEl = document.getElementById('authCodeError');
   errEl.style.display='none';
-  if(!/^\d{6}$/.test(code)){ errEl.textContent='Введите 6-значный код'; errEl.style.display='block'; return; }
-  const btn = document.getElementById('resetCodeBtn');
+  if(!/^\d{6}$/.test(code)){ errEl.textContent='Введите 6-значный код из письма'; errEl.style.display='block'; return; }
+  const btn = document.getElementById('authVerifyBtn');
   btn.textContent='Проверяем...';
   try{
-    const { error } = await sb.auth.verifyOtp({ email: resetEmail, token: code, type:'magiclink' });
+    const { error } = await sb.auth.verifyOtp({ email: authEmail, token: code, type:'email' });
     if(error) throw error;
-    document.getElementById('authStepResetCode').style.display='none';
-    document.getElementById('authStepNewPassword').style.display='flex';
-    document.getElementById('newPassword').focus();
+    closeAuthModal();
+    await initAuth();
+    newChat();
   }catch(e){
     errEl.textContent = translateError(e.message);
     errEl.style.display='block';
   }finally{ btn.textContent='Подтвердить'; }
 }
-
-async function resendResetCode(){
-  if(resendResetLeft>0) return;
-  try{
-    await sb.auth.signInWithOtp({ email: resetEmail, options:{ shouldCreateUser:false } });
-    startCooldown('reset');
-  }catch(e){}
+async function resendEmailCode(){
+  if(resendLeft>0) return;
+  try{ await sb.auth.signInWithOtp({ email: authEmail }); startResendCooldown(); }catch(e){}
 }
-
-async function setNewPassword(){
-  const pass = document.getElementById('newPassword').value;
-  const pass2 = document.getElementById('newPassword2').value;
-  const errEl = document.getElementById('newPasswordError');
-  errEl.style.display='none';
-  if(pass.length < 6){ errEl.textContent='Пароль должен быть не менее 6 символов'; errEl.style.display='block'; return; }
-  if(pass !== pass2){ errEl.textContent='Пароли не совпадают'; errEl.style.display='block'; return; }
-  const btn = document.getElementById('newPasswordBtn');
-  btn.textContent='Сохраняем...';
-  try{
-    const { error } = await sb.auth.updateUser({ password: pass });
-    if(error) throw error;
-    await initAuth();
-  }catch(e){
-    errEl.textContent = translateError(e.message);
-    errEl.style.display='block';
-  }finally{ btn.textContent='Сохранить пароль'; }
+function startResendCooldown(){
+  resendLeft=60;
+  if(resendTimer) clearInterval(resendTimer);
+  const btn = document.getElementById('authResendBtn');
+  btn.classList.add('disabled');
+  btn.textContent='Отправить снова через 60 с';
+  resendTimer = setInterval(()=>{
+    resendLeft--;
+    if(resendLeft>0){ btn.textContent='Отправить снова через '+resendLeft+' с'; }
+    else{ btn.textContent='Не приходит код? Отправить снова'; btn.classList.remove('disabled'); clearInterval(resendTimer); }
+  },1000);
 }
-
-/* ===== Cooldown helper ===== */
-function startCooldown(type){
-  if(type==='verify'){
-    resendVerifyLeft=60;
-    if(resendVerifyTimer) clearInterval(resendVerifyTimer);
-    resendVerifyTimer = setInterval(()=>{
-      resendVerifyLeft--;
-      const btn = document.getElementById('verifyResendBtn');
-      if(resendVerifyLeft>0){ btn.textContent='Отправить снова через '+resendVerifyLeft+' с'; btn.classList.add('disabled'); }
-      else{ btn.textContent='Не приходит код? Отправить снова'; btn.classList.remove('disabled'); clearInterval(resendVerifyTimer); }
-    },1000);
-    const btn = document.getElementById('verifyResendBtn');
-    btn.textContent='Отправить снова через 60 с'; btn.classList.add('disabled');
-  }
-  if(type==='reset'){
-    resendResetLeft=60;
-    if(resendResetTimer) clearInterval(resendResetTimer);
-    resendResetTimer = setInterval(()=>{
-      resendResetLeft--;
-      const btn = document.getElementById('resetResendBtn');
-      if(resendResetLeft>0){ btn.textContent='Отправить снова через '+resendResetLeft+' с'; btn.classList.add('disabled'); }
-      else{ btn.textContent='Не приходит код? Отправить снова'; btn.classList.remove('disabled'); clearInterval(resendResetTimer); }
-    },1000);
-    const btn = document.getElementById('resetResendBtn');
-    btn.textContent='Отправить снова через 60 с'; btn.classList.add('disabled');
-  }
-}
-
-/* ===== Email info popup ===== */
+/* ===== Account ===== */
 function showEmailInfo(){
-  if(currentUser && currentUser.email){
-    alert('Ваш email: ' + currentUser.email);
-  }
+  if(currentUser && currentUser.email){ alert('Email: ' + currentUser.email); }
+  else{ openAuthModal(); }
 }
-
 async function logoutUser(){
   await sb.auth.signOut();
   currentUser = null;
   closeSettings();
-  closeSidebar();
-  history=[]; currentChatId=null; chats=[];
-  switchAuth('login');
-  showAuthGate();
+  history=[]; currentChatId=null;
+  chats = JSON.parse(localStorage.getItem('harmonyai_chats') || '[]');
+  newChat();
+  updateAccountUI();
 }
-
 function updateAccountUI(){
   const nameEl = document.getElementById('profileName');
   const sidebarName = document.getElementById('sidebarAccountName');
   const emailVal = document.getElementById('accountEmailValue');
+  const loginBtn = document.getElementById('loginBtn');
   if(currentUser){
     nameEl.textContent = currentUser.nickname || currentUser.email;
     sidebarName.textContent = currentUser.nickname || currentUser.email;
     if(emailVal) emailVal.textContent = currentUser.email;
+    loginBtn.textContent='Выйти';
+    loginBtn.style.background='rgba(255,80,80,0.18)';
+    loginBtn.style.borderColor='rgba(255,80,80,0.4)';
+    loginBtn.style.color='#ff6b6b';
+    loginBtn.onclick = logoutUser;
   }else{
     nameEl.textContent = 'Гость';
     sidebarName.textContent = 'Гость';
-    if(emailVal) emailVal.textContent = '';
+    if(emailVal) emailVal.textContent = 'Войти';
+    loginBtn.textContent='Войти / Зарегистрироваться';
+    loginBtn.style.background='';
+    loginBtn.style.borderColor='';
+    loginBtn.style.color='';
+    loginBtn.onclick = openAuthModal;
   }
 }
-
 async function loadProfile(userId, email){
   const { data, error } = await sb.from('profiles').select('*').eq('id', userId).single();
   if(!error && data){
@@ -723,7 +662,17 @@ async function loadProfile(userId, email){
     currentUser = { id:userId, email, nickname:email.split('@')[0], role:'user' };
   }
 }
-
+async function migrateLocalChats(){
+  const local = JSON.parse(localStorage.getItem('harmonyai_chats') || '[]');
+  if(local.length && currentUser){
+    for(const c of local){
+      try{
+        await sb.from('chats').upsert({ id:c.id+'_local', user_id:currentUser.id, title:c.title, history:c.history, updated_at:new Date().toISOString() });
+      }catch(e){}
+    }
+    localStorage.removeItem('harmonyai_chats');
+  }
+}
 async function loadCloudChats(){
   const { data, error } = await sb.from('chats').select('*').order('updated_at',{ascending:false});
   if(!error && data){
@@ -731,29 +680,24 @@ async function loadCloudChats(){
     renderChatList();
   }
 }
-
 async function initAuth(){
   const { data:{ session } } = await sb.auth.getSession();
   if(session){
     await loadProfile(session.user.id, session.user.email);
+    await migrateLocalChats();
     await loadCloudChats();
-    hideAuthGate();
-    newChat();
   }else{
     currentUser = null;
-    switchAuth('login');
-    showAuthGate();
   }
   updateAccountUI();
   renderChatList();
 }
 
-/* ===== Memory toggles ===== */
+/* ===== Memory / knowledge base ===== */
 function memOn(key){
   const el = document.getElementById('toggle-'+key);
   return !!(el && el.classList.contains('on'));
 }
-
 async function getSystemPrompt(){
   let sys = SYSTEM;
   if(memOn('recall')){
@@ -835,7 +779,7 @@ function draw(){
 }
 draw();
 
-/* ===== Model picker (visual only for now) ===== */
+/* ===== Model picker ===== */
 function toggleDrop(){
   dropOpen=!dropOpen;
   document.getElementById('drop').classList.toggle('open',dropOpen);
@@ -855,6 +799,9 @@ document.addEventListener('click',function(e){
   if(dropOpen && !e.target.closest('#pill')){
     dropOpen=false;
     document.getElementById('drop').classList.remove('open');
+  }
+  if(!e.target.closest('.msg-action-btn')){
+    document.querySelectorAll('.msg-more-menu.open').forEach(m=>m.classList.remove('open'));
   }
 });
 
@@ -884,7 +831,7 @@ function showScreen(name){
   });
 }
 
-/* ===== Chat history (saved on this device) ===== */
+/* ===== Chat history ===== */
 function renderChatList(){
   const list = document.getElementById('chatList');
   list.innerHTML='';
@@ -915,11 +862,7 @@ async function saveCurrentChat(){
   if(currentUser && memOn('save')){
     try{
       await sb.from('chats').upsert({
-        id: chat.id,
-        user_id: currentUser.id,
-        title: chat.title,
-        history: chat.history,
-        updated_at: new Date().toISOString()
+        id: chat.id, user_id: currentUser.id, title: chat.title, history: chat.history, updated_at: new Date().toISOString()
       });
     }catch(e){}
   }else{
@@ -936,7 +879,8 @@ function loadChat(id){
   chatEl.innerHTML='';
   history.forEach(m=>{
     const text=typeof m.content==='string'?m.content:(m.content.find(c=>c.type==='text')?.text||'[фото]');
-    addBubble(text, m.role==='user'?'user':'ai');
+    if(m.role==='user') addUserMessage(text);
+    else addAiMessage(text, {stream:false});
   });
   renderChatList();
   closeSidebar();
@@ -949,17 +893,129 @@ function newChat(){
   closeSidebar();
 }
 
-/* ===== Chat UI helpers ===== */
-function addBubble(text,type){
+/* ===== Message rendering ===== */
+const ICON_COPY='<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke="currentColor" stroke-width="2"/></svg>';
+const ICON_LIKE='<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M7 22H4a1 1 0 01-1-1v-9a1 1 0 011-1h3m4-9 1 1v6h6.28a2 2 0 011.98 2.3l-1.2 8A2 2 0 0114.08 22H7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const ICON_DISLIKE='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="transform:rotate(180deg)"><path d="M7 22H4a1 1 0 01-1-1v-9a1 1 0 011-1h3m4-9 1 1v6h6.28a2 2 0 011.98 2.3l-1.2 8A2 2 0 0114.08 22H7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const ICON_SHARE='<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 16V4M12 4L7 9M12 4l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 14v4a2 2 0 002 2h12a2 2 0 002-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+const ICON_MORE='<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="5" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="19" cy="12" r="1.5" fill="currentColor"/></svg>';
+
+function addUserMessage(text){
   const chat=document.getElementById('chat');
-  const g=chat.querySelector('.greeting');
-  if(g)g.remove();
+  const g=chat.querySelector('.greeting'); if(g)g.remove();
   const div=document.createElement('div');
-  div.className='bubble '+type;
+  div.className='msg-user';
   div.textContent=text;
   chat.appendChild(div);
   chat.scrollTop=chat.scrollHeight;
 }
+function addAiMessage(text, opts={}){
+  const chat=document.getElementById('chat');
+  const g=chat.querySelector('.greeting'); if(g)g.remove();
+
+  const wrap=document.createElement('div');
+  wrap.className='msg-ai-wrap';
+
+  const msg=document.createElement('div');
+  msg.className='msg-ai';
+  wrap.appendChild(msg);
+
+  const actions=document.createElement('div');
+  actions.className='msg-actions';
+  actions.innerHTML =
+    '<div class="msg-action-btn" onclick="copyMsg(this)" title="Копировать">'+ICON_COPY+'</div>'+
+    '<div class="msg-action-btn" onclick="likeMsg(this,\\'like\\')" title="Нравится">'+ICON_LIKE+'</div>'+
+    '<div class="msg-action-btn" onclick="likeMsg(this,\\'dislike\\')" title="Не нравится">'+ICON_DISLIKE+'</div>'+
+    '<div class="msg-action-btn" onclick="shareMsg(this)" title="Поделиться">'+ICON_SHARE+'</div>'+
+    '<div class="msg-action-btn" onclick="toggleMoreMenu(this)" title="Ещё">'+ICON_MORE+'</div>'+
+    '<div class="msg-more-menu"><div class="msg-more-item" onclick="regenerateMsg(this)">↻ Повторить</div></div>';
+  wrap.appendChild(actions);
+
+  chat.appendChild(wrap);
+  chat.scrollTop=chat.scrollHeight;
+
+  if(opts.stream){
+    return streamInto(msg, text, chat);
+  }else{
+    msg.textContent=text;
+    return Promise.resolve();
+  }
+}
+function streamInto(el, text, chat){
+  return new Promise(resolve=>{
+    let i=0;
+    function step(){
+      i+=2;
+      const shown = text.slice(0, Math.min(i, text.length));
+      el.textContent = shown + (i < text.length ? '▍' : '');
+      chat.scrollTop = chat.scrollHeight;
+      if(i < text.length) setTimeout(step, 4);
+      else resolve();
+    }
+    step();
+  });
+}
+function copyMsg(btn){
+  const wrap=btn.closest('.msg-ai-wrap');
+  const text=wrap.querySelector('.msg-ai').textContent;
+  navigator.clipboard.writeText(text).catch(()=>{});
+  btn.classList.add('liked');
+  setTimeout(()=>btn.classList.remove('liked'),900);
+}
+function likeMsg(btn,type){
+  const group=btn.parentElement;
+  const likeBtn=group.children[1], dislikeBtn=group.children[2];
+  if(type==='like'){
+    likeBtn.classList.toggle('liked');
+    dislikeBtn.classList.remove('disliked');
+  }else{
+    dislikeBtn.classList.toggle('disliked');
+    likeBtn.classList.remove('liked');
+  }
+}
+function shareMsg(btn){
+  const wrap=btn.closest('.msg-ai-wrap');
+  const text=wrap.querySelector('.msg-ai').textContent;
+  const formatted='HarmonyAI: '+text;
+  if(navigator.share){
+    navigator.share({text:formatted}).catch(()=>{});
+  }else{
+    navigator.clipboard.writeText(formatted).catch(()=>{});
+    btn.classList.add('liked');
+    setTimeout(()=>btn.classList.remove('liked'),900);
+  }
+}
+function toggleMoreMenu(btn){
+  const menu=btn.nextElementSibling;
+  document.querySelectorAll('.msg-more-menu.open').forEach(m=>{ if(m!==menu) m.classList.remove('open'); });
+  menu.classList.toggle('open');
+}
+async function regenerateMsg(item){
+  const menu=item.parentElement;
+  menu.classList.remove('open');
+  const wrap=menu.closest('.msg-ai-wrap');
+  const msgEl=wrap.querySelector('.msg-ai');
+
+  if(history.length && history[history.length-1].role==='assistant'){
+    history.pop();
+  }
+  msgEl.textContent='';
+  try{
+    const sysPrompt = await getSystemPrompt();
+    const res=await fetch('/api/chat',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({messages:[{role:'system',content:sysPrompt},...history]})
+    });
+    const data=await res.json();
+    const reply=data.choices?.[0]?.message?.content||'Нет ответа';
+    await streamInto(msgEl, reply, document.getElementById('chat'));
+    history.push({role:'assistant',content:reply});
+    await saveCurrentChat();
+  }catch(e){
+    msgEl.textContent='Ошибка соединения: '+e.message;
+  }
+}
+
 function showTyping(){
   const chat=document.getElementById('chat');
   const div=document.createElement('div');
@@ -980,7 +1036,7 @@ function handleFile(input){
   reader.readAsDataURL(file);
 }
 
-/* ===== Send message (goes through /api/chat, key stays secret) ===== */
+/* ===== Send message ===== */
 async function send(){
   const input=document.getElementById('msg');
   const text=input.value.trim();
@@ -999,7 +1055,7 @@ async function send(){
     userContent=text;
   }
 
-  addBubble(displayText,'user');
+  addUserMessage(displayText);
   history.push({role:'user',content:userContent});
   await saveCurrentChat();
   showTyping();
@@ -1014,17 +1070,17 @@ async function send(){
     const data=await res.json();
     if(data.error){
       hideTyping();
-      addBubble('Ошибка: '+(data.error.message||JSON.stringify(data.error)),'ai');
+      await addAiMessage('Ошибка: '+(data.error.message||JSON.stringify(data.error)), {stream:false});
       return;
     }
     const reply=data.choices?.[0]?.message?.content||'Нет ответа';
     hideTyping();
-    addBubble(reply,'ai');
+    await addAiMessage(reply, {stream:true});
     history.push({role:'assistant',content:reply});
     await saveCurrentChat();
   }catch(e){
     hideTyping();
-    addBubble('Ошибка соединения: '+e.message,'ai');
+    await addAiMessage('Ошибка соединения: '+e.message, {stream:false});
   }
 }
 </script>
