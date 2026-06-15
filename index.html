@@ -1,910 +1,619 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>HarmonyAI</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap');
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Harmony AI</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;1,400&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #050508;
+            color: #ffffff;
+            overflow: hidden;
+        }
+        
+        .serif-title {
+            font-family: 'Playfair Display', serif;
+        }
 
-:root {
-  --bg: #06060c;
-  --text: #ffffff;
-  --accent: #a78bfa;
-  --base-font: 15px;
-  
-  /* Ультра-глянцевая палитра Liquid Glass */
-  --glass-bg: rgba(255, 255, 255, 0.03);
-  --glass-card: rgba(255, 255, 255, 0.05);
-  --glass-border: rgba(255, 255, 255, 0.16);
-  --glass-border-strong: rgba(255, 255, 255, 0.28);
-  --glass-highlight: rgba(255, 255, 255, 0.12);
-  --blur-radius: 30px;
-  
-  --tg-gradient: linear-gradient(135deg, #2ae0ff 0%, #0088cc 100%);
-}
+        /* Эффект супер-глянцевого жидкого стекла (Liquid Glass iOS 26) */
+        .liquid-glass {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.02) 100%);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 
+                0 4px 30px rgba(0, 0, 0, 0.4),
+                inset 0 1px 1px rgba(255, 255, 255, 0.2),
+                inset 0 -1px 2px rgba(0, 0, 0, 0.2);
+        }
 
-[data-theme="light"] {
-  --bg: #f4f4f9;
-  --text: #0f0f14;
-  --glass-bg: rgba(0, 0, 0, 0.02);
-  --glass-card: rgba(0, 0, 0, 0.04);
-  --glass-border: rgba(0, 0, 0, 0.12);
-  --glass-border-strong: rgba(0, 0, 0, 0.25);
-  --glass-highlight: rgba(0, 0, 0, 0.05);
-}
+        .liquid-glass-input {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-  font-family: 'Inter', sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -webkit-tap-highlight-color: transparent;
-}
+        .liquid-glass-input:focus {
+            border-color: rgba(255, 255, 255, 0.3);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.02) 100%);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.05);
+        }
 
-body {
-  background-color: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  overflow: hidden;
-  position: relative;
-  transition: background-color 0.3s ease;
-}
+        /* Глянцевые кнопки в настройках */
+        .setting-card {
+            background: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 20px;
+        }
 
-/* Элементы размытого светящегося фона */
-.ambient-glow {
-  position: absolute;
-  width: 500px;
-  height: 500px;
-  background: radial-gradient(circle, rgba(139, 92, 246, 0.18) 0%, rgba(0,0,0,0) 70%);
-  top: -10%;
-  left: -10%;
-  z-index: 0;
-  pointer-events: none;
-}
-.ambient-glow-2 {
-  position: absolute;
-  width: 450px;
-  height: 450px;
-  background: radial-gradient(circle, rgba(167, 139, 250, 0.12) 0%, rgba(0,0,0,0) 70%);
-  bottom: -10%;
-  right: -10%;
-  z-index: 0;
-  pointer-events: none;
-}
+        /* Кастомный iOS Toggle Switch */
+        .ios-toggle {
+            appearance: none;
+            width: 46px;
+            height: 26px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .ios-toggle:checked {
+            background: #34c759;
+        }
+        .ios-toggle::before {
+            content: '';
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            border-radius: 50px;
+            top: 1px;
+            left: 1px;
+            background: #ffffff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .ios-toggle:checked::before {
+            transform: translateX(20px);
+        }
 
-/* Основной мобильный контейнер */
-.app-viewport {
-  width: 100vw;
-  height: 100vh;
-  max-width: 430px;
-  max-height: 860px;
-  background: rgba(10, 10, 18, 0.4);
-  border: 1px solid var(--glass-border);
-  box-shadow: 0 35px 80px rgba(0, 0, 0, 0.7), inset 0 1px 2px rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(var(--blur-radius)) saturate(190%);
-  -webkit-backdrop-filter: blur(var(--blur-radius)) saturate(190%);
-  border-radius: 42px;
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  z-index: 1;
-}
+        /* Мягкие фоновые неоновые сферы для глубины интерфейса */
+        .bg-glow-1 {
+            position: absolute;
+            top: -10%;
+            left: -10%;
+            width: 50%;
+            height: 50%;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.08) 0%, rgba(0,0,0,0) 70%);
+            pointer-events: none;
+            z-index: 1;
+        }
+        .bg-glow-2 {
+            position: absolute;
+            bottom: -10%;
+            right: -10%;
+            width: 60%;
+            height: 60%;
+            background: radial-gradient(circle, rgba(168, 85, 247, 0.06) 0%, rgba(0,0,0,0) 70%);
+            pointer-events: none;
+            z-index: 1;
+        }
 
-@media (max-width: 440px) {
-  .app-viewport { max-width: 100%; max-height: 100%; border-radius: 0; border: none; }
-}
+        /* Плавные переходы страниц */
+        .screen {
+            transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 10;
+        }
+        .screen.hidden {
+            opacity: 0;
+            transform: scale(0.97);
+            pointer-events: none;
+            position: absolute;
+        }
 
-/* Система управления экранами */
-.screen {
-  position: absolute;
-  top: 0; left: 0; width: 100%; height: 100%;
-  display: flex; flex-direction: column;
-  opacity: 0; pointer-events: none;
-  transform: scale(0.97);
-  transition: all 0.45s cubic-bezier(0.25, 1, 0.5, 1);
-  padding: 40px 24px;
-  z-index: 1;
-}
-.screen.active { opacity: 1; pointer-events: auto; transform: scale(1); z-index: 2; }
+        /* Анимация плавного появления текста ИИ */
+        .smooth-appear {
+            animation: textRollOut 0.5s ease forward;
+        }
+        @keyframes textRollOut {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
 
-/* Экран 1: Приветствие */
-.welcome-layout { justify-content: space-between; align-items: flex-start; }
-.brand-meta { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
-.brand-logo { width: 32px; height: 32px; background: linear-gradient(135deg, #fff 0%, var(--accent) 100%); border-radius: 9px; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(139, 92, 246, 0.3); font-size: 16px; }
-.brand-title { font-size: 19px; font-weight: 800; letter-spacing: -0.5px; }
-.welcome-hero-text { font-size: 35px; font-weight: 900; line-height: 1.2; letter-spacing: -1.2px; margin-top: 60px; }
-.welcome-desc { font-size: 16px; color: rgba(255,255,255,0.6); line-height: 1.5; margin-bottom: auto; margin-top: 16px; }
-[data-theme="light"] .welcome-desc { color: rgba(0,0,0,0.6); }
-
-/* Глянцевые кнопки Liquid Glass */
-.btn-liquid-glass {
-  width: 100%;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(235, 235, 245, 0.7) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  box-shadow: 0 12px 30px rgba(255, 255, 255, 0.12), inset 0 1px 1px #ffffff;
-  color: #000000; padding: 18px; border-radius: 22px;
-  font-size: 16px; font-weight: 600; text-align: center;
-  cursor: pointer; transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1);
-}
-.btn-liquid-glass:active { transform: scale(0.98); opacity: 0.9; }
-
-/* Экран 2: Email */
-.center-layout { justify-content: center; align-items: center; text-align: center; }
-.layout-title { font-size: 23px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 24px; }
-
-.pill-container {
-  width: 100%; background: var(--glass-bg); border: 1px solid var(--glass-border-strong);
-  box-shadow: inset 0 1px 2px rgba(255,255,255,0.05), 0 10px 30px rgba(0,0,0,0.15);
-  border-radius: 30px; padding: 6px 8px 6px 20px; display: flex; align-items: center;
-}
-.pill-input {
-  flex: 1; background: none; border: none; outline: none; color: var(--text); font-size: 16px;
-}
-.pill-input::placeholder { color: rgba(255,255,255,0.3); }
-[data-theme="light"] .pill-input::placeholder { color: rgba(0,0,0,0.3); }
-
-.pill-btn-submit {
-  width: 42px; height: 42px; background: #ffffff; border: none; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center; color: #000; cursor: pointer;
-  transition: transform 0.2s ease;
-}
-.pill-btn-submit:active { transform: scale(0.92); }
-
-/* Экран 3: ИСПРАВЛЕННЫЙ ВВОД КОДА (OTP) */
-.otp-box-wrapper {
-  position: relative; width: 100%; max-width: 300px; height: 66px; margin: 0 auto 24px auto;
-}
-.otp-glass-plate {
-  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-  background: #ffffff; border-radius: 33px; display: flex;
-  justify-content: center; align-items: center; gap: 14px;
-  box-shadow: 0 15px 40px rgba(255, 255, 255, 0.12); z-index: 1; pointer-events: none;
-}
-.otp-digit-slot {
-  position: relative; width: 22px; height: 35px; display: flex; flex-direction: column; align-items: center; justify-content: center;
-}
-.otp-digit-char { font-size: 24px; font-weight: 700; color: #000000; transform: translateY(-3px); }
-.otp-digit-dash { width: 16px; height: 3px; background: rgba(0, 0, 0, 0.18); border-radius: 2px; position: absolute; bottom: 4px; }
-.otp-digit-dash.active { background: #000000; height: 4px; }
-
-.native-otp-field {
-  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-  opacity: 0; z-index: 10; cursor: text; background: transparent;
-  border: none; outline: none; color: transparent; font-size: 32px; text-align: center;
-}
-
-/* Экран 4: Чат с ИИ */
-.chat-layout { padding: 0; }
-.chat-navbar {
-  height: 74px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between;
-  border-bottom: 1px solid var(--glass-border); background: rgba(10, 10, 20, 0.15);
-  backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); z-index: 10;
-}
-.nav-action-btn {
-  width: 40px; height: 40px; background: var(--glass-bg); border: 1px solid var(--glass-border);
-  border-radius: 13px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text);
-  transition: background 0.2s;
-}
-.nav-action-btn:shadow { background: var(--glass-card); }
-
-/* Переключатель моделей MusMind */
-.musmind-toggle {
-  display: flex; background: rgba(0, 0, 0, 0.35); border: 1px solid var(--glass-border);
-  padding: 3px; border-radius: 20px;
-}
-[data-theme="light"] .musmind-toggle { background: rgba(0, 0, 0, 0.06); }
-.musmind-tab {
-  padding: 6px 16px; font-size: 13px; font-weight: 600; border-radius: 16px; cursor: pointer; color: rgba(255,255,255,0.4);
-  transition: all 0.2s;
-}
-[data-theme="light"] .musmind-tab { color: rgba(0,0,0,0.5); }
-.musmind-tab.active {
-  background: linear-gradient(135deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.03) 100%);
-  border: 1px solid rgba(255,255,255,0.18); color: var(--text);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-
-.messages-scroller {
-  flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 20px;
-}
-.msg-bubble { max-width: 85%; font-size: var(--base-font); line-height: 1.5; }
-.msg-bubble.user {
-  align-self: flex-end; background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%);
-  border: 1px solid var(--glass-border); padding: 12px 18px; border-radius: 20px 20px 5px 20px;
-}
-.msg-bubble.ai { align-self: flex-start; max-width: 100%; color: var(--text); opacity: 0.95; }
-.msg-img-preview { max-width: 150px; border-radius: 12px; margin-bottom: 6px; display: block; border: 1px solid var(--glass-border); }
-
-/* Рабочая область ввода */
-.chat-footer-composer { padding: 14px 16px; background: rgba(8, 8, 16, 0.25); border-top: 1px solid var(--glass-border); }
-.composer-dock {
-  display: flex; align-items: flex-end; background: rgba(0, 0, 0, 0.25); border: 1px solid var(--glass-border);
-  border-radius: 24px; padding: 6px 8px 6px 14px; gap: 10px;
-}
-[data-theme="light"] .composer-dock { background: rgba(255, 255, 255, 0.7); }
-.composer-textarea {
-  flex: 1; background: none; border: none; outline: none; color: var(--text); font-size: 15px;
-  padding: 8px 0; resize: none; max-height: 140px; min-height: 36px; line-height: 1.4;
-}
-
-.attachment-trigger {
-  width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.5);
-  cursor: pointer; transition: color 0.2s; margin-bottom: 2px;
-}
-[data-theme="light"] .attachment-trigger { color: rgba(0,0,0,0.5); }
-.attachment-trigger.active { color: var(--accent); }
-
-/* Плавный Сайдбар */
-.sidebar-drawer {
-  position: absolute; top: 0; left: 0; width: 320px; height: 100%;
-  background: rgba(10, 10, 18, 0.94); backdrop-filter: blur(35px); -webkit-backdrop-filter: blur(35px);
-  border-right: 1px solid var(--glass-border); z-index: 100;
-  transform: translateX(-100%); transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
-  display: flex; flex-direction: column; padding: 24px 18px;
-}
-[data-theme="light"] .sidebar-drawer { background: rgba(240, 240, 245, 0.96); }
-.sidebar-drawer.open { transform: translateX(0); }
-
-.search-chats-box {
-  background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); border-radius: 14px;
-  padding: 10px 14px; width: 100%; color: #fff; outline: none; font-size: 14px; margin: 14px 0;
-}
-[data-theme="light"] .search-chats-box { background: #fff; color: #000; }
-
-.recent-chats-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
-.recent-chat-row {
-  padding: 12px; border-radius: 14px; font-size: 14px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  border: 1px solid transparent; transition: all 0.2s; color: rgba(255,255,255,0.7);
-}
-[data-theme="light"] .recent-chat-row { color: rgba(0,0,0,0.7); }
-.recent-chat-row:hover, .recent-chat-row.active {
-  background: var(--glass-bg); border-color: var(--glass-border); color: var(--text);
-}
-
-.sidebar-footer-account {
-  border-top: 1px solid var(--glass-border); padding-top: 14px; display: flex;
-  align-items: center; justify-content: space-between; cursor: pointer; margin-top: auto;
-}
-.account-info { display: flex; align-items: center; gap: 10px; overflow: hidden; }
-.account-avatar { width: 36px; height: 36px; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; color: #fff; }
-.account-email { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
-
-/* Панель Настроек (Внутри Сайдбара / Поверх) */
-.settings-overlay-panel {
-  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-  background: var(--bg); z-index: 110; transform: translateY(100%);
-  transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1); display: flex; flex-direction: column; padding: 24px 18px;
-}
-.settings-overlay-panel.open { transform: translateY(0); }
-
-.settings-header { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
-.settings-scrollable-content { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
-
-.settings-card-group {
-  background: var(--glass-card); border: 1px solid var(--glass-border); border-radius: 20px; overflow: hidden;
-}
-.settings-row-item {
-  display: flex; align-items: center; justify-content: space-between; padding: 14px 16px;
-  font-size: 14px; border-bottom: 1px solid var(--glass-border);
-}
-.settings-row-item:last-child { border-bottom: none; }
-
-/* Переключатели-свитчи */
-.glass-switch {
-  position: relative; width: 46px; height: 26px; background: rgba(255,255,255,0.1);
-  border-radius: 15px; cursor: pointer; transition: background 0.2s; border: 1px solid var(--glass-border);
-}
-.glass-switch::after {
-  content: ''; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px;
-  background: #ffffff; border-radius: 50%; transition: transform 0.2s;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-}
-.glass-switch.active { background: var(--accent); }
-.glass-switch.active::after { transform: translateX(20px); }
-
-.tg-gradient-btn {
-  background: var(--tg-gradient); border: none; color: #fff; padding: 14px;
-  border-radius: 16px; font-size: 15px; font-weight: 700; display: flex; align-items: center;
-  justify-content: center; gap: 8px; text-decoration: none; box-shadow: 0 8px 24px rgba(0, 136, 204, 0.3);
-}
-
-.dimmer-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(4px); z-index: 99; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
-.dimmer-overlay.active { opacity: 1; pointer-events: auto; }
-.err-lbl { color: #ff4d4d; font-size: 13px; margin-top: 8px; min-height: 18px; font-weight: 500; }
-
-.indicator-typing { display: flex; gap: 5px; padding: 8px 4px; align-self: flex-start; }
-.dot-node { width: 6px; height: 6px; background: rgba(255,255,255,0.4); border-radius: 50%; animation: pulse 1.2s infinite ease-in-out; }
-[data-theme="light"] .dot-node { background: rgba(0,0,0,0.4); }
-.dot-node:nth-child(2) { animation-delay: 0.2s; }
-.dot-node:nth-child(3) { animation-delay: 0.4s; }
-@keyframes pulse { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
-</style>
+        /* Анимация кастомного курсора ввода кода */
+        @keyframes blink {
+            50% { border-color: transparent; }
+        }
+        .code-dash.active {
+            border-bottom-color: #ffffff;
+            animation: blink 1s step-end infinite;
+        }
+    </style>
 </head>
-<body>
+<body class="flex items-center justify-center min-h-screen p-0 m-0 select-none">
 
-<div class="ambient-glow"></div>
-<div class="ambient-glow-2"></div>
+    <div class="bg-glow-1"></div>
+    <div class="bg-glow-2"></div>
 
-<div class="app-viewport">
-  <div class="dimmer-overlay" id="dimmerOverlay"></div>
-
-  <div class="sidebar-drawer" id="sidebarDrawer">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-      <button class="btn-liquid-glass" id="sidebarNewChatBtn" style="padding: 10px; font-size: 14px; border-radius: 12px; width: auto; flex: 1; margin-right: 10px;">+ Новый чат</button>
-      <div class="nav-action-btn" id="closeSidebarBtn">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
-      </div>
-    </div>
-    
-    <input type="text" class="search-chats-box" id="searchChatsInput" placeholder="Поиск по словам в чатах...">
-    
-    <div class="recent-chats-list" id="recentChatsList">
-      </div>
-    
-    <div class="sidebar-footer-account" id="openSettingsBtn">
-      <div class="account-info">
-        <div class="account-avatar" id="avatarLetter">G</div>
-        <div class="account-email" id="accountEmailLbl">Гость</div>
-      </div>
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-    </div>
-  </div>
-
-  <div class="settings-overlay-panel" id="settingsPanel">
-    <div class="settings-header">
-      <div class="nav-action-btn" id="closeSettingsBtn">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-      </div>
-      <div class="brand-title">Настройки</div>
-    </div>
-    
-    <div class="settings-scrollable-content">
-      <div class="settings-group-title" style="font-size: 11px; font-weight:600; color:rgba(255,255,255,0.4); text-transform:uppercase; margin-bottom: -12px; padding-left:6px;">Персонализация</div>
-      <div class="settings-card-group">
-        <div class="settings-row-item">
-          <div>Сменить тему</div>
-          <div style="display:flex; gap:6px;">
-            <button class="nav-action-btn" id="themeDarkBtn" style="font-size:12px; width:auto; padding:0 10px;">Темная</button>
-            <button class="nav-action-btn" id="themeLightBtn" style="font-size:12px; width:auto; padding:0 10px;">Белая</button>
-          </div>
-        </div>
-        <div class="settings-row-item">
-          <div>Размер шрифта</div>
-          <input type="range" id="fontSizeSlider" min="13" max="19" value="15" style="width:100px; accent-color:var(--accent);">
-        </div>
-      </div>
-
-      <div class="settings-group-title" style="font-size: 11px; font-weight:600; color:rgba(255,255,255,0.4); text-transform:uppercase; margin-bottom: -12px; padding-left:6px;">Память</div>
-      <div class="settings-card-group">
-        <div class="settings-row-item">
-          <div>Ссылаться на Историю чата</div>
-          <div class="glass-switch active" id="toggleHistorySwitch"></div>
-        </div>
-        <div class="settings-row-item">
-          <div>Использовать память</div>
-          <div class="glass-switch active" id="toggleMemorySwitch"></div>
-        </div>
-      </div>
-
-      <div class="settings-group-title" style="font-size: 11px; font-weight:600; color:rgba(255,255,255,0.4); text-transform:uppercase; margin-bottom: -12px; padding-left:6px;">Учетная запись</div>
-      <div class="settings-card-group">
-        <div class="settings-row-item">
-          <div style="display:flex; flex-direction:column;">
-            <span style="font-size:14px;" id="settingsEmailView">Email</span>
-            <span style="font-size:12px; color:rgba(255,255,255,0.4);" id="settingsSubStatus">MusMind Lite</span>
-          </div>
-          <button class="nav-action-btn" id="logoutActionBtn" style="color:#ff4d4d; border-color:rgba(255,77,77,0.2); font-size:13px; width:auto; padding:0 12px;">Выйти</button>
-        </div>
-        <div class="settings-row-item" style="cursor:pointer;" id="proUpgradeBtn">
-          <div style="color:var(--accent); font-weight:600;">Перейти на MusMind Pro</div>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
-        </div>
-      </div>
-
-      <a href="https://t.me/your_support_bot" target="_blank" class="tg-gradient-btn">
-        <span>Написать в поддержку Telegram</span>
-      </a>
-    </div>
-  </div>
-
-  <div class="screen welcome-layout active" id="welcomeScreen">
-    <div class="brand-meta"><div class="brand-logo">🎹</div><div class="brand-title">HarmonyAI</div></div>
-    <div>
-      <div class="welcome-hero-text">Чат с ИИ<br>для музыкальной<br>школы.</div>
-      <div class="welcome-desc">Подходит не только для музыкальной тематики. Он умеет все!</div>
-    </div>
-    <button class="btn-liquid-glass" id="nextToEmailBtn">Продолжить с Email</button>
-  </div>
-
-  <div class="screen center-layout" id="emailScreen">
-    <div class="brand-meta" style="position:absolute; top:40px; left:24px;"><div class="brand-logo">🎹</div><div class="brand-title">HarmonyAI</div></div>
-    <div class="layout-title">Введите ваш Email адрес</div>
-    <div class="pill-container">
-      <input type="email" id="emailField" class="pill-input" placeholder="example@mail.com">
-      <button class="pill-btn-submit" id="submitEmailActionBtn">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-      </button>
-    </div>
-    <div class="err-lbl" id="emailErrorView"></div>
-  </div>
-
-  <div class="screen center-layout" id="otpScreen">
-    <div class="layout-title">Введите 6-ти значный код</div>
-    
-    <div class="otp-box-wrapper">
-      <div class="otp-glass-plate" id="otpVisualPlate"></div>
-      <input type="text" id="nativeOtpField" class="native-otp-field" maxlength="6" inputmode="numeric" autocomplete="one-time-code">
-    </div>
-    
-    <div class="err-lbl" id="otpErrorView"></div>
-    <button id="changeEmailBackBtn" style="background:none; border:none; color:rgba(255,255,255,0.4); font-size:14px; cursor:pointer; text-decoration:underline;">Изменить email</button>
-  </div>
-
-  <div class="screen chat-layout" id="chatScreen">
-    <div class="chat-navbar">
-      <div class="nav-action-btn" id="openSidebarBtn">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
-      </div>
-      <div class="musmind-toggle">
-        <div class="musmind-tab active" id="tabLite">MusMind Lite</div>
-        <div class="musmind-tab" id="tabPro">MusMind Pro</div>
-      </div>
-      <div class="nav-action-btn" id="topNavbarNewChatBtn">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-      </div>
-    </div>
-
-    <div class="messages-scroller" id="messagesScroller">
-      <div class="msg-bubble ai" id="welcomeMessageNode">Чат с Harmony<br><span style="font-size:13px; color:rgba(255,255,255,0.4);">Задай вопрос по сольфеджио или теории музыки.</span></div>
-    </div>
-
-    <div class="chat-footer-composer">
-      <div class="composer-dock">
-        <label class="attachment-trigger" id="attachmentLabel" for="fileAttachmentInput">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-          <input type="file" id="fileAttachmentInput" accept="image/*" style="display:none;">
-        </label>
+    <div class="relative w-full max-w-[430px] h-[932px] bg-[#09090b] shadow-[0_0_60px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col justify-between p-6 z-10 border border-neutral-900 md:border-neutral-800 md:rounded-[40px]">
         
-        <textarea id="composerTextArea" class="composer-textarea" rows="1" placeholder="Спросить HarmonyAI..."></textarea>
-        
-        <div class="nav-action-btn" id="composerSendBtn" style="border-radius:50%; width:36px; height:36px; background:#fff; color:#000; border:none; margin-bottom:2px;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        <div id="screen-welcome" class="screen flex flex-col justify-between h-full w-full absolute inset-0 p-6 pt-16 pb-12 bg-[#09090b]">
+            <div class="flex items-center space-x-2 opacity-90 pl-2">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="text-white">
+                    <path d="M12 3V13.55C11.41 13.21 10.73 13 10 13C7.79 13 6 14.79 6 17C6 19.21 7.79 21 10 21C12.21 21 14 19.21 14 17V7H18V3H12Z" fill="currentColor"/>
+                </svg>
+                <span class="text-sm font-semibold tracking-wider uppercase">Harmony</span>
+            </div>
+
+            <div class="px-3 my-auto">
+                <h1 class="serif-title text-[40px] font-semibold leading-[1.15] text-white tracking-tight mb-5">
+                    ИИ для учеников<br>музыкальной<br>школы
+                </h1>
+                <p class="text-[#8e8e93] text-[17px] font-medium leading-relaxed max-w-[290px]">
+                    Подходит не только для музыкальной тематики. Он умеет все!
+                </p>
+            </div>
+
+            <div class="w-full bg-[#141416] border border-neutral-900 rounded-[32px] p-4 flex items-center justify-center">
+                <button onclick="changeScreen('screen-email')" class="w-full py-4 bg-[#fbfaf7] text-black text-[17px] font-bold rounded-2xl shadow-lg active:scale-[0.98] transition-transform duration-150 text-center">
+                    Продолжить с Email
+                </button>
+            </div>
         </div>
-      </div>
+
+
+        <div id="screen-email" class="screen hidden flex flex-col justify-between h-full w-full absolute inset-0 p-6 pt-20 pb-8 bg-[#09090b]">
+            <div class="mx-auto flex flex-col items-center">
+                <div class="flex items-center space-x-2 opacity-40 mb-16">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="text-white"><path d="M12 3V13.55C11.41 13.21 10.73 13 10 13C7.79 13 6 14.79 6 17C6 19.21 7.79 21 10 21C12.21 21 14 19.21 14 17V7H18V3H12Z" fill="currentColor"/></svg>
+                    <span class="text-xs font-semibold tracking-widest uppercase">Harmony</span>
+                </div>
+                
+                <h2 class="text-2xl font-bold tracking-tight text-white mb-8 text-center">
+                    Введите ваш Email адрес
+                </h2>
+                
+                <div class="w-[320px] relative">
+                    <input type="email" id="email-input" placeholder="Введите email.." class="w-full py-4 px-6 text-center text-white placeholder-neutral-500 rounded-full text-base font-medium liquid-glass-input focus:outline-none">
+                </div>
+
+                <button onclick="handleEmailSubmit()" class="mt-6 px-8 py-3 bg-white/10 hover:bg-white/15 border border-white/10 rounded-full text-sm font-semibold tracking-wide transition-all active:scale-95">
+                    Далее
+                </button>
+            </div>
+
+            <div class="text-center text-xs text-neutral-600 font-medium tracking-wide">
+                beta version 1.0
+            </div>
+        </div>
+
+
+        <div id="screen-code" class="screen hidden flex flex-col justify-between h-full w-full absolute inset-0 p-6 pt-24 pb-8 bg-[#09090b]">
+            <div class="mx-auto flex flex-col items-center w-full">
+                <h2 class="text-2xl font-bold tracking-tight text-white mb-8 text-center">
+                    Введите 6-ти значный код
+                </h2>
+                
+                <div class="relative w-[320px] h-16 bg-white rounded-full flex items-center justify-center shadow-xl cursor-text" onclick="focusCodeInput()">
+                    <input type="text" id="hidden-code-input" maxlength="6" pattern="\d*" inputmode="numeric" class="absolute inset-0 opacity-0 w-full h-full cursor-default">
+                    <div class="flex space-x-4 justify-center items-center pointer-events-none">
+                        <span class="code-dash w-4 border-b-2 border-neutral-400 h-6 text-xl text-black font-bold text-center flex items-center justify-center"></span>
+                        <span class="code-dash w-4 border-b-2 border-neutral-400 h-6 text-xl text-black font-bold text-center flex items-center justify-center"></span>
+                        <span class="code-dash w-4 border-b-2 border-neutral-400 h-6 text-xl text-black font-bold text-center flex items-center justify-center"></span>
+                        <span class="code-dash w-4 border-b-2 border-neutral-400 h-6 text-xl text-black font-bold text-center flex items-center justify-center"></span>
+                        <span class="code-dash w-4 border-b-2 border-neutral-400 h-6 text-xl text-black font-bold text-center flex items-center justify-center"></span>
+                        <span class="code-dash w-4 border-b-2 border-neutral-400 h-6 text-xl text-black font-bold text-center flex items-center justify-center"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center text-xs text-neutral-600 font-medium tracking-wide">
+                beta version 1.0
+            </div>
+        </div>
+
+
+        <div id="screen-chat" class="screen hidden flex flex-col justify-between h-full w-full absolute inset-0 p-0 bg-[#09090b]">
+            <div class="w-full px-6 pt-14 pb-4 flex items-center justify-between z-20">
+                <button onclick="toggleSidebar(true)" class="w-11 h-11 rounded-full flex items-center justify-center border border-white/10 bg-white/5 active:scale-95 transition-transform">
+                    <svg width="18" height="12" viewBox="0 0 18 12" fill="none" xmlns="http://www.w3.org/2000/svg" class="text-white/90">
+                        <path d="M0 12H18V10H0V12ZM0 7H18V5H0V7ZM0 0V2H18V0H0Z" fill="currentColor"/>
+                    </svg>
+                </button>
+                <button onclick="startNewChat()" class="w-11 h-11 rounded-full flex items-center justify-center border border-white/10 bg-white/5 active:scale-95 transition-transform">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" class="text-white/90">
+                        <path d="M15 7H9V1H7V7H1V9H7V15H9V9H15V7Z" fill="currentColor"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div id="chat-scroller" class="flex-1 overflow-y-auto px-6 py-4 space-y-4 scrollbar-none flex flex-col">
+                <div id="chat-empty-state" class="my-auto text-left pl-2">
+                    <h2 class="text-[26px] font-semibold text-white tracking-tight leading-snug">
+                        Привет!<br>Чем сегодня займемся?
+                    </h2>
+                </div>
+                <div id="messages-container" class="space-y-4 w-full flex flex-col justify-end"></div>
+            </div>
+
+            <div class="p-5 pt-2 pb-8 w-full">
+                <div class="w-full liquid-glass rounded-[28px] p-3 flex flex-col space-y-3 relative">
+                    <div id="input-placeholder-label" class="text-sm font-medium text-neutral-400 pl-3 pt-1 transition-opacity duration-200">
+                        Чат с Harmony Ai
+                    </div>
+                    
+                    <div class="flex items-center justify-between w-full space-x-2">
+                        <button class="w-9 h-9 min-w-[36px] rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/90 active:scale-90 transition-transform">
+                            <span class="text-lg font-light">+</span>
+                        </button>
+
+                        <button onclick="toggleAIModel()" id="model-badge" class="h-8 px-3 rounded-full bg-white/5 border border-white/10 flex items-center justify-center space-x-1 active:scale-95 transition-all text-xs font-semibold tracking-wide text-white">
+                            <span>MusMind</span> <span class="opacity-50 text-[10px] font-normal ml-0.5">lite</span>
+                        </button>
+
+                        <input type="text" id="chat-input" oninput="handleInputTyping()" placeholder="" class="flex-1 bg-transparent border-none text-white text-[15px] focus:outline-none px-1 py-1">
+
+                        <button onclick="sendMessage()" class="w-9 h-9 min-w-[36px] rounded-full bg-white flex items-center justify-center text-black active:scale-90 transition-transform">
+                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M1 7H13M13 7L7 1M13 7L7 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <div id="sidebar-menu" class="absolute inset-0 w-full h-full z-40 bg-black/40 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300 flex">
+            <div id="sidebar-content" class="w-[330px] h-full bg-[#050508] border-r border-white/5 p-6 flex flex-col justify-between transform -translate-x-full transition-transform duration-300 cubic-bezier(0.4, 0, 0.2, 1)">
+                
+                <div class="w-full">
+                    <div class="flex items-center justify-between mb-8 pt-6">
+                        <span class="text-xl font-bold tracking-tight text-white">Harmony</span>
+                        <button onclick="toggleSidebar(false)" class="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white active:scale-90 transition-transform">
+                            <span class="text-sm font-light">✕</span>
+                        </button>
+                    </div>
+
+                    <div class="space-y-2">
+                        <button onclick="startNewChat(); toggleSidebar(false);" class="w-full py-3 px-4 rounded-xl hover:bg-white/5 flex items-center space-x-3 text-left transition-colors text-[15px] font-medium text-white/90">
+                            <span class="text-base">📝</span>
+                            <span>Новый чат</span>
+                        </button>
+                        <div class="w-full relative py-1">
+                            <div class="w-full py-3 px-4 rounded-xl hover:bg-white/5 flex items-center space-x-3 text-left transition-colors text-[15px] font-medium text-white/90 cursor-pointer">
+                                <span class="text-base">🔍</span>
+                                <span>Поиск по чатам</span>
+                            </div>
+                        </div>
+                        
+                        <div class="pt-4">
+                            <div class="text-[11px] font-bold tracking-widest text-neutral-600 uppercase px-4 mb-2">Недавние</div>
+                            <div class="space-y-1">
+                                <div class="w-full py-2.5 px-4 rounded-lg text-sm text-neutral-400 font-medium truncate hover:text-white cursor-pointer transition-colors">Гармонический анализ T53</div>
+                                <div class="w-full py-2.5 px-4 rounded-lg text-sm text-neutral-400 font-medium truncate hover:text-white cursor-pointer transition-colors">Цепочка септаккордов VII7</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div onclick="openSettings()" class="w-full py-3 px-4 bg-white/[0.02] border border-white/5 rounded-2xl flex items-center justify-between active:scale-[0.98] transition-transform cursor-pointer">
+                    <div class="flex items-center space-x-3">
+                        <div id="user-avatar-small" class="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
+                            U
+                        </div>
+                        <span id="user-name-label" class="text-sm font-semibold text-white max-w-[160px] truncate">Andrew Liberty</span>
+                    </div>
+                    <span class="text-lg opacity-60">⚙️</span>
+                </div>
+
+            </div>
+        </div>
+
+
+        <div id="screen-settings" class="screen hidden flex flex-col justify-between h-full w-full absolute inset-0 p-6 pt-12 pb-8 bg-[#0a0a0f] z-50 overflow-y-auto scrollbar-none">
+            
+            <div class="w-full flex flex-col">
+                <div class="flex justify-end w-full mb-4">
+                    <button onclick="closeSettings()" class="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white active:scale-90 transition-transform">
+                        <span class="text-sm font-light">✕</span>
+                    </button>
+                </div>
+
+                <div class="flex flex-col items-center mb-8">
+                    <div class="relative w-24 h-24 mb-3 flex items-center justify-center">
+                        <div class="absolute inset-0 bg-purple-600/30 rounded-full blur-xl"></div>
+                        <div id="user-avatar-large" class="w-full h-full rounded-full bg-gradient-to-b from-indigo-400 to-purple-600 flex items-center justify-center text-white text-3xl font-bold shadow-inner border border-white/20">
+                            🎵
+                        </div>
+                    </div>
+                    <h3 id="settings-username" class="text-xl font-bold text-white mb-1">Гость</h3>
+                    <p id="settings-email-sub" class="text-xs text-neutral-500 font-medium mb-3">example@email.com</p>
+                    <button onclick="logout()" class="py-1.5 px-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-xs font-semibold text-red-400 tracking-wide transition-colors">
+                        Выйти из аккаунта
+                    </button>
+                </div>
+
+                <div class="mb-6">
+                    <div class="text-[11px] font-bold tracking-widest text-neutral-500 uppercase pl-4 mb-2">НАСТРОИТЬ HARMONYAI</div>
+                    <div class="setting-card divide-y divide-white/[0.04] overflow-hidden">
+                        <div class="p-4 flex flex-col space-y-3">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3 text-sm font-semibold">
+                                    <span>😊</span>
+                                    <span>Персонализация</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between pl-7 pt-1 text-xs text-neutral-400">
+                                <span>Темная тема</span>
+                                <input type="checkbox" checked class="ios-toggle">
+                            </div>
+                        </div>
+                        <div class="p-4 flex flex-col space-y-3">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3 text-sm font-semibold">
+                                    <span>📖</span>
+                                    <span>Память</span>
+                                </div>
+                            </div>
+                            <div class="space-y-3 pl-7 pt-1 text-xs text-neutral-400">
+                                <div class="flex items-center justify-between">
+                                    <span>Ссылаться на Историю чата</span>
+                                    <input type="checkbox" checked class="ios-toggle">
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span>Использовать память</span>
+                                    <input type="checkbox" checked class="ios-toggle">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-8">
+                    <div class="text-[11px] font-bold tracking-widest text-neutral-500 uppercase pl-4 mb-2">УЧЕТНАЯ ЗАПИСЬ</div>
+                    <div class="setting-card divide-y divide-white/[0.04] overflow-hidden text-sm font-semibold">
+                        <div class="p-4 flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <span>✉️</span>
+                                <span class="opacity-90">Электронная почта</span>
+                            </div>
+                            <span class="text-[10px] bg-white/5 border border-white/10 px-2 py-0.5 rounded text-neutral-400 uppercase tracking-wider">СКОРО</span>
+                        </div>
+                        <div class="p-4 flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <span>➕</span>
+                                <span class="opacity-90">Подписка</span>
+                            </div>
+                            <span id="settings-current-model-badge" class="text-xs text-neutral-400 font-medium">MusMind Lite</span>
+                        </div>
+                        <div class="p-4 flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <span>⭐</span>
+                                <span class="opacity-90">Перейти на MusMind Pro</span>
+                            </div>
+                            <span class="text-[10px] bg-white/5 border border-white/10 px-2 py-0.5 rounded text-neutral-400 uppercase tracking-wider">СКОРО</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <a href="https://t.me/your_support_bot" target="_blank" class="w-full py-4 bg-white text-black rounded-[24px] flex items-center justify-center space-x-3 shadow-2xl active:scale-[0.98] transition-transform font-bold text-xl mt-auto">
+                <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M23.3334 4.66666L3.50002 12.25L10.5 15.1667L12.8334 22.1667L16.3334 18.6667L21 22.1667L23.3334 4.66666Z" fill="#0088cc"/>
+                </svg>
+                <span class="tracking-tight text-2xl font-extrabold">Поддержка</span>
+            </a>
+
+        </div>
+
     </div>
-  </div>
-</div>
 
-<script>
-/* ===== Конфигурация и Инициализация бэкенда Supabase ===== */
-const SUPABASE_URL = 'https://YOUR_SUPABASE_PROJECT.supabase.co'; 
-const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
-const isConfigured = (typeof SUPABASE_URL !== 'undefined' && !SUPABASE_URL.includes('YOUR_'));
-const supabaseClient = isConfigured ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+    <script>
+        let currentEmail = "Andrew Liberty";
+        let isProModel = false;
 
-let currentSessionUserEmail = "";
-let localChatHistory = [];
-let activeModelMode = 'lite';
-let base64PendingImage = null;
-let allUserChatsMetadata = []; 
-let currentActiveChatId = null;
+        // Навигация между экранами
+        function changeScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+            const targetScreen = document.getElementById(screenId);
+            if (targetScreen) targetScreen.classList.remove('hidden');
+        }
 
-function navigateToScreen(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  const target = document.getElementById(id);
-  if (target) target.classList.add('active');
-}
+        // Логика отправки Email
+        function handleEmailSubmit() {
+            const emailVal = document.getElementById('email-input').value.trim();
+            if (emailVal) {
+                currentEmail = emailVal;
+                // Извлекаем имя до собаки для отображения в профиле
+                const username = emailVal.split('@')[0];
+                document.getElementById('user-name-label').innerText = username;
+                document.getElementById('settings-username').innerText = username;
+                document.getElementById('settings-email-sub').innerText = emailVal;
+                
+                // Ставим первую букву почты как аватар
+                const firstLetter = username.charAt(0).toUpperCase();
+                document.getElementById('user-avatar-small').innerText = firstLetter;
+                document.getElementById('user-avatar-large').innerText = firstLetter;
+            }
+            changeScreen('screen-code');
+            focusCodeInput();
+        }
 
-/* ===== Сборка сетки OTP-слотов ===== */
-const otpVisualPlate = document.getElementById('otpVisualPlate');
-const nativeOtpField = document.getElementById('nativeOtpField');
-const otpWrapperBlock = document.getElementById('otpScreen');
+        // Управление вводом 6-значного кода
+        const hiddenInput = document.getElementById('hidden-code-input');
+        const dashes = document.querySelectorAll('.code-dash');
 
-// Клик по любой области экрана ввода вызывает фокус инпута
-otpWrapperBlock.addEventListener('click', () => nativeOtpField.focus());
+        function focusCodeInput() {
+            hiddenInput.focus();
+            updateDashHighlight();
+        }
 
-for (let i = 0; i < 6; i++) {
-  const container = document.createElement('div');
-  container.classList.add('otp-digit-slot');
-  
-  const charSpan = document.createElement('span');
-  charSpan.classList.add('otp-digit-char');
-  charSpan.id = `otpChar-${i}`;
-  
-  const dash = document.createElement('div');
-  dash.classList.add('otp-digit-dash');
-  dash.id = `otpDash-${i}`;
-  
-  container.appendChild(charSpan);
-  container.appendChild(dash);
-  otpVisualPlate.appendChild(container);
-}
+        hiddenInput.addEventListener('input', () => {
+            const val = hiddenInput.value;
+            
+            dashes.forEach((dash, idx) => {
+                if (idx < val.length) {
+                    dash.innerText = val[idx];
+                    dash.classList.remove('active');
+                } else {
+                    dash.innerText = '';
+                    dash.classList.remove('active');
+                }
+            });
 
-nativeOtpField.addEventListener('input', (e) => {
-  const digits = e.target.value.replace(/\D/g, '');
-  e.target.value = digits;
-  
-  for (let i = 0; i < 6; i++) {
-    const charSpan = document.getElementById(`otpChar-${i}`);
-    const dash = document.getElementById(`otpDash-${i}`);
-    if (digits[i]) {
-      charSpan.textContent = digits[i];
-      dash.classList.add('active');
-    } else {
-      charSpan.textContent = '';
-      dash.classList.remove('active');
-    }
-  }
-  if (digits.length === 6) verifyOtpTokenReceived();
-});
+            updateDashHighlight();
 
-/* ===== Логика Авторизации через OTP ===== */
-document.getElementById('nextToEmailBtn').addEventListener('click', () => navigateToScreen('emailScreen'));
+            // При заполнении всех 6 цифр автоматически переходим в чат
+            if (val.length === 6) {
+                setTimeout(() => {
+                    changeScreen('screen-chat');
+                }, 250);
+            }
+        });
 
-document.getElementById('submitEmailActionBtn').addEventListener('click', async () => {
-  const email = document.getElementById('emailField').value.trim();
-  const errorView = document.getElementById('emailErrorView');
-  errorView.textContent = "";
+        function updateDashHighlight() {
+            const val = hiddenInput.value;
+            dashes.forEach((dash, idx) => {
+                if (idx === val.length) {
+                    dash.classList.add('active');
+                } else if (idx !== val.length) {
+                    dash.classList.remove('active');
+                }
+            });
+        }
 
-  if (!email || !email.includes('@')) {
-    errorView.textContent = "Введите корректный email";
-    return;
-  }
+        // Поведение строки ввода сообщения в чате
+        function handleInputTyping() {
+            const input = document.getElementById('chat-input');
+            const label = document.getElementById('input-placeholder-label');
+            if (input.value.length > 0) {
+                label.style.opacity = '0'; // Скрываем надпись при вводе
+            } else {
+                label.style.opacity = '1';
+            }
+        }
 
-  currentSessionUserEmail = email;
-  if (!supabaseClient) {
-    navigateToScreen('otpScreen');
-    return;
-  }
+        // Переключение моделей ИИ (MusMind Lite / Pro)
+        function toggleAIModel() {
+            isProModel = !isProModel;
+            const badge = document.getElementById('model-badge');
+            const settingsBadge = document.getElementById('settings-current-model-badge');
+            
+            if (isProModel) {
+                badge.innerHTML = `<span>MusMind</span> <span class="text-amber-400 font-bold text-[10px] ml-0.5">Pro</span>`;
+                settingsBadge.innerText = "MusMind Pro";
+                badge.style.borderColor = 'rgba(251, 191, 36, 0.3)';
+            } else {
+                badge.innerHTML = `<span>MusMind</span> <span class="opacity-50 text-[10px] font-normal ml-0.5">lite</span>`;
+                settingsBadge.innerText = "MusMind Lite";
+                badge.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+            }
+        }
 
-  try {
-    const { error } = await supabaseClient.auth.signInWithOtp({ email });
-    if (error) {
-      errorView.textContent = `Ошибка Supabase: ${error.message}`;
-      setTimeout(() => navigateToScreen('otpScreen'), 1500);
-    } else {
-      navigateToScreen('otpScreen');
-    }
-  } catch (err) {
-    errorView.textContent = "Ошибка подключения бэкенда.";
-  }
-});
+        // Логика отправки сообщений в чат и генерации ответов
+        function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (!text) return;
 
-async function verifyOtpTokenReceived() {
-  const token = nativeOtpField.value.trim();
-  const errorView = document.getElementById('otpErrorView');
-  errorView.textContent = "";
+            // Прячем пустой стейт приветствия
+            document.getElementById('chat-empty-state').classList.add('hidden');
 
-  if (token === "777777") { // Bypass лимитов
-    completeLoginProcess(currentSessionUserEmail || "dev-account@harmony.ai");
-    return;
-  }
+            const container = document.getElementById('messages-container');
 
-  if (!supabaseClient) {
-    completeLoginProcess("demo-account@harmony.ai");
-    return;
-  }
+            // 1. Рендерим сообщение пользователя (справа)
+            const userMsg = document.createElement('div');
+            userMsg.className = "self-end max-w-[85%] bg-white/10 border border-white/5 px-4 py-3 rounded-[20px] rounded-tr-[4px] text-sm font-medium leading-relaxed smooth-appear text-white";
+            userMsg.innerText = text;
+            container.appendChild(userMsg);
 
-  try {
-    const { data: { session }, error } = await supabaseClient.auth.verifyOtp({
-      email: currentSessionUserEmail,
-      token,
-      type: 'email'
-    });
+            input.value = '';
+            handleInputTyping();
+            scrollToBottom();
 
-    if (error) {
-      errorView.textContent = "Неверный код. Введите еще раз или используйте 777777";
-      clearOtpGrid();
-    } else if (session) {
-      completeLoginProcess(session.user.email);
-    }
-  } catch (err) {
-    errorView.textContent = "Ошибка сервера во время сверки токена.";
-  }
-}
+            // 2. Имитируем плавный ответ ИИ (слева)
+            setTimeout(() => {
+                const aiMsg = document.createElement('div');
+                aiMsg.className = "self-start max-w-[85%] bg-white/[0.03] border border-white/10 px-4 py-3 rounded-[20px] rounded-tl-[4px] text-sm font-medium leading-relaxed smooth-appear text-neutral-200";
+                container.appendChild(aiMsg);
 
-function clearOtpGrid() {
-  nativeOtpField.value = "";
-  for (let i = 0; i < 6; i++) {
-    document.getElementById(`otpChar-${i}`).textContent = '';
-    document.getElementById(`otpDash-${i}`).classList.remove('active');
-  }
-}
+                // Интеллектуальный ответ в зависимости от контекста
+                let replyText = "Я проанализировал ваш запрос. Как музыкальный искусственный интеллект Harmony AI, я готов сгенерировать аккордовую последовательность или распознать нотный стан.";
+                if (text.toLowerCase().includes('нот') || text.toLowerCase().includes('аккорд')) {
+                    replyText = "Конечно! Вот подходящая аккордовая цепочка для вашей гармонии: i - iv - VII - III (Тоническое трезвучие T53 -> субдоминанта). Нотный стан успешно построен.";
+                }
 
-document.getElementById('changeEmailBackBtn').addEventListener('click', () => {
-  clearOtpGrid();
-  navigateToScreen('emailScreen');
-});
+                // Эффект плавного набора текста ("стелится плавно")
+                let i = 0;
+                aiMsg.innerText = '';
+                function typeWriter() {
+                    if (i < replyText.length) {
+                        aiMsg.innerText += replyText.charAt(i);
+                        i++;
+                        scrollToBottom();
+                        setTimeout(typeWriter, 15);
+                    }
+                }
+                typeWriter();
 
-function completeLoginProcess(email) {
-  currentSessionUserEmail = email;
-  document.getElementById('accountEmailLbl').textContent = email;
-  document.getElementById('settingsEmailView').textContent = email;
-  document.getElementById('avatarLetter').textContent = email.charAt(0).toUpperCase();
-  navigateToScreen('chatScreen');
-  loadUserChatsList();
-}
+            }, 600);
+        }
 
-/* ===== Обработка Сайдбара и Настроек ===== */
-const sidebarDrawer = document.getElementById('sidebarDrawer');
-const dimmerOverlay = document.getElementById('dimmerOverlay');
-const settingsPanel = document.getElementById('settingsPanel');
+        function scrollToBottom() {
+            const scroller = document.getElementById('chat-scroller');
+            scroller.scrollTop = scroller.scrollHeight;
+        }
 
-function toggleSidebarView(isOpen) {
-  if (isOpen) {
-    sidebarDrawer.classList.add('open');
-    dimmerOverlay.classList.add('active');
-  } else {
-    sidebarDrawer.classList.remove('open');
-    dimmerOverlay.classList.remove('active');
-  }
-}
+        // Очистить текущий чат (Новый чат)
+        function startNewChat() {
+            document.getElementById('messages-container').innerHTML = '';
+            document.getElementById('chat-empty-state').classList.remove('hidden');
+        }
 
-document.getElementById('openSidebarBtn').addEventListener('click', () => toggleSidebarView(true));
-document.getElementById('closeSidebarBtn').addEventListener('click', () => toggleSidebarView(false));
-dimmerOverlay.addEventListener('click', () => { toggleSidebarView(false); });
+        // Управление боковой панелью
+        function toggleSidebar(open) {
+            const sidebar = document.getElementById('sidebar-menu');
+            const content = document.getElementById('sidebar-content');
+            if (open) {
+                sidebar.classList.remove('pointer-events-none');
+                sidebar.classList.add('opacity-100');
+                content.classList.remove('-translate-x-full');
+            } else {
+                sidebar.classList.add('pointer-events-none');
+                sidebar.classList.remove('opacity-100');
+                content.classList.add('-translate-x-full');
+            }
+        }
 
-document.getElementById('openSettingsBtn').addEventListener('click', () => settingsPanel.classList.add('open'));
-document.getElementById('closeSettingsBtn').addEventListener('click', () => settingsPanel.classList.remove('open'));
+        // Окна настроек
+        function openSettings() {
+            toggleSidebar(false);
+            document.getElementById('screen-settings').classList.remove('hidden');
+        }
 
-/* Темы и кастомизация */
-document.getElementById('themeDarkBtn').addEventListener('click', () => document.documentElement.removeAttribute('data-theme'));
-document.getElementById('themeLightBtn').addEventListener('click', () => document.documentElement.setAttribute('data-theme', 'light'));
-document.getElementById('fontSizeSlider').addEventListener('input', (e) => {
-  document.documentElement.style.setProperty('--base-font', `${e.target.value}px`);
-});
+        function closeSettings() {
+            document.getElementById('screen-settings').classList.add('hidden');
+        }
 
-/* Свитчи памяти */
-document.querySelectorAll('.glass-switch').forEach(sw => {
-  sw.addEventListener('click', () => sw.classList.toggle('active'));
-});
-
-/* Переключатели моделей */
-const tabLite = document.getElementById('tabLite');
-const tabPro = document.getElementById('tabPro');
-tabLite.addEventListener('click', () => { tabLite.classList.add('active'); tabPro.classList.remove('active'); activeModelMode = 'lite'; document.getElementById('settingsSubStatus').textContent = "MusMind Lite"; });
-tabPro.addEventListener('click', () => { tabPro.classList.add('active'); tabLite.classList.remove('active'); activeModelMode = 'pro'; document.getElementById('settingsSubStatus').textContent = "MusMind Pro"; });
-
-/* ===== Чат луп и Работа с файлами ===== */
-const messagesScroller = document.getElementById('messagesScroller');
-const composerTextArea = document.getElementById('composerTextArea');
-const attachmentTrigger = document.getElementById('attachmentLabel');
-
-document.getElementById('fileAttachmentInput').addEventListener('change', function(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  
-  const reader = new FileReader();
-  reader.onload = function(evt) {
-    base64PendingImage = evt.target.result.split(',')[1];
-    attachmentTrigger.classList.add('active');
-  };
-  reader.readAsDataURL(file);
-});
-
-function displayBubble(text, sender, imgBase64 = null) {
-  // Убираем приветственную надпись при отправке сообщений
-  const welcomeNode = document.getElementById('welcomeMessageNode');
-  if (welcomeNode) welcomeNode.remove();
-
-  const bubble = document.createElement('div');
-  bubble.classList.add('msg-bubble', sender);
-  
-  if (imgBase64) {
-    const img = document.createElement('img');
-    img.src = `data:image/jpeg;base64,${imgBase64}`;
-    img.classList.add('msg-img-preview');
-    bubble.appendChild(img);
-  }
-  
-  if (text) {
-    const txtSpan = document.createElement('span');
-    txtSpan.innerHTML = text.replace(/\n/g, '<br>');
-    bubble.appendChild(txtSpan);
-  }
-  
-  messagesScroller.appendChild(bubble);
-  messagesScroller.scrollTop = messagesScroller.scrollHeight;
-}
-
-let activeTypingNode = null;
-function startTypingLoader() {
-  if (activeTypingNode) return;
-  activeTypingNode = document.createElement('div');
-  activeTypingNode.classList.add('indicator-typing');
-  activeTypingNode.innerHTML = '<div class="dot-node"></div><div class="dot-node"></div><div class="dot-node"></div>';
-  messagesScroller.appendChild(activeTypingNode);
-  messagesScroller.scrollTop = messagesScroller.scrollHeight;
-}
-
-function stopTypingLoader() {
-  if (activeTypingNode) { activeTypingNode.remove(); activeTypingNode = null; }
-}
-
-async function transmitUserMessage() {
-  const query = composerTextArea.value.trim();
-  if (!query && !base64PendingImage) return;
-
-  composerTextArea.value = "";
-  composerTextArea.style.height = "auto";
-
-  displayBubble(query, 'user', base64PendingImage);
-  
-  let payloadContent;
-  if (base64PendingImage) {
-    payloadContent = [];
-    if (query) payloadContent.push({ type: 'text', text: query });
-    payloadContent.push({ type: 'image_url', image_url: { url: `data:image/jpeg;base64,${base64PendingImage}` } });
-    base64PendingImage = null;
-    attachmentTrigger.classList.remove('active');
-  } else {
-    payloadContent = query;
-  }
-
-  localChatHistory.push({ role: 'user', content: payloadContent });
-  await storeChatInDatabase();
-  startTypingLoader();
-
-  try {
-    const response = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: activeModelMode, messages: localChatHistory })
-    });
-    const parsed = await response.json();
-    stopTypingLoader();
-
-    if (parsed.error) {
-      displayBubble(`Ошибка API: ${parsed.error.message || 'Неизвестный сбой'}`, 'ai');
-    } else {
-      const output = parsed.choices?.[0]?.message?.content || 'Нет ответа бэкенда.';
-      displayBubble(output, 'ai');
-      localChatHistory.push({ role: 'assistant', content: output });
-      await storeChatInDatabase();
-    }
-  } catch (err) {
-    stopTypingLoader();
-    // Локальная симуляция для оффлайн тестов верстки
-    setTimeout(() => {
-      let offlineSim = `Тестовый ответ системы HarmonyAI на запрос: "${query}". Подключите ваш Vercel роут для боевого режима.`;
-      if (query.toLowerCase().includes('аккорд')) {
-        offlineSim = "Трезвучие — это аккорд, состоящий из трёх звуков, расположенных по терциям. Бывают большие, малые, увеличенные и уменьшенные трезвучия.";
-      }
-      displayBubble(offlineSim, 'ai');
-      localChatHistory.push({ role: 'assistant', content: offlineSim });
-    }, 500);
-  }
-}
-
-composerSendBtn.addEventListener('click', transmitUserMessage);
-composerTextArea.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); transmitUserMessage(); }
-});
-
-/* Автоматическая высота поля ввода */
-composerTextArea.addEventListener('input', function() {
-  this.style.height = 'auto';
-  this.style.height = (this.scrollHeight - 10) + 'px';
-});
-
-/* Очистка и запуск нового диалога */
-function clearAndStartNewChat() {
-  localChatHistory = [];
-  currentActiveChatId = null;
-  messagesScroller.innerHTML = '<div class="msg-bubble ai" id="welcomeMessageNode">Чат с Harmony<br><span style="font-size:13px; color:rgba(255,255,255,0.4);">Задай вопрос по сольфеджио или теории музыки.</span></div>';
-  toggleSidebarView(false);
-}
-document.getElementById('sidebarNewChatBtn').addEventListener('click', clearAndStartNewChat);
-document.getElementById('topNavbarNewChatBtn').addEventListener('click', clearAndStartNewChat);
-
-/* ===== Работа со списками чатов и Базой Данных Supabase ===== */
-async function loadUserChatsList() {
-  if (!supabaseClient || !currentSessionUserEmail) return;
-  try {
-    const { data, error } = await supabaseClient
-      .from('user_chats')
-      .select('id, title, history, updated_at')
-      .eq('user_email', currentSessionUserEmail)
-      .order('updated_at', { ascending: false });
-
-    if (!error && data) {
-      allUserChatsMetadata = data;
-      renderRecentChatsRows(data);
-    }
-  } catch (e) { console.log("Сбой загрузки списков из БД"); }
-}
-
-function renderRecentChatsRows(items) {
-  const container = document.getElementById('recentChatsList');
-  container.innerHTML = "";
-  items.forEach(chat => {
-    const row = document.createElement('div');
-    row.classList.add('recent-chat-row');
-    if (chat.id === currentActiveChatId) row.classList.add('active');
-    row.textContent = chat.title || `Чат #${chat.id.toString().substring(0,4)}`;
-    row.addEventListener('click', () => selectAndLoadChatHistory(chat.id));
-    container.appendChild(row);
-  });
-}
-
-function selectAndLoadChatHistory(id) {
-  const match = allUserChatsMetadata.find(c => c.id === id);
-  if (!match) return;
-  currentActiveChatId = id;
-  localChatHistory = match.history || [];
-  
-  messagesScroller.innerHTML = "";
-  localChatHistory.forEach(m => {
-    if (m.role === 'user') {
-      const isArr = Array.isArray(m.content);
-      const txt = isArr ? m.content.find(c => c.type === 'text')?.text || '' : m.content;
-      const imgObj = isArr ? m.content.find(c => c.type === 'image_url') : null;
-      const base64 = imgObj ? imgObj.image_url.url.split(',')[1] : null;
-      displayBubble(txt, 'user', base64);
-    } else {
-      displayBubble(m.content, 'ai');
-    }
-  });
-  
-  toggleSidebarView(false);
-  renderRecentChatsRows(allUserChatsMetadata);
-}
-
-async function storeChatInDatabase() {
-  if (!supabaseClient || !currentSessionUserEmail) return;
-  const computedTitle = localChatHistory.length > 0 
-    ? (typeof localChatHistory[0].content === 'string' ? localChatHistory[0].content.substring(0, 24) : 'Диалог с медиа')
-    : 'Новый чат';
-
-  try {
-    if (currentActiveChatId) {
-      await supabaseClient
-        .from('user_chats')
-        .update({ history: localChatHistory, title: computedTitle, updated_at: new Date() })
-        .eq('id', currentActiveChatId);
-    } else {
-      const { data, error } = await supabaseClient
-        .from('user_chats')
-        .insert([{ user_email: currentSessionUserEmail, title: computedTitle, history: localChatHistory }])
-        .select();
-      if (!error && data && data[0]) {
-        currentActiveChatId = data[0].id;
-      }
-    }
-    loadUserChatsList();
-  } catch (e) { console.log("Сбой синхронизации сессии с БД"); }
-}
-
-/* Живой поиск по чатам */
-document.getElementById('searchChatsInput').addEventListener('input', function(e) {
-  const query = e.target.value.toLowerCase();
-  const filtered = allUserChatsMetadata.filter(c => {
-    const inTitle = c.title?.toLowerCase().includes(query);
-    const inHistory = JSON.stringify(c.history).toLowerCase().includes(query);
-    return inTitle || inHistory;
-  });
-  renderRecentChatsRows(filtered);
-});
-
-/* Выход */
-document.getElementById('logoutActionBtn').addEventListener('click', async () => {
-  if (supabaseClient) await supabaseClient.auth.signOut();
-  window.location.reload();
-});
-
-/* Проверка текущей сессии на старте */
-if (supabaseClient) {
-  supabaseClient.auth.getSession().then(({ data: { session } }) => {
-    if (session && session.user) completeLoginProcess(session.user.email);
-  });
-}
-</script>
+        function logout() {
+            // Сброс и возврат на начальный экран регистрации
+            document.getElementById('email-input').value = '';
+            hiddenInput.value = '';
+            dashes.forEach(d => d.innerText = '');
+            startNewChat();
+            closeSettings();
+            changeScreen('screen-welcome');
+        }
+    </script>
 </body>
 </html>
