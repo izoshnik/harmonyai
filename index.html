@@ -390,7 +390,19 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
         <div class="row-value soon">скоро</div>
       </div>
     </div>
-  </div>
+
+    <div class="section-label">Помощь</div>
+    <div class="section">
+      <div class="row" onclick="openTelegramSupport()">
+        <div class="row-icon" style="color:#29b6f6;opacity:1;">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M17.5 2.5L1.5 8.5L7.5 10.5M17.5 2.5L11.5 18.5L7.5 10.5M17.5 2.5L7.5 10.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="row-text" style="color:var(--text)">Поддержка в Telegram</div>
+        <div class="row-chevron">
+          <svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+    </div>
 
   <div class="settings-screen" id="screen-personalization" style="display:none">
     <div class="settings-header">
@@ -803,6 +815,10 @@ document.addEventListener('click',function(e){
     document.querySelectorAll('.msg-more-menu.open').forEach(m=>m.classList.remove('open'));
   }
 });
+
+function openTelegramSupport(){
+  window.open('https://t.me/harmonyai_support', '_blank');
+}
 
 /* ===== Sidebar ===== */
 function openSidebar(){
