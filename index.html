@@ -8,7 +8,7 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
-
+ 
 :root{
   --bg:#08080f;
   --text:#ffffff;
@@ -17,8 +17,8 @@
   --glass-strong:rgba(255,255,255,0.16);
   --glass-border:rgba(255,255,255,0.28);
   --glass-border2:rgba(255,255,255,0.14);
-  --glass-highlight:rgba(255,255,255,0.28);
-  --glass-gloss:rgba(255,255,255,0.10);
+  --glass-highlight:rgba(255,255,255,0.42);
+  --glass-gloss:rgba(255,255,255,0.20);
   --row-hover:rgba(255,255,255,0.08);
   --row-border:rgba(255,255,255,0.1);
   --send-bg:rgba(255,255,255,0.9);
@@ -46,7 +46,7 @@
 body[data-size="sm"]{ --font-base:12px; --font-greeting:22px; }
 body[data-size="md"]{ --font-base:14px; --font-greeting:26px; }
 body[data-size="lg"]{ --font-base:17px; --font-greeting:31px; }
-
+ 
 body{font-family:'Inter',sans-serif;background:var(--bg);min-height:100vh;display:flex;flex-direction:column;align-items:center;overflow-x:hidden;color:var(--text);transition:background .3s,color .3s;}
 canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
 .app{position:relative;z-index:2;width:100%;max-width:420px;min-height:100vh;display:flex;flex-direction:column;padding:20px 16px 32px;}
@@ -91,7 +91,7 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
   display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:var(--icon);
 }
 .send-btn{width:34px;height:34px;border-radius:50%;background:var(--send-bg);box-shadow:inset 0 1px 0 rgba(255,255,255,0.35);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:var(--send-icon);}
-
+ 
 /* Messages */
 .msg-user{
   align-self:flex-end;max-width:85%;
@@ -121,7 +121,7 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
 .msg-more-menu.open{display:block;}
 .msg-more-item{padding:9px 18px;font-size:13px;font-weight:600;color:var(--text);border-radius:10px;cursor:pointer;white-space:nowrap;}
 .msg-more-item:hover{background:var(--row-hover);}
-
+ 
 .dropdown{
   position:absolute;bottom:36px;left:0;width:210px;
   backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);
@@ -141,7 +141,7 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
 .typing span:nth-child(2){animation-delay:.2s;}
 .typing span:nth-child(3){animation-delay:.4s;}
 @keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
-
+ 
 /* Sidebar */
 .overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.45);z-index:40;opacity:0;visibility:hidden;transition:opacity .3s;}
 .overlay.open{opacity:1;visibility:visible;}
@@ -168,7 +168,7 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
 .account-row{display:flex;align-items:center;gap:10px;color:var(--text);font-size:13px;font-weight:700;cursor:pointer;padding:6px;border-radius:10px;}
 .account-row:hover{background:var(--row-hover);}
 .avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#a855f7,#60a5fa);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;box-shadow:inset 0 1px 0 rgba(255,255,255,0.4);}
-
+ 
 /* Settings */
 .settings-overlay{position:fixed;inset:0;z-index:70;background:var(--panel-bg);backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);transform:translateY(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;}
 .settings-overlay.open{transform:translateY(0);}
@@ -205,7 +205,7 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
 .row.disabled .row-icon{opacity:.3;}
 .row.pro .row-text{color:#c4b5fd;}
 .row.pro .row-icon{color:#c4b5fd;opacity:1;}
-
+ 
 /* Theme cards */
 .theme-row{display:flex;gap:12px;margin-bottom:22px;}
 .theme-card{flex:1;border-radius:16px;border:2px solid var(--glass-border2);overflow:hidden;cursor:pointer;background:var(--glass);box-shadow:inset 0 1px 0 var(--glass-highlight);}
@@ -215,7 +215,7 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
 .theme-preview.light{background:linear-gradient(135deg,#ffffff,#e4e6ee);}
 .theme-dot{width:14px;height:14px;border-radius:50%;}
 .theme-card-label{padding:9px;text-align:center;font-size:12px;font-weight:700;color:var(--text);}
-
+ 
 /* Size selector */
 .size-row{display:flex;gap:8px;margin-bottom:22px;}
 .size-opt{flex:1;padding:13px;border-radius:14px;background:var(--glass);border:2px solid var(--glass-border2);box-shadow:inset 0 1px 0 var(--glass-highlight);text-align:center;cursor:pointer;color:var(--text);font-weight:700;}
@@ -225,7 +225,59 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
 .size-opt.md .lbl-a{font-size:16px;}
 .size-opt.lg .lbl-a{font-size:19px;}
 .size-opt .lbl-b{display:block;font-size:10px;opacity:.5;font-weight:600;margin-top:4px;}
-
+ 
+/* ====== DESKTOP LAYOUT ====== */
+@media (min-width:768px){
+  body{ align-items:stretch; }
+  canvas{ z-index:0; }
+ 
+  .desktop-shell{
+    display:flex;flex-direction:row;min-height:100vh;
+    width:100%;max-width:1200px;margin:0 auto;
+    position:relative;z-index:2;
+  }
+ 
+  /* Permanent sidebar on desktop */
+  .overlay{ display:none !important; }
+  .sidebar{
+    position:relative !important;
+    transform:none !important;
+    width:260px !important;
+    flex-shrink:0;
+    border-right:1px solid var(--glass-border2);
+    border-radius:0 !important;
+    z-index:2;
+    box-shadow:none;
+  }
+ 
+  /* App fills remaining space */
+  .app{
+    flex:1;
+    max-width:none !important;
+    border-left:none;
+    padding:24px 28px 28px;
+  }
+ 
+  /* Settings overlay fills only the app area */
+  .settings-overlay{
+    position:absolute;
+    width:calc(100% - 260px);
+    left:260px;
+    border-radius:0;
+  }
+ 
+  /* Auth modal bigger on desktop */
+  .auth-modal{ max-width:420px; }
+ 
+  /* Chat messages wider */
+  .msg-user{ max-width:65%; }
+}
+ 
+/* On mobile, desktop-shell is just a pass-through */
+@media (max-width:767px){
+  .desktop-shell{ display:contents; }
+}
+ 
 /* Memory toggles */
 .mem-row{padding:16px;display:flex;align-items:center;gap:14px;}
 .mem-row+.mem-row{border-top:1px solid var(--row-border);}
@@ -236,7 +288,7 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
 .toggle.on{background:#7c3aed;border-color:#7c3aed;}
 .toggle::after{content:'';position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s;}
 .toggle.on::after{transform:translateX(18px);}
-
+ 
 /* Auth modal */
 .auth-modal-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.5);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;visibility:hidden;transition:opacity .25s;}
 .auth-modal-overlay.open{opacity:1;visibility:visible;}
@@ -272,7 +324,7 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
 </head>
 <body data-theme="dark" data-size="md">
 <canvas id="bg"></canvas>
-
+ 
 <!-- Auth modal -->
 <div class="auth-modal-overlay open" id="authModalOverlay">
   <div class="auth-modal">
@@ -280,12 +332,12 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
       <div class="auth-modal-logo">HarmonyAI</div>
       <div class="auth-modal-tagline">ИИ для учеников музыкальной школы</div>
       <div class="auth-modal-tagline" style="margin-top:-6px;opacity:.7">Подойдёт любая почта: Mail.ru, Яндекс, Gmail и др.</div>
-
+ 
       <input class="auth-input" id="authEmailInput" type="email" placeholder="Email" autocomplete="email" inputmode="email" onkeydown="if(event.key==='Enter')sendEmailCode()">
       <div class="auth-error" id="authEmailError"></div>
       <div class="auth-primary-btn" id="authSendCodeBtn" onclick="sendEmailCode()">Отправить код</div>
     </div>
-
+ 
     <div id="authStepCode" style="display:none;flex-direction:column;gap:12px;">
       <div class="auth-modal-logo" style="font-size:18px">Введите код</div>
       <div class="auth-subtitle" id="authCodeEmailDisplay"></div>
@@ -297,7 +349,10 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
     </div>
   </div>
 </div>
-
+ 
+<!-- Desktop shell wrapper -->
+<div class="desktop-shell">
+ 
 <!-- Sidebar -->
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
 <div class="sidebar" id="sidebar">
@@ -311,9 +366,9 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
     <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 1V17M1 9H17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
     Новый чат
   </div>
-  <div class="sidebar-search">
+  <div class="sidebar-search" onclick="this.querySelector('input').focus()">
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="5" stroke="currentColor" stroke-width="1.5"/><line x1="10" y1="10" x2="13" y2="13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-    Поиск по чатам
+    <input id="chatSearch" type="text" placeholder="Поиск по чатам" style="background:none;border:none;outline:none;color:var(--text);font-family:Inter,sans-serif;font-size:13px;width:100%;opacity:.7" oninput="searchChats(this.value)">
   </div>
   <div class="sidebar-label">Недавние</div>
   <div class="chat-list" id="chatList"></div>
@@ -327,10 +382,10 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
     </div>
   </div>
 </div>
-
+ 
 <!-- Settings overlay -->
 <div class="settings-overlay" id="settingsOverlay">
-
+ 
   <div class="settings-screen" id="screen-main">
     <div class="settings-header">
       <div></div>
@@ -343,7 +398,7 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
       <div class="profile-name" id="profileName">Гость</div>
       <div class="login-btn" id="loginBtn">Войти / Зарегистрироваться</div>
     </div>
-
+ 
     <div class="section-label">Настроить HarmonyAI</div>
     <div class="section">
       <div class="row" onclick="showScreen('personalization')">
@@ -365,7 +420,7 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
         </div>
       </div>
     </div>
-
+ 
     <div class="section-label">Учётная запись</div>
     <div class="section">
       <div class="row" onclick="showEmailInfo()">
@@ -391,7 +446,7 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
       </div>
     </div>
   </div>
-
+ 
   <div class="settings-screen" id="screen-personalization" style="display:none">
     <div class="settings-header">
       <div class="back-btn" onclick="showScreen('main')">
@@ -400,7 +455,7 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
       <div class="settings-title">Персонализация</div>
       <div style="width:36px"></div>
     </div>
-
+ 
     <div class="section-label" style="margin-top:18px">Тема</div>
     <div class="theme-row">
       <div class="theme-card" id="theme-dark" onclick="applyTheme('dark')">
@@ -420,7 +475,7 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
         <div class="theme-card-label">Светлая</div>
       </div>
     </div>
-
+ 
     <div class="section-label">Размер текста</div>
     <div class="size-row">
       <div class="size-opt sm" id="size-sm" onclick="applySize('sm')">
@@ -434,7 +489,7 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
       </div>
     </div>
   </div>
-
+ 
   <div class="settings-screen" id="screen-memory" style="display:none">
     <div class="settings-header">
       <div class="back-btn" onclick="showScreen('main')">
@@ -443,7 +498,7 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
       <div class="settings-title">Память</div>
       <div style="width:36px"></div>
     </div>
-
+ 
     <div class="section" style="margin-top:18px">
       <div class="mem-row">
         <div class="mem-info">
@@ -461,9 +516,9 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
       </div>
     </div>
   </div>
-
+ 
 </div>
-
+ 
 <!-- Main app -->
 <div class="app">
   <div class="top-bar">
@@ -474,11 +529,11 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
       <svg width="20" height="20" fill="none"><path d="M17 9C17 12.5 14.5 15.5 10.5 16.5L4 17.5L4.5 11.5C3.5 10.2 3 8.7 3 7C3 3.5 6 1 10 1C14 1 17 3.5 17 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><line x1="13" y1="11" x2="13" y2="15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="11" y1="13" x2="15" y2="13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
     </div>
   </div>
-
+ 
   <div class="chat-area" id="chat">
     <div class="greeting"><div class="greeting-text">Привет!<br>Давай начнём,<br>отправь мне<br>сообщение<br>и я помогу!</div></div>
   </div>
-
+ 
   <div class="bottom">
     <div class="model-pill" id="pill" onclick="toggleDrop()">
       <div class="model-dot" id="dot"></div>
@@ -501,7 +556,7 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
         </div>
       </div>
     </div>
-
+ 
     <div class="input-glass">
       <div class="icon-btn" onclick="document.getElementById('fi').click()">
         <svg width="14" height="16" fill="none"><path d="M12 5.5L6 11.5C4.9 12.6 3.1 12.6 2 11.5C.9 10.4.9 8.6 2 7.5L8.5 1C9.3.2 10.6.2 11.4 1C12.2 1.8 12.2 3.1 11.4 3.9L5 10.3C4.6 10.7 3.9 10.7 3.5 10.3C3.1 9.9 3.1 9.2 3.5 8.8L9 3.3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -514,20 +569,36 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
     </div>
   </div>
 </div>
-
+<!-- /desktop-shell -->
+ 
 <script>
-const SYSTEM = "Ты HarmonyAI — музыкальный ИИ-помощник для учеников музыкальной школы. Ты мужского пола: всегда говори о себе в мужском роде (например, 'я готов помочь', 'я понял', а не 'готова'/'поняла'). Ты отлично знаешь сольфеджио, музыкальную грамоту, ноты, интервалы, аккорды, лады, ритм, размеры, динамику, темп, музыкальные термины. Отвечай на русском языке. Будь дружелюбным и понятным для детей и подростков. Объясняй просто и с примерами. Если пользователь присылает фото с нотами, аккордами или интервалами — внимательно их разбери и объясни.";
-
+const SYSTEM = `Ты HarmonyAI — музыкальный ИИ-помощник для учеников музыкальной школы. Ты мужского пола: всегда говори о себе в мужском роде (например, 'я готов помочь', 'я понял', а не 'готова'/'поняла'). Ты отлично знаешь сольфеджио, музыкальную грамоту, ноты, интервалы, аккорды, лады, ритм, размеры, динамику, темп, музыкальные термины. Отвечай на русском языке. Будь дружелюбным и понятным для детей и подростков. Объясняй просто и с примерами.
+ 
+РАСПОЗНАВАНИЕ ФОТО: Если пользователь присылает фото с нотами, аккордами, нотными станами или интервалами — внимательно разбери каждую ноту, аккорд, ритмическое значение и объясни подробно что изображено.
+ 
+АККОРДЫ: Ты умеешь разбирать и строить любые аккорды: T53, S64, D7, VII7, II7 и т.п. Объясняй их строение, функцию в тональности, как они звучат и как использовать.
+ 
+ГЕНЕРАЦИЯ НОТНЫХ СТАНОВ: Когда тебя просят показать ноты, нотный стан или мелодию — рисуй их текстом в следующем формате:
+\`\`\`notes
+Ключ: Скрипичный | Тональность: До мажор | Размер: 4/4
+|до(♩) ре(♩) ми(♩) фа(♩)|соль(♩) ля(♩) си(♩) до'(♩)|
+\`\`\`
+Всегда указывай: ключ, тональность, размер и ноты с длительностями (♩=четверть, ♪=восьмая, 𝅗𝅥=половинная, 𝅝=целая).
+ 
+АККОРДОВЫЕ ЦЕПОЧКИ: Строй цепочки по правилам гармонии, например: T53 — S64 — D7 — T53. Объясняй каждую функцию.
+ 
+Ты также можешь помочь с математикой, русским языком и другими школьными предметами — ты умный помощник для учеников.`;
+ 
 /* ===== Supabase ===== */
 const SUPABASE_URL = 'https://cqthnymltqpcxtpiryka.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNxdGhueW1sdHFwY3h0cGlyeWthIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MjY3NzYsImV4cCI6MjA5NzAwMjc3Nn0.b-6lSdjT7XwWkt607ORwGfKYSn3CLZJB3mcs4QQUSoE';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
+ 
 let currentUser = null;
 let authEmail = '';
 let resendTimer = null;
 let resendLeft = 0;
-
+ 
 function translateError(msg){
   if(!msg) return 'Что-то пошло не так, попробуй ещё раз';
   if(msg.includes('Token has expired') || msg.includes('expired')) return 'Код устарел, запросите новый';
@@ -538,7 +609,7 @@ function translateError(msg){
   return 'Ошибка: ' + msg;
 }
 function isValidEmail(e){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
-
+ 
 /* ===== Auth modal ===== */
 function openAuthModal(){
   document.getElementById('authModalOverlay').classList.add('open');
@@ -691,7 +762,7 @@ async function initAuth(){
   updateAccountUI();
   renderChatList();
 }
-
+ 
 /* ===== Memory / knowledge base ===== */
 function memOn(key){
   const el = document.getElementById('toggle-'+key);
@@ -709,13 +780,13 @@ async function getSystemPrompt(){
   }
   return sys;
 }
-
+ 
 let history = [];
 let dropOpen = false;
 let pendingImage = null;
 let currentChatId = null;
 let chats = JSON.parse(localStorage.getItem('harmonyai_chats') || '[]');
-
+ 
 /* ===== Theme & size ===== */
 function applyTheme(t){
   document.body.setAttribute('data-theme', t);
@@ -745,7 +816,7 @@ function toggleMem(key){
   });
 })();
 initAuth();
-
+ 
 /* ===== Animated background ===== */
 const canvas = document.getElementById('bg');
 const ctx = canvas.getContext('2d');
@@ -777,7 +848,7 @@ function draw(){
   requestAnimationFrame(draw);
 }
 draw();
-
+ 
 /* ===== Model picker ===== */
 function toggleDrop(){
   dropOpen=!dropOpen;
@@ -803,7 +874,7 @@ document.addEventListener('click',function(e){
     document.querySelectorAll('.msg-more-menu.open').forEach(m=>m.classList.remove('open'));
   }
 });
-
+ 
 /* ===== Sidebar ===== */
 function openSidebar(){
   document.getElementById('sidebar').classList.add('open');
@@ -814,7 +885,7 @@ function closeSidebar(){
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('overlay').classList.remove('open');
 }
-
+ 
 /* ===== Settings ===== */
 function openSettings(){
   closeSidebar();
@@ -829,7 +900,7 @@ function showScreen(name){
     document.getElementById('screen-'+s).style.display = (s===name) ? 'flex' : 'none';
   });
 }
-
+ 
 /* ===== Chat history ===== */
 function renderChatList(){
   const list = document.getElementById('chatList');
@@ -891,14 +962,14 @@ function newChat(){
   renderChatList();
   closeSidebar();
 }
-
+ 
 /* ===== Message rendering ===== */
 const ICON_COPY='<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke="currentColor" stroke-width="2"/></svg>';
 const ICON_LIKE='<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M7 22H4a1 1 0 01-1-1v-9a1 1 0 011-1h3m4-9 1 1v6h6.28a2 2 0 011.98 2.3l-1.2 8A2 2 0 0114.08 22H7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const ICON_DISLIKE='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="transform:rotate(180deg)"><path d="M7 22H4a1 1 0 01-1-1v-9a1 1 0 011-1h3m4-9 1 1v6h6.28a2 2 0 011.98 2.3l-1.2 8A2 2 0 0114.08 22H7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const ICON_SHARE='<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 16V4M12 4L7 9M12 4l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 14v4a2 2 0 002 2h12a2 2 0 002-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
 const ICON_MORE='<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="5" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="19" cy="12" r="1.5" fill="currentColor"/></svg>';
-
+ 
 function addUserMessage(text){
   const chat=document.getElementById('chat');
   const g=chat.querySelector('.greeting'); if(g)g.remove();
@@ -911,14 +982,14 @@ function addUserMessage(text){
 function addAiMessage(text, opts={}){
   const chat=document.getElementById('chat');
   const g=chat.querySelector('.greeting'); if(g)g.remove();
-
+ 
   const wrap=document.createElement('div');
   wrap.className='msg-ai-wrap';
-
+ 
   const msg=document.createElement('div');
   msg.className='msg-ai';
   wrap.appendChild(msg);
-
+ 
   const actions=document.createElement('div');
   actions.className='msg-actions';
   actions.innerHTML =
@@ -929,10 +1000,10 @@ function addAiMessage(text, opts={}){
     '<div class="msg-action-btn" onclick="toggleMoreMenu(this)" title="Ещё">'+ICON_MORE+'</div>'+
     '<div class="msg-more-menu"><div class="msg-more-item" onclick="regenerateMsg(this)">↻ Повторить</div></div>';
   wrap.appendChild(actions);
-
+ 
   chat.appendChild(wrap);
   chat.scrollTop=chat.scrollHeight;
-
+ 
   if(opts.stream){
     return streamInto(msg, text, chat);
   }else{
@@ -994,7 +1065,7 @@ async function regenerateMsg(item){
   menu.classList.remove('open');
   const wrap=menu.closest('.msg-ai-wrap');
   const msgEl=wrap.querySelector('.msg-ai');
-
+ 
   if(history.length && history[history.length-1].role==='assistant'){
     history.pop();
   }
@@ -1014,7 +1085,7 @@ async function regenerateMsg(item){
     msgEl.textContent='Ошибка соединения: '+e.message;
   }
 }
-
+ 
 function showTyping(){
   const chat=document.getElementById('chat');
   const div=document.createElement('div');
@@ -1023,7 +1094,7 @@ function showTyping(){
   chat.appendChild(div);chat.scrollTop=chat.scrollHeight;
 }
 function hideTyping(){const t=document.getElementById('typing');if(t)t.remove();}
-
+ 
 /* ===== Image upload ===== */
 function handleFile(input){
   const file=input.files[0];if(!file)return;
@@ -1034,14 +1105,14 @@ function handleFile(input){
   };
   reader.readAsDataURL(file);
 }
-
+ 
 /* ===== Send message ===== */
 async function send(){
   const input=document.getElementById('msg');
   const text=input.value.trim();
   if(!text && !pendingImage) return;
   input.value='';
-
+ 
   let userContent;
   let displayText=text||'[фото]';
   if(pendingImage){
@@ -1053,12 +1124,12 @@ async function send(){
   }else{
     userContent=text;
   }
-
+ 
   addUserMessage(displayText);
   history.push({role:'user',content:userContent});
   await saveCurrentChat();
   showTyping();
-
+ 
   try{
     const sysPrompt = await getSystemPrompt();
     const res=await fetch('/api/chat',{
@@ -1085,3 +1156,4 @@ async function send(){
 </script>
 </body>
 </html>
+ 
