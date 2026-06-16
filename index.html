@@ -13,6 +13,7 @@
             -webkit-tap-highlight-color: transparent;
         }
 
+        /* ===== МОБИЛЬНАЯ ТЕМА (по умолчанию — тёмная) ===== */
         :root {
             --bg-primary: #0b0b0e;
             --bg-secondary: #1a1a1e;
@@ -26,7 +27,7 @@
             --input-bg: rgba(255, 255, 255, 0.1);
         }
 
-        /* Desktop light theme */
+        /* ===== ДЕСКТОПНАЯ ТЕМА (светлая) ===== */
         @media (min-width: 769px) {
             :root {
                 --bg-primary: #ffffff;
@@ -47,18 +48,21 @@
             background: var(--bg-primary);
             color: var(--text-primary);
             overflow: hidden;
-            transition: background 0.3s ease;
+            height: 100vh;
         }
 
-        /* Auth Screens */
-        .auth-container {
-            display: flex;
+        /* ===== ЭКРАНЫ АВТОРИЗАЦИИ ===== */
+        .auth-screen {
+            display: none;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
             padding: 20px;
-            background: var(--bg-primary);
+        }
+
+        .auth-screen.active {
+            display: flex;
         }
 
         .auth-card {
@@ -82,7 +86,7 @@
             font-size: 14px;
             color: var(--text-secondary);
             text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 30px;
         }
 
         .email-input {
@@ -95,7 +99,6 @@
             font-size: 16px;
             margin-bottom: 16px;
             outline: none;
-            transition: border-color 0.2s;
         }
 
         .email-input:focus {
@@ -112,20 +115,26 @@
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
-            transition: opacity 0.2s;
+            margin-bottom: 12px;
         }
 
         .btn-primary:active {
             opacity: 0.8;
         }
 
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         .btn-secondary {
+            width: 100%;
+            padding: 12px;
             background: transparent;
             color: var(--text-secondary);
             border: none;
             font-size: 14px;
             cursor: pointer;
-            margin-top: 16px;
         }
 
         .otp-container {
@@ -146,7 +155,6 @@
             background: var(--input-bg);
             color: var(--text-primary);
             outline: none;
-            transition: border-color 0.2s;
         }
 
         .otp-input:focus {
@@ -157,7 +165,7 @@
             display: none !important;
         }
 
-        /* Chat Interface */
+        /* ===== ЧАТ ===== */
         .chat-container {
             display: none;
             height: 100vh;
@@ -168,7 +176,7 @@
             display: flex;
         }
 
-        /* Sidebar */
+        /* ===== БОКОВОЕ МЕНЮ ===== */
         .sidebar {
             position: fixed;
             left: 0;
@@ -246,7 +254,6 @@
             border-radius: 8px;
             cursor: pointer;
             margin-bottom: 4px;
-            transition: background 0.2s;
             font-size: 14px;
             white-space: nowrap;
             overflow: hidden;
@@ -272,7 +279,7 @@
             display: block;
         }
 
-        /* Main Chat Area */
+        /* ===== ОСНОВНОЙ КОНТЕНТ ===== */
         .main-content {
             flex: 1;
             display: flex;
@@ -368,7 +375,7 @@
             cursor: pointer;
             padding: 8px;
             border-radius: 8px;
-            transition: background 0.2s;
+            font-size: 20px;
         }
 
         .icon-btn:hover {
@@ -389,6 +396,7 @@
             border-radius: 8px;
             cursor: pointer;
             font-size: 14px;
+            color: var(--text-primary);
         }
 
         .model-dropdown {
@@ -402,12 +410,12 @@
             min-width: 220px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
             overflow: hidden;
+            z-index: 100;
         }
 
         .model-option {
             padding: 12px 16px;
             cursor: pointer;
-            transition: background 0.2s;
             border-bottom: 1px solid var(--border-color);
         }
 
@@ -426,6 +434,7 @@
         .model-option-title {
             font-weight: 600;
             margin-bottom: 2px;
+            color: var(--text-primary);
         }
 
         .model-option-desc {
@@ -434,20 +443,7 @@
         }
 
         .mode-selector {
-            position: relative;
-        }
-
-        .mode-dropdown {
-            position: absolute;
-            bottom: 100%;
-            right: 0;
-            margin-bottom: 8px;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            min-width: 280px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-            padding: 12px;
+            padding: 8px 0;
         }
 
         .mode-option {
@@ -455,9 +451,7 @@
             align-items: center;
             justify-content: space-between;
             padding: 10px 12px;
-            border-radius: 8px;
             cursor: pointer;
-            transition: background 0.2s;
         }
 
         .mode-option:hover {
@@ -468,6 +462,25 @@
             background: var(--bg-card);
         }
 
+        .mode-option-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .mode-label {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .mode-badge {
+            font-size: 11px;
+            color: var(--text-secondary);
+            background: var(--bg-card);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
         .checkmark {
             width: 20px;
             height: 20px;
@@ -476,26 +489,19 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            color: transparent;
+            font-size: 12px;
         }
 
         .mode-option.active .checkmark {
             border-color: var(--accent);
             background: var(--accent);
-        }
-
-        .checkmark::after {
-            content: '✓';
-            color: transparent;
-            font-size: 12px;
-        }
-
-        .mode-option.active .checkmark::after {
             color: var(--bg-primary);
         }
 
         .thinking-toggle {
-            margin-top: 12px;
-            padding-top: 12px;
+            margin-top: 8px;
+            padding: 10px 12px;
             border-top: 1px solid var(--border-color);
         }
 
@@ -509,6 +515,7 @@
         .toggle-label {
             font-weight: 600;
             font-size: 14px;
+            color: var(--text-primary);
         }
 
         .toggle-desc {
@@ -527,7 +534,7 @@
         }
 
         .toggle-switch.active {
-            background: var(--accent);
+            background: #34c759;
         }
 
         .toggle-slider {
@@ -536,7 +543,7 @@
             left: 2px;
             width: 20px;
             height: 20px;
-            background: var(--bg-primary);
+            background: white;
             border-radius: 50%;
             transition: transform 0.2s;
         }
@@ -545,7 +552,18 @@
             transform: translateX(20px);
         }
 
-        /* Settings Screen */
+        .send-btn {
+            background: var(--button-bg);
+            color: var(--button-text);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* ===== НАСТРОЙКИ ===== */
         .settings-container {
             display: none;
             padding: 20px;
@@ -559,10 +577,25 @@
             display: block;
         }
 
-        .settings-title {
-            font-size: 28px;
-            font-weight: 700;
+        .settings-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
             margin-bottom: 24px;
+        }
+
+        .back-btn {
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-size: 24px;
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .settings-title {
+            font-size: 24px;
+            font-weight: 700;
         }
 
         .settings-section {
@@ -576,6 +609,7 @@
             font-size: 18px;
             font-weight: 600;
             margin-bottom: 16px;
+            color: var(--text-primary);
         }
 
         .setting-item {
@@ -591,11 +625,7 @@
             font-size: 16px;
             font-weight: 500;
             margin-bottom: 8px;
-        }
-
-        .setting-value {
-            color: var(--text-secondary);
-            font-size: 14px;
+            color: var(--text-primary);
         }
 
         .setting-select {
@@ -606,28 +636,25 @@
             background: var(--bg-card);
             border-radius: 8px;
             cursor: pointer;
-            margin-top: 8px;
         }
 
         .setting-select-text {
             font-size: 14px;
+            color: var(--text-secondary);
         }
 
         .dropdown-menu {
-            position: absolute;
             background: var(--bg-secondary);
             border: 1px solid var(--border-color);
             border-radius: 12px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-            min-width: 240px;
-            z-index: 100;
+            margin-top: 8px;
             overflow: hidden;
         }
 
         .dropdown-item {
             padding: 14px 16px;
             cursor: pointer;
-            transition: background 0.2s;
             border-bottom: 1px solid var(--border-color);
         }
 
@@ -646,6 +673,7 @@
         .dropdown-item-title {
             font-weight: 600;
             margin-bottom: 2px;
+            color: var(--text-primary);
         }
 
         .dropdown-item-desc {
@@ -696,6 +724,7 @@
         .user-email {
             font-weight: 600;
             font-size: 14px;
+            color: var(--text-primary);
         }
 
         .logout-btn {
@@ -722,6 +751,7 @@
             font-weight: 600;
             font-size: 14px;
             margin-bottom: 2px;
+            color: var(--text-primary);
         }
 
         .toggle-description {
@@ -729,53 +759,60 @@
             color: var(--text-secondary);
         }
 
+        .save-btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--button-bg);
+            color: var(--button-text);
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 16px;
+        }
+
         @media (max-width: 768px) {
             .auth-title {
                 font-size: 24px;
             }
-            
             .welcome-title {
                 font-size: 24px;
             }
-            
             .settings-title {
-                font-size: 24px;
-            }
-            
-            .sidebar {
-                width: 280px;
+                font-size: 20px;
             }
         }
     </style>
 </head>
 <body>
-<!-- Auth Screen 1: Welcome -->
-<div id="authScreen1" class="auth-container">
-    <div class="auth-card">
-        <h1 class="auth-title">Думает быстро,<br>результат быстрее</h1>
-        <p class="auth-subtitle">Помощник для музыкантов</p>
-        <button type="button" class="btn-primary" onclick="showAuthScreen(2)">Продолжить с Email</button>
-        <p style="margin-top: 16px; font-size: 12px; color: var(--text-secondary); text-align: center;">
-            Продолжая, вы соглашаетесь с нашей 
-            <a href="#" style="color: var(--text-secondary);">Политикой Конфиденциальности</a>
-            и соглашаетесь на отправку сообщений на ваш email.
-        </p>
-        <p style="margin-top: 24px; font-size: 12px; color: var(--text-secondary); text-align: center;">beta version 1.0</p>
-    </div>
-</div>
-    <!-- Auth Screen 2: Email -->
-    <div id="authScreen2" class="auth-container hidden">
+
+    <!-- ===== ЭКРАН 1: ПРИВЕТСТВИЕ ===== -->
+    <div id="authScreen1" class="auth-screen active">
         <div class="auth-card">
-            <h2 class="auth-title" style="font-size: 24px;">Введите ваш Email адрес</h2>
-            <input type="email" id="emailInput" class="email-input" placeholder="Enter your email">
-            <button class="btn-primary" onclick="sendOTP()">Продолжить</button>
-            <button class="btn-secondary" onclick="showAuthScreen(1)">← Назад</button>
+            <h1 class="auth-title">Думает быстро,<br>результат быстрее</h1>
+            <p class="auth-subtitle">Помощник для музыкантов</p>
+            <button type="button" class="btn-primary" id="btnContinueEmail">Продолжить с Email</button>
+            <p style="margin-top: 16px; font-size: 12px; color: var(--text-secondary); text-align: center;">
+                Продолжая, вы соглашаетесь с нашей Политикой Конфиденциальности и соглашаетесь на отправку сообщений на ваш email.
+            </p>
             <p style="margin-top: 24px; font-size: 12px; color: var(--text-secondary); text-align: center;">beta version 1.0</p>
         </div>
     </div>
 
-    <!-- Auth Screen 3: OTP -->
-    <div id="authScreen3" class="auth-container hidden">
+    <!-- ===== ЭКРАН 2: EMAIL ===== -->
+    <div id="authScreen2" class="auth-screen">
+        <div class="auth-card">
+            <h2 class="auth-title" style="font-size: 24px;">Введите ваш Email адрес</h2>
+            <input type="email" id="emailInput" class="email-input" placeholder="Enter your email">
+            <button type="button" class="btn-primary" id="btnSendOTP">Продолжить</button>
+            <button type="button" class="btn-secondary" id="btnBackToWelcome">← Назад</button>
+            <p style="margin-top: 24px; font-size: 12px; color: var(--text-secondary); text-align: center;">beta version 1.0</p>
+        </div>
+    </div>
+
+    <!-- ===== ЭКРАН 3: OTP ===== -->
+    <div id="authScreen3" class="auth-screen">
         <div class="auth-card">
             <h2 class="auth-title" style="font-size: 24px;">Введите 6-ти значный код</h2>
             <div class="otp-container">
@@ -786,24 +823,24 @@
                 <input type="text" class="otp-input" maxlength="1" data-index="4">
                 <input type="text" class="otp-input" maxlength="1" data-index="5">
             </div>
-            <button class="btn-primary" onclick="verifyOTP()">Подтвердить</button>
-            <button class="btn-secondary" onclick="resendOTP()" id="resendBtn">Не приходит код? Отправить снова</button>
-            <button class="btn-secondary" onclick="showAuthScreen(2)">← Изменить email</button>
+            <button type="button" class="btn-primary" id="btnVerifyOTP">Подтвердить</button>
+            <button type="button" class="btn-secondary" id="btnResendOTP">Не приходит код? Отправить снова</button>
+            <button type="button" class="btn-secondary" id="btnChangeEmail">← Изменить email</button>
             <p style="margin-top: 24px; font-size: 12px; color: var(--text-secondary); text-align: center;">beta version 1.0</p>
         </div>
     </div>
 
-    <!-- Chat Interface -->
+    <!-- ===== ЧАТ ===== -->
     <div id="chatContainer" class="chat-container">
-        <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
-        
-        <!-- Sidebar -->
+        <div class="overlay" id="overlay"></div>
+
+        <!-- Боковое меню -->
         <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <span class="sidebar-title">HarmonyAI</span>
-                <button class="close-sidebar" onclick="toggleSidebar()">×</button>
+                <button type="button" class="close-sidebar" id="btnCloseSidebar">×</button>
             </div>
-            <button class="new-chat-btn" onclick="newChat()">
+            <button type="button" class="new-chat-btn" id="btnNewChat">
                 <span>+</span>
                 Новый чат
             </button>
@@ -813,51 +850,57 @@
             </div>
         </div>
 
-        <!-- Main Content -->
+        <!-- Основной контент -->
         <div class="main-content">
             <div class="chat-header">
-                <button class="burger-menu" onclick="toggleSidebar()">☰</button>
+                <button type="button" class="burger-menu" id="btnBurger">☰</button>
                 <span style="font-weight: 600;">HarmonyAI</span>
+                <div style="flex: 1;"></div>
+                <button type="button" class="icon-btn" id="btnOpenSettings">⚙️</button>
             </div>
-            
+
             <div class="chat-messages">
                 <div class="welcome-screen">
                     <h1 class="welcome-title">Привет! Я Harmony Ai</h1>
                     <div class="welcome-input-container">
-                        <textarea class="welcome-input" placeholder="Как я могу помочь тебе?" rows="1"></textarea>
+                        <textarea class="welcome-input" id="messageInput" placeholder="Как я могу помочь тебе?" rows="1"></textarea>
                         <div class="input-footer">
                             <div class="input-actions">
-                                <button class="icon-btn" title="Добавить фото/файл">📎</button>
+                                <button type="button" class="icon-btn" title="Добавить фото/файл">📎</button>
                             </div>
                             <div style="display: flex; gap: 12px; align-items: center;">
                                 <div class="model-selector">
-                                    <div class="model-btn" onclick="toggleModelDropdown()">
+                                    <div class="model-btn" id="btnModelSelector">
                                         <span id="selectedModel">MusMind lite</span>
                                         <span>▾</span>
                                     </div>
                                     <div class="model-dropdown hidden" id="modelDropdown">
-                                        <div class="model-option active" onclick="selectModel('lite')">
+                                        <div class="model-option active" data-model="lite" id="modelLite">
                                             <div class="model-option-title">MusMind lite</div>
                                             <div class="model-option-desc">Быстро и легко</div>
                                         </div>
-                                        <div class="model-option" onclick="selectModel('pro')">
+                                        <div class="model-option" data-model="pro" id="modelPro">
                                             <div class="model-option-title">MusMind pro</div>
                                             <div class="model-option-desc">Максимум возможностей</div>
                                         </div>
-                                        <div class="mode-selector" style="padding: 8px 0;">
-                                            <div class="mode-option" id="modeLow" onclick="selectMode('low')">
-                                                <span>Low</span>
-                                                <span style="font-size: 12px; color: var(--text-secondary); margin-left: 4px;">Обычный</span>
-                                                <div class="checkmark"></div>
+                                        <div class="mode-selector">
+                                            <div class="mode-option active" id="modeLow">
+                                                <div class="mode-option-left">
+                                                    <span class="mode-label">Low</span>
+                                                    <span class="mode-badge">Обычный</span>
+                                                </div>
+                                                <div class="checkmark">✓</div>
                                             </div>
-                                            <div class="mode-option" id="modeMax" onclick="selectMode('max')">
-                                                <span>Max</span>
-                                                <div class="checkmark"></div>
+                                            <div class="mode-option" id="modeMax">
+                                                <div class="mode-option-left">
+                                                    <span class="mode-label">Max</span>
+                                                </div>
+                                                <div class="checkmark">✓</div>
                                             </div>
                                             <div class="thinking-toggle">
                                                 <div class="toggle-header">
                                                     <span class="toggle-label">Думать</span>
-                                                    <div class="toggle-switch" id="thinkingToggle" onclick="toggleThinking()">
+                                                    <div class="toggle-switch" id="thinkingToggle">
                                                         <div class="toggle-slider"></div>
                                                     </div>
                                                 </div>
@@ -866,9 +909,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <button class="icon-btn" style="background: var(--button-bg); color: var(--button-text); padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 600;">
-                                    Отправить
-                                </button>
+                                <button type="button" class="send-btn" id="btnSend">Отправить</button>
                             </div>
                         </div>
                     </div>
@@ -877,80 +918,75 @@
         </div>
     </div>
 
-    <!-- Settings Screen -->
+    <!-- ===== НАСТРОЙКИ ===== -->
     <div id="settingsContainer" class="settings-container">
-        <h1 class="settings-title">Настройки</h1>
-        
-        <!-- Profile Section -->
-        <div class="settings-section">
-            <div class="user-profile">
-                <div class="user-avatar" id="userAvatar">U</div>
-                <div class="user-info">
-                    <div class="user-email" id="userEmail">user@example.com</div>
-                </div>
-                <button class="logout-btn" onclick="logout()">Выйти</button>
-            </div>
+        <div class="settings-header">
+            <button type="button" class="back-btn" id="btnBackFromSettings">←</button>
+            <h1 class="settings-title">Персонализация</h1>
+            <div style="flex: 1;"></div>
+            <button type="button" class="save-btn" id="btnSaveSettings" style="width: auto; padding: 8px 16px; margin: 0; font-size: 14px;">Сохранить</button>
         </div>
 
-        <!-- Personalization Section -->
+        <!-- Базовый стиль -->
         <div class="settings-section">
-            <div class="settings-section-title">Персонализация</div>
-            
+            <div class="settings-section-title">Базовый стиль и тон</div>
             <div class="setting-item">
-                <div class="setting-label">Базовый стиль и тон</div>
-                <div class="setting-select" onclick="toggleDropdown('styleDropdown', this)">
+                <div class="setting-select" id="btnStyleSelect">
                     <span class="setting-select-text" id="styleValue">По умолчанию</span>
                     <span>▾</span>
                 </div>
-                <div class="dropdown-menu hidden" id="styleDropdown" style="position: relative; margin-top: 8px; min-width: 100%;">
-                    <div class="dropdown-item active" onclick="selectStyle('default', this)">
+                <div class="dropdown-menu hidden" id="styleDropdown">
+                    <div class="dropdown-item active" data-value="default">
                         <div class="dropdown-item-title">По умолчанию</div>
                         <div class="dropdown-item-desc">Предпочитаемый стиль и тон</div>
                     </div>
-                    <div class="dropdown-item" onclick="selectStyle('professional', this)">
+                    <div class="dropdown-item" data-value="professional">
                         <div class="dropdown-item-title">Профессиональный</div>
                         <div class="dropdown-item-desc">Тактичный и точный</div>
                     </div>
-                    <div class="dropdown-item" onclick="selectStyle('friendly', this)">
+                    <div class="dropdown-item" data-value="friendly">
                         <div class="dropdown-item-title">Дружелюбный</div>
                         <div class="dropdown-item-desc">Тёплый и разговорчивый</div>
                     </div>
-                    <div class="dropdown-item" onclick="selectStyle('frank', this)">
+                    <div class="dropdown-item" data-value="frank">
                         <div class="dropdown-item-title">Откровенный</div>
                         <div class="dropdown-item-desc">Прямой и мотивирующий</div>
                     </div>
-                    <div class="dropdown-item" onclick="selectStyle('whimsical', this)">
+                    <div class="dropdown-item" data-value="whimsical">
                         <div class="dropdown-item-title">Причудливый</div>
                         <div class="dropdown-item-desc">Весёлый и творческий</div>
                     </div>
-                    <div class="dropdown-item" onclick="selectStyle('efficient', this)">
+                    <div class="dropdown-item" data-value="efficient">
                         <div class="dropdown-item-title">Эффективный</div>
                         <div class="dropdown-item-desc">Немногословный и чёткий</div>
                     </div>
-                    <div class="dropdown-item" onclick="selectStyle('cynical', this)">
+                    <div class="dropdown-item" data-value="cynical">
                         <div class="dropdown-item-title">Циничный</div>
                         <div class="dropdown-item-desc">Критикующий и саркастичный</div>
                     </div>
                 </div>
             </div>
+        </div>
 
+        <!-- Остальные настройки -->
+        <div class="settings-section">
             <div class="setting-item">
                 <div class="setting-label">Доброжелательность</div>
-                <div class="setting-select" onclick="toggleDropdown('friendlinessDropdown', this)">
+                <div class="setting-select" id="btnFriendlinessSelect">
                     <span class="setting-select-text" id="friendlinessValue">По умолчанию</span>
                     <span>▾</span>
                 </div>
-                <div class="dropdown-menu hidden" id="friendlinessDropdown" style="position: relative; margin-top: 8px; min-width: 100%;">
-                    <div class="dropdown-item active" onclick="selectFriendliness('default', this)">
+                <div class="dropdown-menu hidden" id="friendlinessDropdown">
+                    <div class="dropdown-item active" data-value="default">
                         <div class="dropdown-item-title">По умолчанию</div>
                     </div>
-                    <div class="dropdown-item" onclick="selectFriendliness('low', this)">
+                    <div class="dropdown-item" data-value="low">
                         <div class="dropdown-item-title">Низкая</div>
                     </div>
-                    <div class="dropdown-item" onclick="selectFriendliness('medium', this)">
+                    <div class="dropdown-item" data-value="medium">
                         <div class="dropdown-item-title">Средняя</div>
                     </div>
-                    <div class="dropdown-item" onclick="selectFriendliness('high', this)">
+                    <div class="dropdown-item" data-value="high">
                         <div class="dropdown-item-title">Высокая</div>
                     </div>
                 </div>
@@ -958,21 +994,21 @@
 
             <div class="setting-item">
                 <div class="setting-label">Энтузиазм</div>
-                <div class="setting-select" onclick="toggleDropdown('enthusiasmDropdown', this)">
+                <div class="setting-select" id="btnEnthusiasmSelect">
                     <span class="setting-select-text" id="enthusiasmValue">По умолчанию</span>
                     <span>▾</span>
                 </div>
-                <div class="dropdown-menu hidden" id="enthusiasmDropdown" style="position: relative; margin-top: 8px; min-width: 100%;">
-                    <div class="dropdown-item active" onclick="selectEnthusiasm('default', this)">
+                <div class="dropdown-menu hidden" id="enthusiasmDropdown">
+                    <div class="dropdown-item active" data-value="default">
                         <div class="dropdown-item-title">По умолчанию</div>
                     </div>
-                    <div class="dropdown-item" onclick="selectEnthusiasm('reserved', this)">
+                    <div class="dropdown-item" data-value="reserved">
                         <div class="dropdown-item-title">Сдержанный</div>
                     </div>
-                    <div class="dropdown-item" onclick="selectEnthusiasm('moderate', this)">
+                    <div class="dropdown-item" data-value="moderate">
                         <div class="dropdown-item-title">Умеренный</div>
                     </div>
-                    <div class="dropdown-item" onclick="selectEnthusiasm('high', this)">
+                    <div class="dropdown-item" data-value="high">
                         <div class="dropdown-item-title">Высокий</div>
                     </div>
                 </div>
@@ -980,18 +1016,18 @@
 
             <div class="setting-item">
                 <div class="setting-label">Заголовки и списки</div>
-                <div class="setting-select" onclick="toggleDropdown('headingsDropdown', this)">
+                <div class="setting-select" id="btnHeadingsSelect">
                     <span class="setting-select-text" id="headingsValue">По умолчанию</span>
                     <span>▾</span>
                 </div>
-                <div class="dropdown-menu hidden" id="headingsDropdown" style="position: relative; margin-top: 8px; min-width: 100%;">
-                    <div class="dropdown-item active" onclick="selectHeadings('default', this)">
+                <div class="dropdown-menu hidden" id="headingsDropdown">
+                    <div class="dropdown-item active" data-value="default">
                         <div class="dropdown-item-title">По умолчанию</div>
                     </div>
-                    <div class="dropdown-item" onclick="selectHeadings('off', this)">
+                    <div class="dropdown-item" data-value="off">
                         <div class="dropdown-item-title">Выкл</div>
                     </div>
-                    <div class="dropdown-item" onclick="selectHeadings('on', this)">
+                    <div class="dropdown-item" data-value="on">
                         <div class="dropdown-item-title">Вкл</div>
                     </div>
                 </div>
@@ -999,21 +1035,21 @@
 
             <div class="setting-item">
                 <div class="setting-label">Эмодзи</div>
-                <div class="setting-select" onclick="toggleDropdown('emojisDropdown', this)">
+                <div class="setting-select" id="btnEmojisSelect">
                     <span class="setting-select-text" id="emojisValue">По умолчанию</span>
                     <span>▾</span>
                 </div>
-                <div class="dropdown-menu hidden" id="emojisDropdown" style="position: relative; margin-top: 8px; min-width: 100%;">
-                    <div class="dropdown-item active" onclick="selectEmojis('default', this)">
+                <div class="dropdown-menu hidden" id="emojisDropdown">
+                    <div class="dropdown-item active" data-value="default">
                         <div class="dropdown-item-title">По умолчанию</div>
                     </div>
-                    <div class="dropdown-item" onclick="selectEmojis('none', this)">
+                    <div class="dropdown-item" data-value="none">
                         <div class="dropdown-item-title">Нет</div>
                     </div>
-                    <div class="dropdown-item" onclick="selectEmojis('some', this)">
+                    <div class="dropdown-item" data-value="some">
                         <div class="dropdown-item-title">Немного</div>
                     </div>
-                    <div class="dropdown-item" onclick="selectEmojis('many', this)">
+                    <div class="dropdown-item" data-value="many">
                         <div class="dropdown-item-title">Много</div>
                     </div>
                 </div>
@@ -1023,327 +1059,373 @@
                 <div class="toggle-row">
                     <div class="toggle-info">
                         <div class="toggle-title">Быстрые ответы</div>
-                        <div class="toggle-description">Иногда HarmonyAi может использовать свои общие знания, чтобы давать быстрые и подробные ответы</div>
+                        <div class="toggle-description">Иногда HarmonyAi может использовать свои общие знания, чтобы давать быстрые и подробные ответы. Такие ответы не персонализированы и не учитывают сохранённую информацию.</div>
                     </div>
-                    <div class="toggle-switch active" id="quickRepliesToggle" onclick="toggleQuickReplies()">
+                    <div class="toggle-switch active" id="quickRepliesToggle">
                         <div class="toggle-slider"></div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Custom Instructions -->
+        <!-- Пользовательские инструкции -->
         <div class="settings-section">
             <div class="settings-section-title">Пользовательские инструкции</div>
             <textarea class="custom-instructions" id="customInstructions" placeholder="Поделитесь чем-нибудь еще, что вы хотели бы включить для рассмотрения в ответе Harmony Ai."></textarea>
         </div>
+
+        <!-- Профиль -->
+        <div class="settings-section">
+            <div class="user-profile">
+                <div class="user-avatar" id="userAvatar">U</div>
+                <div class="user-info">
+                    <div class="user-email" id="userEmail">user@example.com</div>
+                </div>
+                <button type="button" class="logout-btn" id="btnLogout">Выйти</button>
+            </div>
+        </div>
     </div>
 
     <script>
-        // Initialize Supabase
-        const supabaseUrl = 'https://cqthnymltqpcxtpiryka.supabase.co';
-        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNxdGhueW1sdHFwY3h0cGlyeWthIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MjY3NzYsImV4cCI6MjA5NzAwMjc3Nn0.b-6lSdjT7XwWkt607ORwGfKYSn3CLZJB3mcs4QQUSoE';
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey, {
-            auth: {
-                persistSession: true,
-                autoRefreshToken: true,
-                detectSessionInUrl: false
+        document.addEventListener('DOMContentLoaded', function() {
+
+            // ===== SUPABASE ИНИЦИАЛИЗАЦИЯ =====
+            var supabaseUrl = 'https://cqthnymltqpcxtpiryka.supabase.co';
+            var supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNxdGhueW1sdHFwY3h0cGlyeWthIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MjY3NzYsImV4cCI6MjA5NzAwMjc3Nn0.b-6lSdjT7XwWkt607ORwGfKYSn3CLZJB3mcs4QQUSoEY';
+            var supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey, {
+                auth: {
+                    persistSession: true,
+                    autoRefreshToken: true,
+                    detectSessionInUrl: false
+                }
+            });
+
+            // ===== ПЕРЕМЕННЫЕ =====
+            var currentUser = null;
+            var currentEmail = '';
+            var selectedModelType = 'lite';
+            var selectedMode = 'low';
+            var thinkingEnabled = false;
+            var sidebarOpen = false;
+
+            var userSettings = {
+                style: 'default',
+                friendliness: 'default',
+                enthusiasm: 'default',
+                headings: 'default',
+                emojis: 'default',
+                quickReplies: true,
+                customInstructions: ''
+            };
+
+            // ===== ПРОВЕРКА СЕССИИ ПРИ ЗАГРУЗКЕ =====
+            supabase.auth.getSession().then(function(result) {
+                var session = result.data.session;
+                if (session) {
+                    currentUser = session.user;
+                    showChat();
+                    loadUserSettings();
+                }
+            });
+
+            // Слушаем изменения сессии (вход/выход)
+            supabase.auth.onAuthStateChange(function(event, session) {
+                if (event === 'SIGNED_IN' && session) {
+                    currentUser = session.user;
+                    showChat();
+                    loadUserSettings();
+                } else if (event === 'SIGNED_OUT') {
+                    currentUser = null;
+                    location.reload();
+                }
+            });
+
+            // ===== НАВИГАЦИЯ МЕЖДУ ЭКРАНАМИ =====
+            function showAuthScreen(num) {
+                document.getElementById('authScreen1').classList.remove('active');
+                document.getElementById('authScreen2').classList.remove('active');
+                document.getElementById('authScreen3').classList.remove('active');
+                document.getElementById('authScreen' + num).classList.add('active');
             }
-        });
 
-        let currentUser = null;
-        let currentEmail = '';
-        let selectedModelType = 'lite';
-        let selectedMode = 'low';
-        let thinkingEnabled = false;
-        let sidebarOpen = false;
+            function showChat() {
+                document.getElementById('authScreen1').classList.remove('active');
+                document.getElementById('authScreen2').classList.remove('active');
+                document.getElementById('authScreen3').classList.remove('active');
+                document.getElementById('chatContainer').classList.add('active');
 
-        // User settings
-        let userSettings = {
-            style: 'default',
-            friendliness: 'default',
-            enthusiasm: 'default',
-            headings: 'default',
-            emojis: 'default',
-            quickReplies: true,
-            customInstructions: ''
-        };
-
-        // Check session on load
-        window.addEventListener('load', async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session) {
-                currentUser = session.user;
-                showChat();
-                await loadUserSettings();
+                if (currentUser) {
+                    document.getElementById('userEmail').textContent = currentUser.email;
+                    document.getElementById('userAvatar').textContent = currentUser.email.charAt(0).toUpperCase();
+                }
             }
-        });
 
-        // Auth Functions
-        function showAuthScreen(screenNumber) {
-            document.getElementById('authScreen1').classList.add('hidden');
-            document.getElementById('authScreen2').classList.add('hidden');
-            document.getElementById('authScreen3').classList.add('hidden');
-            document.getElementById(`authScreen${screenNumber}`).classList.remove('hidden');
-        }
-
-        async function sendOTP() {
-            const email = document.getElementById('emailInput').value.trim();
-            if (!email) {
-                alert('Введите email');
-                return;
+            function showSettings() {
+                document.getElementById('chatContainer').classList.remove('active');
+                document.getElementById('settingsContainer').classList.add('active');
             }
-            currentEmail = email;
-            
-            const { error } = await supabase.auth.signInWithOtp({ email });
-            if (error) {
-                alert('Ошибка: ' + error.message);
-            } else {
-                showAuthScreen(3);
-                setupOTPInputs();
-            }
-        }
 
-        function setupOTPInputs() {
-            const inputs = document.querySelectorAll('.otp-input');
-            inputs.forEach((input, index) => {
-                input.value = '';
-                input.addEventListener('input', (e) => {
-                    if (e.target.value.length === 1) {
-                        if (index < 5) inputs[index + 1].focus();
+            function hideSettings() {
+                document.getElementById('settingsContainer').classList.remove('active');
+                document.getElementById('chatContainer').classList.add('active');
+            }
+
+            // ===== ОТПРАВКА OTP =====
+            document.getElementById('btnContinueEmail').addEventListener('click', function() {
+                showAuthScreen(2);
+            });
+
+            document.getElementById('btnBackToWelcome').addEventListener('click', function() {
+                showAuthScreen(1);
+            });
+
+            document.getElementById('btnSendOTP').addEventListener('click', function() {
+                var email = document.getElementById('emailInput').value.trim();
+                if (!email) {
+                    alert('Введите email');
+                    return;
+                }
+                currentEmail = email;
+
+                supabase.auth.signInWithOtp({ email: email }).then(function(result) {
+                    if (result.error) {
+                        alert('Ошибка: ' + result.error.message);
+                    } else {
+                        showAuthScreen(3);
+                        setupOTPInputs();
                     }
                 });
-                input.addEventListener('keydown', (e) => {
-                    if (e.key === 'Backspace' && !e.target.value && index > 0) {
-                        inputs[index - 1].focus();
-                    }
-                });
-                input.addEventListener('paste', (e) => {
-                    e.preventDefault();
-                    const pasteData = e.clipboardData.getData('text').slice(0, 6);
-                    pasteData.split('').forEach((char, i) => {
-                        if (inputs[i]) inputs[i].value = char;
+            });
+
+            document.getElementById('btnChangeEmail').addEventListener('click', function() {
+                showAuthScreen(2);
+            });
+
+            // ===== OTP ВВОД =====
+            function setupOTPInputs() {
+                var inputs = document.querySelectorAll('.otp-input');
+                inputs.forEach(function(input) { input.value = ''; });
+
+                inputs.forEach(function(input, index) {
+                    input.addEventListener('input', function(e) {
+                        if (e.target.value.length === 1) {
+                            if (index < 5) inputs[index + 1].focus();
+                        }
                     });
-                    if (inputs[pasteData.length - 1]) {
-                        inputs[pasteData.length - 1].focus();
+                    input.addEventListener('keydown', function(e) {
+                        if (e.key === 'Backspace' && !e.target.value && index > 0) {
+                            inputs[index - 1].focus();
+                        }
+                    });
+                    input.addEventListener('paste', function(e) {
+                        e.preventDefault();
+                        var pasteData = e.clipboardData.getData('text').slice(0, 6);
+                        pasteData.split('').forEach(function(char, i) {
+                            if (inputs[i]) inputs[i].value = char;
+                        });
+                        if (inputs[pasteData.length - 1]) {
+                            inputs[pasteData.length - 1].focus();
+                        }
+                    });
+                });
+            }
+
+            document.getElementById('btnVerifyOTP').addEventListener('click', function() {
+                var inputs = document.querySelectorAll('.otp-input');
+                var code = '';
+                inputs.forEach(function(input) { code += input.value; });
+
+                if (code.length !== 6) {
+                    alert('Введите 6-значный код');
+                    return;
+                }
+
+                supabase.auth.verifyOtp({
+                    email: currentEmail,
+                    token: code,
+                    type: 'email'
+                }).then(function(result) {
+                    if (result.error) {
+                        alert('Ошибка: ' + result.error.message);
+                    } else {
+                        currentUser = result.data.user;
+                        showChat();
+                        loadUserSettings();
                     }
                 });
             });
-        }
 
-        async function verifyOTP() {
-            const inputs = document.querySelectorAll('.otp-input');
-            const code = Array.from(inputs).map(input => input.value).join('');
-            
-            if (code.length !== 6) {
-                alert('Введите 6-значный код');
-                return;
+            document.getElementById('btnResendOTP').addEventListener('click', function() {
+                var btn = document.getElementById('btnResendOTP');
+                btn.disabled = true;
+                btn.textContent = 'Отправлено';
+
+                supabase.auth.signInWithOtp({ email: currentEmail }).then(function(result) {
+                    if (result.error) {
+                        alert('Ошибка: ' + result.error.message);
+                    }
+                });
+
+                setTimeout(function() {
+                    btn.disabled = false;
+                    btn.textContent = 'Не приходит код? Отправить снова';
+                }, 60000);
+            });
+
+            // ===== БОКОВОЕ МЕНЮ =====
+            function toggleSidebar() {
+                sidebarOpen = !sidebarOpen;
+                document.getElementById('sidebar').classList.toggle('open', sidebarOpen);
+                document.getElementById('overlay').classList.toggle('active', sidebarOpen);
             }
 
-            const { data, error } = await supabase.auth.verifyOtp({
-                email: currentEmail,
-                token: code,
-                type: 'email'
+            document.getElementById('btnBurger').addEventListener('click', toggleSidebar);
+            document.getElementById('btnCloseSidebar').addEventListener('click', toggleSidebar);
+            document.getElementById('overlay').addEventListener('click', toggleSidebar);
+
+            document.getElementById('btnNewChat').addEventListener('click', function() {
+                toggleSidebar();
             });
 
-            if (error) {
-                alert('Ошибка: ' + error.message);
-            } else {
-                currentUser = data.user;
-                showChat();
-                await loadUserSettings();
+            // ===== НАСТРОЙКИ =====
+            document.getElementById('btnOpenSettings').addEventListener('click', showSettings);
+            document.getElementById('btnBackFromSettings').addEventListener('click', hideSettings);
+
+            document.getElementById('btnLogout').addEventListener('click', function() {
+                supabase.auth.signOut().then(function() {
+                    location.reload();
+                });
+            });
+
+            // ===== ВЫБОР МОДЕЛИ =====
+            document.getElementById('btnModelSelector').addEventListener('click', function(e) {
+                e.stopPropagation();
+                document.getElementById('modelDropdown').classList.toggle('hidden');
+            });
+
+            document.getElementById('modelLite').addEventListener('click', function() {
+                selectedModelType = 'lite';
+                document.getElementById('selectedModel').textContent = 'MusMind lite';
+                document.getElementById('modelLite').classList.add('active');
+                document.getElementById('modelPro').classList.remove('active');
+                document.getElementById('modelDropdown').classList.add('hidden');
+            });
+
+            document.getElementById('modelPro').addEventListener('click', function() {
+                selectedModelType = 'pro';
+                document.getElementById('selectedModel').textContent = 'MusMind pro';
+                document.getElementById('modelPro').classList.add('active');
+                document.getElementById('modelLite').classList.remove('active');
+                document.getElementById('modelDropdown').classList.add('hidden');
+            });
+
+            // ===== РЕЖИМ LOW/MAX =====
+            document.getElementById('modeLow').addEventListener('click', function() {
+                selectedMode = 'low';
+                document.getElementById('modeLow').classList.add('active');
+                document.getElementById('modeMax').classList.remove('active');
+            });
+
+            document.getElementById('modeMax').addEventListener('click', function() {
+                selectedMode = 'max';
+                document.getElementById('modeMax').classList.add('active');
+                document.getElementById('modeLow').classList.remove('active');
+            });
+
+            // ===== ДУМАТЬ =====
+            document.getElementById('thinkingToggle').addEventListener('click', function() {
+                thinkingEnabled = !thinkingEnabled;
+                document.getElementById('thinkingToggle').classList.toggle('active', thinkingEnabled);
+            });
+
+            // ===== DROPDOWNS В НАСТРОЙКАХ =====
+            function setupDropdown(btnId, dropdownId, valueId, callback) {
+                document.getElementById(btnId).addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    // Закрыть все остальные
+                    document.querySelectorAll('.dropdown-menu').forEach(function(d) {
+                        if (d.id !== dropdownId) d.classList.add('hidden');
+                    });
+                    document.getElementById(dropdownId).classList.toggle('hidden');
+                });
+
+                document.getElementById(dropdownId).querySelectorAll('.dropdown-item').forEach(function(item) {
+                    item.addEventListener('click', function() {
+                        var value = item.getAttribute('data-value');
+                        var title = item.querySelector('.dropdown-item-title').textContent;
+                        document.getElementById(valueId).textContent = title;
+
+                        // Обновить активный элемент
+                        document.getElementById(dropdownId).querySelectorAll('.dropdown-item').forEach(function(i) {
+                            i.classList.remove('active');
+                        });
+                        item.classList.add('active');
+
+                        if (callback) callback(value);
+                    });
+                });
             }
-        }
 
-        async function resendOTP() {
-            const btn = document.getElementById('resendBtn');
-            btn.disabled = true;
-            btn.textContent = 'Отправлено';
-            
-            const { error } = await supabase.auth.signInWithOtp({ email: currentEmail });
-            if (error) {
-                alert('Ошибка: ' + error.message);
+            setupDropdown('btnStyleSelect', 'styleDropdown', 'styleValue', function(v) { userSettings.style = v; });
+            setupDropdown('btnFriendlinessSelect', 'friendlinessDropdown', 'friendlinessValue', function(v) { userSettings.friendliness = v; });
+            setupDropdown('btnEnthusiasmSelect', 'enthusiasmDropdown', 'enthusiasmValue', function(v) { userSettings.enthusiasm = v; });
+            setupDropdown('btnHeadingsSelect', 'headingsDropdown', 'headingsValue', function(v) { userSettings.headings = v; });
+            setupDropdown('btnEmojisSelect', 'emojisDropdown', 'emojisValue', function(v) { userSettings.emojis = v; });
+
+            // Закрыть dropdown при клике вне
+            document.addEventListener('click', function() {
+                document.querySelectorAll('.dropdown-menu').forEach(function(d) {
+                    d.classList.add('hidden');
+                });
+                document.getElementById('modelDropdown').classList.add('hidden');
+            });
+
+            // ===== БЫСТРЫЕ ОТВЕТЫ =====
+            document.getElementById('quickRepliesToggle').addEventListener('click', function() {
+                userSettings.quickReplies = !userSettings.quickReplies;
+                document.getElementById('quickRepliesToggle').classList.toggle('active', userSettings.quickReplies);
+            });
+
+            // ===== СОХРАНЕНИЕ НАСТРОЕК =====
+            document.getElementById('btnSaveSettings').addEventListener('click', function() {
+                userSettings.customInstructions = document.getElementById('customInstructions').value;
+
+                if (currentUser) {
+                    supabase.from('profiles').upsert({
+                        id: currentUser.id,
+                        settings: userSettings
+                    }, { onConflict: 'id' }).then(function(result) {
+                        if (result.error) {
+                            console.error('Error saving:', result.error);
+                            alert('Ошибка сохранения: ' + result.error.message);
+                        } else {
+                            alert('Настройки сохранены!');
+                            hideSettings();
+                        }
+                    });
+                } else {
+                    hideSettings();
+                }
+            });
+
+            // ===== ЗАГРУЗКА НАСТРОЕК =====
+            function loadUserSettings() {
+                if (!currentUser) return;
+
+                supabase.from('profiles').select('settings').eq('id', currentUser.id).single().then(function(result) {
+                    if (result.data && result.data.settings) {
+                        userSettings = Object.assign(userSettings, result.data.settings);
+                        applyUserSettings();
+                    }
+                });
             }
-            
-            setTimeout(() => {
-                btn.disabled = false;
-                btn.textContent = 'Не приходит код? Отправить снова';
-            }, 60000);
-        }
 
-        async function logout() {
-            await supabase.auth.signOut();
-            currentUser = null;
-            location.reload();
-        }
+            function applyUserSettings() {
+                document.getElementById('customInstructions').value = userSettings.customInstructions || '';
+                document.getElementById('quickRepliesToggle').classList.toggle('active', userSettings.quickReplies);
 
-        function showChat() {
-            document.getElementById('authScreen1').classList.add('hidden');
-            document.getElementById('authScreen2').classList.add('hidden');
-            document.getElementById('authScreen3').classList.add('hidden');
-            document.getElementById('chatContainer').classList.add('active');
-            
-            if (currentUser) {
-                document.getElementById('userEmail').textContent = currentUser.email;
-                document.getElementById('userAvatar').textContent = currentUser.email.charAt(0).toUpperCase();
-            }
-        }
-
-        // Sidebar
-        function toggleSidebar() {
-            sidebarOpen = !sidebarOpen;
-            document.getElementById('sidebar').classList.toggle('open', sidebarOpen);
-            document.getElementById('overlay').classList.toggle('active', sidebarOpen);
-        }
-
-        function newChat() {
-            // Create new chat logic
-            toggleSidebar();
-        }
-
-        // Model Selection
-        function toggleModelDropdown() {
-            document.getElementById('modelDropdown').classList.toggle('hidden');
-        }
-
-        function selectModel(type) {
-            selectedModelType = type;
-            document.getElementById('selectedModel').textContent = type === 'lite' ? 'MusMind lite' : 'MusMind pro';
-            
-            document.querySelectorAll('.model-option').forEach((opt, idx) => {
-                opt.classList.toggle('active', (type === 'lite' && idx === 0) || (type === 'pro' && idx === 1));
-            });
-            
-            document.getElementById('modelDropdown').classList.add('hidden');
-        }
-
-        function selectMode(mode) {
-            selectedMode = mode;
-            document.getElementById('modeLow').classList.toggle('active', mode === 'low');
-            document.getElementById('modeMax').classList.toggle('active', mode === 'max');
-        }
-
-        function toggleThinking() {
-            thinkingEnabled = !thinkingEnabled;
-            document.getElementById('thinkingToggle').classList.toggle('active', thinkingEnabled);
-        }
-
-        // Settings Dropdowns
-        function toggleDropdown(dropdownId, element) {
-            const dropdown = document.getElementById(dropdownId);
-            const allDropdowns = document.querySelectorAll('.dropdown-menu');
-            
-            allDropdowns.forEach(d => {
-                if (d.id !== dropdownId) d.classList.add('hidden');
-            });
-            
-            dropdown.classList.toggle('hidden');
-        }
-
-        function selectStyle(style, element) {
-            userSettings.style = style;
-            document.getElementById('styleValue').textContent = element.querySelector('.dropdown-item-title').textContent;
-            
-            document.querySelectorAll('#styleDropdown .dropdown-item').forEach(item => {
-                item.classList.remove('active');
-            });
-            element.classList.add('active');
-            
-            saveUserSettings();
-        }
-
-        function selectFriendliness(value, element) {
-            userSettings.friendliness = value;
-            document.getElementById('friendlinessValue').textContent = element.querySelector('.dropdown-item-title').textContent;
-            
-            document.querySelectorAll('#friendlinessDropdown .dropdown-item').forEach(item => {
-                item.classList.remove('active');
-            });
-            element.classList.add('active');
-            
-            saveUserSettings();
-        }
-
-        function selectEnthusiasm(value, element) {
-            userSettings.enthusiasm = value;
-            document.getElementById('enthusiasmValue').textContent = element.querySelector('.dropdown-item-title').textContent;
-            
-            document.querySelectorAll('#enthusiasmDropdown .dropdown-item').forEach(item => {
-                item.classList.remove('active');
-            });
-            element.classList.add('active');
-            
-            saveUserSettings();
-        }
-
-        function selectHeadings(value, element) {
-            userSettings.headings = value;
-            document.getElementById('headingsValue').textContent = element.querySelector('.dropdown-item-title').textContent;
-            
-            document.querySelectorAll('#headingsDropdown .dropdown-item').forEach(item => {
-                item.classList.remove('active');
-            });
-            element.classList.add('active');
-            
-            saveUserSettings();
-        }
-
-        function selectEmojis(value, element) {
-            userSettings.emojis = value;
-            document.getElementById('emojisValue').textContent = element.querySelector('.dropdown-item-title').textContent;
-            
-            document.querySelectorAll('#emojisDropdown .dropdown-item').forEach(item => {
-                item.classList.remove('active');
-            });
-            element.classList.add('active');
-            
-            saveUserSettings();
-        }
-
-        function toggleQuickReplies() {
-            userSettings.quickReplies = !userSettings.quickReplies;
-            document.getElementById('quickRepliesToggle').classList.toggle('active', userSettings.quickReplies);
-            saveUserSettings();
-        }
-
-        // Save/Load Settings
-        async function saveUserSettings() {
-            if (!currentUser) return;
-            
-            userSettings.customInstructions = document.getElementById('customInstructions').value;
-            
-            const { error } = await supabase
-                .from('profiles')
-                .upsert({
-                    id: currentUser.id,
-                    settings: userSettings
-                }, { onConflict: 'id' });
-            
-            if (error) console.error('Error saving settings:', error);
-        }
-
-        async function loadUserSettings() {
-            if (!currentUser) return;
-            
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('settings')
-                .eq('id', currentUser.id)
-                .single();
-            
-            if (data?.settings) {
-                userSettings = { ...userSettings, ...data.settings };
-                applyUserSettings();
-            }
-        }
-
-        function applyUserSettings() {
-            document.getElementById('customInstructions').value = userSettings.customInstructions || '';
-            document.getElementById('quickRepliesToggle').classList.toggle('active', userSettings.quickReplies);
-            
-            // Apply other settings to UI
-            if (userSettings.style !== 'default') {
-                const styleNames = {
+                var styleNames = {
+                    'default': 'По умолчанию',
                     'professional': 'Профессиональный',
                     'friendly': 'Дружелюбный',
                     'frank': 'Откровенный',
@@ -1352,23 +1434,43 @@
                     'cynical': 'Циничный'
                 };
                 document.getElementById('styleValue').textContent = styleNames[userSettings.style] || 'По умолчанию';
-            }
-        }
 
-        // Close dropdowns when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('.model-selector')) {
-                document.getElementById('modelDropdown').classList.add('hidden');
-            }
-            if (!e.target.closest('.setting-select')) {
-                document.querySelectorAll('.dropdown-menu').forEach(d => d.classList.add('hidden'));
-            }
-        });
+                var friendlinessNames = {
+                    'default': 'По умолчанию', 'low': 'Низкая', 'medium': 'Средняя', 'high': 'Высокая'
+                };
+                document.getElementById('friendlinessValue').textContent = friendlinessNames[userSettings.friendliness] || 'По умолчанию';
 
-        // Auto-resize textarea
-        document.querySelector('.welcome-input')?.addEventListener('input', function() {
-            this.style.height = 'auto';
-            this.style.height = Math.min(this.scrollHeight, 200) + 'px';
+                var enthusiasmNames = {
+                    'default': 'По умолчанию', 'reserved': 'Сдержанный', 'moderate': 'Умеренный', 'high': 'Высокий'
+                };
+                document.getElementById('enthusiasmValue').textContent = enthusiasmNames[userSettings.enthusiasm] || 'По умолчанию';
+
+                var headingsNames = {
+                    'default': 'По умолчанию', 'off': 'Выкл', 'on': 'Вкл'
+                };
+                document.getElementById('headingsValue').textContent = headingsNames[userSettings.headings] || 'По умолчанию';
+
+                var emojisNames = {
+                    'default': 'По умолчанию', 'none': 'Нет', 'some': 'Немного', 'many': 'Много'
+                };
+                document.getElementById('emojisValue').textContent = emojisNames[userSettings.emojis] || 'По умолчанию';
+            }
+
+            // ===== ОТПРАВКА СООБЩЕНИЯ =====
+            document.getElementById('btnSend').addEventListener('click', function() {
+                var text = document.getElementById('messageInput').value.trim();
+                if (!text) return;
+
+                alert('Отправка: ' + text + '\nМодель: ' + selectedModelType + '\nРежим: ' + selectedMode + '\nДумать: ' + thinkingEnabled);
+                // Здесь будет реальная отправка через /api/chat
+            });
+
+            // Автоувеличение textarea
+            document.getElementById('messageInput').addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = Math.min(this.scrollHeight, 200) + 'px';
+            });
+
         });
     </script>
 </body>
