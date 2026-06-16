@@ -1,1336 +1,1377 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HarmonyAI</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/abcjs@6.2.3/dist/abcjs-basic-min.js"></script>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-*{box-sizing:border-box;margin:0;padding:0;}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>HarmonyAI</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
 
-:root{
-  --bg:#f7f6f3;
-  --sidebar-bg:#efede9;
-  --text:#1a1a1a;
-  --text-secondary:#666;
-  --border:#e0ded9;
-  --input-bg:#fff;
-  --input-border:#d8d6d0;
-  --hover:#e8e6e2;
-  --active:#e0deda;
-  --send-bg:#1a1a1a;
-  --send-text:#fff;
-  --user-bubble:#1a1a1a;
-  --user-bubble-text:#fff;
-  --btn-light:#fff;
-  --btn-light-border:#d8d6d0;
-  --model-pill-bg:#fff;
-  --model-pill-border:#d0cec9;
-  --dropdown-bg:#fff;
-  --dropdown-border:#e0ded9;
-  --dropdown-shadow:0 8px 32px rgba(0,0,0,0.10);
-  --font-base:15px;
-}
-[data-theme="dark"]{
-  --bg:#0f0f0f;
-  --sidebar-bg:#161616;
-  --text:#f0f0f0;
-  --text-secondary:#888;
-  --border:#2a2a2a;
-  --input-bg:#1e1e1e;
-  --input-border:#333;
-  --hover:#222;
-  --active:#2a2a2a;
-  --send-bg:#f0f0f0;
-  --send-text:#0f0f0f;
-  --user-bubble:#2a2a2a;
-  --user-bubble-text:#f0f0f0;
-  --btn-light:#1e1e1e;
-  --btn-light-border:#333;
-  --model-pill-bg:#1e1e1e;
-  --model-pill-border:#333;
-  --dropdown-bg:#1e1e1e;
-  --dropdown-border:#333;
-  --dropdown-shadow:0 8px 32px rgba(0,0,0,0.4);
-}
+        :root {
+            --bg-primary: #0b0b0e;
+            --bg-secondary: #1a1a1e;
+            --bg-card: rgba(255, 255, 255, 0.05);
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --accent: #ffffff;
+            --button-bg: #ffffff;
+            --button-text: #000000;
+            --input-bg: rgba(255, 255, 255, 0.1);
+        }
 
-body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow:hidden;transition:background .25s,color .25s;}
+        /* Desktop light theme */
+        @media (min-width: 769px) {
+            :root {
+                --bg-primary: #ffffff;
+                --bg-secondary: #f7f7f8;
+                --bg-card: rgba(0, 0, 0, 0.05);
+                --text-primary: #000000;
+                --text-secondary: #666666;
+                --border-color: rgba(0, 0, 0, 0.1);
+                --accent: #000000;
+                --button-bg: #000000;
+                --button-text: #ffffff;
+                --input-bg: rgba(0, 0, 0, 0.05);
+            }
+        }
 
-/* ===== AUTH SCREENS ===== */
-#authGate{
-  position:fixed;inset:0;z-index:1000;
-  background:var(--bg);
-  display:flex;align-items:center;justify-content:center;
-}
-#authGate.hidden{display:none;}
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow: hidden;
+            transition: background 0.3s ease;
+        }
 
-.auth-screen{
-  width:100%;max-width:400px;padding:0 24px;
-  display:none;flex-direction:column;align-items:center;gap:0;
-}
-.auth-screen.active{display:flex;}
+        /* Auth Screens */
+        .auth-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+            background: var(--bg-primary);
+        }
 
-.auth-logo{
-  font-size:22px;font-weight:800;letter-spacing:-0.5px;color:var(--text);
-  margin-bottom:48px;align-self:flex-start;
-}
-.auth-heading{
-  font-size:32px;font-weight:800;letter-spacing:-1px;color:var(--text);
-  text-align:center;line-height:1.15;margin-bottom:8px;
-}
-.auth-sub{
-  font-size:15px;color:var(--text-secondary);text-align:center;
-  margin-bottom:40px;line-height:1.5;
-}
-.auth-card{
-  width:100%;background:var(--btn-light);
-  border:1px solid var(--btn-light-border);
-  border-radius:16px;padding:16px;
-  display:flex;flex-direction:column;gap:10px;
-}
-.auth-email-btn{
-  width:100%;padding:14px;border-radius:10px;
-  background:var(--send-bg);color:var(--send-text);
-  font-size:15px;font-weight:700;border:none;cursor:pointer;
-  transition:opacity .15s;
-}
-.auth-email-btn:hover{opacity:.88;}
-.auth-tos{font-size:12px;color:var(--text-secondary);text-align:center;line-height:1.6;}
-.auth-tos a{color:var(--text);text-decoration:underline;}
+        .auth-card {
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            padding: 40px 30px;
+            max-width: 400px;
+            width: 100%;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
 
-.auth-input-field{
-  width:100%;padding:13px 14px;border-radius:10px;
-  background:var(--bg);border:1px solid var(--input-border);
-  font-size:15px;color:var(--text);font-family:'Inter',sans-serif;outline:none;
-  transition:border-color .15s;
-}
-.auth-input-field:focus{border-color:var(--text);}
-.auth-input-field::placeholder{color:var(--text-secondary);}
+        .auth-title {
+            font-size: 28px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 10px;
+            line-height: 1.2;
+        }
 
-.auth-continue-btn{
-  width:100%;padding:13px;border-radius:10px;
-  background:var(--send-bg);color:var(--send-text);
-  font-size:15px;font-weight:700;border:none;cursor:pointer;
-  transition:opacity .15s;
-}
-.auth-continue-btn:hover{opacity:.88;}
-.auth-back-link{
-  font-size:14px;color:var(--text-secondary);cursor:pointer;text-align:center;
-  padding-top:4px;
-}
-.auth-back-link:hover{color:var(--text);}
-.auth-error{font-size:13px;color:#e53e3e;text-align:center;display:none;}
-.auth-beta{
-  position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
-  font-size:12px;color:var(--text-secondary);
-}
+        .auth-subtitle {
+            font-size: 14px;
+            color: var(--text-secondary);
+            text-align: center;
+            margin-bottom: 40px;
+        }
 
-/* OTP boxes */
-.otp-row{display:flex;gap:8px;justify-content:center;}
-.otp-digit{
-  width:44px;height:52px;border-radius:10px;
-  border:1px solid var(--input-border);background:var(--bg);
-  font-size:20px;font-weight:700;color:var(--text);text-align:center;
-  font-family:'Inter',sans-serif;outline:none;
-  transition:border-color .15s;
-}
-.otp-digit:focus{border-color:var(--text);}
+        .email-input {
+            width: 100%;
+            padding: 16px 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            background: var(--input-bg);
+            color: var(--text-primary);
+            font-size: 16px;
+            margin-bottom: 16px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
 
-.auth-resend{font-size:13px;color:var(--text-secondary);text-align:center;cursor:pointer;}
-.auth-resend:hover{color:var(--text);}
-.auth-resend.disabled{opacity:.4;cursor:default;}
+        .email-input:focus {
+            border-color: var(--accent);
+        }
 
-/* ===== MAIN LAYOUT ===== */
-.layout{
-  display:flex;height:100vh;overflow:hidden;
-}
+        .btn-primary {
+            width: 100%;
+            padding: 16px;
+            background: var(--button-bg);
+            color: var(--button-text);
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
 
-/* ===== SIDEBAR ===== */
-.sidebar{
-  width:240px;flex-shrink:0;
-  background:var(--sidebar-bg);
-  border-right:1px solid var(--border);
-  display:flex;flex-direction:column;
-  padding:12px 8px;
-  transition:background .25s;
-}
-.sidebar-logo{
-  font-size:18px;font-weight:800;letter-spacing:-0.5px;
-  color:var(--text);padding:8px 12px 16px;
-}
-.sidebar-btn{
-  display:flex;align-items:center;gap:10px;
-  padding:8px 12px;border-radius:10px;
-  font-size:13px;font-weight:500;color:var(--text);
-  cursor:pointer;transition:background .12s;
-}
-.sidebar-btn:hover{background:var(--hover);}
-.sidebar-btn svg{opacity:.6;flex-shrink:0;}
-.sidebar-divider{height:1px;background:var(--border);margin:8px 0;}
-.sidebar-label{font-size:11px;font-weight:600;color:var(--text-secondary);padding:8px 12px 4px;text-transform:uppercase;letter-spacing:.6px;}
-.chat-list{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:2px;}
-.chat-list::-webkit-scrollbar{width:4px;}
-.chat-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
-.chat-item{
-  padding:8px 12px;border-radius:8px;
-  font-size:13px;color:var(--text);cursor:pointer;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  transition:background .12s;opacity:.8;
-}
-.chat-item:hover,.chat-item.active{background:var(--active);opacity:1;}
-.sidebar-footer{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:8px 12px;border-radius:10px;cursor:pointer;
-  transition:background .12s;margin-top:auto;
-}
-.sidebar-footer:hover{background:var(--hover);}
-.sidebar-avatar{
-  width:28px;height:28px;border-radius:50%;
-  background:var(--text);color:var(--bg);
-  display:flex;align-items:center;justify-content:center;
-  font-size:12px;font-weight:700;flex-shrink:0;
-}
-.sidebar-user-info{flex:1;margin-left:10px;overflow:hidden;}
-.sidebar-username{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .btn-primary:active {
+            opacity: 0.8;
+        }
 
-/* ===== MAIN CHAT ===== */
-.main{
-  flex:1;display:flex;flex-direction:column;
-  overflow:hidden;min-width:0;
-}
-.chat-area{
-  flex:1;overflow-y:auto;padding:24px 0;
-  display:flex;flex-direction:column;
-  align-items:center;
-  scroll-behavior:smooth;
-}
-.chat-area::-webkit-scrollbar{width:6px;}
-.chat-area::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
-.chat-inner{width:100%;max-width:700px;padding:0 24px;display:flex;flex-direction:column;gap:20px;}
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-secondary);
+            border: none;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: 16px;
+        }
 
-/* Greeting */
-.greeting-wrap{
-  display:flex;flex-direction:column;align-items:center;
-  justify-content:center;padding:80px 0 40px;text-align:center;
-  gap:10px;
-}
-.greeting-title{
-  font-size:36px;font-weight:800;letter-spacing:-1px;color:var(--text);
-}
-.greeting-sub{
-  font-size:16px;color:var(--text-secondary);
-  animation:greetFade 4s ease-in-out infinite;
-}
-@keyframes greetFade{0%,100%{opacity:.5}50%{opacity:1}}
+        .otp-container {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin: 24px 0;
+        }
 
-/* Messages */
-.msg-user{
-  align-self:flex-end;max-width:75%;
-  background:var(--user-bubble);color:var(--user-bubble-text);
-  border-radius:18px 18px 4px 18px;
-  padding:12px 16px;font-size:var(--font-base);line-height:1.55;
-  word-break:break-word;white-space:pre-wrap;
-}
-.msg-ai-wrap{align-self:stretch;display:flex;flex-direction:column;gap:10px;}
-.msg-ai{
-  font-size:var(--font-base);line-height:1.7;color:var(--text);
-  word-break:break-word;
-}
-.msg-ai h1,.msg-ai h2,.msg-ai h3{font-weight:700;margin:16px 0 8px;color:var(--text);}
-.msg-ai h1{font-size:1.4em;}
-.msg-ai h2{font-size:1.2em;}
-.msg-ai h3{font-size:1.05em;}
-.msg-ai p{margin:8px 0;}
-.msg-ai p:first-child{margin-top:0;}
-.msg-ai ul,.msg-ai ol{padding-left:20px;margin:8px 0;}
-.msg-ai li{margin:4px 0;}
-.msg-ai code{background:var(--hover);padding:2px 6px;border-radius:5px;font-size:.9em;font-family:monospace;}
-.msg-ai pre{background:var(--hover);padding:12px;border-radius:10px;overflow-x:auto;margin:10px 0;}
-.msg-ai pre code{background:none;padding:0;}
-.msg-ai blockquote{border-left:3px solid var(--border);padding-left:14px;color:var(--text-secondary);margin:8px 0;}
-.msg-ai hr{border:none;border-top:1px solid var(--border);margin:14px 0;}
-.msg-ai strong{font-weight:700;}
-.abc-block{background:var(--input-bg);border:1px solid var(--border);border-radius:12px;padding:16px;margin:10px 0;overflow-x:auto;}
-.abc-label{font-size:11px;font-weight:700;color:var(--text-secondary);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;}
+        .otp-input {
+            width: 44px;
+            height: 56px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: 600;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            background: var(--input-bg);
+            color: var(--text-primary);
+            outline: none;
+            transition: border-color 0.2s;
+        }
 
-/* Action buttons */
-.msg-actions{display:flex;align-items:center;gap:4px;margin-top:2px;position:relative;}
-.msg-action-btn{
-  width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;
-  color:var(--text-secondary);cursor:pointer;transition:background .12s,color .12s;
-}
-.msg-action-btn:hover{background:var(--hover);color:var(--text);}
-.msg-action-btn.liked{color:#22c55e;}
-.msg-action-btn.disliked{color:#ef4444;}
-.msg-more-menu{
-  position:absolute;bottom:34px;left:0;
-  background:var(--dropdown-bg);border:1px solid var(--dropdown-border);
-  border-radius:10px;padding:4px;display:none;z-index:20;
-  box-shadow:var(--dropdown-shadow);min-width:140px;
-}
-.msg-more-menu.open{display:block;}
-.msg-more-item{padding:8px 14px;font-size:13px;font-weight:500;color:var(--text);border-radius:7px;cursor:pointer;}
-.msg-more-item:hover{background:var(--hover);}
+        .otp-input:focus {
+            border-color: var(--accent);
+        }
 
-/* Thinking */
-.thinking{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text-secondary);}
-.thinking-dots{display:flex;gap:4px;}
-.thinking-dots span{width:5px;height:5px;border-radius:50%;background:var(--text-secondary);animation:bounce 1.2s infinite;}
-.thinking-dots span:nth-child(2){animation-delay:.2s;}
-.thinking-dots span:nth-child(3){animation-delay:.4s;}
-@keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+        .hidden {
+            display: none !important;
+        }
 
-/* ===== INPUT BAR ===== */
-.input-wrap{
-  padding:12px 24px 20px;
-  display:flex;justify-content:center;
-}
-.input-box{
-  width:100%;max-width:700px;
-  background:var(--input-bg);
-  border:1px solid var(--input-border);
-  border-radius:16px;
-  padding:14px 14px 10px;
-  box-shadow:0 2px 12px rgba(0,0,0,0.06);
-  transition:border-color .15s,box-shadow .15s;
-}
-.input-box:focus-within{
-  border-color:var(--text);
-  box-shadow:0 2px 16px rgba(0,0,0,0.10);
-}
-.input-box textarea{
-  width:100%;border:none;outline:none;resize:none;
-  font-size:var(--font-base);color:var(--text);
-  font-family:'Inter',sans-serif;background:transparent;
-  line-height:1.55;max-height:200px;
-  min-height:22px;overflow-y:auto;
-}
-.input-box textarea::placeholder{color:var(--text-secondary);}
-.input-bar-bottom{
-  display:flex;align-items:center;justify-content:space-between;
-  margin-top:8px;
-}
-.input-bar-left{display:flex;align-items:center;gap:4px;}
-.input-icon-btn{
-  width:32px;height:32px;border-radius:8px;
-  display:flex;align-items:center;justify-content:center;
-  cursor:pointer;color:var(--text-secondary);
-  transition:background .12s,color .12s;border:none;background:transparent;
-}
-.input-icon-btn:hover{background:var(--hover);color:var(--text);}
+        /* Chat Interface */
+        .chat-container {
+            display: none;
+            height: 100vh;
+            position: relative;
+        }
 
-/* Model pill */
-.model-pill-btn{
-  display:flex;align-items:center;gap:5px;
-  padding:5px 10px;border-radius:8px;
-  background:var(--model-pill-bg);
-  border:1px solid var(--model-pill-border);
-  font-size:13px;font-weight:500;color:var(--text);
-  cursor:pointer;transition:background .12s;
-  position:relative;
-}
-.model-pill-btn:hover{background:var(--hover);}
-.model-chevron{font-size:9px;color:var(--text-secondary);}
+        .chat-container.active {
+            display: flex;
+        }
 
-/* Model dropdown */
-.model-dropdown{
-  position:absolute;bottom:calc(100% + 8px);left:0;
-  background:var(--dropdown-bg);
-  border:1px solid var(--dropdown-border);
-  border-radius:14px;padding:6px;
-  box-shadow:var(--dropdown-shadow);
-  display:none;z-index:100;min-width:220px;
-}
-.model-dropdown.open{display:block;}
-.model-option{
-  display:flex;align-items:center;gap:10px;
-  padding:10px 12px;border-radius:9px;cursor:pointer;
-  transition:background .12s;
-}
-.model-option:hover{background:var(--hover);}
-.model-option-icon{
-  width:30px;height:30px;border-radius:8px;
-  display:flex;align-items:center;justify-content:center;flex-shrink:0;
-}
-.model-option-icon.lite{background:linear-gradient(135deg,#34d399,#0ea5a5);}
-.model-option-icon.pro{background:linear-gradient(135deg,#a855f7,#6366f1);}
-.model-option-body{flex:1;}
-.model-option-name{font-size:13px;font-weight:600;color:var(--text);}
-.model-option-desc{font-size:11px;color:var(--text-secondary);margin-top:1px;}
-.model-option-check{font-size:14px;color:var(--text);margin-left:auto;}
-.model-divider{height:1px;background:var(--border);margin:4px 0;}
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 280px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            padding: 16px;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+            overflow-y: auto;
+        }
 
-/* Mode sub-options */
-.model-mode-row{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:8px 12px;border-radius:9px;cursor:pointer;
-  transition:background .12s;
-}
-.model-mode-row:hover{background:var(--hover);}
-.model-mode-label{font-size:13px;font-weight:500;color:var(--text);}
-.model-mode-sub{font-size:11px;color:var(--text-secondary);}
-.model-mode-right{display:flex;align-items:center;gap:8px;}
-.model-mode-badge{font-size:11px;color:var(--text-secondary);}
-.model-mode-check{font-size:14px;color:var(--text);}
+        .sidebar.open {
+            transform: translateX(0);
+        }
 
-/* Think toggle */
-.think-toggle{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:8px 12px;border-radius:9px;
-}
-.think-toggle-label{font-size:13px;font-weight:500;color:var(--text);}
-.think-toggle-sub{font-size:11px;color:var(--text-secondary);}
-.toggle-sw{
-  position:relative;width:36px;height:22px;border-radius:11px;
-  background:var(--border);cursor:pointer;flex-shrink:0;
-  transition:background .2s;
-}
-.toggle-sw.on{background:#1a1a1a;}
-[data-theme="dark"] .toggle-sw.on{background:#f0f0f0;}
-.toggle-sw::after{
-  content:'';position:absolute;top:2px;left:2px;
-  width:18px;height:18px;border-radius:50%;background:#fff;
-  transition:transform .2s;
-  box-shadow:0 1px 4px rgba(0,0,0,.2);
-}
-[data-theme="dark"] .toggle-sw.on::after{background:#0f0f0f;}
-.toggle-sw.on::after{transform:translateX(14px);}
+        @media (min-width: 769px) {
+            .sidebar {
+                transform: translateX(0);
+                position: relative;
+                width: 260px;
+            }
+        }
 
-/* Send button */
-.send-btn{
-  width:34px;height:34px;border-radius:9px;
-  background:var(--send-bg);
-  display:flex;align-items:center;justify-content:center;
-  cursor:pointer;flex-shrink:0;color:var(--send-text);
-  border:none;transition:opacity .15s;
-}
-.send-btn:hover{opacity:.8;}
-.send-btn:disabled{opacity:.3;cursor:default;}
+        .sidebar-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
 
-/* ===== SETTINGS PANEL ===== */
-.settings-panel{
-  position:fixed;inset:0;z-index:200;
-  background:rgba(0,0,0,.4);
-  display:flex;align-items:center;justify-content:center;
-  opacity:0;visibility:hidden;transition:opacity .2s;
-}
-.settings-panel.open{opacity:1;visibility:visible;}
-.settings-box{
-  background:var(--bg);border:1px solid var(--border);border-radius:20px;
-  width:420px;max-height:80vh;overflow-y:auto;padding:24px;
-  box-shadow:0 20px 60px rgba(0,0,0,.15);
-  transform:translateY(20px);transition:transform .2s;
-}
-.settings-panel.open .settings-box{transform:translateY(0);}
-.settings-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
-.settings-title{font-size:16px;font-weight:700;color:var(--text);}
-.settings-close{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-secondary);}
-.settings-close:hover{background:var(--hover);}
-.settings-section{margin-bottom:20px;}
-.settings-section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-secondary);margin-bottom:8px;padding:0 2px;}
-.settings-rows{background:var(--btn-light);border:1px solid var(--btn-light-border);border-radius:12px;overflow:hidden;}
-.settings-row{display:flex;align-items:center;gap:12px;padding:13px 16px;transition:background .12s;}
-.settings-row+.settings-row{border-top:1px solid var(--border);}
-.settings-row:hover{background:var(--hover);cursor:pointer;}
-.settings-row-icon{color:var(--text-secondary);flex-shrink:0;}
-.settings-row-text{flex:1;font-size:14px;font-weight:500;color:var(--text);}
-.settings-row-value{font-size:13px;color:var(--text-secondary);}
-.settings-row-value.soon{font-size:10px;text-transform:uppercase;letter-spacing:.5px;background:var(--hover);padding:3px 8px;border-radius:6px;}
-.settings-chevron{color:var(--text-secondary);}
+        .sidebar-title {
+            font-size: 20px;
+            font-weight: 700;
+        }
 
-/* Theme cards */
-.theme-cards{display:flex;gap:10px;}
-.theme-card{flex:1;border-radius:12px;border:2px solid var(--border);overflow:hidden;cursor:pointer;transition:border-color .15s;}
-.theme-card.active{border-color:var(--text);}
-.theme-preview{height:60px;display:flex;align-items:center;justify-content:center;gap:5px;}
-.theme-preview.light{background:linear-gradient(135deg,#f7f6f3,#e8e6e0);}
-.theme-preview.dark{background:linear-gradient(135deg,#1a1a1a,#0f0f0f);}
-.theme-dot{width:12px;height:12px;border-radius:50%;}
-.theme-card-label{padding:8px;text-align:center;font-size:12px;font-weight:600;color:var(--text);background:var(--input-bg);}
-.size-row{display:flex;gap:8px;}
-.size-opt{flex:1;padding:12px;border-radius:10px;background:var(--btn-light);border:2px solid var(--border);text-align:center;cursor:pointer;font-weight:700;color:var(--text);transition:border-color .15s;}
-.size-opt.active{border-color:var(--text);}
-.size-opt .sa{display:block;font-weight:800;}
-.size-opt.sm .sa{font-size:12px;}
-.size-opt.md .sa{font-size:15px;}
-.size-opt.lg .sa{font-size:18px;}
-.size-opt .sb{display:block;font-size:10px;color:var(--text-secondary);font-weight:500;margin-top:3px;}
+        .close-sidebar {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 24px;
+            cursor: pointer;
+            display: block;
+        }
 
-/* mem toggle rows */
-.mem-rows{background:var(--btn-light);border:1px solid var(--btn-light-border);border-radius:12px;overflow:hidden;}
-.mem-row{display:flex;align-items:center;gap:14px;padding:14px 16px;}
-.mem-row+.mem-row{border-top:1px solid var(--border);}
-.mem-info{flex:1;}
-.mem-title{font-size:14px;font-weight:600;color:var(--text);}
-.mem-desc{font-size:12px;color:var(--text-secondary);margin-top:2px;line-height:1.4;}
-.toggle-mem{position:relative;width:38px;height:22px;border-radius:11px;background:var(--border);cursor:pointer;flex-shrink:0;transition:background .2s;}
-.toggle-mem.on{background:var(--text);}
-.toggle-mem::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
-.toggle-mem.on::after{transform:translateX(16px);}
-[data-theme="dark"] .toggle-mem.on::after{background:#0f0f0f;}
+        @media (min-width: 769px) {
+            .close-sidebar {
+                display: none;
+            }
+        }
 
-/* profile */
-.profile-top{display:flex;align-items:center;gap:14px;margin-bottom:20px;}
-.profile-avatar-lg{width:56px;height:56px;border-radius:50%;background:var(--text);color:var(--bg);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;}
-.profile-info{flex:1;}
-.profile-name{font-size:16px;font-weight:700;color:var(--text);}
-.profile-email{font-size:13px;color:var(--text-secondary);margin-top:2px;}
-.logout-btn{padding:9px 18px;border-radius:10px;border:1px solid #e53e3e;color:#e53e3e;font-size:13px;font-weight:600;cursor:pointer;background:transparent;transition:background .15s;}
-.logout-btn:hover{background:rgba(229,62,62,.08);}
-</style>
+        .new-chat-btn {
+            width: 100%;
+            padding: 12px;
+            background: var(--button-bg);
+            color: var(--button-text);
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .chat-history-item {
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 4px;
+            transition: background 0.2s;
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .chat-history-item:hover {
+            background: var(--bg-card);
+        }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+
+        .overlay.active {
+            display: block;
+        }
+
+        /* Main Chat Area */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .burger-menu {
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-size: 24px;
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        @media (min-width: 769px) {
+            .burger-menu {
+                display: none;
+            }
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .welcome-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .welcome-title {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 24px;
+        }
+
+        .welcome-input-container {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 16px;
+            max-width: 600px;
+            width: 100%;
+            margin: 0 20px;
+        }
+
+        .welcome-input {
+            width: 100%;
+            border: none;
+            background: transparent;
+            color: var(--text-primary);
+            font-size: 16px;
+            outline: none;
+            resize: none;
+            min-height: 24px;
+        }
+
+        .input-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .input-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .icon-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+
+        .icon-btn:hover {
+            background: var(--bg-card);
+        }
+
+        .model-selector {
+            position: relative;
+        }
+
+        .model-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .model-dropdown {
+            position: absolute;
+            bottom: 100%;
+            left: 0;
+            margin-bottom: 8px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            min-width: 220px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .model-option {
+            padding: 12px 16px;
+            cursor: pointer;
+            transition: background 0.2s;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .model-option:last-child {
+            border-bottom: none;
+        }
+
+        .model-option:hover {
+            background: var(--bg-card);
+        }
+
+        .model-option.active {
+            background: var(--bg-card);
+        }
+
+        .model-option-title {
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .model-option-desc {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .mode-selector {
+            position: relative;
+        }
+
+        .mode-dropdown {
+            position: absolute;
+            bottom: 100%;
+            right: 0;
+            margin-bottom: 8px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            min-width: 280px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            padding: 12px;
+        }
+
+        .mode-option {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .mode-option:hover {
+            background: var(--bg-card);
+        }
+
+        .mode-option.active {
+            background: var(--bg-card);
+        }
+
+        .checkmark {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--text-secondary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mode-option.active .checkmark {
+            border-color: var(--accent);
+            background: var(--accent);
+        }
+
+        .checkmark::after {
+            content: '✓';
+            color: transparent;
+            font-size: 12px;
+        }
+
+        .mode-option.active .checkmark::after {
+            color: var(--bg-primary);
+        }
+
+        .thinking-toggle {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .toggle-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+
+        .toggle-label {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .toggle-desc {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            background: var(--bg-card);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .toggle-switch.active {
+            background: var(--accent);
+        }
+
+        .toggle-slider {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: var(--bg-primary);
+            border-radius: 50%;
+            transition: transform 0.2s;
+        }
+
+        .toggle-switch.active .toggle-slider {
+            transform: translateX(20px);
+        }
+
+        /* Settings Screen */
+        .settings-container {
+            display: none;
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+            overflow-y: auto;
+            height: 100vh;
+        }
+
+        .settings-container.active {
+            display: block;
+        }
+
+        .settings-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 24px;
+        }
+
+        .settings-section {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .settings-section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .setting-item {
+            padding: 16px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .setting-item:last-child {
+            border-bottom: none;
+        }
+
+        .setting-label {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .setting-value {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .setting-select {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px;
+            background: var(--bg-card);
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+
+        .setting-select-text {
+            font-size: 14px;
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            min-width: 240px;
+            z-index: 100;
+            overflow: hidden;
+        }
+
+        .dropdown-item {
+            padding: 14px 16px;
+            cursor: pointer;
+            transition: background 0.2s;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .dropdown-item:hover {
+            background: var(--bg-card);
+        }
+
+        .dropdown-item.active {
+            background: var(--bg-card);
+        }
+
+        .dropdown-item-title {
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .dropdown-item-desc {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .custom-instructions {
+            width: 100%;
+            min-height: 120px;
+            padding: 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 14px;
+            resize: vertical;
+            outline: none;
+            font-family: inherit;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: var(--bg-card);
+            border-radius: 12px;
+            margin-bottom: 16px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--accent);
+            color: var(--bg-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+        }
+
+        .user-info {
+            flex: 1;
+        }
+
+        .user-email {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .logout-btn {
+            padding: 8px 16px;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .toggle-info {
+            flex: 1;
+        }
+
+        .toggle-title {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+
+        .toggle-description {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        @media (max-width: 768px) {
+            .auth-title {
+                font-size: 24px;
+            }
+            
+            .welcome-title {
+                font-size: 24px;
+            }
+            
+            .settings-title {
+                font-size: 24px;
+            }
+            
+            .sidebar {
+                width: 280px;
+            }
+        }
+    </style>
 </head>
-<body data-theme="light" data-size="md">
+<body>
 
-<!-- ===== AUTH GATE ===== -->
-<div id="authGate">
-  <!-- Screen 1: Welcome -->
-  <div class="auth-screen active" id="authScreen1">
-    <div class="auth-logo">HarmonyAI</div>
-    <div class="auth-heading">Думает быстро,<br>результат быстрее</div>
-    <div class="auth-sub">Помощник для музыкантов</div>
-    <div class="auth-card">
-      <button class="auth-email-btn" onclick="goToEmailScreen()">Продолжить с Email</button>
-      <div class="auth-tos">Продолжая, вы соглашаетесь с нашей <a href="#">Политикой Конфиденциальности</a> и соглашаетесь на отправку сообщений на ваш email.</div>
-    </div>
-    <div class="auth-beta">beta version 1.0</div>
-  </div>
-
-  <!-- Screen 2: Email input -->
-  <div class="auth-screen" id="authScreen2">
-    <div class="auth-logo">HarmonyAI</div>
-    <div class="auth-heading">Введите ваш<br>Email адрес</div>
-    <div class="auth-card" style="gap:10px;">
-      <input class="auth-input-field" id="authEmailInput" type="email" placeholder="Введите email.." autocomplete="email" inputmode="email" onkeydown="if(event.key==='Enter')sendEmailCode()">
-      <div class="auth-error" id="authEmailError"></div>
-      <button class="auth-continue-btn" id="authSendCodeBtn" onclick="sendEmailCode()">Продолжить</button>
-      <div class="auth-back-link" onclick="backToWelcome()">← Назад</div>
-    </div>
-    <div class="auth-beta">beta version 1.0</div>
-  </div>
-
-  <!-- Screen 3: OTP code -->
-  <div class="auth-screen" id="authScreen3">
-    <div class="auth-logo">HarmonyAI</div>
-    <div class="auth-heading">Введите 6-ти<br>значный код</div>
-    <div class="auth-card" style="gap:14px;">
-      <div class="otp-row">
-        <input class="otp-digit" maxlength="1" inputmode="numeric" type="text">
-        <input class="otp-digit" maxlength="1" inputmode="numeric" type="text">
-        <input class="otp-digit" maxlength="1" inputmode="numeric" type="text">
-        <input class="otp-digit" maxlength="1" inputmode="numeric" type="text">
-        <input class="otp-digit" maxlength="1" inputmode="numeric" type="text">
-        <input class="otp-digit" maxlength="1" inputmode="numeric" type="text">
-      </div>
-      <div class="auth-error" id="authCodeError"></div>
-      <button class="auth-continue-btn" id="authVerifyBtn" onclick="verifyEmailCode()">Подтвердить</button>
-      <div class="auth-resend" id="authResendBtn" onclick="resendEmailCode()">Не приходит код? Отправить снова</div>
-      <div class="auth-back-link" onclick="backToEmailScreen()">← Изменить email</div>
-    </div>
-    <div class="auth-beta">beta version 1.0</div>
-  </div>
-</div>
-
-<!-- ===== SETTINGS PANEL ===== -->
-<div class="settings-panel" id="settingsPanel" onclick="if(event.target===this)closeSettings()">
-  <div class="settings-box">
-    <div class="settings-header">
-      <div class="settings-title" id="settingsPanelTitle">Настройки</div>
-      <div class="settings-close" onclick="closeSettings()">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      </div>
-    </div>
-    <div id="settingsContent"></div>
-  </div>
-</div>
-
-<!-- ===== MAIN LAYOUT ===== -->
-<div class="layout" id="mainLayout" style="display:none">
-
-  <!-- Sidebar -->
-  <div class="sidebar">
-    <div class="sidebar-logo">H</div>
-    <div class="sidebar-btn" onclick="newChat()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      Новый чат
-    </div>
-    <div class="sidebar-btn" onclick="openSearchUI()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      Поиск
-    </div>
-    <div class="sidebar-divider"></div>
-    <div class="sidebar-label">Недавние</div>
-    <div class="chat-list" id="chatList"></div>
-    <div class="sidebar-footer" onclick="openSettings()">
-      <div class="sidebar-avatar" id="sidebarAvatar">?</div>
-      <div class="sidebar-user-info">
-        <div class="sidebar-username" id="sidebarUsername">Загрузка...</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Main area -->
-  <div class="main">
-    <div class="chat-area" id="chatArea">
-      <div class="chat-inner" id="chatInner">
-        <div class="greeting-wrap" id="greetingWrap">
-          <div class="greeting-title">Привет! Я Harmony Ai</div>
-          <div class="greeting-sub" id="greetingSub">Спроси меня про любой аккорд или интервал 🎵</div>
+    <!-- Auth Screen 1: Welcome -->
+    <div id="authScreen1" class="auth-container">
+        <div class="auth-card">
+            <h1 class="auth-title">Думает быстро,<br>результат быстрее</h1>
+            <p class="auth-subtitle">Помощник для музыкантов</p>
+            <button class="btn-primary" onclick="showAuthScreen(2)">Продолжить с Email</button>
+            <p style="margin-top: 16px; font-size: 12px; color: var(--text-secondary); text-align: center;">
+                Продолжая, вы соглашаетесь с нашей 
+                <a href="#" style="color: var(--text-secondary);">Политикой Конфиденциальности</a>
+                и соглашаетесь на отправку сообщений на ваш email.
+            </p>
+            <p style="margin-top: 24px; font-size: 12px; color: var(--text-secondary); text-align: center;">beta version 1.0</p>
         </div>
-      </div>
     </div>
 
-    <div class="input-wrap">
-      <div class="input-box">
-        <textarea id="msgInput" placeholder="Как я могу помочь тебе?" rows="1"
-          oninput="autoResize(this)"
-          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send();}"></textarea>
-        <div class="input-bar-bottom">
-          <div class="input-bar-left">
-            <button class="input-icon-btn" onclick="document.getElementById('fileInput').click()" title="Добавить фото">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    <!-- Auth Screen 2: Email -->
+    <div id="authScreen2" class="auth-container hidden">
+        <div class="auth-card">
+            <h2 class="auth-title" style="font-size: 24px;">Введите ваш Email адрес</h2>
+            <input type="email" id="emailInput" class="email-input" placeholder="Enter your email">
+            <button class="btn-primary" onclick="sendOTP()">Продолжить</button>
+            <button class="btn-secondary" onclick="showAuthScreen(1)">← Назад</button>
+            <p style="margin-top: 24px; font-size: 12px; color: var(--text-secondary); text-align: center;">beta version 1.0</p>
+        </div>
+    </div>
+
+    <!-- Auth Screen 3: OTP -->
+    <div id="authScreen3" class="auth-container hidden">
+        <div class="auth-card">
+            <h2 class="auth-title" style="font-size: 24px;">Введите 6-ти значный код</h2>
+            <div class="otp-container">
+                <input type="text" class="otp-input" maxlength="1" data-index="0">
+                <input type="text" class="otp-input" maxlength="1" data-index="1">
+                <input type="text" class="otp-input" maxlength="1" data-index="2">
+                <input type="text" class="otp-input" maxlength="1" data-index="3">
+                <input type="text" class="otp-input" maxlength="1" data-index="4">
+                <input type="text" class="otp-input" maxlength="1" data-index="5">
+            </div>
+            <button class="btn-primary" onclick="verifyOTP()">Подтвердить</button>
+            <button class="btn-secondary" onclick="resendOTP()" id="resendBtn">Не приходит код? Отправить снова</button>
+            <button class="btn-secondary" onclick="showAuthScreen(2)">← Изменить email</button>
+            <p style="margin-top: 24px; font-size: 12px; color: var(--text-secondary); text-align: center;">beta version 1.0</p>
+        </div>
+    </div>
+
+    <!-- Chat Interface -->
+    <div id="chatContainer" class="chat-container">
+        <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+        
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <span class="sidebar-title">HarmonyAI</span>
+                <button class="close-sidebar" onclick="toggleSidebar()">×</button>
+            </div>
+            <button class="new-chat-btn" onclick="newChat()">
+                <span>+</span>
+                Новый чат
             </button>
-            <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="handleFile(this)">
-            <div class="model-pill-btn" id="modelPillBtn" onclick="toggleModelDrop(event)">
-              <span id="modelPillLabel">MusMind</span>
-              <span id="modelPillMode" style="color:var(--text-secondary);font-size:12px">lite</span>
-              <span class="model-chevron">▾</span>
+            <div style="margin-bottom: 12px; font-size: 12px; color: var(--text-secondary);">Недавние</div>
+            <div id="chatHistory">
+                <div style="font-size: 14px; color: var(--text-secondary); padding: 12px;">Загрузка...</div>
+            </div>
+        </div>
 
-              <!-- Model dropdown -->
-              <div class="model-dropdown" id="modelDropdown" onclick="event.stopPropagation()">
-                <!-- MusMind Lite -->
-                <div class="model-option" onclick="selectModelOpt('lite')">
-                  <div class="model-option-icon lite">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 14C5 8 9 4 19 4C19 14 15 19 9 19C7 19 5 17 5 14Z" stroke="white" stroke-width="2" stroke-linejoin="round"/><path d="M5 19L11 13" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
-                  </div>
-                  <div class="model-option-body">
-                    <div class="model-option-name">MusMind Lite</div>
-                    <div class="model-option-desc">Быстро и легко</div>
-                  </div>
-                  <div class="model-option-check" id="ck-lite">✓</div>
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="chat-header">
+                <button class="burger-menu" onclick="toggleSidebar()">☰</button>
+                <span style="font-weight: 600;">HarmonyAI</span>
+            </div>
+            
+            <div class="chat-messages">
+                <div class="welcome-screen">
+                    <h1 class="welcome-title">Привет! Я Harmony Ai</h1>
+                    <div class="welcome-input-container">
+                        <textarea class="welcome-input" placeholder="Как я могу помочь тебе?" rows="1"></textarea>
+                        <div class="input-footer">
+                            <div class="input-actions">
+                                <button class="icon-btn" title="Добавить фото/файл">📎</button>
+                            </div>
+                            <div style="display: flex; gap: 12px; align-items: center;">
+                                <div class="model-selector">
+                                    <div class="model-btn" onclick="toggleModelDropdown()">
+                                        <span id="selectedModel">MusMind lite</span>
+                                        <span>▾</span>
+                                    </div>
+                                    <div class="model-dropdown hidden" id="modelDropdown">
+                                        <div class="model-option active" onclick="selectModel('lite')">
+                                            <div class="model-option-title">MusMind lite</div>
+                                            <div class="model-option-desc">Быстро и легко</div>
+                                        </div>
+                                        <div class="model-option" onclick="selectModel('pro')">
+                                            <div class="model-option-title">MusMind pro</div>
+                                            <div class="model-option-desc">Максимум возможностей</div>
+                                        </div>
+                                        <div class="mode-selector" style="padding: 8px 0;">
+                                            <div class="mode-option" id="modeLow" onclick="selectMode('low')">
+                                                <span>Low</span>
+                                                <span style="font-size: 12px; color: var(--text-secondary); margin-left: 4px;">Обычный</span>
+                                                <div class="checkmark"></div>
+                                            </div>
+                                            <div class="mode-option" id="modeMax" onclick="selectMode('max')">
+                                                <span>Max</span>
+                                                <div class="checkmark"></div>
+                                            </div>
+                                            <div class="thinking-toggle">
+                                                <div class="toggle-header">
+                                                    <span class="toggle-label">Думать</span>
+                                                    <div class="toggle-switch" id="thinkingToggle" onclick="toggleThinking()">
+                                                        <div class="toggle-slider"></div>
+                                                    </div>
+                                                </div>
+                                                <div class="toggle-desc">Для решения сложных задач</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button class="icon-btn" style="background: var(--button-bg); color: var(--button-text); padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 600;">
+                                    Отправить
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+            </div>
+        </div>
+    </div>
 
-                <!-- Mode row for Lite -->
-                <div class="model-mode-row" id="modeRowLite" onclick="toggleModeMenu('lite',event)">
-                  <div>
-                    <div class="model-mode-label">Режим</div>
-                  </div>
-                  <div class="model-mode-right">
-                    <span class="model-mode-badge" id="modeLabel-lite">Low</span>
-                    <span style="font-size:11px;color:var(--text-secondary)">›</span>
-                  </div>
+    <!-- Settings Screen -->
+    <div id="settingsContainer" class="settings-container">
+        <h1 class="settings-title">Настройки</h1>
+        
+        <!-- Profile Section -->
+        <div class="settings-section">
+            <div class="user-profile">
+                <div class="user-avatar" id="userAvatar">U</div>
+                <div class="user-info">
+                    <div class="user-email" id="userEmail">user@example.com</div>
                 </div>
+                <button class="logout-btn" onclick="logout()">Выйти</button>
+            </div>
+        </div>
 
-                <div class="model-divider"></div>
-
-                <!-- MusMind Pro -->
-                <div class="model-option" onclick="selectModelOpt('pro')">
-                  <div class="model-option-icon pro">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" stroke="white" stroke-width="1.5" stroke-linejoin="round" fill="white" fill-opacity="0.2"/></svg>
-                  </div>
-                  <div class="model-option-body">
-                    <div class="model-option-name">MusMind Pro</div>
-                    <div class="model-option-desc">Максимум возможностей</div>
-                  </div>
-                  <div class="model-option-check" id="ck-pro" style="opacity:0">✓</div>
+        <!-- Personalization Section -->
+        <div class="settings-section">
+            <div class="settings-section-title">Персонализация</div>
+            
+            <div class="setting-item">
+                <div class="setting-label">Базовый стиль и тон</div>
+                <div class="setting-select" onclick="toggleDropdown('styleDropdown', this)">
+                    <span class="setting-select-text" id="styleValue">По умолчанию</span>
+                    <span>▾</span>
                 </div>
-
-                <!-- Mode row for Pro -->
-                <div class="model-mode-row" id="modeRowPro" style="display:none" onclick="toggleModeMenu('pro',event)">
-                  <div>
-                    <div class="model-mode-label">Режим</div>
-                  </div>
-                  <div class="model-mode-right">
-                    <span class="model-mode-badge" id="modeLabel-pro">Low</span>
-                    <span style="font-size:11px;color:var(--text-secondary)">›</span>
-                  </div>
+                <div class="dropdown-menu hidden" id="styleDropdown" style="position: relative; margin-top: 8px; min-width: 100%;">
+                    <div class="dropdown-item active" onclick="selectStyle('default', this)">
+                        <div class="dropdown-item-title">По умолчанию</div>
+                        <div class="dropdown-item-desc">Предпочитаемый стиль и тон</div>
+                    </div>
+                    <div class="dropdown-item" onclick="selectStyle('professional', this)">
+                        <div class="dropdown-item-title">Профессиональный</div>
+                        <div class="dropdown-item-desc">Тактичный и точный</div>
+                    </div>
+                    <div class="dropdown-item" onclick="selectStyle('friendly', this)">
+                        <div class="dropdown-item-title">Дружелюбный</div>
+                        <div class="dropdown-item-desc">Тёплый и разговорчивый</div>
+                    </div>
+                    <div class="dropdown-item" onclick="selectStyle('frank', this)">
+                        <div class="dropdown-item-title">Откровенный</div>
+                        <div class="dropdown-item-desc">Прямой и мотивирующий</div>
+                    </div>
+                    <div class="dropdown-item" onclick="selectStyle('whimsical', this)">
+                        <div class="dropdown-item-title">Причудливый</div>
+                        <div class="dropdown-item-desc">Весёлый и творческий</div>
+                    </div>
+                    <div class="dropdown-item" onclick="selectStyle('efficient', this)">
+                        <div class="dropdown-item-title">Эффективный</div>
+                        <div class="dropdown-item-desc">Немногословный и чёткий</div>
+                    </div>
+                    <div class="dropdown-item" onclick="selectStyle('cynical', this)">
+                        <div class="dropdown-item-title">Циничный</div>
+                        <div class="dropdown-item-desc">Критикующий и саркастичный</div>
+                    </div>
                 </div>
-
-                <div class="model-divider"></div>
-
-                <!-- Think toggle -->
-                <div class="think-toggle">
-                  <div>
-                    <div class="think-toggle-label">Думать</div>
-                    <div class="think-toggle-sub">Для решения сложных задач</div>
-                  </div>
-                  <div class="toggle-sw" id="thinkToggle" onclick="toggleThink()"></div>
-                </div>
-              </div>
             </div>
 
-            <!-- Mode sub-dropdown -->
-            <div class="model-dropdown" id="modeSubDropdown" style="left:0;bottom:calc(100% + 8px);min-width:160px;display:none" onclick="event.stopPropagation()">
-              <div class="model-mode-row" onclick="selectMode('low')">
-                <div>
-                  <div class="model-mode-label">Low</div>
-                  <div class="model-mode-sub" style="font-size:11px;color:var(--text-secondary)">Обычный</div>
+            <div class="setting-item">
+                <div class="setting-label">Доброжелательность</div>
+                <div class="setting-select" onclick="toggleDropdown('friendlinessDropdown', this)">
+                    <span class="setting-select-text" id="friendlinessValue">По умолчанию</span>
+                    <span>▾</span>
                 </div>
-                <span class="model-mode-check" id="ck-low">✓</span>
-              </div>
-              <div class="model-mode-row" onclick="selectMode('max')">
-                <div>
-                  <div class="model-mode-label">Max</div>
+                <div class="dropdown-menu hidden" id="friendlinessDropdown" style="position: relative; margin-top: 8px; min-width: 100%;">
+                    <div class="dropdown-item active" onclick="selectFriendliness('default', this)">
+                        <div class="dropdown-item-title">По умолчанию</div>
+                    </div>
+                    <div class="dropdown-item" onclick="selectFriendliness('low', this)">
+                        <div class="dropdown-item-title">Низкая</div>
+                    </div>
+                    <div class="dropdown-item" onclick="selectFriendliness('medium', this)">
+                        <div class="dropdown-item-title">Средняя</div>
+                    </div>
+                    <div class="dropdown-item" onclick="selectFriendliness('high', this)">
+                        <div class="dropdown-item-title">Высокая</div>
+                    </div>
                 </div>
-                <span class="model-mode-check" id="ck-max" style="opacity:0">✓</span>
-              </div>
             </div>
-          </div>
 
-          <button class="send-btn" id="sendBtn" onclick="send()">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </button>
+            <div class="setting-item">
+                <div class="setting-label">Энтузиазм</div>
+                <div class="setting-select" onclick="toggleDropdown('enthusiasmDropdown', this)">
+                    <span class="setting-select-text" id="enthusiasmValue">По умолчанию</span>
+                    <span>▾</span>
+                </div>
+                <div class="dropdown-menu hidden" id="enthusiasmDropdown" style="position: relative; margin-top: 8px; min-width: 100%;">
+                    <div class="dropdown-item active" onclick="selectEnthusiasm('default', this)">
+                        <div class="dropdown-item-title">По умолчанию</div>
+                    </div>
+                    <div class="dropdown-item" onclick="selectEnthusiasm('reserved', this)">
+                        <div class="dropdown-item-title">Сдержанный</div>
+                    </div>
+                    <div class="dropdown-item" onclick="selectEnthusiasm('moderate', this)">
+                        <div class="dropdown-item-title">Умеренный</div>
+                    </div>
+                    <div class="dropdown-item" onclick="selectEnthusiasm('high', this)">
+                        <div class="dropdown-item-title">Высокий</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <div class="setting-label">Заголовки и списки</div>
+                <div class="setting-select" onclick="toggleDropdown('headingsDropdown', this)">
+                    <span class="setting-select-text" id="headingsValue">По умолчанию</span>
+                    <span>▾</span>
+                </div>
+                <div class="dropdown-menu hidden" id="headingsDropdown" style="position: relative; margin-top: 8px; min-width: 100%;">
+                    <div class="dropdown-item active" onclick="selectHeadings('default', this)">
+                        <div class="dropdown-item-title">По умолчанию</div>
+                    </div>
+                    <div class="dropdown-item" onclick="selectHeadings('off', this)">
+                        <div class="dropdown-item-title">Выкл</div>
+                    </div>
+                    <div class="dropdown-item" onclick="selectHeadings('on', this)">
+                        <div class="dropdown-item-title">Вкл</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <div class="setting-label">Эмодзи</div>
+                <div class="setting-select" onclick="toggleDropdown('emojisDropdown', this)">
+                    <span class="setting-select-text" id="emojisValue">По умолчанию</span>
+                    <span>▾</span>
+                </div>
+                <div class="dropdown-menu hidden" id="emojisDropdown" style="position: relative; margin-top: 8px; min-width: 100%;">
+                    <div class="dropdown-item active" onclick="selectEmojis('default', this)">
+                        <div class="dropdown-item-title">По умолчанию</div>
+                    </div>
+                    <div class="dropdown-item" onclick="selectEmojis('none', this)">
+                        <div class="dropdown-item-title">Нет</div>
+                    </div>
+                    <div class="dropdown-item" onclick="selectEmojis('some', this)">
+                        <div class="dropdown-item-title">Немного</div>
+                    </div>
+                    <div class="dropdown-item" onclick="selectEmojis('many', this)">
+                        <div class="dropdown-item-title">Много</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <div class="toggle-row">
+                    <div class="toggle-info">
+                        <div class="toggle-title">Быстрые ответы</div>
+                        <div class="toggle-description">Иногда HarmonyAi может использовать свои общие знания, чтобы давать быстрые и подробные ответы</div>
+                    </div>
+                    <div class="toggle-switch active" id="quickRepliesToggle" onclick="toggleQuickReplies()">
+                        <div class="toggle-slider"></div>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  </div>
-</div>
 
-<script>
-/* ===== Supabase ===== */
-const SUPABASE_URL = 'https://cqthnymltqpcxtpiryka.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNxdGhueW1sdHFwY3h0cGlyeWthIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MjY3NzYsImV4cCI6MjA5NzAwMjc3Nn0.b-6lSdjT7XwWkt607ORwGfKYSn3CLZJB3mcs4QQUSoE';
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-let currentUser = null, authEmail = '', resendTimer = null, resendLeft = 0;
-
-function translateError(msg){
-  if(!msg) return 'Что-то пошло не так';
-  if(msg.includes('expired')||msg.includes('Token has')) return 'Код устарел, запросите новый';
-  if(msg.includes('Invalid token')||msg.includes('Invalid OTP')||msg.includes('otp_expired')) return 'Неверный код';
-  if(msg.includes('rate limit')||msg.includes('Email rate limit')) return 'Слишком много попыток. Подождите';
-  if(msg.includes('invalid email')||msg.includes('Unable to validate')) return 'Введите корректный email';
-  return 'Ошибка: ' + msg;
-}
-function isValidEmail(e){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
-
-/* Auth screens */
-function showAuthScreen(n){
-  ['authScreen1','authScreen2','authScreen3'].forEach((id,i)=>{
-    document.getElementById(id).classList.toggle('active', i===n-1);
-  });
-}
-function goToEmailScreen(){
-  showAuthScreen(2);
-  document.getElementById('authEmailInput').focus();
-}
-function backToWelcome(){
-  showAuthScreen(1);
-  document.getElementById('authEmailError').style.display='none';
-}
-function backToEmailScreen(){
-  showAuthScreen(2);
-  document.getElementById('authCodeError').style.display='none';
-  clearOtpInputs();
-}
-
-/* OTP */
-function getOtpInputs(){ return Array.from(document.querySelectorAll('.otp-digit')); }
-function getOtpCode(){ return getOtpInputs().map(i=>i.value).join(''); }
-function clearOtpInputs(){ getOtpInputs().forEach(i=>i.value=''); }
-function setupOtpInputs(){
-  const inputs = getOtpInputs();
-  inputs.forEach((inp,idx)=>{
-    inp.addEventListener('input',()=>{
-      inp.value = inp.value.replace(/[^0-9]/g,'').slice(0,1);
-      if(inp.value && idx<inputs.length-1) inputs[idx+1].focus();
-    });
-    inp.addEventListener('keydown',(e)=>{
-      if(e.key==='Backspace' && !inp.value && idx>0) inputs[idx-1].focus();
-      if(e.key==='Enter') verifyEmailCode();
-    });
-    inp.addEventListener('paste',(e)=>{
-      e.preventDefault();
-      const text=(e.clipboardData.getData('text')||'').replace(/[^0-9]/g,'').slice(0,6);
-      text.split('').forEach((ch,i)=>{ if(inputs[i]) inputs[i].value=ch; });
-      const last=Math.min(text.length,6)-1;
-      if(inputs[last]) inputs[last].focus();
-    });
-  });
-}
-setupOtpInputs();
-
-async function sendEmailCode(){
-  const email = document.getElementById('authEmailInput').value.trim();
-  const errEl = document.getElementById('authEmailError');
-  errEl.style.display='none';
-  if(!isValidEmail(email)){ errEl.textContent='Введите корректный email'; errEl.style.display='block'; return; }
-  const btn = document.getElementById('authSendCodeBtn');
-  btn.textContent='Отправляем...';
-  try{
-    const { error } = await sb.auth.signInWithOtp({ email });
-    if(error) throw error;
-    authEmail = email;
-    clearOtpInputs();
-    document.getElementById('authCodeError').style.display='none';
-    showAuthScreen(3);
-    getOtpInputs()[0].focus();
-    startResendCooldown();
-  }catch(e){
-    errEl.textContent = translateError(e.message);
-    errEl.style.display='block';
-  }finally{ btn.textContent='Продолжить'; }
-}
-async function verifyEmailCode(){
-  const code = getOtpCode();
-  const errEl = document.getElementById('authCodeError');
-  errEl.style.display='none';
-  if(!/^\d{6}$/.test(code)){ errEl.textContent='Введите 6-значный код из письма'; errEl.style.display='block'; return; }
-  const btn = document.getElementById('authVerifyBtn');
-  btn.textContent='Проверяем...';
-  try{
-    const { error } = await sb.auth.verifyOtp({ email: authEmail, token: code, type:'email' });
-    if(error) throw error;
-    await initAuth();
-  }catch(e){
-    errEl.textContent = translateError(e.message);
-    errEl.style.display='block';
-  }finally{ btn.textContent='Подтвердить'; }
-}
-async function resendEmailCode(){
-  if(resendLeft>0) return;
-  try{ await sb.auth.signInWithOtp({ email: authEmail }); startResendCooldown(); }catch(e){}
-}
-function startResendCooldown(){
-  resendLeft=60;
-  if(resendTimer) clearInterval(resendTimer);
-  const btn = document.getElementById('authResendBtn');
-  btn.classList.add('disabled');
-  btn.textContent='Отправить снова через 60 с';
-  resendTimer = setInterval(()=>{
-    resendLeft--;
-    if(resendLeft>0){ btn.textContent='Отправить снова через '+resendLeft+' с'; }
-    else{ btn.textContent='Не приходит код? Отправить снова'; btn.classList.remove('disabled'); clearInterval(resendTimer); }
-  },1000);
-}
-
-/* ===== Account ===== */
-async function logoutUser(){
-  await sb.auth.signOut();
-  currentUser=null; history=[]; currentChatId=null; chats=[];
-  document.getElementById('mainLayout').style.display='none';
-  document.getElementById('authGate').classList.remove('hidden');
-  showAuthScreen(1);
-  closeSettings();
-}
-function updateAccountUI(){
-  if(!currentUser) return;
-  const short = currentUser.email.split('@')[0];
-  const initial = (currentUser.nickname||short).charAt(0).toUpperCase();
-  document.getElementById('sidebarAvatar').textContent = initial;
-  document.getElementById('sidebarUsername').textContent = currentUser.nickname || short;
-}
-async function loadProfile(userId, email){
-  const { data } = await sb.from('profiles').select('*').eq('id', userId).single();
-  currentUser = { id:userId, email, nickname:data?.nickname||email.split('@')[0], role:data?.role||'user' };
-}
-async function migrateLocalChats(){
-  const local = JSON.parse(localStorage.getItem('harmonyai_chats') || '[]');
-  if(local.length && currentUser){
-    for(const c of local){
-      try{ await sb.from('chats').upsert({ id:c.id+'_local', user_id:currentUser.id, title:c.title, history:c.history, updated_at:new Date().toISOString() }); }catch(e){}
-    }
-    localStorage.removeItem('harmonyai_chats');
-  }
-}
-async function loadCloudChats(){
-  const { data } = await sb.from('chats').select('*').order('updated_at',{ascending:false});
-  if(data){ chats = data.map(c=>({ id:c.id, title:c.title, history:c.history||[] })); renderChatList(); }
-}
-async function initAuth(){
-  const { data:{ session } } = await sb.auth.getSession();
-  if(session){
-    await loadProfile(session.user.id, session.user.email);
-    await migrateLocalChats();
-    await loadCloudChats();
-    document.getElementById('authGate').classList.add('hidden');
-    document.getElementById('mainLayout').style.display='flex';
-    updateAccountUI();
-    newChat();
-  }else{
-    document.getElementById('authGate').classList.remove('hidden');
-    document.getElementById('mainLayout').style.display='none';
-    showAuthScreen(1);
-  }
-}
-initAuth();
-
-/* ===== Settings panel ===== */
-function openSettings(){
-  renderSettingsMain();
-  document.getElementById('settingsPanel').classList.add('open');
-}
-function closeSettings(){
-  document.getElementById('settingsPanel').classList.remove('open');
-}
-function renderSettingsMain(){
-  document.getElementById('settingsPanelTitle').textContent = 'Настройки';
-  const t = document.body.getAttribute('data-theme')||'light';
-  const s = document.body.getAttribute('data-size')||'md';
-  const memSave = localStorage.getItem('harmonyai_mem_save')!=='0';
-  const memRecall = localStorage.getItem('harmonyai_mem_recall')!=='0';
-  document.getElementById('settingsContent').innerHTML = `
-    <div class="profile-top">
-      <div class="profile-avatar-lg">${(currentUser?.nickname||currentUser?.email||'?').charAt(0).toUpperCase()}</div>
-      <div class="profile-info">
-        <div class="profile-name">${currentUser?.nickname||currentUser?.email?.split('@')[0]||'Гость'}</div>
-        <div class="profile-email">${currentUser?.email||''}</div>
-      </div>
-      <button class="logout-btn" onclick="logoutUser()">Выйти</button>
+        <!-- Custom Instructions -->
+        <div class="settings-section">
+            <div class="settings-section-title">Пользовательские инструкции</div>
+            <textarea class="custom-instructions" id="customInstructions" placeholder="Поделитесь чем-нибудь еще, что вы хотели бы включить для рассмотрения в ответе Harmony Ai."></textarea>
+        </div>
     </div>
 
-    <div class="settings-section">
-      <div class="settings-section-label">Внешний вид</div>
-      <div class="theme-cards" style="margin-bottom:12px">
-        <div class="theme-card ${t==='light'?'active':''}" onclick="applyTheme('light')">
-          <div class="theme-preview light">
-            <div class="theme-dot" style="background:#1a1a1a"></div>
-            <div class="theme-dot" style="background:#666"></div>
-            <div class="theme-dot" style="background:#e0ded9"></div>
-          </div>
-          <div class="theme-card-label">Светлая</div>
-        </div>
-        <div class="theme-card ${t==='dark'?'active':''}" onclick="applyTheme('dark')">
-          <div class="theme-preview dark">
-            <div class="theme-dot" style="background:#a855f7"></div>
-            <div class="theme-dot" style="background:#60a5fa"></div>
-            <div class="theme-dot" style="background:#f472b6"></div>
-          </div>
-          <div class="theme-card-label">Тёмная</div>
-        </div>
-      </div>
-      <div class="size-row">
-        <div class="size-opt sm ${s==='sm'?'active':''}" onclick="applySize('sm')"><span class="sa">Aa</span><span class="sb">Мелкий</span></div>
-        <div class="size-opt md ${s==='md'?'active':''}" onclick="applySize('md')"><span class="sa">Aa</span><span class="sb">Обычный</span></div>
-        <div class="size-opt lg ${s==='lg'?'active':''}" onclick="applySize('lg')"><span class="sa">Aa</span><span class="sb">Крупный</span></div>
-      </div>
-    </div>
+    <script>
+        // Initialize Supabase
+        const supabaseUrl = 'https://cqthnymltqpcxtpiryka.supabase.co';
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNxdGhueW1sdHFwY3h0cGlyeWthIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MjY3NzYsImV4cCI6MjA5NzAwMjc3Nn0.b-6lSdjT7XwWkt607ORwGfKYSn3CLZJB3mcs4QQUSoE';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey, {
+            auth: {
+                persistSession: true,
+                autoRefreshToken: true,
+                detectSessionInUrl: false
+            }
+        });
 
-    <div class="settings-section">
-      <div class="settings-section-label">Память</div>
-      <div class="mem-rows">
-        <div class="mem-row">
-          <div class="mem-info">
-            <div class="mem-title">Сохранять память</div>
-            <div class="mem-desc">HarmonyAI запоминает детали из разговоров</div>
-          </div>
-          <div class="toggle-mem ${memSave?'on':''}" onclick="toggleMemSetting('save',this)"></div>
-        </div>
-        <div class="mem-row">
-          <div class="mem-info">
-            <div class="mem-title">Ссылаться на память</div>
-            <div class="mem-desc">Использует сохранённую память при ответах</div>
-          </div>
-          <div class="toggle-mem ${memRecall?'on':''}" onclick="toggleMemSetting('recall',this)"></div>
-        </div>
-      </div>
-    </div>
+        let currentUser = null;
+        let currentEmail = '';
+        let selectedModelType = 'lite';
+        let selectedMode = 'low';
+        let thinkingEnabled = false;
+        let sidebarOpen = false;
 
-    <div class="settings-section">
-      <div class="settings-section-label">Учётная запись</div>
-      <div class="settings-rows">
-        <div class="settings-row">
-          <div class="settings-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" stroke-width="2"/><path d="M3 7l9 7 9-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-          <div class="settings-row-text">Электронная почта</div>
-          <div class="settings-row-value" style="font-size:12px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${currentUser?.email||''}</div>
-        </div>
-        <div class="settings-row">
-          <div class="settings-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7l3-7z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></div>
-          <div class="settings-row-text">Подписка</div>
-          <div class="settings-row-value">MusMind Lite</div>
-        </div>
-        <div class="settings-row">
-          <div class="settings-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z" stroke="currentColor" stroke-width="2"/><path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-          <div class="settings-row-text">Перейти на MusMind Pro</div>
-          <div class="settings-row-value soon">Скоро</div>
-        </div>
-      </div>
-    </div>
-  `;
-}
-function applyTheme(t){
-  document.body.setAttribute('data-theme',t);
-  localStorage.setItem('harmonyai_theme',t);
-  renderSettingsMain();
-}
-function applySize(s){
-  document.body.setAttribute('data-size',s);
-  localStorage.setItem('harmonyai_size',s);
-  renderSettingsMain();
-}
-function toggleMemSetting(key, el){
-  el.classList.toggle('on');
-  localStorage.setItem('harmonyai_mem_'+key, el.classList.contains('on') ? '1' : '0');
-}
+        // User settings
+        let userSettings = {
+            style: 'default',
+            friendliness: 'default',
+            enthusiasm: 'default',
+            headings: 'default',
+            emojis: 'default',
+            quickReplies: true,
+            customInstructions: ''
+        };
 
-/* restore prefs */
-(function(){
-  const t = localStorage.getItem('harmonyai_theme')||'light';
-  const s = localStorage.getItem('harmonyai_size')||'md';
-  document.body.setAttribute('data-theme',t);
-  document.body.setAttribute('data-size',s);
-})();
+        // Check session on load
+        window.addEventListener('load', async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                currentUser = session.user;
+                showChat();
+                await loadUserSettings();
+            }
+        });
 
-/* ===== Model / mode picker ===== */
-let currentModel='lite', currentMode={lite:'low',pro:'low'}, thinkOn=false, dropOpen=false, modeSubModel=null;
+        // Auth Functions
+        function showAuthScreen(screenNumber) {
+            document.getElementById('authScreen1').classList.add('hidden');
+            document.getElementById('authScreen2').classList.add('hidden');
+            document.getElementById('authScreen3').classList.add('hidden');
+            document.getElementById(`authScreen${screenNumber}`).classList.remove('hidden');
+        }
 
-function toggleModelDrop(e){
-  e.stopPropagation();
-  dropOpen=!dropOpen;
-  document.getElementById('modelDropdown').classList.toggle('open',dropOpen);
-  document.getElementById('modeSubDropdown').style.display='none';
-}
-function selectModelOpt(m){
-  currentModel=m;
-  document.getElementById('ck-lite').style.opacity=m==='lite'?'1':'0';
-  document.getElementById('ck-pro').style.opacity=m==='pro'?'1':'0';
-  document.getElementById('modeRowLite').style.display=m==='lite'?'':'none';
-  document.getElementById('modeRowPro').style.display=m==='pro'?'':'none';
-  updatePillLabel();
-}
-function toggleModeMenu(model,e){
-  e.stopPropagation();
-  if(modeSubModel===model && document.getElementById('modeSubDropdown').style.display!=='none'){
-    document.getElementById('modeSubDropdown').style.display='none';
-    modeSubModel=null; return;
-  }
-  modeSubModel=model;
-  const sub=document.getElementById('modeSubDropdown');
-  sub.style.display='block';
-  document.getElementById('ck-low').style.opacity=currentMode[model]==='low'?'1':'0';
-  document.getElementById('ck-max').style.opacity=currentMode[model]==='max'?'1':'0';
-}
-function selectMode(mode){
-  if(!modeSubModel) return;
-  currentMode[modeSubModel]=mode;
-  document.getElementById('modeLabel-'+modeSubModel).textContent=mode==='low'?'Low':'Max';
-  document.getElementById('ck-low').style.opacity=mode==='low'?'1':'0';
-  document.getElementById('ck-max').style.opacity=mode==='max'?'1':'0';
-  document.getElementById('modeSubDropdown').style.display='none';
-  modeSubModel=null;
-  updatePillLabel();
-  dropOpen=false;
-  document.getElementById('modelDropdown').classList.remove('open');
-}
-function toggleThink(){
-  thinkOn=!thinkOn;
-  document.getElementById('thinkToggle').classList.toggle('on',thinkOn);
-}
-function updatePillLabel(){
-  const name=currentModel==='lite'?'MusMind':'MusMind';
-  const mode=currentMode[currentModel];
-  document.getElementById('modelPillLabel').textContent=name;
-  document.getElementById('modelPillMode').textContent=currentModel+' · '+(mode==='low'?'low':'max');
-}
-updatePillLabel();
+        async function sendOTP() {
+            const email = document.getElementById('emailInput').value.trim();
+            if (!email) {
+                alert('Введите email');
+                return;
+            }
+            currentEmail = email;
+            
+            const { error } = await supabase.auth.signInWithOtp({ email });
+            if (error) {
+                alert('Ошибка: ' + error.message);
+            } else {
+                showAuthScreen(3);
+                setupOTPInputs();
+            }
+        }
 
-function getModeInstruction(){
-  const mode=currentMode[currentModel];
-  if(mode==='low') return '\n\nРЕЖИМ: Low — отвечай КРАТКО, только суть, максимум 3-4 предложения.';
-  if(mode==='max') return '\n\nРЕЖИМ: Max — отвечай ПОДРОБНО, с объяснениями и примерами.';
-  return '';
-}
-function memOn(key){ return localStorage.getItem('harmonyai_mem_'+key)!=='0'; }
-async function getSystemPrompt(){
-  let sys=SYSTEM+getModeInstruction();
-  if(thinkOn) sys+='\n\nРЕЖИМ ДУМАТЬ: включён — перед ответом тщательно проанализируй задачу, покажи ход рассуждений.';
-  if(memOn('recall')){
-    try{
-      const { data } = await sb.from('knowledge_base').select('content').limit(20);
-      if(data&&data.length) sys+='\n\nБаза знаний:\n'+data.map(d=>d.content).join('\n---\n');
-    }catch(e){}
-  }
-  return sys;
-}
+        function setupOTPInputs() {
+            const inputs = document.querySelectorAll('.otp-input');
+            inputs.forEach((input, index) => {
+                input.value = '';
+                input.addEventListener('input', (e) => {
+                    if (e.target.value.length === 1) {
+                        if (index < 5) inputs[index + 1].focus();
+                    }
+                });
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Backspace' && !e.target.value && index > 0) {
+                        inputs[index - 1].focus();
+                    }
+                });
+                input.addEventListener('paste', (e) => {
+                    e.preventDefault();
+                    const pasteData = e.clipboardData.getData('text').slice(0, 6);
+                    pasteData.split('').forEach((char, i) => {
+                        if (inputs[i]) inputs[i].value = char;
+                    });
+                    if (inputs[pasteData.length - 1]) {
+                        inputs[pasteData.length - 1].focus();
+                    }
+                });
+            });
+        }
 
-/* ===== Greeting rotator ===== */
-const GREETINGS=[
-  'Спроси меня про любой аккорд или интервал 🎵',
-  'Помогу разобрать сольфеджио за 5 минут 📝',
-  'Покажу любую гамму в нотах — просто спроси 🎼',
-  'Объясню любой музыкальный термин понятно 🎹',
-  'Умею распознавать ноты с фото — попробуй! 📸',
-  'Помогаю не только с музыкой — спрашивай всё! 💡',
-  'Построю аккордовую цепочку T–S–D–T для тебя 🎸',
-];
-let greetIdx=0;
-setInterval(()=>{
-  const el=document.getElementById('greetingSub');
-  if(!el) return;
-  greetIdx=(greetIdx+1)%GREETINGS.length;
-  el.style.opacity='0';
-  setTimeout(()=>{ el.textContent=GREETINGS[greetIdx]; el.style.opacity='1'; },300);
-},4000);
+        async function verifyOTP() {
+            const inputs = document.querySelectorAll('.otp-input');
+            const code = Array.from(inputs).map(input => input.value).join('');
+            
+            if (code.length !== 6) {
+                alert('Введите 6-значный код');
+                return;
+            }
 
-/* ===== Chat state ===== */
-let history=[], pendingImage=null, currentChatId=null;
-let chats=JSON.parse(localStorage.getItem('harmonyai_chats')||'[]');
+            const { data, error } = await supabase.auth.verifyOtp({
+                email: currentEmail,
+                token: code,
+                type: 'email'
+            });
 
-/* ===== Chat list ===== */
-function renderChatList(){
-  const list=document.getElementById('chatList');
-  list.innerHTML='';
-  chats.slice().reverse().forEach(c=>{
-    const div=document.createElement('div');
-    div.className='chat-item'+(c.id===currentChatId?' active':'');
-    div.textContent=c.title||'Новый чат';
-    div.onclick=()=>loadChat(c.id);
-    list.appendChild(div);
-  });
-}
-async function saveCurrentChat(){
-  if(history.length===0) return;
-  let chat=chats.find(c=>c.id===currentChatId);
-  if(!chat){ currentChatId='chat_'+Date.now(); chat={id:currentChatId,title:'',history:[]}; chats.push(chat); }
-  chat.history=history;
-  if(!chat.title){
-    const first=history.find(m=>m.role==='user');
-    if(first){ const t=typeof first.content==='string'?first.content:(first.content.find(c=>c.type==='text')?.text||'Фото'); chat.title=t.slice(0,40); }
-  }
-  if(currentUser&&memOn('save')){
-    try{ await sb.from('chats').upsert({id:chat.id,user_id:currentUser.id,title:chat.title,history:chat.history,updated_at:new Date().toISOString()}); }catch(e){}
-  }else{ localStorage.setItem('harmonyai_chats',JSON.stringify(chats)); }
-  renderChatList();
-}
-function loadChat(id){
-  const chat=chats.find(c=>c.id===id); if(!chat) return;
-  currentChatId=id; history=chat.history;
-  const inner=document.getElementById('chatInner');
-  inner.innerHTML='';
-  history.forEach(m=>{
-    const text=typeof m.content==='string'?m.content:(m.content.find&&m.content.find(c=>c.type==='text')?.text||'[фото]');
-    if(m.role==='user') addUserMsg(text);
-    else addAiMsg(text,{stream:false});
-  });
-  renderChatList();
-}
-function newChat(){
-  currentChatId=null; history=[];
-  const inner=document.getElementById('chatInner');
-  inner.innerHTML=`<div class="greeting-wrap" id="greetingWrap">
-    <div class="greeting-title">Привет! Я Harmony Ai</div>
-    <div class="greeting-sub" id="greetingSub">${GREETINGS[greetIdx]}</div>
-  </div>`;
-  renderChatList();
-}
-function openSearchUI(){ /* placeholder */ }
+            if (error) {
+                alert('Ошибка: ' + error.message);
+            } else {
+                currentUser = data.user;
+                showChat();
+                await loadUserSettings();
+            }
+        }
 
-/* ===== Textarea auto-resize ===== */
-function autoResize(el){
-  el.style.height='auto';
-  el.style.height=Math.min(el.scrollHeight,200)+'px';
-}
+        async function resendOTP() {
+            const btn = document.getElementById('resendBtn');
+            btn.disabled = true;
+            btn.textContent = 'Отправлено';
+            
+            const { error } = await supabase.auth.signInWithOtp({ email: currentEmail });
+            if (error) {
+                alert('Ошибка: ' + error.message);
+            }
+            
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.textContent = 'Не приходит код? Отправить снова';
+            }, 60000);
+        }
 
-/* ===== SYSTEM PROMPT ===== */
-const SYSTEM=`Ты HarmonyAI — музыкальный ИИ-помощник для учеников музыкальной школы. Ты мужского пола, говори о себе в мужском роде. Отвечай на русском языке. Будь дружелюбным и понятным для детей и подростков.
+        async function logout() {
+            await supabase.auth.signOut();
+            currentUser = null;
+            location.reload();
+        }
 
-ФОРМАТИРОВАНИЕ: Всегда используй Markdown:
-- **жирный** для важных терминов
-- # Заголовок / ## Подзаголовок для разделов
-- - список или 1. нумерованный список
-- > цитата для определений
-- \`код\` для нотных обозначений
+        function showChat() {
+            document.getElementById('authScreen1').classList.add('hidden');
+            document.getElementById('authScreen2').classList.add('hidden');
+            document.getElementById('authScreen3').classList.add('hidden');
+            document.getElementById('chatContainer').classList.add('active');
+            
+            if (currentUser) {
+                document.getElementById('userEmail').textContent = currentUser.email;
+                document.getElementById('userAvatar').textContent = currentUser.email.charAt(0).toUpperCase();
+            }
+        }
 
-Ты знаешь: сольфеджио, нотную грамоту, интервалы, аккорды (T53, S64, D7, VII7, II7 и др.), лады, ритм, размеры, динамику, темп, музыкальные термины. Помогаешь и с другими предметами.
+        // Sidebar
+        function toggleSidebar() {
+            sidebarOpen = !sidebarOpen;
+            document.getElementById('sidebar').classList.toggle('open', sidebarOpen);
+            document.getElementById('overlay').classList.toggle('active', sidebarOpen);
+        }
 
-РАСПОЗНАВАНИЕ ФОТО: Если присылают фото с нотами или аккордами — разбери каждую ноту, аккорд, ритмическое значение.
+        function newChat() {
+            // Create new chat logic
+            toggleSidebar();
+        }
 
-ГЕНЕРАЦИЯ НОТНЫХ СТАНОВ — ВСЕГДА используй этот формат:
-\`\`\`abc
-X:1
-T:Название
-M:4/4
-L:1/4
-K:C
-C D E F | G A B c |
-\`\`\`
+        // Model Selection
+        function toggleModelDropdown() {
+            document.getElementById('modelDropdown').classList.toggle('hidden');
+        }
 
-ПРАВИЛА ABC NOTATION:
-- Нижняя октава: C D E F G A B | Верхняя: c d e f g a b
-- Длительности: C4=целая, C2=половинная, C=четверть, C/2=восьмая
-- Паузы: z4 z2 z z/2
-- Диезы: ^C | Бемоли: _E | Бекар: =C
-- Тональности K: C, G, F, Am, Dm, Em
-- Аккорд: [CEG]`;
+        function selectModel(type) {
+            selectedModelType = type;
+            document.getElementById('selectedModel').textContent = type === 'lite' ? 'MusMind lite' : 'MusMind pro';
+            
+            document.querySelectorAll('.model-option').forEach((opt, idx) => {
+                opt.classList.toggle('active', (type === 'lite' && idx === 0) || (type === 'pro' && idx === 1));
+            });
+            
+            document.getElementById('modelDropdown').classList.add('hidden');
+        }
 
-/* marked.js */
-if(typeof marked!=='undefined'){ marked.setOptions({breaks:true,gfm:true}); }
+        function selectMode(mode) {
+            selectedMode = mode;
+            document.getElementById('modeLow').classList.toggle('active', mode === 'low');
+            document.getElementById('modeMax').classList.toggle('active', mode === 'max');
+        }
 
-/* ===== Content rendering ===== */
-let abcCounter=0;
-function renderContent(el,rawText){
-  const parts=rawText.split(/(```abc[\s\S]*?```)/g);
-  el.innerHTML=''; el.style.whiteSpace='normal'; el.dataset.raw=rawText;
-  parts.forEach(part=>{
-    const abcMatch=part.match(/```abc\n?([\s\S]*?)```/);
-    if(abcMatch){
-      const abcSrc=abcMatch[1].trim();
-      const id='abc-'+(++abcCounter);
-      const wrap=document.createElement('div'); wrap.className='abc-block';
-      const lbl=document.createElement('div'); lbl.className='abc-label'; lbl.textContent='♩ Нотный стан';
-      wrap.appendChild(lbl);
-      const cvs=document.createElement('div'); cvs.id=id; wrap.appendChild(cvs);
-      el.appendChild(wrap);
-      setTimeout(()=>{ try{ ABCJS.renderAbc(id,abcSrc,{responsive:'resize',add_classes:true,paddingright:0,paddingleft:0}); }catch(e){cvs.textContent=abcSrc;} },60);
-    }else if(part.trim()){
-      const div=document.createElement('div');
-      div.innerHTML=typeof marked!=='undefined'?marked.parse(part):part;
-      el.appendChild(div);
-    }
-  });
-}
+        function toggleThinking() {
+            thinkingEnabled = !thinkingEnabled;
+            document.getElementById('thinkingToggle').classList.toggle('active', thinkingEnabled);
+        }
 
-/* ===== Message rendering ===== */
-const ICON_COPY='<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke="currentColor" stroke-width="2"/></svg>';
-const ICON_LIKE='<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M7 22H4a1 1 0 01-1-1v-9a1 1 0 011-1h3m4-9l1 1v6h6.28a2 2 0 011.98 2.3l-1.2 8A2 2 0 0114.08 22H7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
-const ICON_DISLIKE='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="transform:rotate(180deg)"><path d="M7 22H4a1 1 0 01-1-1v-9a1 1 0 011-1h3m4-9l1 1v6h6.28a2 2 0 011.98 2.3l-1.2 8A2 2 0 0114.08 22H7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
-const ICON_SHARE='<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 16V4M12 4L7 9M12 4l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 14v4a2 2 0 002 2h12a2 2 0 002-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
-const ICON_MORE='<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="5" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="19" cy="12" r="1.5" fill="currentColor"/></svg>';
+        // Settings Dropdowns
+        function toggleDropdown(dropdownId, element) {
+            const dropdown = document.getElementById(dropdownId);
+            const allDropdowns = document.querySelectorAll('.dropdown-menu');
+            
+            allDropdowns.forEach(d => {
+                if (d.id !== dropdownId) d.classList.add('hidden');
+            });
+            
+            dropdown.classList.toggle('hidden');
+        }
 
-function getChatInner(){
-  let el=document.getElementById('chatInner');
-  const gr=document.getElementById('greetingWrap'); if(gr)gr.remove();
-  return el;
-}
-function addUserMsg(text){
-  const inner=getChatInner();
-  const div=document.createElement('div'); div.className='msg-user'; div.textContent=text;
-  inner.appendChild(div);
-  scrollChat();
-}
-function addAiMsg(text,opts={}){
-  const inner=getChatInner();
-  const wrap=document.createElement('div'); wrap.className='msg-ai-wrap';
-  const msg=document.createElement('div'); msg.className='msg-ai'; wrap.appendChild(msg);
-  const actions=document.createElement('div'); actions.className='msg-actions';
-  actions.innerHTML=
-    '<div class="msg-action-btn" onclick="copyMsg(this)">'+ICON_COPY+'</div>'+
-    '<div class="msg-action-btn" onclick="likeMsg(this,\'like\')">'+ICON_LIKE+'</div>'+
-    '<div class="msg-action-btn" onclick="likeMsg(this,\'dislike\')">'+ICON_DISLIKE+'</div>'+
-    '<div class="msg-action-btn" onclick="shareMsg(this)">'+ICON_SHARE+'</div>'+
-    '<div class="msg-action-btn" onclick="toggleMoreMenu(this)">'+ICON_MORE+'</div>'+
-    '<div class="msg-more-menu"><div class="msg-more-item" onclick="regenerateMsg(this)">↻ Повторить</div></div>';
-  wrap.appendChild(actions);
-  inner.appendChild(wrap);
-  scrollChat();
-  if(opts.stream) return streamInto(msg,text);
-  renderContent(msg,text); return Promise.resolve();
-}
-function streamInto(el,text){
-  return new Promise(resolve=>{
-    let i=0; el.style.whiteSpace='pre-wrap';
-    function step(){
-      i+=3;
-      const shown=text.slice(0,Math.min(i,text.length));
-      el.textContent=shown.replace(/```abc[\s\S]*?```/g,'[♩ нотный стан]')+(i<text.length?'▍':'');
-      scrollChat();
-      if(i<text.length){ setTimeout(step,4); }
-      else{ renderContent(el,text); scrollChat(); resolve(); }
-    }
-    step();
-  });
-}
-function scrollChat(){ const a=document.getElementById('chatArea'); if(a) a.scrollTop=a.scrollHeight; }
-function copyMsg(btn){
-  const wrap=btn.closest('.msg-ai-wrap');
-  const text=(wrap.querySelector('.msg-ai').dataset.raw||wrap.querySelector('.msg-ai').textContent);
-  navigator.clipboard.writeText(text).catch(()=>{});
-  btn.classList.add('liked'); setTimeout(()=>btn.classList.remove('liked'),900);
-}
-function likeMsg(btn,type){
-  const g=btn.parentElement;
-  const lb=g.children[1],db=g.children[2];
-  if(type==='like'){ lb.classList.toggle('liked'); db.classList.remove('disliked'); }
-  else{ db.classList.toggle('disliked'); lb.classList.remove('liked'); }
-}
-function shareMsg(btn){
-  const text=btn.closest('.msg-ai-wrap').querySelector('.msg-ai').textContent;
-  if(navigator.share){ navigator.share({text:'HarmonyAI: '+text}).catch(()=>{}); }
-  else{ navigator.clipboard.writeText('HarmonyAI: '+text).catch(()=>{}); }
-}
-function toggleMoreMenu(btn){
-  const menu=btn.nextElementSibling;
-  document.querySelectorAll('.msg-more-menu.open').forEach(m=>{ if(m!==menu)m.classList.remove('open'); });
-  menu.classList.toggle('open');
-}
-async function regenerateMsg(item){
-  item.parentElement.classList.remove('open');
-  const wrap=item.closest('.msg-ai-wrap');
-  const msgEl=wrap.querySelector('.msg-ai');
-  if(history.length&&history[history.length-1].role==='assistant') history.pop();
-  msgEl.innerHTML=''; msgEl.style.whiteSpace='pre-wrap';
-  try{
-    const sysPrompt=await getSystemPrompt();
-    const res=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'system',content:sysPrompt},...history]})});
-    const data=await res.json();
-    const reply=data.choices?.[0]?.message?.content||'Нет ответа';
-    await streamInto(msgEl,reply);
-    history.push({role:'assistant',content:reply});
-    await saveCurrentChat();
-  }catch(e){ renderContent(msgEl,'Ошибка: '+e.message); }
-}
-function showTyping(){
-  const inner=getChatInner();
-  const div=document.createElement('div'); div.className='thinking'; div.id='typingEl';
-  div.innerHTML='<div class="thinking-dots"><span></span><span></span><span></span></div><span style="font-size:14px;color:var(--text-secondary)">Думаю...</span>';
-  inner.appendChild(div); scrollChat();
-}
-function hideTyping(){ const t=document.getElementById('typingEl'); if(t)t.remove(); }
+        function selectStyle(style, element) {
+            userSettings.style = style;
+            document.getElementById('styleValue').textContent = element.querySelector('.dropdown-item-title').textContent;
+            
+            document.querySelectorAll('#styleDropdown .dropdown-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            element.classList.add('active');
+            
+            saveUserSettings();
+        }
 
-/* ===== Image upload ===== */
-function handleFile(input){
-  const file=input.files[0]; if(!file) return;
-  const reader=new FileReader();
-  reader.onload=e=>{ pendingImage=e.target.result.split(',')[1]; document.getElementById('msgInput').placeholder='Фото прикреплено — напиши вопрос...'; };
-  reader.readAsDataURL(file);
-}
+        function selectFriendliness(value, element) {
+            userSettings.friendliness = value;
+            document.getElementById('friendlinessValue').textContent = element.querySelector('.dropdown-item-title').textContent;
+            
+            document.querySelectorAll('#friendlinessDropdown .dropdown-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            element.classList.add('active');
+            
+            saveUserSettings();
+        }
 
-/* ===== Send ===== */
-async function send(){
-  const input=document.getElementById('msgInput');
-  const text=input.value.trim();
-  if(!text&&!pendingImage) return;
-  input.value=''; input.style.height='auto';
+        function selectEnthusiasm(value, element) {
+            userSettings.enthusiasm = value;
+            document.getElementById('enthusiasmValue').textContent = element.querySelector('.dropdown-item-title').textContent;
+            
+            document.querySelectorAll('#enthusiasmDropdown .dropdown-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            element.classList.add('active');
+            
+            saveUserSettings();
+        }
 
-  let userContent, displayText=text||'[фото]';
-  if(pendingImage){
-    userContent=[];
-    if(text) userContent.push({type:'text',text});
-    userContent.push({type:'image_url',image_url:{url:'data:image/jpeg;base64,'+pendingImage}});
-    pendingImage=null; input.placeholder='Спросить HarmonyAI...';
-  }else{ userContent=text; }
+        function selectHeadings(value, element) {
+            userSettings.headings = value;
+            document.getElementById('headingsValue').textContent = element.querySelector('.dropdown-item-title').textContent;
+            
+            document.querySelectorAll('#headingsDropdown .dropdown-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            element.classList.add('active');
+            
+            saveUserSettings();
+        }
 
-  addUserMsg(displayText);
-  history.push({role:'user',content:userContent});
-  await saveCurrentChat();
-  showTyping();
+        function selectEmojis(value, element) {
+            userSettings.emojis = value;
+            document.getElementById('emojisValue').textContent = element.querySelector('.dropdown-item-title').textContent;
+            
+            document.querySelectorAll('#emojisDropdown .dropdown-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            element.classList.add('active');
+            
+            saveUserSettings();
+        }
 
-  try{
-    const sysPrompt=await getSystemPrompt();
-    const res=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'system',content:sysPrompt},...history]})});
-    const data=await res.json();
-    if(data.error){ hideTyping(); await addAiMsg('**Ошибка:** '+(data.error.message||JSON.stringify(data.error)),{stream:false}); return; }
-    const reply=data.choices?.[0]?.message?.content||'Нет ответа';
-    hideTyping();
-    await addAiMsg(reply,{stream:true});
-    history.push({role:'assistant',content:reply});
-    await saveCurrentChat();
-  }catch(e){ hideTyping(); await addAiMsg('Ошибка: '+e.message,{stream:false}); }
-}
+        function toggleQuickReplies() {
+            userSettings.quickReplies = !userSettings.quickReplies;
+            document.getElementById('quickRepliesToggle').classList.toggle('active', userSettings.quickReplies);
+            saveUserSettings();
+        }
 
-/* ===== Close dropdowns on outside click ===== */
-document.addEventListener('click',e=>{
-  if(dropOpen&&!e.target.closest('#modelPillBtn')){
-    dropOpen=false;
-    document.getElementById('modelDropdown').classList.remove('open');
-    document.getElementById('modeSubDropdown').style.display='none';
-    modeSubModel=null;
-  }
-  if(!e.target.closest('.msg-action-btn'))
-    document.querySelectorAll('.msg-more-menu.open').forEach(m=>m.classList.remove('open'));
-});
-</script>
+        // Save/Load Settings
+        async function saveUserSettings() {
+            if (!currentUser) return;
+            
+            userSettings.customInstructions = document.getElementById('customInstructions').value;
+            
+            const { error } = await supabase
+                .from('profiles')
+                .upsert({
+                    id: currentUser.id,
+                    settings: userSettings
+                }, { onConflict: 'id' });
+            
+            if (error) console.error('Error saving settings:', error);
+        }
+
+        async function loadUserSettings() {
+            if (!currentUser) return;
+            
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('settings')
+                .eq('id', currentUser.id)
+                .single();
+            
+            if (data?.settings) {
+                userSettings = { ...userSettings, ...data.settings };
+                applyUserSettings();
+            }
+        }
+
+        function applyUserSettings() {
+            document.getElementById('customInstructions').value = userSettings.customInstructions || '';
+            document.getElementById('quickRepliesToggle').classList.toggle('active', userSettings.quickReplies);
+            
+            // Apply other settings to UI
+            if (userSettings.style !== 'default') {
+                const styleNames = {
+                    'professional': 'Профессиональный',
+                    'friendly': 'Дружелюбный',
+                    'frank': 'Откровенный',
+                    'whimsical': 'Причудливый',
+                    'efficient': 'Эффективный',
+                    'cynical': 'Циничный'
+                };
+                document.getElementById('styleValue').textContent = styleNames[userSettings.style] || 'По умолчанию';
+            }
+        }
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.model-selector')) {
+                document.getElementById('modelDropdown').classList.add('hidden');
+            }
+            if (!e.target.closest('.setting-select')) {
+                document.querySelectorAll('.dropdown-menu').forEach(d => d.classList.add('hidden'));
+            }
+        });
+
+        // Auto-resize textarea
+        document.querySelector('.welcome-input')?.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 200) + 'px';
+        });
+    </script>
 </body>
 </html>
