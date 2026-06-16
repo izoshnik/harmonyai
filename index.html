@@ -749,22 +749,20 @@
     </style>
 </head>
 <body>
-
-    <!-- Auth Screen 1: Welcome -->
-    <div id="authScreen1" class="auth-container">
-        <div class="auth-card">
-            <h1 class="auth-title">Думает быстро,<br>результат быстрее</h1>
-            <p class="auth-subtitle">Помощник для музыкантов</p>
-            <button class="btn-primary" onclick="showAuthScreen(2)">Продолжить с Email</button>
-            <p style="margin-top: 16px; font-size: 12px; color: var(--text-secondary); text-align: center;">
-                Продолжая, вы соглашаетесь с нашей 
-                <a href="#" style="color: var(--text-secondary);">Политикой Конфиденциальности</a>
-                и соглашаетесь на отправку сообщений на ваш email.
-            </p>
-            <p style="margin-top: 24px; font-size: 12px; color: var(--text-secondary); text-align: center;">beta version 1.0</p>
-        </div>
+<!-- Auth Screen 1: Welcome -->
+<div id="authScreen1" class="auth-container">
+    <div class="auth-card">
+        <h1 class="auth-title">Думает быстро,<br>результат быстрее</h1>
+        <p class="auth-subtitle">Помощник для музыкантов</p>
+        <button type="button" class="btn-primary" onclick="showAuthScreen(2)">Продолжить с Email</button>
+        <p style="margin-top: 16px; font-size: 12px; color: var(--text-secondary); text-align: center;">
+            Продолжая, вы соглашаетесь с нашей 
+            <a href="#" style="color: var(--text-secondary);">Политикой Конфиденциальности</a>
+            и соглашаетесь на отправку сообщений на ваш email.
+        </p>
+        <p style="margin-top: 24px; font-size: 12px; color: var(--text-secondary); text-align: center;">beta version 1.0</p>
     </div>
-
+</div>
     <!-- Auth Screen 2: Email -->
     <div id="authScreen2" class="auth-container hidden">
         <div class="auth-card">
