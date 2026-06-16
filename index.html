@@ -13,7 +13,7 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        /* ===== МОБИЛЬНАЯ ТЕМА (по умолчанию — тёмная) ===== */
+        /* ===== МОБИЛЬНАЯ ТЕМА (тёмная, liquid glass) ===== */
         :root {
             --bg-primary: #0b0b0e;
             --bg-secondary: #1a1a1e;
@@ -28,7 +28,7 @@
             --chat-bg: #0b0b0e;
         }
 
-        /* ===== ДЕСКТОПНАЯ ТЕМА (светлая, как ChatGPT) ===== */
+        /* ===== ДЕСКТОП (светлый) ===== */
         @media (min-width: 769px) {
             :root {
                 --bg-primary: #ffffff;
@@ -934,7 +934,7 @@
         </div>
     </div>
 
-    <!-- ===== НАСТРОЙКИ ===== -->
+    <!-- ===== НАСТРОЙКИ (с персонализацией) ===== -->
     <div id="settingsContainer" class="settings-container">
         <div class="settings-header">
             <button type="button" class="back-btn" id="btnBackFromSettings">←</button>
@@ -1473,13 +1473,73 @@
                 document.getElementById('emojisValue').textContent = emojisNames[userSettings.emojis] || 'По умолчанию';
             }
 
-            // ===== ОТПРАВКА СООБЩЕНИЯ =====
-            document.getElementById('btnSend').addEventListener('click', function() {
+            // ===== ОТПРАВКА СООБЩЕНИЯ (РЕАЛЬНАЯ, ЧЕРЕЗ API) =====
+            document.getElementById('btnSend').addEventListener('click', sendMessage);
+            document.getElementById('messageInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+
+            function sendMessage() {
                 var text = document.getElementById('messageInput').value.trim();
                 if (!text) return;
 
-                alert('Отправка: ' + text + '\nМодель: ' + selectedModelType + '\nРежим: ' + selectedMode + '\nДумать: ' + thinkingEnabled);
-            });
+                // Показываем сообщение пользователя
+                addMessage(text, 'user');
+                document.getElementById('messageInput').value = '';
+
+                // Показываем индикатор "печатает"
+                var loadingId = addMessage('Печатает...', 'ai', true);
+
+                // Отправляем на сервер
+                fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: text,
+                        model: selectedModelType,
+                        mode: selectedMode,
+                        thinking: thinkingEnabled,
+                        settings: userSettings
+                    })
+                })
+                .then(function(response) {
+                    return response.json();
+                })
+                .then(function(data) {
+                    // Убираем индикатор
+                    removeMessage(loadingId);
+                    // Показываем ответ
+                    addMessage(data.response, 'ai');
+                })
+                .catch(function(error) {
+                    console.error('Error:', error);
+                    removeMessage(loadingId);
+                    addMessage('Ошибка: не удалось получить ответ. Проверьте подключение к интернету.', 'ai');
+                });
+            }
+
+            function addMessage(text, sender, isLoading) {
+                var messagesContainer = document.querySelector('.chat-messages');
+                var messageDiv = document.createElement('div');
+                messageDiv.style.cssText = 'margin-bottom: 16px; padding: 12px 16px; border-radius: 12px; max-width: 80%; word-wrap: break-word; background: ' + 
+                    (sender === 'user' ? 'var(--button-bg); color: var(--button-text)' : 'var(--bg-secondary)') + 
+                    '; align-self: ' + (sender === 'user' ? 'flex-end' : 'flex-start') + ';';
+                messageDiv.textContent = text;
+                messageDiv.id = 'msg-' + Date.now();
+                messagesContainer.appendChild(messageDiv);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                return messageDiv.id;
+            }
+
+            function removeMessage(id) {
+                var msg = document.getElementById(id);
+                if (msg) msg.remove();
+            }
 
             document.getElementById('messageInput').addEventListener('input', function() {
                 this.style.height = 'auto';
