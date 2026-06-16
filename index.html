@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HarmonyAI</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/abcjs@6.2.3/dist/abcjs-basic-min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -102,7 +104,7 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
   border-radius:18px;padding:10px 16px;font-size:var(--font-base);line-height:1.5;color:var(--text);word-break:break-word;white-space:pre-wrap;
 }
 .msg-ai-wrap{display:flex;flex-direction:column;align-self:stretch;}
-.msg-ai{font-size:var(--font-base);line-height:1.65;color:var(--text);word-break:break-word;white-space:pre-wrap;user-select:text;-webkit-user-select:text;}
+/* msg-ai styles moved below with markdown */
 .msg-actions{display:flex;align-items:center;gap:6px;margin-top:8px;position:relative;}
 .msg-action-btn{
   width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;
@@ -121,6 +123,68 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
 .msg-more-menu.open{display:block;}
 .msg-more-item{padding:9px 18px;font-size:13px;font-weight:600;color:var(--text);border-radius:10px;cursor:pointer;white-space:nowrap;}
 .msg-more-item:hover{background:var(--row-hover);}
+
+/* ===== MARKDOWN STYLES ===== */
+.msg-ai{ font-size:var(--font-base);line-height:1.7;color:var(--text);word-break:break-word;user-select:text;-webkit-user-select:text; }
+.msg-ai p{ margin:0 0 10px; }
+.msg-ai p:last-child{ margin-bottom:0; }
+.msg-ai strong{ font-weight:700;color:var(--text); }
+.msg-ai em{ font-style:italic;opacity:.85; }
+.msg-ai h1,.msg-ai h2,.msg-ai h3{
+  font-weight:800;line-height:1.25;margin:16px 0 8px;
+  background:linear-gradient(135deg,var(--text),rgba(168,85,247,.9));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.msg-ai h1{ font-size:1.35em; }
+.msg-ai h2{ font-size:1.18em; }
+.msg-ai h3{ font-size:1.05em; }
+.msg-ai ul,.msg-ai ol{ padding-left:20px;margin:6px 0 10px; }
+.msg-ai li{ margin-bottom:4px;line-height:1.55; }
+.msg-ai ul li::marker{ color:rgba(168,85,247,.7); }
+.msg-ai ol li::marker{ color:rgba(168,85,247,.7);font-weight:700; }
+.msg-ai code{
+  font-family:'SF Mono','Fira Code',monospace;font-size:.88em;
+  background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);
+  border-radius:6px;padding:1px 6px;
+}
+[data-theme="light"] .msg-ai code{ background:rgba(0,0,0,.07);border-color:rgba(0,0,0,.1); }
+.msg-ai pre{
+  background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.12);
+  border-radius:14px;padding:14px 16px;margin:10px 0;overflow-x:auto;
+}
+[data-theme="light"] .msg-ai pre{ background:rgba(0,0,0,.06);border-color:rgba(0,0,0,.1); }
+.msg-ai pre code{ background:none;border:none;padding:0;font-size:.85em;line-height:1.6; }
+.msg-ai blockquote{
+  border-left:3px solid rgba(168,85,247,.6);
+  margin:10px 0;padding:8px 14px;
+  background:rgba(168,85,247,.07);border-radius:0 10px 10px 0;
+  font-style:italic;opacity:.85;
+}
+.msg-ai hr{
+  border:none;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.2),transparent);
+  margin:14px 0;
+}
+[data-theme="light"] .msg-ai hr{ background:linear-gradient(90deg,transparent,rgba(0,0,0,.12),transparent); }
+.msg-ai a{ color:#a78bfa;text-decoration:underline;text-underline-offset:2px; }
+.msg-ai table{ width:100%;border-collapse:collapse;margin:10px 0;font-size:.92em; }
+.msg-ai th{ background:rgba(168,85,247,.2);padding:8px 12px;text-align:left;font-weight:700;border-bottom:1px solid rgba(255,255,255,.15); }
+.msg-ai td{ padding:7px 12px;border-bottom:1px solid rgba(255,255,255,.07); }
+[data-theme="light"] .msg-ai th{ background:rgba(168,85,247,.12);border-color:rgba(0,0,0,.1); }
+[data-theme="light"] .msg-ai td{ border-color:rgba(0,0,0,.06); }
+
+/* ===== ABC NOTATION ===== */
+.abc-block{
+  background:rgba(255,255,255,.07);
+  border:1px solid rgba(255,255,255,.16);
+  box-shadow:inset 0 1px 0 var(--glass-highlight);
+  border-radius:16px;padding:16px 14px 10px;margin:12px 0;overflow-x:auto;
+}
+[data-theme="light"] .abc-block{ background:rgba(0,0,0,.04);border-color:rgba(0,0,0,.1); }
+.abc-label{ font-size:10px;font-weight:700;color:var(--text);opacity:.38;text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px; }
+.abc-block svg{ width:100% !important; }
+.abc-block svg path,.abc-block svg rect,.abc-block svg polygon,.abc-block svg ellipse{ fill:var(--text) !important;stroke:none !important; }
+.abc-block .abcjs-staff path{ fill:var(--text) !important; }
 
 .dropdown{
   position:absolute;bottom:36px;left:0;width:210px;
@@ -557,7 +621,7 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
 </div>
 
 <script>
-const SYSTEM = "Ты HarmonyAI — музыкальный ИИ-помощник для учеников музыкальной школы. Ты мужского пола: всегда говори о себе в мужском роде (например, 'я готов помочь', 'я понял', а не 'готова'/'поняла'). Ты отлично знаешь сольфеджио, музыкальную грамоту, ноты, интервалы, аккорды, лады, ритм, размеры, динамику, темп, музыкальные термины. Отвечай на русском языке. Будь дружелюбным и понятным для детей и подростков. Объясняй просто и с примерами. Если пользователь присылает фото с нотами, аккордами или интервалами — внимательно их разбери и объясни.";
+/* SYSTEM prompt defined below */
 
 /* ===== Supabase ===== */
 const SUPABASE_URL = 'https://cqthnymltqpcxtpiryka.supabase.co';
@@ -977,6 +1041,99 @@ function newChat(){
   closeSidebar();
 }
 
+/* ===== SYSTEM PROMPT ===== */
+const SYSTEM = `Ты HarmonyAI — музыкальный ИИ-помощник для учеников музыкальной школы. Ты мужского пола, говори о себе в мужском роде. Отвечай на русском языке. Будь дружелюбным и понятным для детей и подростков.
+
+ФОРМАТИРОВАНИЕ: Всегда используй Markdown для красивого оформления ответов:
+- **жирный** для важных терминов
+- # Заголовок / ## Подзаголовок для разделов
+- - список или 1. нумерованный список для перечислений
+- > цитата для определений
+- --- горизонтальная линия для разделения блоков
+- \`код\` для нотных обозначений, цифр аккордов
+
+Ты знаешь: сольфеджио, нотную грамоту, интервалы, аккорды (T53, S64, D7, VII7, II7 и др.), лады, ритм, размеры, динамику, темп, музыкальные термины. Помогаешь и с математикой, и с другими предметами.
+
+РАСПОЗНАВАНИЕ ФОТО: Если присылают фото с нотами или аккордами — разбери каждую ноту, аккорд, ритмическое значение.
+
+ГЕНЕРАЦИЯ НОТНЫХ СТАНОВ — ВСЕГДА используй этот формат:
+\`\`\`abc
+X:1
+T:Название
+M:4/4
+L:1/4
+K:C
+C D E F | G A B c |
+\`\`\`
+
+ПРАВИЛА ABC NOTATION:
+- Нижняя октава: C D E F G A B | Верхняя: c d e f g a b | Ещё выше: c' d' | Ещё ниже: C, D,
+- Длительности: C4=целая, C2=половинная, C=четверть, C/2=восьмая
+- Паузы: z4 z2 z z/2
+- Диезы: ^C | Бемоли: _E | Бекар: =C
+- Тональности K: C, G, F, Am, Dm, Em
+- Аккорд: [CEG] — три ноты вместе
+- Всегда добавляй текстовое объяснение рядом с нотами`;
+
+/* ===== marked.js config ===== */
+if(typeof marked !== 'undefined'){
+  marked.setOptions({
+    breaks: true,
+    gfm: true,
+  });
+}
+
+/* ===== Content rendering (Markdown + ABC) ===== */
+let abcCounter = 0;
+
+function renderContent(el, rawText) {
+  // Split out ```abc blocks
+  const parts = rawText.split(/(```abc[\s\S]*?```)/g);
+
+  el.innerHTML = '';
+  el.style.whiteSpace = 'normal';
+  el.dataset.raw = rawText; // store for copy
+
+  parts.forEach(part => {
+    const abcMatch = part.match(/```abc\n?([\s\S]*?)```/);
+    if (abcMatch) {
+      // Render ABC notation block
+      const abcSrc = abcMatch[1].trim();
+      const id = 'abc-' + (++abcCounter);
+      const wrap = document.createElement('div');
+      wrap.className = 'abc-block';
+      const lbl = document.createElement('div');
+      lbl.className = 'abc-label';
+      lbl.textContent = '♩ Нотный стан';
+      wrap.appendChild(lbl);
+      const canvas = document.createElement('div');
+      canvas.id = id;
+      wrap.appendChild(canvas);
+      el.appendChild(wrap);
+      setTimeout(() => {
+        try {
+          ABCJS.renderAbc(id, abcSrc, {
+            responsive: 'resize',
+            add_classes: true,
+            paddingright: 0,
+            paddingleft: 0,
+          });
+        } catch(e) { canvas.textContent = abcSrc; }
+      }, 60);
+    } else if (part.trim()) {
+      // Render Markdown
+      const div = document.createElement('div');
+      if(typeof marked !== 'undefined'){
+        div.innerHTML = marked.parse(part);
+      } else {
+        div.style.whiteSpace = 'pre-wrap';
+        div.textContent = part;
+      }
+      el.appendChild(div);
+    }
+  });
+}
+
 /* ===== Message rendering ===== */
 const ICON_COPY='<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke="currentColor" stroke-width="2"/></svg>';
 const ICON_LIKE='<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M7 22H4a1 1 0 01-1-1v-9a1 1 0 011-1h3m4-9 1 1v6h6.28a2 2 0 011.98 2.3l-1.2 8A2 2 0 0114.08 22H7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
@@ -1021,27 +1178,38 @@ function addAiMessage(text, opts={}){
   if(opts.stream){
     return streamInto(msg, text, chat);
   }else{
-    msg.textContent=text;
+    renderContent(msg, text);
     return Promise.resolve();
   }
 }
 function streamInto(el, text, chat){
   return new Promise(resolve=>{
     let i=0;
+    // During stream: show plain text fast
+    el.style.whiteSpace='pre-wrap';
     function step(){
-      i+=2;
+      i+=3;
       const shown = text.slice(0, Math.min(i, text.length));
-      el.textContent = shown + (i < text.length ? '▍' : '');
+      // Show abc placeholder during stream
+      const display = shown.replace(/```abc[\s\S]*?```/g,'[♩ нотный стан]');
+      el.textContent = display + (i < text.length ? '▍' : '');
       chat.scrollTop = chat.scrollHeight;
-      if(i < text.length) setTimeout(step, 4);
-      else resolve();
+      if(i < text.length){
+        setTimeout(step, 4);
+      } else {
+        // Stream done — render proper markdown + abc
+        renderContent(el, text);
+        chat.scrollTop = chat.scrollHeight;
+        resolve();
+      }
     }
     step();
   });
 }
 function copyMsg(btn){
   const wrap=btn.closest('.msg-ai-wrap');
-  const text=wrap.querySelector('.msg-ai').textContent;
+  const msgEl=wrap.querySelector('.msg-ai');
+  const text = msgEl.dataset.raw || msgEl.textContent;
   navigator.clipboard.writeText(text).catch(()=>{});
   btn.classList.add('liked');
   setTimeout(()=>btn.classList.remove('liked'),900);
@@ -1083,7 +1251,8 @@ async function regenerateMsg(item){
   if(history.length && history[history.length-1].role==='assistant'){
     history.pop();
   }
-  msgEl.textContent='';
+  msgEl.innerHTML='';
+  msgEl.style.whiteSpace='pre-wrap';
   try{
     const sysPrompt = await getSystemPrompt();
     const res=await fetch('/api/chat',{
@@ -1096,7 +1265,7 @@ async function regenerateMsg(item){
     history.push({role:'assistant',content:reply});
     await saveCurrentChat();
   }catch(e){
-    msgEl.textContent='Ошибка соединения: '+e.message;
+    renderContent(msgEl, 'Ошибка соединения: '+e.message);
   }
 }
 
@@ -1154,7 +1323,7 @@ async function send(){
     const data=await res.json();
     if(data.error){
       hideTyping();
-      await addAiMessage('Ошибка: '+(data.error.message||JSON.stringify(data.error)), {stream:false});
+      await addAiMessage('**Ошибка:** '+(data.error.message||JSON.stringify(data.error)), {stream:false});
       return;
     }
     const reply=data.choices?.[0]?.message?.content||'Нет ответа';
