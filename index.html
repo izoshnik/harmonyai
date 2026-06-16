@@ -200,11 +200,7 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
 .d-icon.lite{background:linear-gradient(135deg,#34d399,#0ea5a5);}
 .d-icon.pro{background:linear-gradient(135deg,#a855f7,#6366f1);}
 .check{margin-left:auto;color:#86efac;}
-.typing{display:flex;gap:5px;padding:4px 2px;align-self:flex-start;}
-.typing span{width:7px;height:7px;border-radius:50%;background:var(--text);opacity:.35;animation:bounce 1.2s infinite;}
-.typing span:nth-child(2){animation-delay:.2s;}
-.typing span:nth-child(3){animation-delay:.4s;}
-@keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
+/* .typing replaced by .thinking */
 
 /* Sidebar */
 .overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.45);z-index:40;opacity:0;visibility:hidden;transition:opacity .3s;}
@@ -289,6 +285,144 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
 .size-opt.md .lbl-a{font-size:16px;}
 .size-opt.lg .lbl-a{font-size:19px;}
 .size-opt .lbl-b{display:block;font-size:10px;opacity:.5;font-weight:600;margin-top:4px;}
+
+/* ======= ДУМАЮ... ИНДИКАТОР ======= */
+.thinking{
+  display:flex;align-items:center;gap:8px;
+  padding:6px 0;align-self:flex-start;
+}
+.thinking-text{
+  font-size:15px;font-weight:700;
+  background:linear-gradient(90deg,
+    rgba(255,255,255,0.2) 0%,
+    rgba(255,255,255,0.85) 40%,
+    rgba(255,255,255,0.2) 80%
+  );
+  background-size:200% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  animation:thinkShimmer 1.6s ease-in-out infinite;
+}
+[data-theme="light"] .thinking-text{
+  background:linear-gradient(90deg,
+    rgba(0,0,0,0.15) 0%,
+    rgba(0,0,0,0.7) 40%,
+    rgba(0,0,0,0.15) 80%
+  );
+  background-size:200% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+@keyframes thinkShimmer{
+  0%{background-position:100% 0}
+  100%{background-position:-100% 0}
+}
+
+/* ======= МЕНЯЮЩИЙСЯ ТЕКСТ ПРИВЕТСТВИЯ ======= */
+.greeting{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:40px 0;}
+.greeting-title{
+  font-size:var(--font-greeting);font-weight:900;color:var(--text);
+  text-align:center;line-height:1.2;
+}
+.greeting-sub{
+  font-size:15px;font-weight:500;color:var(--text);opacity:0;
+  text-align:center;line-height:1.5;
+  animation:greetFade 4s ease-in-out infinite;
+  min-height:44px;max-width:280px;
+}
+@keyframes greetFade{
+  0%{opacity:0;transform:translateY(6px)}
+  15%{opacity:.55;transform:translateY(0)}
+  70%{opacity:.55;transform:translateY(0)}
+  90%{opacity:0;transform:translateY(-4px)}
+  100%{opacity:0}
+}
+
+/* ======= DROPDOWN с Low/Max ======= */
+.dropdown{
+  position:absolute;bottom:44px;left:0;width:240px;
+  background-color:var(--panel-bg);
+  background-image:linear-gradient(180deg,var(--glass-gloss),transparent 40%);
+  backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);
+  border:1px solid var(--glass-border);border-radius:18px;
+  overflow:hidden;z-index:30;display:none;
+  box-shadow:0 12px 40px rgba(0,0,0,0.35),inset 0 1px 0 var(--glass-highlight);
+}
+.dropdown.open{display:block;}
+.d-option{
+  padding:12px 14px;display:flex;align-items:center;gap:10px;
+  cursor:pointer;border-bottom:0.5px solid var(--row-border);position:relative;
+}
+.d-option:last-child{border-bottom:none;}
+.d-option:hover{background:var(--row-hover);}
+.d-main{flex:1;min-width:0;}
+.d-main-name{font-size:13px;font-weight:700;color:var(--text);}
+.d-main-desc{font-size:10px;opacity:.5;color:var(--text);margin-top:1px;}
+.d-mode-btns{display:flex;gap:4px;margin-top:7px;}
+.d-mode-btn{
+  flex:1;padding:5px 0;border-radius:8px;font-size:10px;font-weight:700;
+  text-align:center;cursor:pointer;border:1px solid var(--glass-border2);
+  color:var(--text);opacity:.6;transition:all .15s;
+}
+.d-mode-btn.active{
+  background:rgba(168,85,247,.25);border-color:rgba(168,85,247,.5);
+  opacity:1;color:#c4b5fd;
+}
+.d-mode-btn:hover:not(.active){opacity:.9;background:var(--row-hover);}
+.d-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.d-icon.lite{background:linear-gradient(135deg,#22c55e,#16a34a);}
+.d-icon.pro{background:linear-gradient(135deg,#a855f7,#7c3aed);}
+.check{color:#a8ff78;font-size:13px;flex-shrink:0;}
+
+/* ======= DESKTOP LAYOUT ======= */
+@media (min-width:768px){
+  body{flex-direction:row;align-items:stretch;height:100vh;overflow:hidden;}
+
+  /* Auth — centered card on desktop */
+  .auth-modal-overlay{
+    display:flex;align-items:center;justify-content:center;
+    background:rgba(0,0,0,0.5);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  }
+  .auth-screen{
+    position:relative;inset:auto;
+    width:420px;max-width:90vw;
+    border-radius:28px;
+    border:1px solid rgba(255,255,255,0.12);
+    box-shadow:0 24px 60px rgba(0,0,0,0.6),inset 0 1px 0 rgba(255,255,255,0.15);
+    padding:48px 36px 36px;
+    max-height:90vh;overflow-y:auto;
+  }
+
+  /* Sidebar — permanent */
+  .overlay{display:none!important;}
+  .sidebar{
+    position:relative!important;transform:none!important;
+    width:240px!important;flex-shrink:0;
+    border-right:1px solid var(--glass-border2);
+    border-radius:0!important;z-index:2;
+    box-shadow:inset -1px 0 0 var(--glass-highlight);
+  }
+  /* Hide close button on desktop */
+  .sidebar .sidebar-header .glass-btn{display:none;}
+
+  /* App fills rest */
+  .app{
+    flex:1;max-width:none!important;
+    min-height:0;height:100vh;
+    padding:24px 32px 28px;
+  }
+
+  /* Chat takes full height */
+  .chat-area{height:calc(100vh - 160px);}
+
+  /* Settings fills app area only */
+  .settings-overlay{position:absolute;left:240px;width:calc(100% - 240px);}
+
+  /* Bigger greeting on desktop */
+  .greeting-title{font-size:42px;}
+  .greeting-sub{font-size:16px;max-width:400px;}
+
+  /* Messages wider */
+  .msg-user{max-width:65%;}
+}
 
 /* Memory toggles */
 .mem-row{padding:16px;display:flex;align-items:center;gap:14px;}
@@ -581,7 +715,10 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
   </div>
 
   <div class="chat-area" id="chat">
-    <div class="greeting"><div class="greeting-text">Привет!<br>Давай начнём,<br>отправь мне<br>сообщение<br>и я помогу!</div></div>
+    <div class="greeting">
+      <div class="greeting-title">Привет! Я HarmonyAI</div>
+      <div class="greeting-sub" id="greetingSub">Спроси меня про любой аккорд или интервал 🎵</div>
+    </div>
   </div>
 
   <div class="bottom">
@@ -590,20 +727,37 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
       <span id="mname">MusMind Lite</span>
       <span style="font-size:9px;opacity:.7">▼</span>
       <div class="dropdown" id="drop">
-        <div class="d-option" onclick="selectM(event,'lite')">
+
+        <!-- MusMind Lite -->
+        <div class="d-option" onclick="selectModel(event,'lite')">
           <div class="d-icon lite">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M5 14C5 8 9 4 19 4C19 14 15 19 9 19C7 19 5 17 5 14Z" stroke="white" stroke-width="1.8" stroke-linejoin="round"/><path d="M5 19L11 13" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg>
           </div>
-          <div><div style="font-weight:700">MusMind Lite</div><div style="font-size:10px;opacity:.5">Быстро и легко</div></div>
-          <span class="check" id="ck-lite">✓</span>
+          <div class="d-main">
+            <div class="d-main-name">MusMind Lite <span class="check" id="ck-lite">✓</span></div>
+            <div class="d-main-desc">Быстро и легко</div>
+            <div class="d-mode-btns">
+              <div class="d-mode-btn active" id="mode-lite-low" onclick="selectMode(event,'lite','low')">Low</div>
+              <div class="d-mode-btn" id="mode-lite-max" onclick="selectMode(event,'lite','max')">Max</div>
+            </div>
+          </div>
         </div>
-        <div class="d-option" onclick="selectM(event,'pro')">
+
+        <!-- MusMind Pro -->
+        <div class="d-option" onclick="selectModel(event,'pro')">
           <div class="d-icon pro">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" stroke="white" stroke-width="1.4" stroke-linejoin="round" fill="white" fill-opacity="0.18"/></svg>
           </div>
-          <div><div style="font-weight:700">MusMind Pro</div><div style="font-size:10px;opacity:.5">Максимум возможностей</div></div>
-          <span class="check" id="ck-pro" style="opacity:0">✓</span>
+          <div class="d-main">
+            <div class="d-main-name">MusMind Pro <span class="check" id="ck-pro" style="opacity:0">✓</span></div>
+            <div class="d-main-desc">Максимум возможностей</div>
+            <div class="d-mode-btns">
+              <div class="d-mode-btn active" id="mode-pro-low" onclick="selectMode(event,'pro','low')">Low</div>
+              <div class="d-mode-btn" id="mode-pro-max" onclick="selectMode(event,'pro','max')">Max</div>
+            </div>
+          </div>
         </div>
+
       </div>
     </div>
 
@@ -847,7 +1001,7 @@ function memOn(key){
   return !!(el && el.classList.contains('on'));
 }
 async function getSystemPrompt(){
-  let sys = SYSTEM;
+  let sys = SYSTEM + getModeInstruction();
   if(memOn('recall')){
     try{
       const { data, error } = await sb.from('knowledge_base').select('content').limit(20);
@@ -928,21 +1082,86 @@ function draw(){
 draw();
 
 /* ===== Model picker ===== */
+let currentModel = 'lite';
+let currentMode = { lite: 'low', pro: 'low' };
+
 function toggleDrop(){
   dropOpen=!dropOpen;
   document.getElementById('drop').classList.toggle('open',dropOpen);
 }
-function selectM(e,m){
+
+function selectModel(e, m){
+  // Only update selection if clicking option body, not mode buttons
   e.stopPropagation();
-  document.getElementById('mname').textContent=m==='lite'?'MusMind Lite':'MusMind Pro';
-  const dot=document.getElementById('dot');
-  dot.style.background=m==='pro'?'#c084fc':'#a8ff78';
-  dot.style.boxShadow=m==='pro'?'0 0 4px #c084fc':'0 0 4px #a8ff78';
-  document.getElementById('ck-lite').style.opacity=m==='lite'?'1':'0';
-  document.getElementById('ck-pro').style.opacity=m==='pro'?'1':'0';
+  currentModel = m;
+  document.getElementById('mname').textContent = m==='lite' ? 'MusMind Lite' : 'MusMind Pro';
+  const dot = document.getElementById('dot');
+  dot.style.background = m==='pro' ? '#c084fc' : '#a8ff78';
+  dot.style.boxShadow = m==='pro' ? '0 0 4px #c084fc' : '0 0 4px #a8ff78';
+  document.getElementById('ck-lite').style.opacity = m==='lite' ? '1' : '0';
+  document.getElementById('ck-pro').style.opacity = m==='pro' ? '1' : '0';
+  // Don't close dropdown — let user pick mode
+  updateModePill();
+}
+
+function selectMode(e, model, mode){
+  e.stopPropagation();
+  currentMode[model] = mode;
+  // Also select that model
+  currentModel = model;
+  document.getElementById('mname').textContent = model==='lite' ? 'MusMind Lite' : 'MusMind Pro';
+  const dot = document.getElementById('dot');
+  dot.style.background = model==='pro' ? '#c084fc' : '#a8ff78';
+  dot.style.boxShadow = model==='pro' ? '0 0 4px #c084fc' : '0 0 4px #a8ff78';
+  document.getElementById('ck-lite').style.opacity = model==='lite' ? '1' : '0';
+  document.getElementById('ck-pro').style.opacity = model==='pro' ? '1' : '0';
+  // Update mode button styles
+  ['lite','pro'].forEach(mdl => {
+    ['low','max'].forEach(md => {
+      const btn = document.getElementById('mode-'+mdl+'-'+md);
+      if(btn) btn.classList.toggle('active', currentMode[mdl]===md);
+    });
+  });
+  updateModePill();
+  // Close after choosing mode
   dropOpen=false;
   document.getElementById('drop').classList.remove('open');
 }
+
+function updateModePill(){
+  const mode = currentMode[currentModel];
+  const modeLabel = mode === 'max' ? ' · Max' : ' · Low';
+  const modelName = currentModel === 'lite' ? 'MusMind Lite' : 'MusMind Pro';
+  document.getElementById('mname').textContent = modelName + modeLabel;
+}
+
+function getModeInstruction(){
+  const mode = currentMode[currentModel];
+  if(mode === 'low') return '\n\nРЕЖИМ ОТВЕТА: Low — отвечай КРАТКО, без воды, только суть. Максимум 3-4 предложения или короткий список.';
+  if(mode === 'max') return '\n\nРЕЖИМ ОТВЕТА: Max — отвечай ПОДРОБНО, с объяснениями, примерами, деталями. Раскрой тему максимально полно.';
+  return '';
+}
+
+/* ===== Greeting rotator ===== */
+const GREETINGS = [
+  'Спроси меня про любой аккорд или интервал 🎵',
+  'Помогу разобрать сольфеджио за 5 минут 📝',
+  'Покажу любую гамму в нотах — просто спроси 🎼',
+  'Объясню любой музыкальный термин понятно 🎹',
+  'Умею распознавать ноты с фото — попробуй! 📸',
+  'Помогаю не только с музыкой — спрашивай всё! 💡',
+  'Построю аккордовую цепочку T–S–D–T для тебя 🎸',
+];
+let greetIdx = 0;
+function rotateGreeting(){
+  greetIdx = (greetIdx + 1) % GREETINGS.length;
+  const el = document.getElementById('greetingSub');
+  if(!el) return;
+  el.style.animation = 'none';
+  el.textContent = GREETINGS[greetIdx];
+  requestAnimationFrame(()=>{ el.style.animation=''; el.style.animation='greetFade 4s ease-in-out infinite'; });
+}
+setInterval(rotateGreeting, 4000);
 document.addEventListener('click',function(e){
   if(dropOpen && !e.target.closest('#pill')){
     dropOpen=false;
@@ -1036,7 +1255,7 @@ function loadChat(id){
 function newChat(){
   currentChatId=null;
   history=[];
-  document.getElementById('chat').innerHTML='<div class="greeting"><div class="greeting-text">Привет!<br>Давай начнём,<br>отправь мне<br>сообщение<br>и я помогу!</div></div>';
+  document.getElementById('chat').innerHTML='<div class="greeting"><div class="greeting-title">Привет! Я HarmonyAI</div><div class="greeting-sub" id="greetingSub">'+GREETINGS[greetIdx]+'</div></div>';
   renderChatList();
   closeSidebar();
 }
@@ -1272,8 +1491,8 @@ async function regenerateMsg(item){
 function showTyping(){
   const chat=document.getElementById('chat');
   const div=document.createElement('div');
-  div.className='typing';div.id='typing';
-  div.innerHTML='<span></span><span></span><span></span>';
+  div.className='thinking';div.id='typing';
+  div.innerHTML='<div class="thinking-text">Думаю...</div>';
   chat.appendChild(div);chat.scrollTop=chat.scrollHeight;
 }
 function hideTyping(){const t=document.getElementById('typing');if(t)t.remove();}
