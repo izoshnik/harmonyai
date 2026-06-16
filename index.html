@@ -1,3 +1,4 @@
+cat > /home/claude/index.html << 'ENDOFFILE'
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -8,834 +9,728 @@
 <script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/abcjs@6.2.3/dist/abcjs-basic-min.js"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 
 :root{
-  --bg:#08080f;
-  --text:#ffffff;
-  --icon:#ffffff;
-  --glass:rgba(255,255,255,0.12);
-  --glass-strong:rgba(255,255,255,0.16);
-  --glass-border:rgba(255,255,255,0.28);
-  --glass-border2:rgba(255,255,255,0.14);
-  --glass-highlight:rgba(255,255,255,0.28);
-  --glass-gloss:rgba(255,255,255,0.10);
-  --row-hover:rgba(255,255,255,0.08);
-  --row-border:rgba(255,255,255,0.1);
-  --send-bg:rgba(255,255,255,0.9);
-  --send-icon:#222;
-  --panel-bg:rgba(8,8,15,0.55);
-  --font-base:14px;
-  --font-greeting:26px;
+  --bg:#f7f6f3;
+  --sidebar-bg:#efede9;
+  --text:#1a1a1a;
+  --text-secondary:#666;
+  --border:#e0ded9;
+  --input-bg:#fff;
+  --input-border:#d8d6d0;
+  --hover:#e8e6e2;
+  --active:#e0deda;
+  --send-bg:#1a1a1a;
+  --send-text:#fff;
+  --user-bubble:#1a1a1a;
+  --user-bubble-text:#fff;
+  --btn-light:#fff;
+  --btn-light-border:#d8d6d0;
+  --model-pill-bg:#fff;
+  --model-pill-border:#d0cec9;
+  --dropdown-bg:#fff;
+  --dropdown-border:#e0ded9;
+  --dropdown-shadow:0 8px 32px rgba(0,0,0,0.10);
+  --font-base:15px;
 }
-[data-theme="light"]{
-  --bg:#eef0f6;
-  --text:#15152b;
-  --icon:#15152b;
-  --glass:rgba(255,255,255,0.55);
-  --glass-strong:rgba(255,255,255,0.8);
-  --glass-border:rgba(0,0,0,0.08);
-  --glass-border2:rgba(0,0,0,0.07);
-  --glass-highlight:rgba(255,255,255,0.9);
-  --glass-gloss:rgba(255,255,255,0.55);
-  --row-hover:rgba(0,0,0,0.04);
-  --row-border:rgba(0,0,0,0.07);
-  --send-bg:#15152b;
-  --send-icon:#ffffff;
-  --panel-bg:rgba(238,240,246,0.6);
+[data-theme="dark"]{
+  --bg:#0f0f0f;
+  --sidebar-bg:#161616;
+  --text:#f0f0f0;
+  --text-secondary:#888;
+  --border:#2a2a2a;
+  --input-bg:#1e1e1e;
+  --input-border:#333;
+  --hover:#222;
+  --active:#2a2a2a;
+  --send-bg:#f0f0f0;
+  --send-text:#0f0f0f;
+  --user-bubble:#2a2a2a;
+  --user-bubble-text:#f0f0f0;
+  --btn-light:#1e1e1e;
+  --btn-light-border:#333;
+  --model-pill-bg:#1e1e1e;
+  --model-pill-border:#333;
+  --dropdown-bg:#1e1e1e;
+  --dropdown-border:#333;
+  --dropdown-shadow:0 8px 32px rgba(0,0,0,0.4);
 }
-body[data-size="sm"]{ --font-base:12px; --font-greeting:22px; }
-body[data-size="md"]{ --font-base:14px; --font-greeting:26px; }
-body[data-size="lg"]{ --font-base:17px; --font-greeting:31px; }
 
-body{font-family:'Inter',sans-serif;background:var(--bg);min-height:100vh;display:flex;flex-direction:column;align-items:center;overflow-x:hidden;color:var(--text);transition:background .3s,color .3s;}
-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
-.app{position:relative;z-index:2;width:100%;max-width:420px;min-height:100vh;display:flex;flex-direction:column;padding:20px 16px 32px;}
-.top-bar{display:flex;justify-content:space-between;align-items:center;}
-.glass-btn{
-  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-  background-color:var(--glass);
-  background-image:linear-gradient(180deg,var(--glass-gloss),transparent 60%);
-  border:1px solid var(--glass-border);border-radius:50%;
-  box-shadow:inset 0 1px 0 var(--glass-highlight);
-  display:flex;align-items:center;justify-content:center;cursor:pointer;padding:10px;color:var(--icon);
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow:hidden;transition:background .25s,color .25s;}
+
+/* ===== AUTH SCREENS ===== */
+#authGate{
+  position:fixed;inset:0;z-index:1000;
+  background:var(--bg);
+  display:flex;align-items:center;justify-content:center;
 }
-.chat-area{flex:1;display:flex;flex-direction:column;gap:14px;padding:20px 0;overflow-y:auto;min-height:300px;}
-.greeting{flex:1;display:flex;align-items:center;justify-content:center;padding:60px 0;}
-.greeting-text{font-size:var(--font-greeting);font-weight:900;color:var(--text);line-height:1.25;text-align:center;}
-.bottom{display:flex;flex-direction:column;gap:8px;margin-top:auto;}
-.model-pill{
-  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-  background-color:var(--glass);
-  background-image:linear-gradient(180deg,var(--glass-gloss),transparent 60%);
-  border:1px solid var(--glass-border);border-radius:18px;
-  box-shadow:inset 0 1px 0 var(--glass-highlight);
-  padding:6px 12px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-weight:600;color:var(--text);align-self:flex-start;position:relative;
+#authGate.hidden{display:none;}
+
+.auth-screen{
+  width:100%;max-width:400px;padding:0 24px;
+  display:none;flex-direction:column;align-items:center;gap:0;
 }
-.model-dot{width:6px;height:6px;border-radius:50%;background:#a8ff78;box-shadow:0 0 4px #a8ff78;flex-shrink:0;}
-.input-glass{
-  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
-  background-color:var(--glass);
-  background-image:linear-gradient(180deg,var(--glass-gloss),transparent 60%);
-  border:1px solid var(--glass-border);border-radius:22px;
-  box-shadow:inset 0 1px 0 var(--glass-highlight);
-  padding:12px 14px;display:flex;align-items:center;gap:10px;
+.auth-screen.active{display:flex;}
+
+.auth-logo{
+  font-size:22px;font-weight:800;letter-spacing:-0.5px;color:var(--text);
+  margin-bottom:48px;align-self:flex-start;
 }
-.input-glass input{flex:1;background:transparent;border:none;outline:none;font-family:'Inter',sans-serif;font-size:var(--font-base);color:var(--text);}
-.input-glass input::placeholder{color:var(--text);opacity:.4;}
-.icon-btn{
-  width:32px;height:32px;border-radius:50%;
-  background-color:var(--glass);
-  background-image:linear-gradient(180deg,var(--glass-gloss),transparent 60%);
-  border:1px solid var(--glass-border);
-  box-shadow:inset 0 1px 0 var(--glass-highlight);
-  display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:var(--icon);
+.auth-heading{
+  font-size:32px;font-weight:800;letter-spacing:-1px;color:var(--text);
+  text-align:center;line-height:1.15;margin-bottom:8px;
 }
-.send-btn{width:34px;height:34px;border-radius:50%;background:var(--send-bg);box-shadow:inset 0 1px 0 rgba(255,255,255,0.35);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:var(--send-icon);}
+.auth-sub{
+  font-size:15px;color:var(--text-secondary);text-align:center;
+  margin-bottom:40px;line-height:1.5;
+}
+.auth-card{
+  width:100%;background:var(--btn-light);
+  border:1px solid var(--btn-light-border);
+  border-radius:16px;padding:16px;
+  display:flex;flex-direction:column;gap:10px;
+}
+.auth-email-btn{
+  width:100%;padding:14px;border-radius:10px;
+  background:var(--send-bg);color:var(--send-text);
+  font-size:15px;font-weight:700;border:none;cursor:pointer;
+  transition:opacity .15s;
+}
+.auth-email-btn:hover{opacity:.88;}
+.auth-tos{font-size:12px;color:var(--text-secondary);text-align:center;line-height:1.6;}
+.auth-tos a{color:var(--text);text-decoration:underline;}
+
+.auth-input-field{
+  width:100%;padding:13px 14px;border-radius:10px;
+  background:var(--bg);border:1px solid var(--input-border);
+  font-size:15px;color:var(--text);font-family:'Inter',sans-serif;outline:none;
+  transition:border-color .15s;
+}
+.auth-input-field:focus{border-color:var(--text);}
+.auth-input-field::placeholder{color:var(--text-secondary);}
+
+.auth-continue-btn{
+  width:100%;padding:13px;border-radius:10px;
+  background:var(--send-bg);color:var(--send-text);
+  font-size:15px;font-weight:700;border:none;cursor:pointer;
+  transition:opacity .15s;
+}
+.auth-continue-btn:hover{opacity:.88;}
+.auth-back-link{
+  font-size:14px;color:var(--text-secondary);cursor:pointer;text-align:center;
+  padding-top:4px;
+}
+.auth-back-link:hover{color:var(--text);}
+.auth-error{font-size:13px;color:#e53e3e;text-align:center;display:none;}
+.auth-beta{
+  position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+  font-size:12px;color:var(--text-secondary);
+}
+
+/* OTP boxes */
+.otp-row{display:flex;gap:8px;justify-content:center;}
+.otp-digit{
+  width:44px;height:52px;border-radius:10px;
+  border:1px solid var(--input-border);background:var(--bg);
+  font-size:20px;font-weight:700;color:var(--text);text-align:center;
+  font-family:'Inter',sans-serif;outline:none;
+  transition:border-color .15s;
+}
+.otp-digit:focus{border-color:var(--text);}
+
+.auth-resend{font-size:13px;color:var(--text-secondary);text-align:center;cursor:pointer;}
+.auth-resend:hover{color:var(--text);}
+.auth-resend.disabled{opacity:.4;cursor:default;}
+
+/* ===== MAIN LAYOUT ===== */
+.layout{
+  display:flex;height:100vh;overflow:hidden;
+}
+
+/* ===== SIDEBAR ===== */
+.sidebar{
+  width:240px;flex-shrink:0;
+  background:var(--sidebar-bg);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  padding:12px 8px;
+  transition:background .25s;
+}
+.sidebar-logo{
+  font-size:18px;font-weight:800;letter-spacing:-0.5px;
+  color:var(--text);padding:8px 12px 16px;
+}
+.sidebar-btn{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 12px;border-radius:10px;
+  font-size:13px;font-weight:500;color:var(--text);
+  cursor:pointer;transition:background .12s;
+}
+.sidebar-btn:hover{background:var(--hover);}
+.sidebar-btn svg{opacity:.6;flex-shrink:0;}
+.sidebar-divider{height:1px;background:var(--border);margin:8px 0;}
+.sidebar-label{font-size:11px;font-weight:600;color:var(--text-secondary);padding:8px 12px 4px;text-transform:uppercase;letter-spacing:.6px;}
+.chat-list{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:2px;}
+.chat-list::-webkit-scrollbar{width:4px;}
+.chat-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.chat-item{
+  padding:8px 12px;border-radius:8px;
+  font-size:13px;color:var(--text);cursor:pointer;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  transition:background .12s;opacity:.8;
+}
+.chat-item:hover,.chat-item.active{background:var(--active);opacity:1;}
+.sidebar-footer{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 12px;border-radius:10px;cursor:pointer;
+  transition:background .12s;margin-top:auto;
+}
+.sidebar-footer:hover{background:var(--hover);}
+.sidebar-avatar{
+  width:28px;height:28px;border-radius:50%;
+  background:var(--text);color:var(--bg);
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;flex-shrink:0;
+}
+.sidebar-user-info{flex:1;margin-left:10px;overflow:hidden;}
+.sidebar-username{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+/* ===== MAIN CHAT ===== */
+.main{
+  flex:1;display:flex;flex-direction:column;
+  overflow:hidden;min-width:0;
+}
+.chat-area{
+  flex:1;overflow-y:auto;padding:24px 0;
+  display:flex;flex-direction:column;
+  align-items:center;
+  scroll-behavior:smooth;
+}
+.chat-area::-webkit-scrollbar{width:6px;}
+.chat-area::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+.chat-inner{width:100%;max-width:700px;padding:0 24px;display:flex;flex-direction:column;gap:20px;}
+
+/* Greeting */
+.greeting-wrap{
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:80px 0 40px;text-align:center;
+  gap:10px;
+}
+.greeting-title{
+  font-size:36px;font-weight:800;letter-spacing:-1px;color:var(--text);
+}
+.greeting-sub{
+  font-size:16px;color:var(--text-secondary);
+  animation:greetFade 4s ease-in-out infinite;
+}
+@keyframes greetFade{0%,100%{opacity:.5}50%{opacity:1}}
 
 /* Messages */
 .msg-user{
-  align-self:flex-end;max-width:85%;
-  background-color:var(--glass);
-  background-image:linear-gradient(180deg,var(--glass-gloss),transparent 60%);
-  border:1px solid var(--glass-border);
-  box-shadow:inset 0 1px 0 var(--glass-highlight);
-  border-radius:18px;padding:10px 16px;font-size:var(--font-base);line-height:1.5;color:var(--text);word-break:break-word;white-space:pre-wrap;
+  align-self:flex-end;max-width:75%;
+  background:var(--user-bubble);color:var(--user-bubble-text);
+  border-radius:18px 18px 4px 18px;
+  padding:12px 16px;font-size:var(--font-base);line-height:1.55;
+  word-break:break-word;white-space:pre-wrap;
 }
-.msg-ai-wrap{display:flex;flex-direction:column;align-self:stretch;}
-/* msg-ai styles moved below with markdown */
-.msg-actions{display:flex;align-items:center;gap:6px;margin-top:8px;position:relative;}
+.msg-ai-wrap{align-self:stretch;display:flex;flex-direction:column;gap:10px;}
+.msg-ai{
+  font-size:var(--font-base);line-height:1.7;color:var(--text);
+  word-break:break-word;
+}
+.msg-ai h1,.msg-ai h2,.msg-ai h3{font-weight:700;margin:16px 0 8px;color:var(--text);}
+.msg-ai h1{font-size:1.4em;}
+.msg-ai h2{font-size:1.2em;}
+.msg-ai h3{font-size:1.05em;}
+.msg-ai p{margin:8px 0;}
+.msg-ai p:first-child{margin-top:0;}
+.msg-ai ul,.msg-ai ol{padding-left:20px;margin:8px 0;}
+.msg-ai li{margin:4px 0;}
+.msg-ai code{background:var(--hover);padding:2px 6px;border-radius:5px;font-size:.9em;font-family:monospace;}
+.msg-ai pre{background:var(--hover);padding:12px;border-radius:10px;overflow-x:auto;margin:10px 0;}
+.msg-ai pre code{background:none;padding:0;}
+.msg-ai blockquote{border-left:3px solid var(--border);padding-left:14px;color:var(--text-secondary);margin:8px 0;}
+.msg-ai hr{border:none;border-top:1px solid var(--border);margin:14px 0;}
+.msg-ai strong{font-weight:700;}
+.abc-block{background:var(--input-bg);border:1px solid var(--border);border-radius:12px;padding:16px;margin:10px 0;overflow-x:auto;}
+.abc-label{font-size:11px;font-weight:700;color:var(--text-secondary);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;}
+
+/* Action buttons */
+.msg-actions{display:flex;align-items:center;gap:4px;margin-top:2px;position:relative;}
 .msg-action-btn{
-  width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-  background-color:var(--glass);border:1px solid var(--glass-border2);color:var(--icon);opacity:.55;cursor:pointer;
-  transition:opacity .15s,background .15s;
+  width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+  color:var(--text-secondary);cursor:pointer;transition:background .12s,color .12s;
 }
-.msg-action-btn:hover{opacity:1;background:var(--row-hover);}
-.msg-action-btn.liked{color:#86efac;opacity:1;border-color:rgba(134,239,172,0.4);}
-.msg-action-btn.disliked{color:#ff8a8a;opacity:1;border-color:rgba(255,138,138,0.4);}
+.msg-action-btn:hover{background:var(--hover);color:var(--text);}
+.msg-action-btn.liked{color:#22c55e;}
+.msg-action-btn.disliked{color:#ef4444;}
 .msg-more-menu{
-  position:absolute;bottom:36px;left:0;
-  background:var(--panel-bg);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
-  border:1px solid var(--glass-border);border-radius:14px;padding:6px;display:none;z-index:20;
-  box-shadow:0 10px 30px rgba(0,0,0,0.25);
+  position:absolute;bottom:34px;left:0;
+  background:var(--dropdown-bg);border:1px solid var(--dropdown-border);
+  border-radius:10px;padding:4px;display:none;z-index:20;
+  box-shadow:var(--dropdown-shadow);min-width:140px;
 }
 .msg-more-menu.open{display:block;}
-.msg-more-item{padding:9px 18px;font-size:13px;font-weight:600;color:var(--text);border-radius:10px;cursor:pointer;white-space:nowrap;}
-.msg-more-item:hover{background:var(--row-hover);}
+.msg-more-item{padding:8px 14px;font-size:13px;font-weight:500;color:var(--text);border-radius:7px;cursor:pointer;}
+.msg-more-item:hover{background:var(--hover);}
 
-/* ===== MARKDOWN STYLES ===== */
-.msg-ai{ font-size:var(--font-base);line-height:1.7;color:var(--text);word-break:break-word;user-select:text;-webkit-user-select:text; }
-.msg-ai p{ margin:0 0 10px; }
-.msg-ai p:last-child{ margin-bottom:0; }
-.msg-ai strong{ font-weight:700;color:var(--text); }
-.msg-ai em{ font-style:italic;opacity:.85; }
-.msg-ai h1,.msg-ai h2,.msg-ai h3{
-  font-weight:800;line-height:1.25;margin:16px 0 8px;
-  background:linear-gradient(135deg,var(--text),rgba(168,85,247,.9));
-  -webkit-background-clip:text;background-clip:text;color:transparent;
-}
-.msg-ai h1{ font-size:1.35em; }
-.msg-ai h2{ font-size:1.18em; }
-.msg-ai h3{ font-size:1.05em; }
-.msg-ai ul,.msg-ai ol{ padding-left:20px;margin:6px 0 10px; }
-.msg-ai li{ margin-bottom:4px;line-height:1.55; }
-.msg-ai ul li::marker{ color:rgba(168,85,247,.7); }
-.msg-ai ol li::marker{ color:rgba(168,85,247,.7);font-weight:700; }
-.msg-ai code{
-  font-family:'SF Mono','Fira Code',monospace;font-size:.88em;
-  background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);
-  border-radius:6px;padding:1px 6px;
-}
-[data-theme="light"] .msg-ai code{ background:rgba(0,0,0,.07);border-color:rgba(0,0,0,.1); }
-.msg-ai pre{
-  background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.12);
-  border-radius:14px;padding:14px 16px;margin:10px 0;overflow-x:auto;
-}
-[data-theme="light"] .msg-ai pre{ background:rgba(0,0,0,.06);border-color:rgba(0,0,0,.1); }
-.msg-ai pre code{ background:none;border:none;padding:0;font-size:.85em;line-height:1.6; }
-.msg-ai blockquote{
-  border-left:3px solid rgba(168,85,247,.6);
-  margin:10px 0;padding:8px 14px;
-  background:rgba(168,85,247,.07);border-radius:0 10px 10px 0;
-  font-style:italic;opacity:.85;
-}
-.msg-ai hr{
-  border:none;height:1px;
-  background:linear-gradient(90deg,transparent,rgba(255,255,255,.2),transparent);
-  margin:14px 0;
-}
-[data-theme="light"] .msg-ai hr{ background:linear-gradient(90deg,transparent,rgba(0,0,0,.12),transparent); }
-.msg-ai a{ color:#a78bfa;text-decoration:underline;text-underline-offset:2px; }
-.msg-ai table{ width:100%;border-collapse:collapse;margin:10px 0;font-size:.92em; }
-.msg-ai th{ background:rgba(168,85,247,.2);padding:8px 12px;text-align:left;font-weight:700;border-bottom:1px solid rgba(255,255,255,.15); }
-.msg-ai td{ padding:7px 12px;border-bottom:1px solid rgba(255,255,255,.07); }
-[data-theme="light"] .msg-ai th{ background:rgba(168,85,247,.12);border-color:rgba(0,0,0,.1); }
-[data-theme="light"] .msg-ai td{ border-color:rgba(0,0,0,.06); }
+/* Thinking */
+.thinking{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text-secondary);}
+.thinking-dots{display:flex;gap:4px;}
+.thinking-dots span{width:5px;height:5px;border-radius:50%;background:var(--text-secondary);animation:bounce 1.2s infinite;}
+.thinking-dots span:nth-child(2){animation-delay:.2s;}
+.thinking-dots span:nth-child(3){animation-delay:.4s;}
+@keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
 
-/* ===== ABC NOTATION ===== */
-.abc-block{
-  background:rgba(255,255,255,.07);
-  border:1px solid rgba(255,255,255,.16);
-  box-shadow:inset 0 1px 0 var(--glass-highlight);
-  border-radius:16px;padding:16px 14px 10px;margin:12px 0;overflow-x:auto;
+/* ===== INPUT BAR ===== */
+.input-wrap{
+  padding:12px 24px 20px;
+  display:flex;justify-content:center;
 }
-[data-theme="light"] .abc-block{ background:rgba(0,0,0,.04);border-color:rgba(0,0,0,.1); }
-.abc-label{ font-size:10px;font-weight:700;color:var(--text);opacity:.38;text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px; }
-.abc-block svg{ width:100% !important; }
-.abc-block svg path,.abc-block svg rect,.abc-block svg polygon,.abc-block svg ellipse{ fill:var(--text) !important;stroke:none !important; }
-.abc-block .abcjs-staff path{ fill:var(--text) !important; }
+.input-box{
+  width:100%;max-width:700px;
+  background:var(--input-bg);
+  border:1px solid var(--input-border);
+  border-radius:16px;
+  padding:14px 14px 10px;
+  box-shadow:0 2px 12px rgba(0,0,0,0.06);
+  transition:border-color .15s,box-shadow .15s;
+}
+.input-box:focus-within{
+  border-color:var(--text);
+  box-shadow:0 2px 16px rgba(0,0,0,0.10);
+}
+.input-box textarea{
+  width:100%;border:none;outline:none;resize:none;
+  font-size:var(--font-base);color:var(--text);
+  font-family:'Inter',sans-serif;background:transparent;
+  line-height:1.55;max-height:200px;
+  min-height:22px;overflow-y:auto;
+}
+.input-box textarea::placeholder{color:var(--text-secondary);}
+.input-bar-bottom{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-top:8px;
+}
+.input-bar-left{display:flex;align-items:center;gap:4px;}
+.input-icon-btn{
+  width:32px;height:32px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;color:var(--text-secondary);
+  transition:background .12s,color .12s;border:none;background:transparent;
+}
+.input-icon-btn:hover{background:var(--hover);color:var(--text);}
 
-.dropdown{
-  position:absolute;bottom:36px;left:0;width:210px;
-  backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);
-  background:var(--panel-bg);border:1px solid var(--glass-border);border-radius:18px;overflow:hidden;z-index:30;display:none;
-  box-shadow:inset 0 1px 0 var(--glass-highlight),0 12px 30px rgba(0,0,0,0.25);
+/* Model pill */
+.model-pill-btn{
+  display:flex;align-items:center;gap:5px;
+  padding:5px 10px;border-radius:8px;
+  background:var(--model-pill-bg);
+  border:1px solid var(--model-pill-border);
+  font-size:13px;font-weight:500;color:var(--text);
+  cursor:pointer;transition:background .12s;
+  position:relative;
 }
-.dropdown.open{display:block;}
-.d-option{padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text);border-bottom:0.5px solid var(--row-border);}
-.d-option:last-child{border-bottom:none;}
-.d-option:hover{background:var(--row-hover);}
-.d-icon{width:30px;height:30px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:inset 0 1px 0 rgba(255,255,255,0.35);}
-.d-icon.lite{background:linear-gradient(135deg,#34d399,#0ea5a5);}
-.d-icon.pro{background:linear-gradient(135deg,#a855f7,#6366f1);}
-.check{margin-left:auto;color:#86efac;}
-/* .typing replaced by .thinking */
+.model-pill-btn:hover{background:var(--hover);}
+.model-chevron{font-size:9px;color:var(--text-secondary);}
 
-/* Sidebar */
-.overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.45);z-index:40;opacity:0;visibility:hidden;transition:opacity .3s;}
-.overlay.open{opacity:1;visibility:visible;}
-.sidebar{
-  position:fixed;top:0;left:0;width:82%;max-width:300px;height:100%;
-  background-color:var(--panel-bg);
-  background-image:linear-gradient(180deg,var(--glass-gloss),transparent 40%);
-  backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);
-  border-right:1px solid var(--glass-border2);z-index:50;transform:translateX(-105%);
-  transition:transform .32s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;padding:20px 14px;
-  box-shadow:inset -1px 0 0 var(--glass-highlight);
+/* Model dropdown */
+.model-dropdown{
+  position:absolute;bottom:calc(100% + 8px);left:0;
+  background:var(--dropdown-bg);
+  border:1px solid var(--dropdown-border);
+  border-radius:14px;padding:6px;
+  box-shadow:var(--dropdown-shadow);
+  display:none;z-index:100;min-width:220px;
 }
-.sidebar.open{transform:translateX(0);}
-.sidebar-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;padding:0 4px;}
-.sidebar-title{font-size:22px;font-weight:900;color:var(--text);}
-.sidebar-item{display:flex;align-items:center;gap:12px;padding:11px 10px;border-radius:12px;color:var(--text);font-size:14px;font-weight:600;cursor:pointer;}
-.sidebar-item:hover{background:var(--row-hover);}
-.sidebar-search{display:flex;align-items:center;gap:10px;background:var(--glass);border:1px solid var(--glass-border2);border-radius:14px;padding:10px 12px;margin:4px 0 8px;color:var(--text);opacity:.6;font-size:13px;}
-.sidebar-label{font-size:11px;color:var(--text);opacity:.4;font-weight:700;text-transform:uppercase;margin:10px 0 4px;letter-spacing:.5px;padding:0 6px;}
-.chat-list{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:2px;}
-.chat-list-item{padding:10px 10px;border-radius:10px;color:var(--text);opacity:.8;font-size:13px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.chat-list-item:hover,.chat-list-item.active{background:var(--row-hover);}
-.sidebar-footer{display:flex;align-items:center;justify-content:space-between;padding:12px 6px 0;border-top:1px solid var(--row-border);margin-top:8px;}
-.account-row{display:flex;align-items:center;gap:10px;color:var(--text);font-size:13px;font-weight:700;cursor:pointer;padding:6px;border-radius:10px;}
-.account-row:hover{background:var(--row-hover);}
-.avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#a855f7,#60a5fa);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;box-shadow:inset 0 1px 0 rgba(255,255,255,0.4);}
+.model-dropdown.open{display:block;}
+.model-option{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 12px;border-radius:9px;cursor:pointer;
+  transition:background .12s;
+}
+.model-option:hover{background:var(--hover);}
+.model-option-icon{
+  width:30px;height:30px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.model-option-icon.lite{background:linear-gradient(135deg,#34d399,#0ea5a5);}
+.model-option-icon.pro{background:linear-gradient(135deg,#a855f7,#6366f1);}
+.model-option-body{flex:1;}
+.model-option-name{font-size:13px;font-weight:600;color:var(--text);}
+.model-option-desc{font-size:11px;color:var(--text-secondary);margin-top:1px;}
+.model-option-check{font-size:14px;color:var(--text);margin-left:auto;}
+.model-divider{height:1px;background:var(--border);margin:4px 0;}
 
-/* Settings */
-.settings-overlay{position:fixed;inset:0;z-index:70;background:var(--panel-bg);backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);transform:translateY(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;}
-.settings-overlay.open{transform:translateY(0);}
-.settings-screen{flex:1;display:flex;flex-direction:column;padding:20px 18px 28px;overflow-y:auto;max-width:420px;width:100%;margin:0 auto;}
-.settings-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;min-height:36px;}
-.settings-title{font-size:16px;font-weight:800;color:var(--text);}
-.back-btn{width:36px;height:36px;border-radius:50%;backdrop-filter:blur(20px);background:var(--glass);border:1px solid var(--glass-border);box-shadow:inset 0 1px 0 var(--glass-highlight);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--icon);}
-.profile{display:flex;flex-direction:column;align-items:center;margin:8px 0 22px;}
-.avatar-lg{width:76px;height:76px;border-radius:50%;background:linear-gradient(135deg,#a855f7,#60a5fa);display:flex;align-items:center;justify-content:center;font-size:30px;margin-bottom:10px;box-shadow:inset 0 2px 0 rgba(255,255,255,0.4),0 6px 24px rgba(168,85,247,0.35);}
-.profile-name{font-size:17px;font-weight:800;color:var(--text);margin-bottom:10px;}
-.login-btn{
-  backdrop-filter:blur(20px);background-color:var(--glass);
-  background-image:linear-gradient(180deg,var(--glass-gloss),transparent 60%);
-  border:1px solid var(--glass-border);box-shadow:inset 0 1px 0 var(--glass-highlight);
-  border-radius:16px;padding:9px 20px;font-size:13px;font-weight:700;color:var(--text);cursor:pointer;
+/* Mode sub-options */
+.model-mode-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 12px;border-radius:9px;cursor:pointer;
+  transition:background .12s;
 }
-.section-label{font-size:12px;font-weight:700;color:var(--text);opacity:.45;text-transform:uppercase;letter-spacing:.6px;margin:0 6px 8px;}
-.section{
-  backdrop-filter:blur(24px);
-  background-color:var(--glass);
-  background-image:linear-gradient(180deg,var(--glass-gloss),transparent 50%);
-  border:1px solid var(--glass-border2);border-radius:18px;overflow:hidden;margin-bottom:22px;
-  box-shadow:inset 0 1px 0 var(--glass-highlight);
+.model-mode-row:hover{background:var(--hover);}
+.model-mode-label{font-size:13px;font-weight:500;color:var(--text);}
+.model-mode-sub{font-size:11px;color:var(--text-secondary);}
+.model-mode-right{display:flex;align-items:center;gap:8px;}
+.model-mode-badge{font-size:11px;color:var(--text-secondary);}
+.model-mode-check{font-size:14px;color:var(--text);}
+
+/* Think toggle */
+.think-toggle{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 12px;border-radius:9px;
 }
-.row{display:flex;align-items:center;gap:14px;padding:14px 16px;cursor:pointer;transition:background .15s;}
-.row:hover{background:var(--row-hover);}
-.row+.row{border-top:1px solid var(--row-border);}
-.row-icon{width:24px;height:24px;display:flex;align-items:center;justify-content:center;color:var(--icon);flex-shrink:0;opacity:.85;}
-.row-text{flex:1;font-size:var(--font-base);font-weight:600;color:var(--text);}
-.row-value{font-size:12px;font-weight:700;color:var(--text);opacity:.4;}
-.row-value.soon{font-size:10px;font-weight:700;color:var(--text);opacity:.4;background:var(--row-hover);padding:3px 8px;border-radius:8px;text-transform:uppercase;letter-spacing:.5px;}
-.row-chevron{color:var(--text);opacity:.3;flex-shrink:0;}
-.row.disabled .row-text{opacity:.4;}
-.row.disabled .row-icon{opacity:.3;}
-.row.pro .row-text{color:#c4b5fd;}
-.row.pro .row-icon{color:#c4b5fd;opacity:1;}
+.think-toggle-label{font-size:13px;font-weight:500;color:var(--text);}
+.think-toggle-sub{font-size:11px;color:var(--text-secondary);}
+.toggle-sw{
+  position:relative;width:36px;height:22px;border-radius:11px;
+  background:var(--border);cursor:pointer;flex-shrink:0;
+  transition:background .2s;
+}
+.toggle-sw.on{background:#1a1a1a;}
+[data-theme="dark"] .toggle-sw.on{background:#f0f0f0;}
+.toggle-sw::after{
+  content:'';position:absolute;top:2px;left:2px;
+  width:18px;height:18px;border-radius:50%;background:#fff;
+  transition:transform .2s;
+  box-shadow:0 1px 4px rgba(0,0,0,.2);
+}
+[data-theme="dark"] .toggle-sw.on::after{background:#0f0f0f;}
+.toggle-sw.on::after{transform:translateX(14px);}
+
+/* Send button */
+.send-btn{
+  width:34px;height:34px;border-radius:9px;
+  background:var(--send-bg);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;flex-shrink:0;color:var(--send-text);
+  border:none;transition:opacity .15s;
+}
+.send-btn:hover{opacity:.8;}
+.send-btn:disabled{opacity:.3;cursor:default;}
+
+/* ===== SETTINGS PANEL ===== */
+.settings-panel{
+  position:fixed;inset:0;z-index:200;
+  background:rgba(0,0,0,.4);
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;visibility:hidden;transition:opacity .2s;
+}
+.settings-panel.open{opacity:1;visibility:visible;}
+.settings-box{
+  background:var(--bg);border:1px solid var(--border);border-radius:20px;
+  width:420px;max-height:80vh;overflow-y:auto;padding:24px;
+  box-shadow:0 20px 60px rgba(0,0,0,.15);
+  transform:translateY(20px);transition:transform .2s;
+}
+.settings-panel.open .settings-box{transform:translateY(0);}
+.settings-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+.settings-title{font-size:16px;font-weight:700;color:var(--text);}
+.settings-close{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-secondary);}
+.settings-close:hover{background:var(--hover);}
+.settings-section{margin-bottom:20px;}
+.settings-section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-secondary);margin-bottom:8px;padding:0 2px;}
+.settings-rows{background:var(--btn-light);border:1px solid var(--btn-light-border);border-radius:12px;overflow:hidden;}
+.settings-row{display:flex;align-items:center;gap:12px;padding:13px 16px;transition:background .12s;}
+.settings-row+.settings-row{border-top:1px solid var(--border);}
+.settings-row:hover{background:var(--hover);cursor:pointer;}
+.settings-row-icon{color:var(--text-secondary);flex-shrink:0;}
+.settings-row-text{flex:1;font-size:14px;font-weight:500;color:var(--text);}
+.settings-row-value{font-size:13px;color:var(--text-secondary);}
+.settings-row-value.soon{font-size:10px;text-transform:uppercase;letter-spacing:.5px;background:var(--hover);padding:3px 8px;border-radius:6px;}
+.settings-chevron{color:var(--text-secondary);}
 
 /* Theme cards */
-.theme-row{display:flex;gap:12px;margin-bottom:22px;}
-.theme-card{flex:1;border-radius:16px;border:2px solid var(--glass-border2);overflow:hidden;cursor:pointer;background:var(--glass);box-shadow:inset 0 1px 0 var(--glass-highlight);}
-.theme-card.active{border-color:#a855f7;}
-.theme-preview{height:78px;display:flex;align-items:center;justify-content:center;gap:6px;}
-.theme-preview.dark{background:linear-gradient(135deg,#1c1c30,#08080f);}
-.theme-preview.light{background:linear-gradient(135deg,#ffffff,#e4e6ee);}
-.theme-dot{width:14px;height:14px;border-radius:50%;}
-.theme-card-label{padding:9px;text-align:center;font-size:12px;font-weight:700;color:var(--text);}
+.theme-cards{display:flex;gap:10px;}
+.theme-card{flex:1;border-radius:12px;border:2px solid var(--border);overflow:hidden;cursor:pointer;transition:border-color .15s;}
+.theme-card.active{border-color:var(--text);}
+.theme-preview{height:60px;display:flex;align-items:center;justify-content:center;gap:5px;}
+.theme-preview.light{background:linear-gradient(135deg,#f7f6f3,#e8e6e0);}
+.theme-preview.dark{background:linear-gradient(135deg,#1a1a1a,#0f0f0f);}
+.theme-dot{width:12px;height:12px;border-radius:50%;}
+.theme-card-label{padding:8px;text-align:center;font-size:12px;font-weight:600;color:var(--text);background:var(--input-bg);}
+.size-row{display:flex;gap:8px;}
+.size-opt{flex:1;padding:12px;border-radius:10px;background:var(--btn-light);border:2px solid var(--border);text-align:center;cursor:pointer;font-weight:700;color:var(--text);transition:border-color .15s;}
+.size-opt.active{border-color:var(--text);}
+.size-opt .sa{display:block;font-weight:800;}
+.size-opt.sm .sa{font-size:12px;}
+.size-opt.md .sa{font-size:15px;}
+.size-opt.lg .sa{font-size:18px;}
+.size-opt .sb{display:block;font-size:10px;color:var(--text-secondary);font-weight:500;margin-top:3px;}
 
-/* Size selector */
-.size-row{display:flex;gap:8px;margin-bottom:22px;}
-.size-opt{flex:1;padding:13px;border-radius:14px;background:var(--glass);border:2px solid var(--glass-border2);box-shadow:inset 0 1px 0 var(--glass-highlight);text-align:center;cursor:pointer;color:var(--text);font-weight:700;}
-.size-opt.active{border-color:#a855f7;background:rgba(168,85,247,0.15);}
-.size-opt .lbl-a{display:block;}
-.size-opt.sm .lbl-a{font-size:13px;}
-.size-opt.md .lbl-a{font-size:16px;}
-.size-opt.lg .lbl-a{font-size:19px;}
-.size-opt .lbl-b{display:block;font-size:10px;opacity:.5;font-weight:600;margin-top:4px;}
-
-/* ======= ДУМАЮ... ИНДИКАТОР ======= */
-.thinking{
-  display:flex;align-items:center;gap:8px;
-  padding:6px 0;align-self:flex-start;
-}
-.thinking-text{
-  font-size:15px;font-weight:700;
-  background:linear-gradient(90deg,
-    rgba(255,255,255,0.2) 0%,
-    rgba(255,255,255,0.85) 40%,
-    rgba(255,255,255,0.2) 80%
-  );
-  background-size:200% 100%;
-  -webkit-background-clip:text;background-clip:text;color:transparent;
-  animation:thinkShimmer 1.6s ease-in-out infinite;
-}
-[data-theme="light"] .thinking-text{
-  background:linear-gradient(90deg,
-    rgba(0,0,0,0.15) 0%,
-    rgba(0,0,0,0.7) 40%,
-    rgba(0,0,0,0.15) 80%
-  );
-  background-size:200% 100%;
-  -webkit-background-clip:text;background-clip:text;color:transparent;
-}
-@keyframes thinkShimmer{
-  0%{background-position:100% 0}
-  100%{background-position:-100% 0}
-}
-
-/* ======= МЕНЯЮЩИЙСЯ ТЕКСТ ПРИВЕТСТВИЯ ======= */
-.greeting{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:40px 0;}
-.greeting-title{
-  font-size:var(--font-greeting);font-weight:900;color:var(--text);
-  text-align:center;line-height:1.2;
-}
-.greeting-sub{
-  font-size:15px;font-weight:500;color:var(--text);opacity:0;
-  text-align:center;line-height:1.5;
-  animation:greetFade 4s ease-in-out infinite;
-  min-height:44px;max-width:280px;
-}
-@keyframes greetFade{
-  0%{opacity:0;transform:translateY(6px)}
-  15%{opacity:.55;transform:translateY(0)}
-  70%{opacity:.55;transform:translateY(0)}
-  90%{opacity:0;transform:translateY(-4px)}
-  100%{opacity:0}
-}
-
-/* ======= DROPDOWN с Low/Max ======= */
-.dropdown{
-  position:absolute;bottom:44px;left:0;width:240px;
-  background-color:var(--panel-bg);
-  background-image:linear-gradient(180deg,var(--glass-gloss),transparent 40%);
-  backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);
-  border:1px solid var(--glass-border);border-radius:18px;
-  overflow:hidden;z-index:30;display:none;
-  box-shadow:0 12px 40px rgba(0,0,0,0.35),inset 0 1px 0 var(--glass-highlight);
-}
-.dropdown.open{display:block;}
-.d-option{
-  padding:12px 14px;display:flex;align-items:center;gap:10px;
-  cursor:pointer;border-bottom:0.5px solid var(--row-border);position:relative;
-}
-.d-option:last-child{border-bottom:none;}
-.d-option:hover{background:var(--row-hover);}
-.d-main{flex:1;min-width:0;}
-.d-main-name{font-size:13px;font-weight:700;color:var(--text);}
-.d-main-desc{font-size:10px;opacity:.5;color:var(--text);margin-top:1px;}
-.d-mode-btns{display:flex;gap:4px;margin-top:7px;}
-.d-mode-btn{
-  flex:1;padding:5px 0;border-radius:8px;font-size:10px;font-weight:700;
-  text-align:center;cursor:pointer;border:1px solid var(--glass-border2);
-  color:var(--text);opacity:.6;transition:all .15s;
-}
-.d-mode-btn.active{
-  background:rgba(168,85,247,.25);border-color:rgba(168,85,247,.5);
-  opacity:1;color:#c4b5fd;
-}
-.d-mode-btn:hover:not(.active){opacity:.9;background:var(--row-hover);}
-.d-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.d-icon.lite{background:linear-gradient(135deg,#22c55e,#16a34a);}
-.d-icon.pro{background:linear-gradient(135deg,#a855f7,#7c3aed);}
-.check{color:#a8ff78;font-size:13px;flex-shrink:0;}
-
-/* ======= DESKTOP LAYOUT ======= */
-@media (min-width:768px){
-  body{flex-direction:row;align-items:stretch;height:100vh;overflow:hidden;}
-
-  /* Auth — centered card on desktop */
-  .auth-modal-overlay{
-    display:flex;align-items:center;justify-content:center;
-    background:rgba(0,0,0,0.5);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-  }
-  .auth-screen{
-    position:relative;inset:auto;
-    width:420px;max-width:90vw;
-    border-radius:28px;
-    border:1px solid rgba(255,255,255,0.12);
-    box-shadow:0 24px 60px rgba(0,0,0,0.6),inset 0 1px 0 rgba(255,255,255,0.15);
-    padding:48px 36px 36px;
-    max-height:90vh;overflow-y:auto;
-  }
-
-  /* Sidebar — permanent */
-  .overlay{display:none!important;}
-  .sidebar{
-    position:relative!important;transform:none!important;
-    width:240px!important;flex-shrink:0;
-    border-right:1px solid var(--glass-border2);
-    border-radius:0!important;z-index:2;
-    box-shadow:inset -1px 0 0 var(--glass-highlight);
-  }
-  /* Hide close button on desktop */
-  .sidebar .sidebar-header .glass-btn{display:none;}
-
-  /* App fills rest */
-  .app{
-    flex:1;max-width:none!important;
-    min-height:0;height:100vh;
-    padding:24px 32px 28px;
-  }
-
-  /* Chat takes full height */
-  .chat-area{height:calc(100vh - 160px);}
-
-  /* Settings fills app area only */
-  .settings-overlay{position:absolute;left:240px;width:calc(100% - 240px);}
-
-  /* Bigger greeting on desktop */
-  .greeting-title{font-size:42px;}
-  .greeting-sub{font-size:16px;max-width:400px;}
-
-  /* Messages wider */
-  .msg-user{max-width:65%;}
-}
-
-/* Memory toggles */
-.mem-row{padding:16px;display:flex;align-items:center;gap:14px;}
-.mem-row+.mem-row{border-top:1px solid var(--row-border);}
+/* mem toggle rows */
+.mem-rows{background:var(--btn-light);border:1px solid var(--btn-light-border);border-radius:12px;overflow:hidden;}
+.mem-row{display:flex;align-items:center;gap:14px;padding:14px 16px;}
+.mem-row+.mem-row{border-top:1px solid var(--border);}
 .mem-info{flex:1;}
-.mem-title{font-size:var(--font-base);font-weight:700;color:var(--text);margin-bottom:3px;}
-.mem-desc{font-size:12px;color:var(--text);opacity:.5;line-height:1.4;}
-.toggle{position:relative;width:44px;height:26px;border-radius:13px;background:var(--glass-border2);border:1px solid var(--glass-border);cursor:pointer;flex-shrink:0;transition:background .2s;}
-.toggle.on{background:#7c3aed;border-color:#7c3aed;}
-.toggle::after{content:'';position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s;}
-.toggle.on::after{transform:translateX(18px);}
+.mem-title{font-size:14px;font-weight:600;color:var(--text);}
+.mem-desc{font-size:12px;color:var(--text-secondary);margin-top:2px;line-height:1.4;}
+.toggle-mem{position:relative;width:38px;height:22px;border-radius:11px;background:var(--border);cursor:pointer;flex-shrink:0;transition:background .2s;}
+.toggle-mem.on{background:var(--text);}
+.toggle-mem::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+.toggle-mem.on::after{transform:translateX(16px);}
+[data-theme="dark"] .toggle-mem.on::after{background:#0f0f0f;}
 
-/* Auth screens (standalone, dark/black, per design mockups) */
-.auth-modal-overlay{position:fixed;inset:0;z-index:200;opacity:0;visibility:hidden;transition:opacity .25s;}
-.auth-modal-overlay.open{opacity:1;visibility:visible;}
-.auth-screen{
-  position:absolute;inset:0;display:flex;flex-direction:column;justify-content:space-between;
-  padding:54px 26px 38px;
-  background-color:#0b0b0e;
-}
-.auth-screen-logo{font-size:16px;font-weight:800;letter-spacing:.5px;color:rgba(255,255,255,0.5);}
-.auth-screen-body{display:flex;flex-direction:column;gap:16px;margin-top:60px;}
-.auth-welcome-heading{font-size:29px;font-weight:900;line-height:1.28;color:#ffffff;letter-spacing:-.5px;}
-.auth-welcome-sub{font-size:14px;color:rgba(255,255,255,0.45);line-height:1.6;}
-.auth-bottom-card{
-  background-color:rgba(255,255,255,0.05);
-  border:1px solid rgba(255,255,255,0.08);border-radius:24px;padding:18px;
-}
-.auth-bottom-area{display:flex;flex-direction:column;gap:14px;}
-.auth-pill-input{
-  width:100%;background-color:rgba(255,255,255,0.08);
-  border:1px solid rgba(255,255,255,0.06);
-  border-radius:999px;padding:18px 22px;font-size:15px;font-weight:700;color:#ffffff;font-family:'Inter',sans-serif;outline:none;
-}
-.auth-pill-input::placeholder{color:rgba(255,255,255,0.35);font-weight:700;}
-.auth-primary-btn{
-  text-align:center;cursor:pointer;padding:17px;border-radius:999px;font-weight:800;font-size:15px;
-  background:#f5f5f0;color:#0b0b0e;
-}
-.otp-pill{
-  display:flex;justify-content:space-between;align-items:center;gap:6px;
-  background:#f5f5f0;border-radius:999px;padding:20px 18px;
-}
-.otp-digit{
-  flex:1;min-width:0;text-align:center;font-size:24px;font-weight:800;color:#0b0b0e;
-  background:transparent;border:none;border-bottom:3px dashed rgba(0,0,0,0.22);outline:none;
-  font-family:'Inter',sans-serif;padding-bottom:5px;
-}
-.auth-subtitle{font-size:12.5px;color:rgba(255,255,255,0.4);word-break:break-all;}
-.auth-error{color:#ff7a7a;font-size:12px;font-weight:600;display:none;text-align:center;}
-.auth-resend{font-size:13px;font-weight:700;color:rgba(255,255,255,0.55);cursor:pointer;}
-.auth-resend.disabled{opacity:.5;cursor:default;}
-.auth-beta{font-size:11px;color:rgba(255,255,255,0.3);text-align:center;letter-spacing:1.5px;}
-.auth-back{font-size:13px;font-weight:600;color:rgba(255,255,255,0.45);text-align:center;cursor:pointer;}
+/* profile */
+.profile-top{display:flex;align-items:center;gap:14px;margin-bottom:20px;}
+.profile-avatar-lg{width:56px;height:56px;border-radius:50%;background:var(--text);color:var(--bg);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;}
+.profile-info{flex:1;}
+.profile-name{font-size:16px;font-weight:700;color:var(--text);}
+.profile-email{font-size:13px;color:var(--text-secondary);margin-top:2px;}
+.logout-btn{padding:9px 18px;border-radius:10px;border:1px solid #e53e3e;color:#e53e3e;font-size:13px;font-weight:600;cursor:pointer;background:transparent;transition:background .15s;}
+.logout-btn:hover{background:rgba(229,62,62,.08);}
 </style>
-
-
 </head>
-<body data-theme="dark" data-size="md">
-<canvas id="bg"></canvas>
+<body data-theme="light" data-size="md">
 
-<!-- Auth screens -->
-<div class="auth-modal-overlay open" id="authModalOverlay">
-
-  <div class="auth-screen" id="authStepWelcome">
-    <div class="auth-screen-logo">HarmonyAI</div>
-    <div class="auth-screen-body">
-      <div class="auth-welcome-heading">ИИ для учеников музыкальной школы</div>
-      <div class="auth-welcome-sub">Подходит не только для музыкальной тематики. Он умеет всё!</div>
+<!-- ===== AUTH GATE ===== -->
+<div id="authGate">
+  <!-- Screen 1: Welcome -->
+  <div class="auth-screen active" id="authScreen1">
+    <div class="auth-logo">HarmonyAI</div>
+    <div class="auth-heading">Думает быстро,<br>результат быстрее</div>
+    <div class="auth-sub">Помощник для музыкантов</div>
+    <div class="auth-card">
+      <button class="auth-email-btn" onclick="goToEmailScreen()">Продолжить с Email</button>
+      <div class="auth-tos">Продолжая, вы соглашаетесь с нашей <a href="#">Политикой Конфиденциальности</a> и соглашаетесь на отправку сообщений на ваш email.</div>
     </div>
-    <div class="auth-bottom-card">
-      <div class="auth-primary-btn" onclick="goToEmailStep()">Продолжить с Email</div>
-    </div>
+    <div class="auth-beta">beta version 1.0</div>
   </div>
 
-  <div class="auth-screen" id="authStepChoice" style="display:none">
-    <div class="auth-screen-logo">HarmonyAI</div>
-    <div class="auth-screen-body">
-      <div class="auth-welcome-heading" style="font-size:25px">Введите ваш Email адрес</div>
-      <input class="auth-pill-input" id="authEmailInput" type="email" placeholder="Введите email.." autocomplete="email" inputmode="email" onkeydown="if(event.key==='Enter')sendEmailCode()">
+  <!-- Screen 2: Email input -->
+  <div class="auth-screen" id="authScreen2">
+    <div class="auth-logo">HarmonyAI</div>
+    <div class="auth-heading">Введите ваш<br>Email адрес</div>
+    <div class="auth-card" style="gap:10px;">
+      <input class="auth-input-field" id="authEmailInput" type="email" placeholder="Введите email.." autocomplete="email" inputmode="email" onkeydown="if(event.key==='Enter')sendEmailCode()">
       <div class="auth-error" id="authEmailError"></div>
+      <button class="auth-continue-btn" id="authSendCodeBtn" onclick="sendEmailCode()">Продолжить</button>
+      <div class="auth-back-link" onclick="backToWelcome()">← Назад</div>
     </div>
-    <div class="auth-bottom-area">
-      <div class="auth-primary-btn" id="authSendCodeBtn" onclick="sendEmailCode()">Продолжить</div>
-      <div class="auth-back" onclick="backToWelcome()">← Назад</div>
-      <div class="auth-beta">beta version 1.0</div>
-    </div>
+    <div class="auth-beta">beta version 1.0</div>
   </div>
 
-  <div class="auth-screen" id="authStepCode" style="display:none">
-    <div class="auth-screen-logo">HarmonyAI</div>
-    <div class="auth-screen-body">
-      <div class="auth-welcome-heading" style="font-size:25px">Введите 6-ти значный код</div>
-      <div class="auth-subtitle" id="authCodeEmailDisplay"></div>
-      <div class="otp-pill">
-        <input class="otp-digit" type="text" inputmode="numeric" maxlength="1">
-        <input class="otp-digit" type="text" inputmode="numeric" maxlength="1">
-        <input class="otp-digit" type="text" inputmode="numeric" maxlength="1">
-        <input class="otp-digit" type="text" inputmode="numeric" maxlength="1">
-        <input class="otp-digit" type="text" inputmode="numeric" maxlength="1">
-        <input class="otp-digit" type="text" inputmode="numeric" maxlength="1">
+  <!-- Screen 3: OTP code -->
+  <div class="auth-screen" id="authScreen3">
+    <div class="auth-logo">HarmonyAI</div>
+    <div class="auth-heading">Введите 6-ти<br>значный код</div>
+    <div class="auth-card" style="gap:14px;">
+      <div class="otp-row">
+        <input class="otp-digit" maxlength="1" inputmode="numeric" type="text">
+        <input class="otp-digit" maxlength="1" inputmode="numeric" type="text">
+        <input class="otp-digit" maxlength="1" inputmode="numeric" type="text">
+        <input class="otp-digit" maxlength="1" inputmode="numeric" type="text">
+        <input class="otp-digit" maxlength="1" inputmode="numeric" type="text">
+        <input class="otp-digit" maxlength="1" inputmode="numeric" type="text">
       </div>
       <div class="auth-error" id="authCodeError"></div>
+      <button class="auth-continue-btn" id="authVerifyBtn" onclick="verifyEmailCode()">Подтвердить</button>
       <div class="auth-resend" id="authResendBtn" onclick="resendEmailCode()">Не приходит код? Отправить снова</div>
+      <div class="auth-back-link" onclick="backToEmailScreen()">← Изменить email</div>
     </div>
-    <div class="auth-bottom-area">
-      <div class="auth-primary-btn" id="authVerifyBtn" onclick="verifyEmailCode()">Подтвердить</div>
-      <div class="auth-back" onclick="backToChoice()">← Изменить email</div>
-      <div class="auth-beta">beta version 1.0</div>
-    </div>
-  </div>
-
-</div>
-
-<!-- Sidebar -->
-<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
-<div class="sidebar" id="sidebar">
-  <div class="sidebar-header">
-    <div class="sidebar-title">Harmony</div>
-    <div class="glass-btn" style="width:34px;height:34px;padding:0" onclick="closeSidebar()">
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-    </div>
-  </div>
-  <div class="sidebar-item" onclick="newChat()">
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 1V17M1 9H17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-    Новый чат
-  </div>
-  <div class="sidebar-search">
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="5" stroke="currentColor" stroke-width="1.5"/><line x1="10" y1="10" x2="13" y2="13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-    Поиск по чатам
-  </div>
-  <div class="sidebar-label">Недавние</div>
-  <div class="chat-list" id="chatList"></div>
-  <div class="sidebar-footer">
-    <div class="account-row" onclick="openSettings()">
-      <div class="avatar">🎵</div>
-      <span id="sidebarAccountName">Гость</span>
-    </div>
-    <div class="glass-btn" style="width:34px;height:34px;padding:0" onclick="openSettings()">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.3"/><path d="M8 1V3M8 13V15M1 8H3M13 8H15M2.9 2.9L4.3 4.3M11.7 11.7L13.1 13.1M2.9 13.1L4.3 11.7M11.7 4.3L13.1 2.9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-    </div>
+    <div class="auth-beta">beta version 1.0</div>
   </div>
 </div>
 
-<!-- Settings overlay -->
-<div class="settings-overlay" id="settingsOverlay">
-
-  <div class="settings-screen" id="screen-main">
+<!-- ===== SETTINGS PANEL ===== -->
+<div class="settings-panel" id="settingsPanel" onclick="if(event.target===this)closeSettings()">
+  <div class="settings-box">
     <div class="settings-header">
-      <div></div>
-      <div class="back-btn" onclick="closeSettings()">
+      <div class="settings-title" id="settingsPanelTitle">Настройки</div>
+      <div class="settings-close" onclick="closeSettings()">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </div>
     </div>
-    <div class="profile">
-      <div class="avatar-lg" id="profileAvatar">🎵</div>
-      <div class="profile-name" id="profileName">Гость</div>
-      <div class="login-btn" id="loginBtn">Войти / Зарегистрироваться</div>
-    </div>
-
-    <div class="section-label">Настроить HarmonyAI</div>
-    <div class="section">
-      <div class="row" onclick="showScreen('personalization')">
-        <div class="row-icon">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.5"/><path d="M7 12C7.5 13 8.5 13.5 10 13.5C11.5 13.5 12.5 13 13 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="7.3" cy="8" r="0.9" fill="currentColor"/><circle cx="12.7" cy="8" r="0.9" fill="currentColor"/></svg>
-        </div>
-        <div class="row-text">Персонализация</div>
-        <div class="row-chevron">
-          <svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </div>
-      </div>
-      <div class="row" onclick="showScreen('memory')">
-        <div class="row-icon">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 4C3 3 3.7 2.5 4.5 2.7C6 3 8 3.8 10 5C12 3.8 14 3 15.5 2.7C16.3 2.5 17 3 17 4V15C17 16 16.3 16.5 15.5 16.3C14 16 12 15.2 10 14C8 15.2 6 16 4.5 16.3C3.7 16.5 3 16 3 15V4Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><line x1="10" y1="5" x2="10" y2="14" stroke="currentColor" stroke-width="1.5"/></svg>
-        </div>
-        <div class="row-text">Память</div>
-        <div class="row-chevron">
-          <svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </div>
-      </div>
-    </div>
-
-    <div class="section-label">Учётная запись</div>
-    <div class="section">
-      <div class="row" onclick="showEmailInfo()">
-        <div class="row-icon">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="4" width="16" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M3 5.5L10 11L17 5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </div>
-        <div class="row-text">Электронная почта</div>
-        <div class="row-value" id="accountEmailValue" style="font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:.55"></div>
-      </div>
-      <div class="row disabled">
-        <div class="row-icon">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="16" height="16" rx="8" stroke="currentColor" stroke-width="1.5"/><line x1="10" y1="6" x2="10" y2="14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="6" y1="10" x2="14" y2="10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-        </div>
-        <div class="row-text">Подписка</div>
-        <div class="row-value">MusMind Lite</div>
-      </div>
-      <div class="row pro disabled">
-        <div class="row-icon">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 1L12.5 7L19 8L14 12.5L15.5 19L10 15.5L4.5 19L6 12.5L1 8L7.5 7L10 1Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
-        </div>
-        <div class="row-text">Перейти на MusMind Pro</div>
-        <div class="row-value soon">скоро</div>
-      </div>
-    </div>
+    <div id="settingsContent"></div>
   </div>
-
-  <div class="settings-screen" id="screen-personalization" style="display:none">
-    <div class="settings-header">
-      <div class="back-btn" onclick="showScreen('main')">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 1L2 7L9 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <div class="settings-title">Персонализация</div>
-      <div style="width:36px"></div>
-    </div>
-
-    <div class="section-label" style="margin-top:18px">Тема</div>
-    <div class="theme-row">
-      <div class="theme-card" id="theme-dark" onclick="applyTheme('dark')">
-        <div class="theme-preview dark">
-          <div class="theme-dot" style="background:#a855f7"></div>
-          <div class="theme-dot" style="background:#60a5fa"></div>
-          <div class="theme-dot" style="background:#f472b6"></div>
-        </div>
-        <div class="theme-card-label">Тёмная</div>
-      </div>
-      <div class="theme-card" id="theme-light" onclick="applyTheme('light')">
-        <div class="theme-preview light">
-          <div class="theme-dot" style="background:#c4b5fd"></div>
-          <div class="theme-dot" style="background:#bfdbfe"></div>
-          <div class="theme-dot" style="background:#fbcfe8"></div>
-        </div>
-        <div class="theme-card-label">Светлая</div>
-      </div>
-    </div>
-
-    <div class="section-label">Размер текста</div>
-    <div class="size-row">
-      <div class="size-opt sm" id="size-sm" onclick="applySize('sm')">
-        <span class="lbl-a">Aa</span><span class="lbl-b">Мелкий</span>
-      </div>
-      <div class="size-opt md" id="size-md" onclick="applySize('md')">
-        <span class="lbl-a">Aa</span><span class="lbl-b">Обычный</span>
-      </div>
-      <div class="size-opt lg" id="size-lg" onclick="applySize('lg')">
-        <span class="lbl-a">Aa</span><span class="lbl-b">Крупный</span>
-      </div>
-    </div>
-  </div>
-
-  <div class="settings-screen" id="screen-memory" style="display:none">
-    <div class="settings-header">
-      <div class="back-btn" onclick="showScreen('main')">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 1L2 7L9 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <div class="settings-title">Память</div>
-      <div style="width:36px"></div>
-    </div>
-
-    <div class="section" style="margin-top:18px">
-      <div class="mem-row">
-        <div class="mem-info">
-          <div class="mem-title">Сохранять память</div>
-          <div class="mem-desc">HarmonyAI запоминает важные детали из ваших разговоров</div>
-        </div>
-        <div class="toggle on" id="toggle-save" onclick="toggleMem('save')"></div>
-      </div>
-      <div class="mem-row">
-        <div class="mem-info">
-          <div class="mem-title">Ссылаться на память</div>
-          <div class="mem-desc">HarmonyAI использует сохранённую память при ответах</div>
-        </div>
-        <div class="toggle on" id="toggle-recall" onclick="toggleMem('recall')"></div>
-      </div>
-    </div>
-  </div>
-
 </div>
 
-<!-- Main app -->
-<div class="app">
-  <div class="top-bar">
-    <div class="glass-btn" onclick="openSidebar()">
-      <svg width="16" height="12" fill="none"><rect width="16" height="1.8" rx=".9" fill="currentColor"/><rect y="5" width="11" height="1.8" rx=".9" fill="currentColor"/><rect y="10" width="16" height="1.8" rx=".9" fill="currentColor"/></svg>
+<!-- ===== MAIN LAYOUT ===== -->
+<div class="layout" id="mainLayout" style="display:none">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-logo">H</div>
+    <div class="sidebar-btn" onclick="newChat()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      Новый чат
     </div>
-    <div class="glass-btn" onclick="newChat()">
-      <svg width="20" height="20" fill="none"><path d="M17 9C17 12.5 14.5 15.5 10.5 16.5L4 17.5L4.5 11.5C3.5 10.2 3 8.7 3 7C3 3.5 6 1 10 1C14 1 17 3.5 17 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><line x1="13" y1="11" x2="13" y2="15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="11" y1="13" x2="15" y2="13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    <div class="sidebar-btn" onclick="openSearchUI()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      Поиск
+    </div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-label">Недавние</div>
+    <div class="chat-list" id="chatList"></div>
+    <div class="sidebar-footer" onclick="openSettings()">
+      <div class="sidebar-avatar" id="sidebarAvatar">?</div>
+      <div class="sidebar-user-info">
+        <div class="sidebar-username" id="sidebarUsername">Загрузка...</div>
+      </div>
     </div>
   </div>
 
-  <div class="chat-area" id="chat">
-    <div class="greeting">
-      <div class="greeting-title">Привет! Я HarmonyAI</div>
-      <div class="greeting-sub" id="greetingSub">Спроси меня про любой аккорд или интервал 🎵</div>
-    </div>
-  </div>
-
-  <div class="bottom">
-    <div class="model-pill" id="pill" onclick="toggleDrop()">
-      <div class="model-dot" id="dot"></div>
-      <span id="mname">MusMind Lite</span>
-      <span style="font-size:9px;opacity:.7">▼</span>
-      <div class="dropdown" id="drop">
-
-        <!-- MusMind Lite -->
-        <div class="d-option" onclick="selectModel(event,'lite')">
-          <div class="d-icon lite">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M5 14C5 8 9 4 19 4C19 14 15 19 9 19C7 19 5 17 5 14Z" stroke="white" stroke-width="1.8" stroke-linejoin="round"/><path d="M5 19L11 13" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg>
-          </div>
-          <div class="d-main">
-            <div class="d-main-name">MusMind Lite <span class="check" id="ck-lite">✓</span></div>
-            <div class="d-main-desc">Быстро и легко</div>
-            <div class="d-mode-btns">
-              <div class="d-mode-btn active" id="mode-lite-low" onclick="selectMode(event,'lite','low')">Low</div>
-              <div class="d-mode-btn" id="mode-lite-max" onclick="selectMode(event,'lite','max')">Max</div>
-            </div>
-          </div>
+  <!-- Main area -->
+  <div class="main">
+    <div class="chat-area" id="chatArea">
+      <div class="chat-inner" id="chatInner">
+        <div class="greeting-wrap" id="greetingWrap">
+          <div class="greeting-title">Привет! Я Harmony Ai</div>
+          <div class="greeting-sub" id="greetingSub">Спроси меня про любой аккорд или интервал 🎵</div>
         </div>
-
-        <!-- MusMind Pro -->
-        <div class="d-option" onclick="selectModel(event,'pro')">
-          <div class="d-icon pro">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" stroke="white" stroke-width="1.4" stroke-linejoin="round" fill="white" fill-opacity="0.18"/></svg>
-          </div>
-          <div class="d-main">
-            <div class="d-main-name">MusMind Pro <span class="check" id="ck-pro" style="opacity:0">✓</span></div>
-            <div class="d-main-desc">Максимум возможностей</div>
-            <div class="d-mode-btns">
-              <div class="d-mode-btn active" id="mode-pro-low" onclick="selectMode(event,'pro','low')">Low</div>
-              <div class="d-mode-btn" id="mode-pro-max" onclick="selectMode(event,'pro','max')">Max</div>
-            </div>
-          </div>
-        </div>
-
       </div>
     </div>
 
-    <div class="input-glass">
-      <div class="icon-btn" onclick="document.getElementById('fi').click()">
-        <svg width="14" height="16" fill="none"><path d="M12 5.5L6 11.5C4.9 12.6 3.1 12.6 2 11.5C.9 10.4.9 8.6 2 7.5L8.5 1C9.3.2 10.6.2 11.4 1C12.2 1.8 12.2 3.1 11.4 3.9L5 10.3C4.6 10.7 3.9 10.7 3.5 10.3C3.1 9.9 3.1 9.2 3.5 8.8L9 3.3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <input type="file" id="fi" accept="image/*" style="display:none" onchange="handleFile(this)">
-      <input type="text" id="msg" placeholder="Спросить HarmonyAI..." onkeydown="if(event.key==='Enter')send()">
-      <div class="send-btn" onclick="send()">
-        <svg width="14" height="14" fill="none"><path d="M3 7H11M7.5 3.5L11 7L7.5 10.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <div class="input-wrap">
+      <div class="input-box">
+        <textarea id="msgInput" placeholder="Как я могу помочь тебе?" rows="1"
+          oninput="autoResize(this)"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send();}"></textarea>
+        <div class="input-bar-bottom">
+          <div class="input-bar-left">
+            <button class="input-icon-btn" onclick="document.getElementById('fileInput').click()" title="Добавить фото">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </button>
+            <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="handleFile(this)">
+            <div class="model-pill-btn" id="modelPillBtn" onclick="toggleModelDrop(event)">
+              <span id="modelPillLabel">MusMind</span>
+              <span id="modelPillMode" style="color:var(--text-secondary);font-size:12px">lite</span>
+              <span class="model-chevron">▾</span>
+
+              <!-- Model dropdown -->
+              <div class="model-dropdown" id="modelDropdown" onclick="event.stopPropagation()">
+                <!-- MusMind Lite -->
+                <div class="model-option" onclick="selectModelOpt('lite')">
+                  <div class="model-option-icon lite">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 14C5 8 9 4 19 4C19 14 15 19 9 19C7 19 5 17 5 14Z" stroke="white" stroke-width="2" stroke-linejoin="round"/><path d="M5 19L11 13" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+                  </div>
+                  <div class="model-option-body">
+                    <div class="model-option-name">MusMind Lite</div>
+                    <div class="model-option-desc">Быстро и легко</div>
+                  </div>
+                  <div class="model-option-check" id="ck-lite">✓</div>
+                </div>
+
+                <!-- Mode row for Lite -->
+                <div class="model-mode-row" id="modeRowLite" onclick="toggleModeMenu('lite',event)">
+                  <div>
+                    <div class="model-mode-label">Режим</div>
+                  </div>
+                  <div class="model-mode-right">
+                    <span class="model-mode-badge" id="modeLabel-lite">Low</span>
+                    <span style="font-size:11px;color:var(--text-secondary)">›</span>
+                  </div>
+                </div>
+
+                <div class="model-divider"></div>
+
+                <!-- MusMind Pro -->
+                <div class="model-option" onclick="selectModelOpt('pro')">
+                  <div class="model-option-icon pro">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" stroke="white" stroke-width="1.5" stroke-linejoin="round" fill="white" fill-opacity="0.2"/></svg>
+                  </div>
+                  <div class="model-option-body">
+                    <div class="model-option-name">MusMind Pro</div>
+                    <div class="model-option-desc">Максимум возможностей</div>
+                  </div>
+                  <div class="model-option-check" id="ck-pro" style="opacity:0">✓</div>
+                </div>
+
+                <!-- Mode row for Pro -->
+                <div class="model-mode-row" id="modeRowPro" style="display:none" onclick="toggleModeMenu('pro',event)">
+                  <div>
+                    <div class="model-mode-label">Режим</div>
+                  </div>
+                  <div class="model-mode-right">
+                    <span class="model-mode-badge" id="modeLabel-pro">Low</span>
+                    <span style="font-size:11px;color:var(--text-secondary)">›</span>
+                  </div>
+                </div>
+
+                <div class="model-divider"></div>
+
+                <!-- Think toggle -->
+                <div class="think-toggle">
+                  <div>
+                    <div class="think-toggle-label">Думать</div>
+                    <div class="think-toggle-sub">Для решения сложных задач</div>
+                  </div>
+                  <div class="toggle-sw" id="thinkToggle" onclick="toggleThink()"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Mode sub-dropdown -->
+            <div class="model-dropdown" id="modeSubDropdown" style="left:0;bottom:calc(100% + 8px);min-width:160px;display:none" onclick="event.stopPropagation()">
+              <div class="model-mode-row" onclick="selectMode('low')">
+                <div>
+                  <div class="model-mode-label">Low</div>
+                  <div class="model-mode-sub" style="font-size:11px;color:var(--text-secondary)">Обычный</div>
+                </div>
+                <span class="model-mode-check" id="ck-low">✓</span>
+              </div>
+              <div class="model-mode-row" onclick="selectMode('max')">
+                <div>
+                  <div class="model-mode-label">Max</div>
+                </div>
+                <span class="model-mode-check" id="ck-max" style="opacity:0">✓</span>
+              </div>
+            </div>
+          </div>
+
+          <button class="send-btn" id="sendBtn" onclick="send()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
 <script>
-/* SYSTEM prompt defined below */
-
 /* ===== Supabase ===== */
 const SUPABASE_URL = 'https://cqthnymltqpcxtpiryka.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNxdGhueW1sdHFwY3h0cGlyeWthIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MjY3NzYsImV4cCI6MjA5NzAwMjc3Nn0.b-6lSdjT7XwWkt607ORwGfKYSn3CLZJB3mcs4QQUSoE';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-let currentUser = null;
-let authEmail = '';
-let resendTimer = null;
-let resendLeft = 0;
+let currentUser = null, authEmail = '', resendTimer = null, resendLeft = 0;
 
 function translateError(msg){
-  if(!msg) return 'Что-то пошло не так, попробуй ещё раз';
-  if(msg.includes('Token has expired') || msg.includes('expired')) return 'Код устарел, запросите новый';
-  if(msg.includes('Invalid token') || msg.includes('Invalid OTP') || msg.includes('otp_expired') || msg.includes('Token has')) return 'Неверный код, попробуйте ещё раз';
-  if(msg.includes('rate limit') || msg.includes('Email rate limit')) return 'Слишком много попыток. Подождите немного';
-  if(msg.includes('Unable to validate email') || msg.includes('invalid email')) return 'Введите корректный email';
-  if(msg.includes('Unsupported provider') || msg.includes('provider is not enabled')) return 'Вход через Google скоро будет доступен';
+  if(!msg) return 'Что-то пошло не так';
+  if(msg.includes('expired')||msg.includes('Token has')) return 'Код устарел, запросите новый';
+  if(msg.includes('Invalid token')||msg.includes('Invalid OTP')||msg.includes('otp_expired')) return 'Неверный код';
+  if(msg.includes('rate limit')||msg.includes('Email rate limit')) return 'Слишком много попыток. Подождите';
+  if(msg.includes('invalid email')||msg.includes('Unable to validate')) return 'Введите корректный email';
   return 'Ошибка: ' + msg;
 }
 function isValidEmail(e){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
 
-/* ===== Auth modal ===== */
-function openAuthModal(){
-  document.getElementById('authModalOverlay').classList.add('open');
-  document.getElementById('authStepWelcome').style.display='flex';
-  document.getElementById('authStepChoice').style.display='none';
-  document.getElementById('authStepCode').style.display='none';
-  document.getElementById('authEmailInput').value='';
-  clearOtpInputs();
-  document.getElementById('authEmailError').style.display='none';
-  document.getElementById('authCodeError').style.display='none';
+/* Auth screens */
+function showAuthScreen(n){
+  ['authScreen1','authScreen2','authScreen3'].forEach((id,i)=>{
+    document.getElementById(id).classList.toggle('active', i===n-1);
+  });
 }
-function closeAuthModal(){
-  document.getElementById('authModalOverlay').classList.remove('open');
-}
-function goToEmailStep(){
-  document.getElementById('authStepWelcome').style.display='none';
-  document.getElementById('authStepChoice').style.display='flex';
+function goToEmailScreen(){
+  showAuthScreen(2);
   document.getElementById('authEmailInput').focus();
 }
 function backToWelcome(){
-  document.getElementById('authStepChoice').style.display='none';
-  document.getElementById('authStepWelcome').style.display='flex';
+  showAuthScreen(1);
+  document.getElementById('authEmailError').style.display='none';
 }
-function backToChoice(){
-  document.getElementById('authStepCode').style.display='none';
-  document.getElementById('authStepChoice').style.display='flex';
+function backToEmailScreen(){
+  showAuthScreen(2);
+  document.getElementById('authCodeError').style.display='none';
+  clearOtpInputs();
 }
 
-/* OTP digit inputs */
-function getOtpInputs(){
-  return Array.from(document.querySelectorAll('#authStepCode .otp-digit'));
-}
-function getOtpCode(){
-  return getOtpInputs().map(i=>i.value).join('');
-}
-function clearOtpInputs(){
-  getOtpInputs().forEach(i=>i.value='');
-}
+/* OTP */
+function getOtpInputs(){ return Array.from(document.querySelectorAll('.otp-digit')); }
+function getOtpCode(){ return getOtpInputs().map(i=>i.value).join(''); }
+function clearOtpInputs(){ getOtpInputs().forEach(i=>i.value=''); }
 function setupOtpInputs(){
   const inputs = getOtpInputs();
   inputs.forEach((inp,idx)=>{
@@ -851,12 +746,13 @@ function setupOtpInputs(){
       e.preventDefault();
       const text=(e.clipboardData.getData('text')||'').replace(/[^0-9]/g,'').slice(0,6);
       text.split('').forEach((ch,i)=>{ if(inputs[i]) inputs[i].value=ch; });
-      const last = Math.min(text.length,6)-1;
+      const last=Math.min(text.length,6)-1;
       if(inputs[last]) inputs[last].focus();
     });
   });
 }
 setupOtpInputs();
+
 async function sendEmailCode(){
   const email = document.getElementById('authEmailInput').value.trim();
   const errEl = document.getElementById('authEmailError');
@@ -868,11 +764,9 @@ async function sendEmailCode(){
     const { error } = await sb.auth.signInWithOtp({ email });
     if(error) throw error;
     authEmail = email;
-    document.getElementById('authCodeEmailDisplay').textContent = email;
     clearOtpInputs();
     document.getElementById('authCodeError').style.display='none';
-    document.getElementById('authStepChoice').style.display='none';
-    document.getElementById('authStepCode').style.display='flex';
+    showAuthScreen(3);
     getOtpInputs()[0].focus();
     startResendCooldown();
   }catch(e){
@@ -890,9 +784,7 @@ async function verifyEmailCode(){
   try{
     const { error } = await sb.auth.verifyOtp({ email: authEmail, token: code, type:'email' });
     if(error) throw error;
-    closeAuthModal();
     await initAuth();
-    newChat();
   }catch(e){
     errEl.textContent = translateError(e.message);
     errEl.style.display='block';
@@ -914,71 +806,39 @@ function startResendCooldown(){
     else{ btn.textContent='Не приходит код? Отправить снова'; btn.classList.remove('disabled'); clearInterval(resendTimer); }
   },1000);
 }
+
 /* ===== Account ===== */
-function showEmailInfo(){
-  if(currentUser && currentUser.email){ alert('Email: ' + currentUser.email); }
-  else{ openAuthModal(); }
-}
 async function logoutUser(){
   await sb.auth.signOut();
-  currentUser = null;
+  currentUser=null; history=[]; currentChatId=null; chats=[];
+  document.getElementById('mainLayout').style.display='none';
+  document.getElementById('authGate').classList.remove('hidden');
+  showAuthScreen(1);
   closeSettings();
-  history=[]; currentChatId=null;
-  chats=[];
-  document.getElementById('chat').innerHTML='';
-  updateAccountUI();
-  openAuthModal();
 }
 function updateAccountUI(){
-  const nameEl = document.getElementById('profileName');
-  const sidebarName = document.getElementById('sidebarAccountName');
-  const emailVal = document.getElementById('accountEmailValue');
-  const loginBtn = document.getElementById('loginBtn');
-  if(currentUser){
-    nameEl.textContent = currentUser.nickname || currentUser.email;
-    sidebarName.textContent = currentUser.nickname || currentUser.email;
-    if(emailVal) emailVal.textContent = currentUser.email;
-    loginBtn.textContent='Выйти';
-    loginBtn.style.background='rgba(255,80,80,0.18)';
-    loginBtn.style.borderColor='rgba(255,80,80,0.4)';
-    loginBtn.style.color='#ff6b6b';
-    loginBtn.onclick = logoutUser;
-  }else{
-    nameEl.textContent = 'Гость';
-    sidebarName.textContent = 'Гость';
-    if(emailVal) emailVal.textContent = 'Войти';
-    loginBtn.textContent='Войти / Зарегистрироваться';
-    loginBtn.style.background='';
-    loginBtn.style.borderColor='';
-    loginBtn.style.color='';
-    loginBtn.onclick = openAuthModal;
-  }
+  if(!currentUser) return;
+  const short = currentUser.email.split('@')[0];
+  const initial = (currentUser.nickname||short).charAt(0).toUpperCase();
+  document.getElementById('sidebarAvatar').textContent = initial;
+  document.getElementById('sidebarUsername').textContent = currentUser.nickname || short;
 }
 async function loadProfile(userId, email){
-  const { data, error } = await sb.from('profiles').select('*').eq('id', userId).single();
-  if(!error && data){
-    currentUser = { id:userId, email, nickname:data.nickname, role:data.role };
-  }else{
-    currentUser = { id:userId, email, nickname:email.split('@')[0], role:'user' };
-  }
+  const { data } = await sb.from('profiles').select('*').eq('id', userId).single();
+  currentUser = { id:userId, email, nickname:data?.nickname||email.split('@')[0], role:data?.role||'user' };
 }
 async function migrateLocalChats(){
   const local = JSON.parse(localStorage.getItem('harmonyai_chats') || '[]');
   if(local.length && currentUser){
     for(const c of local){
-      try{
-        await sb.from('chats').upsert({ id:c.id+'_local', user_id:currentUser.id, title:c.title, history:c.history, updated_at:new Date().toISOString() });
-      }catch(e){}
+      try{ await sb.from('chats').upsert({ id:c.id+'_local', user_id:currentUser.id, title:c.title, history:c.history, updated_at:new Date().toISOString() }); }catch(e){}
     }
     localStorage.removeItem('harmonyai_chats');
   }
 }
 async function loadCloudChats(){
-  const { data, error } = await sb.from('chats').select('*').order('updated_at',{ascending:false});
-  if(!error && data){
-    chats = data.map(c=>({ id:c.id, title:c.title, history:c.history||[] }));
-    renderChatList();
-  }
+  const { data } = await sb.from('chats').select('*').order('updated_at',{ascending:false});
+  if(data){ chats = data.map(c=>({ id:c.id, title:c.title, history:c.history||[] })); renderChatList(); }
 }
 async function initAuth(){
   const { data:{ session } } = await sb.auth.getSession();
@@ -986,164 +846,208 @@ async function initAuth(){
     await loadProfile(session.user.id, session.user.email);
     await migrateLocalChats();
     await loadCloudChats();
-    closeAuthModal();
+    document.getElementById('authGate').classList.add('hidden');
+    document.getElementById('mainLayout').style.display='flex';
+    updateAccountUI();
+    newChat();
   }else{
-    currentUser = null;
-    openAuthModal();
+    document.getElementById('authGate').classList.remove('hidden');
+    document.getElementById('mainLayout').style.display='none';
+    showAuthScreen(1);
   }
-  updateAccountUI();
-  renderChatList();
+}
+initAuth();
+
+/* ===== Settings panel ===== */
+function openSettings(){
+  renderSettingsMain();
+  document.getElementById('settingsPanel').classList.add('open');
+}
+function closeSettings(){
+  document.getElementById('settingsPanel').classList.remove('open');
+}
+function renderSettingsMain(){
+  document.getElementById('settingsPanelTitle').textContent = 'Настройки';
+  const t = document.body.getAttribute('data-theme')||'light';
+  const s = document.body.getAttribute('data-size')||'md';
+  const memSave = localStorage.getItem('harmonyai_mem_save')!=='0';
+  const memRecall = localStorage.getItem('harmonyai_mem_recall')!=='0';
+  document.getElementById('settingsContent').innerHTML = `
+    <div class="profile-top">
+      <div class="profile-avatar-lg">${(currentUser?.nickname||currentUser?.email||'?').charAt(0).toUpperCase()}</div>
+      <div class="profile-info">
+        <div class="profile-name">${currentUser?.nickname||currentUser?.email?.split('@')[0]||'Гость'}</div>
+        <div class="profile-email">${currentUser?.email||''}</div>
+      </div>
+      <button class="logout-btn" onclick="logoutUser()">Выйти</button>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-label">Внешний вид</div>
+      <div class="theme-cards" style="margin-bottom:12px">
+        <div class="theme-card ${t==='light'?'active':''}" onclick="applyTheme('light')">
+          <div class="theme-preview light">
+            <div class="theme-dot" style="background:#1a1a1a"></div>
+            <div class="theme-dot" style="background:#666"></div>
+            <div class="theme-dot" style="background:#e0ded9"></div>
+          </div>
+          <div class="theme-card-label">Светлая</div>
+        </div>
+        <div class="theme-card ${t==='dark'?'active':''}" onclick="applyTheme('dark')">
+          <div class="theme-preview dark">
+            <div class="theme-dot" style="background:#a855f7"></div>
+            <div class="theme-dot" style="background:#60a5fa"></div>
+            <div class="theme-dot" style="background:#f472b6"></div>
+          </div>
+          <div class="theme-card-label">Тёмная</div>
+        </div>
+      </div>
+      <div class="size-row">
+        <div class="size-opt sm ${s==='sm'?'active':''}" onclick="applySize('sm')"><span class="sa">Aa</span><span class="sb">Мелкий</span></div>
+        <div class="size-opt md ${s==='md'?'active':''}" onclick="applySize('md')"><span class="sa">Aa</span><span class="sb">Обычный</span></div>
+        <div class="size-opt lg ${s==='lg'?'active':''}" onclick="applySize('lg')"><span class="sa">Aa</span><span class="sb">Крупный</span></div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-label">Память</div>
+      <div class="mem-rows">
+        <div class="mem-row">
+          <div class="mem-info">
+            <div class="mem-title">Сохранять память</div>
+            <div class="mem-desc">HarmonyAI запоминает детали из разговоров</div>
+          </div>
+          <div class="toggle-mem ${memSave?'on':''}" onclick="toggleMemSetting('save',this)"></div>
+        </div>
+        <div class="mem-row">
+          <div class="mem-info">
+            <div class="mem-title">Ссылаться на память</div>
+            <div class="mem-desc">Использует сохранённую память при ответах</div>
+          </div>
+          <div class="toggle-mem ${memRecall?'on':''}" onclick="toggleMemSetting('recall',this)"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-label">Учётная запись</div>
+      <div class="settings-rows">
+        <div class="settings-row">
+          <div class="settings-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" stroke-width="2"/><path d="M3 7l9 7 9-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+          <div class="settings-row-text">Электронная почта</div>
+          <div class="settings-row-value" style="font-size:12px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${currentUser?.email||''}</div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7l3-7z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></div>
+          <div class="settings-row-text">Подписка</div>
+          <div class="settings-row-value">MusMind Lite</div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z" stroke="currentColor" stroke-width="2"/><path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+          <div class="settings-row-text">Перейти на MusMind Pro</div>
+          <div class="settings-row-value soon">Скоро</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+function applyTheme(t){
+  document.body.setAttribute('data-theme',t);
+  localStorage.setItem('harmonyai_theme',t);
+  renderSettingsMain();
+}
+function applySize(s){
+  document.body.setAttribute('data-size',s);
+  localStorage.setItem('harmonyai_size',s);
+  renderSettingsMain();
+}
+function toggleMemSetting(key, el){
+  el.classList.toggle('on');
+  localStorage.setItem('harmonyai_mem_'+key, el.classList.contains('on') ? '1' : '0');
 }
 
-/* ===== Memory / knowledge base ===== */
-function memOn(key){
-  const el = document.getElementById('toggle-'+key);
-  return !!(el && el.classList.contains('on'));
+/* restore prefs */
+(function(){
+  const t = localStorage.getItem('harmonyai_theme')||'light';
+  const s = localStorage.getItem('harmonyai_size')||'md';
+  document.body.setAttribute('data-theme',t);
+  document.body.setAttribute('data-size',s);
+})();
+
+/* ===== Model / mode picker ===== */
+let currentModel='lite', currentMode={lite:'low',pro:'low'}, thinkOn=false, dropOpen=false, modeSubModel=null;
+
+function toggleModelDrop(e){
+  e.stopPropagation();
+  dropOpen=!dropOpen;
+  document.getElementById('modelDropdown').classList.toggle('open',dropOpen);
+  document.getElementById('modeSubDropdown').style.display='none';
 }
+function selectModelOpt(m){
+  currentModel=m;
+  document.getElementById('ck-lite').style.opacity=m==='lite'?'1':'0';
+  document.getElementById('ck-pro').style.opacity=m==='pro'?'1':'0';
+  document.getElementById('modeRowLite').style.display=m==='lite'?'':'none';
+  document.getElementById('modeRowPro').style.display=m==='pro'?'':'none';
+  updatePillLabel();
+}
+function toggleModeMenu(model,e){
+  e.stopPropagation();
+  if(modeSubModel===model && document.getElementById('modeSubDropdown').style.display!=='none'){
+    document.getElementById('modeSubDropdown').style.display='none';
+    modeSubModel=null; return;
+  }
+  modeSubModel=model;
+  const sub=document.getElementById('modeSubDropdown');
+  sub.style.display='block';
+  document.getElementById('ck-low').style.opacity=currentMode[model]==='low'?'1':'0';
+  document.getElementById('ck-max').style.opacity=currentMode[model]==='max'?'1':'0';
+}
+function selectMode(mode){
+  if(!modeSubModel) return;
+  currentMode[modeSubModel]=mode;
+  document.getElementById('modeLabel-'+modeSubModel).textContent=mode==='low'?'Low':'Max';
+  document.getElementById('ck-low').style.opacity=mode==='low'?'1':'0';
+  document.getElementById('ck-max').style.opacity=mode==='max'?'1':'0';
+  document.getElementById('modeSubDropdown').style.display='none';
+  modeSubModel=null;
+  updatePillLabel();
+  dropOpen=false;
+  document.getElementById('modelDropdown').classList.remove('open');
+}
+function toggleThink(){
+  thinkOn=!thinkOn;
+  document.getElementById('thinkToggle').classList.toggle('on',thinkOn);
+}
+function updatePillLabel(){
+  const name=currentModel==='lite'?'MusMind':'MusMind';
+  const mode=currentMode[currentModel];
+  document.getElementById('modelPillLabel').textContent=name;
+  document.getElementById('modelPillMode').textContent=currentModel+' · '+(mode==='low'?'low':'max');
+}
+updatePillLabel();
+
+function getModeInstruction(){
+  const mode=currentMode[currentModel];
+  if(mode==='low') return '\n\nРЕЖИМ: Low — отвечай КРАТКО, только суть, максимум 3-4 предложения.';
+  if(mode==='max') return '\n\nРЕЖИМ: Max — отвечай ПОДРОБНО, с объяснениями и примерами.';
+  return '';
+}
+function memOn(key){ return localStorage.getItem('harmonyai_mem_'+key)!=='0'; }
 async function getSystemPrompt(){
-  let sys = SYSTEM + getModeInstruction();
+  let sys=SYSTEM+getModeInstruction();
+  if(thinkOn) sys+='\n\nРЕЖИМ ДУМАТЬ: включён — перед ответом тщательно проанализируй задачу, покажи ход рассуждений.';
   if(memOn('recall')){
     try{
-      const { data, error } = await sb.from('knowledge_base').select('content').limit(20);
-      if(!error && data && data.length){
-        sys += '\n\nДополнительные материалы из базы знаний (используй при необходимости):\n' + data.map(d=>d.content).join('\n---\n');
-      }
+      const { data } = await sb.from('knowledge_base').select('content').limit(20);
+      if(data&&data.length) sys+='\n\nБаза знаний:\n'+data.map(d=>d.content).join('\n---\n');
     }catch(e){}
   }
   return sys;
 }
 
-let history = [];
-let dropOpen = false;
-let pendingImage = null;
-let currentChatId = null;
-let chats = JSON.parse(localStorage.getItem('harmonyai_chats') || '[]');
-
-/* ===== Theme & size ===== */
-function applyTheme(t){
-  document.body.setAttribute('data-theme', t);
-  localStorage.setItem('harmonyai_theme', t);
-  document.getElementById('theme-dark').classList.toggle('active', t==='dark');
-  document.getElementById('theme-light').classList.toggle('active', t==='light');
-}
-function applySize(s){
-  document.body.setAttribute('data-size', s);
-  localStorage.setItem('harmonyai_size', s);
-  ['sm','md','lg'].forEach(k=>document.getElementById('size-'+k).classList.toggle('active', k===s));
-}
-function toggleMem(key){
-  const el = document.getElementById('toggle-'+key);
-  const on = !el.classList.contains('on');
-  el.classList.toggle('on', on);
-  localStorage.setItem('harmonyai_mem_'+key, on ? '1' : '0');
-}
-(function initPrefs(){
-  const t = localStorage.getItem('harmonyai_theme') || 'dark';
-  const s = localStorage.getItem('harmonyai_size') || 'md';
-  applyTheme(t); applySize(s);
-  ['save','recall'].forEach(k=>{
-    const v = localStorage.getItem('harmonyai_mem_'+k);
-    const on = v === null ? true : v === '1';
-    document.getElementById('toggle-'+k).classList.toggle('on', on);
-  });
-})();
-initAuth();
-
-/* ===== Animated background ===== */
-const canvas = document.getElementById('bg');
-const ctx = canvas.getContext('2d');
-function resize(){canvas.width=innerWidth;canvas.height=innerHeight;}
-resize(); window.addEventListener('resize',resize);
-const blobs=[
-  {x:.2,y:.2,r:.3,c:[180,60,255],vx:.0008,vy:.0006},
-  {x:.8,y:.3,r:.35,c:[255,80,120],vx:-.0007,vy:.001},
-  {x:.5,y:.7,r:.4,c:[80,160,255],vx:.0006,vy:-.0009},
-  {x:.2,y:.8,r:.28,c:[255,200,60],vx:.001,vy:-.0006},
-  {x:.85,y:.75,r:.25,c:[60,230,180],vx:-.0009,vy:.0007},
-];
-function draw(){
-  const theme = document.body.getAttribute('data-theme');
-  const isLight = theme === 'light';
-  ctx.fillStyle = isLight ? '#eef0f6' : '#08080f';
-  ctx.fillRect(0,0,canvas.width,canvas.height);
-  const alpha = isLight ? 0.18 : 0.55;
-  blobs.forEach(b=>{
-    const x=b.x*canvas.width,y=b.y*canvas.height,r=b.r*Math.min(canvas.width,canvas.height);
-    const g=ctx.createRadialGradient(x,y,0,x,y,r);
-    g.addColorStop(0,`rgba(${b.c[0]},${b.c[1]},${b.c[2]},${alpha})`);
-    g.addColorStop(1,`rgba(${b.c[0]},${b.c[1]},${b.c[2]},0)`);
-    ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle=g;ctx.fill();
-    b.x+=b.vx;b.y+=b.vy;
-    if(b.x<0||b.x>1)b.vx*=-1;
-    if(b.y<0||b.y>1)b.vy*=-1;
-  });
-  requestAnimationFrame(draw);
-}
-draw();
-
-/* ===== Model picker ===== */
-let currentModel = 'lite';
-let currentMode = { lite: 'low', pro: 'low' };
-
-function toggleDrop(){
-  dropOpen=!dropOpen;
-  document.getElementById('drop').classList.toggle('open',dropOpen);
-}
-
-function selectModel(e, m){
-  // Only update selection if clicking option body, not mode buttons
-  e.stopPropagation();
-  currentModel = m;
-  document.getElementById('mname').textContent = m==='lite' ? 'MusMind Lite' : 'MusMind Pro';
-  const dot = document.getElementById('dot');
-  dot.style.background = m==='pro' ? '#c084fc' : '#a8ff78';
-  dot.style.boxShadow = m==='pro' ? '0 0 4px #c084fc' : '0 0 4px #a8ff78';
-  document.getElementById('ck-lite').style.opacity = m==='lite' ? '1' : '0';
-  document.getElementById('ck-pro').style.opacity = m==='pro' ? '1' : '0';
-  // Don't close dropdown — let user pick mode
-  updateModePill();
-}
-
-function selectMode(e, model, mode){
-  e.stopPropagation();
-  currentMode[model] = mode;
-  // Also select that model
-  currentModel = model;
-  document.getElementById('mname').textContent = model==='lite' ? 'MusMind Lite' : 'MusMind Pro';
-  const dot = document.getElementById('dot');
-  dot.style.background = model==='pro' ? '#c084fc' : '#a8ff78';
-  dot.style.boxShadow = model==='pro' ? '0 0 4px #c084fc' : '0 0 4px #a8ff78';
-  document.getElementById('ck-lite').style.opacity = model==='lite' ? '1' : '0';
-  document.getElementById('ck-pro').style.opacity = model==='pro' ? '1' : '0';
-  // Update mode button styles
-  ['lite','pro'].forEach(mdl => {
-    ['low','max'].forEach(md => {
-      const btn = document.getElementById('mode-'+mdl+'-'+md);
-      if(btn) btn.classList.toggle('active', currentMode[mdl]===md);
-    });
-  });
-  updateModePill();
-  // Close after choosing mode
-  dropOpen=false;
-  document.getElementById('drop').classList.remove('open');
-}
-
-function updateModePill(){
-  const mode = currentMode[currentModel];
-  const modeLabel = mode === 'max' ? ' · Max' : ' · Low';
-  const modelName = currentModel === 'lite' ? 'MusMind Lite' : 'MusMind Pro';
-  document.getElementById('mname').textContent = modelName + modeLabel;
-}
-
-function getModeInstruction(){
-  const mode = currentMode[currentModel];
-  if(mode === 'low') return '\n\nРЕЖИМ ОТВЕТА: Low — отвечай КРАТКО, без воды, только суть. Максимум 3-4 предложения или короткий список.';
-  if(mode === 'max') return '\n\nРЕЖИМ ОТВЕТА: Max — отвечай ПОДРОБНО, с объяснениями, примерами, деталями. Раскрой тему максимально полно.';
-  return '';
-}
-
 /* ===== Greeting rotator ===== */
-const GREETINGS = [
+const GREETINGS=[
   'Спроси меня про любой аккорд или интервал 🎵',
   'Помогу разобрать сольфеджио за 5 минут 📝',
   'Покажу любую гамму в нотах — просто спроси 🎼',
@@ -1152,59 +1056,26 @@ const GREETINGS = [
   'Помогаю не только с музыкой — спрашивай всё! 💡',
   'Построю аккордовую цепочку T–S–D–T для тебя 🎸',
 ];
-let greetIdx = 0;
-function rotateGreeting(){
-  greetIdx = (greetIdx + 1) % GREETINGS.length;
-  const el = document.getElementById('greetingSub');
+let greetIdx=0;
+setInterval(()=>{
+  const el=document.getElementById('greetingSub');
   if(!el) return;
-  el.style.animation = 'none';
-  el.textContent = GREETINGS[greetIdx];
-  requestAnimationFrame(()=>{ el.style.animation=''; el.style.animation='greetFade 4s ease-in-out infinite'; });
-}
-setInterval(rotateGreeting, 4000);
-document.addEventListener('click',function(e){
-  if(dropOpen && !e.target.closest('#pill')){
-    dropOpen=false;
-    document.getElementById('drop').classList.remove('open');
-  }
-  if(!e.target.closest('.msg-action-btn')){
-    document.querySelectorAll('.msg-more-menu.open').forEach(m=>m.classList.remove('open'));
-  }
-});
+  greetIdx=(greetIdx+1)%GREETINGS.length;
+  el.style.opacity='0';
+  setTimeout(()=>{ el.textContent=GREETINGS[greetIdx]; el.style.opacity='1'; },300);
+},4000);
 
-/* ===== Sidebar ===== */
-function openSidebar(){
-  document.getElementById('sidebar').classList.add('open');
-  document.getElementById('overlay').classList.add('open');
-  renderChatList();
-}
-function closeSidebar(){
-  document.getElementById('sidebar').classList.remove('open');
-  document.getElementById('overlay').classList.remove('open');
-}
+/* ===== Chat state ===== */
+let history=[], pendingImage=null, currentChatId=null;
+let chats=JSON.parse(localStorage.getItem('harmonyai_chats')||'[]');
 
-/* ===== Settings ===== */
-function openSettings(){
-  closeSidebar();
-  document.getElementById('settingsOverlay').classList.add('open');
-  showScreen('main');
-}
-function closeSettings(){
-  document.getElementById('settingsOverlay').classList.remove('open');
-}
-function showScreen(name){
-  ['main','personalization','memory'].forEach(s=>{
-    document.getElementById('screen-'+s).style.display = (s===name) ? 'flex' : 'none';
-  });
-}
-
-/* ===== Chat history ===== */
+/* ===== Chat list ===== */
 function renderChatList(){
-  const list = document.getElementById('chatList');
+  const list=document.getElementById('chatList');
   list.innerHTML='';
   chats.slice().reverse().forEach(c=>{
     const div=document.createElement('div');
-    div.className='chat-list-item'+(c.id===currentChatId?' active':'');
+    div.className='chat-item'+(c.id===currentChatId?' active':'');
     div.textContent=c.title||'Новый чат';
     div.onclick=()=>loadChat(c.id);
     list.appendChild(div);
@@ -1213,65 +1084,57 @@ function renderChatList(){
 async function saveCurrentChat(){
   if(history.length===0) return;
   let chat=chats.find(c=>c.id===currentChatId);
-  if(!chat){
-    currentChatId='chat_'+Date.now();
-    chat={id:currentChatId,title:'',history:[]};
-    chats.push(chat);
-  }
+  if(!chat){ currentChatId='chat_'+Date.now(); chat={id:currentChatId,title:'',history:[]}; chats.push(chat); }
   chat.history=history;
   if(!chat.title){
     const first=history.find(m=>m.role==='user');
-    if(first){
-      const t=typeof first.content==='string'?first.content:(first.content.find(c=>c.type==='text')?.text||'Фото');
-      chat.title=t.slice(0,32);
-    }
+    if(first){ const t=typeof first.content==='string'?first.content:(first.content.find(c=>c.type==='text')?.text||'Фото'); chat.title=t.slice(0,40); }
   }
-  if(currentUser && memOn('save')){
-    try{
-      await sb.from('chats').upsert({
-        id: chat.id, user_id: currentUser.id, title: chat.title, history: chat.history, updated_at: new Date().toISOString()
-      });
-    }catch(e){}
-  }else{
-    localStorage.setItem('harmonyai_chats',JSON.stringify(chats));
-  }
+  if(currentUser&&memOn('save')){
+    try{ await sb.from('chats').upsert({id:chat.id,user_id:currentUser.id,title:chat.title,history:chat.history,updated_at:new Date().toISOString()}); }catch(e){}
+  }else{ localStorage.setItem('harmonyai_chats',JSON.stringify(chats)); }
   renderChatList();
 }
 function loadChat(id){
-  const chat=chats.find(c=>c.id===id);
-  if(!chat) return;
-  currentChatId=id;
-  history=chat.history;
-  const chatEl=document.getElementById('chat');
-  chatEl.innerHTML='';
+  const chat=chats.find(c=>c.id===id); if(!chat) return;
+  currentChatId=id; history=chat.history;
+  const inner=document.getElementById('chatInner');
+  inner.innerHTML='';
   history.forEach(m=>{
-    const text=typeof m.content==='string'?m.content:(m.content.find(c=>c.type==='text')?.text||'[фото]');
-    if(m.role==='user') addUserMessage(text);
-    else addAiMessage(text, {stream:false});
+    const text=typeof m.content==='string'?m.content:(m.content.find&&m.content.find(c=>c.type==='text')?.text||'[фото]');
+    if(m.role==='user') addUserMsg(text);
+    else addAiMsg(text,{stream:false});
   });
   renderChatList();
-  closeSidebar();
 }
 function newChat(){
-  currentChatId=null;
-  history=[];
-  document.getElementById('chat').innerHTML='<div class="greeting"><div class="greeting-title">Привет! Я HarmonyAI</div><div class="greeting-sub" id="greetingSub">'+GREETINGS[greetIdx]+'</div></div>';
+  currentChatId=null; history=[];
+  const inner=document.getElementById('chatInner');
+  inner.innerHTML=`<div class="greeting-wrap" id="greetingWrap">
+    <div class="greeting-title">Привет! Я Harmony Ai</div>
+    <div class="greeting-sub" id="greetingSub">${GREETINGS[greetIdx]}</div>
+  </div>`;
   renderChatList();
-  closeSidebar();
+}
+function openSearchUI(){ /* placeholder */ }
+
+/* ===== Textarea auto-resize ===== */
+function autoResize(el){
+  el.style.height='auto';
+  el.style.height=Math.min(el.scrollHeight,200)+'px';
 }
 
 /* ===== SYSTEM PROMPT ===== */
-const SYSTEM = `Ты HarmonyAI — музыкальный ИИ-помощник для учеников музыкальной школы. Ты мужского пола, говори о себе в мужском роде. Отвечай на русском языке. Будь дружелюбным и понятным для детей и подростков.
+const SYSTEM=`Ты HarmonyAI — музыкальный ИИ-помощник для учеников музыкальной школы. Ты мужского пола, говори о себе в мужском роде. Отвечай на русском языке. Будь дружелюбным и понятным для детей и подростков.
 
-ФОРМАТИРОВАНИЕ: Всегда используй Markdown для красивого оформления ответов:
+ФОРМАТИРОВАНИЕ: Всегда используй Markdown:
 - **жирный** для важных терминов
 - # Заголовок / ## Подзаголовок для разделов
-- - список или 1. нумерованный список для перечислений
+- - список или 1. нумерованный список
 - > цитата для определений
-- --- горизонтальная линия для разделения блоков
-- \`код\` для нотных обозначений, цифр аккордов
+- \`код\` для нотных обозначений
 
-Ты знаешь: сольфеджио, нотную грамоту, интервалы, аккорды (T53, S64, D7, VII7, II7 и др.), лады, ритм, размеры, динамику, темп, музыкальные термины. Помогаешь и с математикой, и с другими предметами.
+Ты знаешь: сольфеджио, нотную грамоту, интервалы, аккорды (T53, S64, D7, VII7, II7 и др.), лады, ритм, размеры, динамику, темп, музыкальные термины. Помогаешь и с другими предметами.
 
 РАСПОЗНАВАНИЕ ФОТО: Если присылают фото с нотами или аккордами — разбери каждую ноту, аккорд, ритмическое значение.
 
@@ -1286,275 +1149,191 @@ C D E F | G A B c |
 \`\`\`
 
 ПРАВИЛА ABC NOTATION:
-- Нижняя октава: C D E F G A B | Верхняя: c d e f g a b | Ещё выше: c' d' | Ещё ниже: C, D,
+- Нижняя октава: C D E F G A B | Верхняя: c d e f g a b
 - Длительности: C4=целая, C2=половинная, C=четверть, C/2=восьмая
 - Паузы: z4 z2 z z/2
 - Диезы: ^C | Бемоли: _E | Бекар: =C
 - Тональности K: C, G, F, Am, Dm, Em
-- Аккорд: [CEG] — три ноты вместе
-- Всегда добавляй текстовое объяснение рядом с нотами`;
+- Аккорд: [CEG]`;
 
-/* ===== marked.js config ===== */
-if(typeof marked !== 'undefined'){
-  marked.setOptions({
-    breaks: true,
-    gfm: true,
-  });
-}
+/* marked.js */
+if(typeof marked!=='undefined'){ marked.setOptions({breaks:true,gfm:true}); }
 
-/* ===== Content rendering (Markdown + ABC) ===== */
-let abcCounter = 0;
-
-function renderContent(el, rawText) {
-  // Split out ```abc blocks
-  const parts = rawText.split(/(```abc[\s\S]*?```)/g);
-
-  el.innerHTML = '';
-  el.style.whiteSpace = 'normal';
-  el.dataset.raw = rawText; // store for copy
-
-  parts.forEach(part => {
-    const abcMatch = part.match(/```abc\n?([\s\S]*?)```/);
-    if (abcMatch) {
-      // Render ABC notation block
-      const abcSrc = abcMatch[1].trim();
-      const id = 'abc-' + (++abcCounter);
-      const wrap = document.createElement('div');
-      wrap.className = 'abc-block';
-      const lbl = document.createElement('div');
-      lbl.className = 'abc-label';
-      lbl.textContent = '♩ Нотный стан';
+/* ===== Content rendering ===== */
+let abcCounter=0;
+function renderContent(el,rawText){
+  const parts=rawText.split(/(```abc[\s\S]*?```)/g);
+  el.innerHTML=''; el.style.whiteSpace='normal'; el.dataset.raw=rawText;
+  parts.forEach(part=>{
+    const abcMatch=part.match(/```abc\n?([\s\S]*?)```/);
+    if(abcMatch){
+      const abcSrc=abcMatch[1].trim();
+      const id='abc-'+(++abcCounter);
+      const wrap=document.createElement('div'); wrap.className='abc-block';
+      const lbl=document.createElement('div'); lbl.className='abc-label'; lbl.textContent='♩ Нотный стан';
       wrap.appendChild(lbl);
-      const canvas = document.createElement('div');
-      canvas.id = id;
-      wrap.appendChild(canvas);
+      const cvs=document.createElement('div'); cvs.id=id; wrap.appendChild(cvs);
       el.appendChild(wrap);
-      setTimeout(() => {
-        try {
-          ABCJS.renderAbc(id, abcSrc, {
-            responsive: 'resize',
-            add_classes: true,
-            paddingright: 0,
-            paddingleft: 0,
-          });
-        } catch(e) { canvas.textContent = abcSrc; }
-      }, 60);
-    } else if (part.trim()) {
-      // Render Markdown
-      const div = document.createElement('div');
-      if(typeof marked !== 'undefined'){
-        div.innerHTML = marked.parse(part);
-      } else {
-        div.style.whiteSpace = 'pre-wrap';
-        div.textContent = part;
-      }
+      setTimeout(()=>{ try{ ABCJS.renderAbc(id,abcSrc,{responsive:'resize',add_classes:true,paddingright:0,paddingleft:0}); }catch(e){cvs.textContent=abcSrc;} },60);
+    }else if(part.trim()){
+      const div=document.createElement('div');
+      div.innerHTML=typeof marked!=='undefined'?marked.parse(part):part;
       el.appendChild(div);
     }
   });
 }
 
 /* ===== Message rendering ===== */
-const ICON_COPY='<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke="currentColor" stroke-width="2"/></svg>';
-const ICON_LIKE='<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M7 22H4a1 1 0 01-1-1v-9a1 1 0 011-1h3m4-9 1 1v6h6.28a2 2 0 011.98 2.3l-1.2 8A2 2 0 0114.08 22H7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-const ICON_DISLIKE='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="transform:rotate(180deg)"><path d="M7 22H4a1 1 0 01-1-1v-9a1 1 0 011-1h3m4-9 1 1v6h6.28a2 2 0 011.98 2.3l-1.2 8A2 2 0 0114.08 22H7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-const ICON_SHARE='<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 16V4M12 4L7 9M12 4l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 14v4a2 2 0 002 2h12a2 2 0 002-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
-const ICON_MORE='<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="5" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="19" cy="12" r="1.5" fill="currentColor"/></svg>';
+const ICON_COPY='<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke="currentColor" stroke-width="2"/></svg>';
+const ICON_LIKE='<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M7 22H4a1 1 0 01-1-1v-9a1 1 0 011-1h3m4-9l1 1v6h6.28a2 2 0 011.98 2.3l-1.2 8A2 2 0 0114.08 22H7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+const ICON_DISLIKE='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="transform:rotate(180deg)"><path d="M7 22H4a1 1 0 01-1-1v-9a1 1 0 011-1h3m4-9l1 1v6h6.28a2 2 0 011.98 2.3l-1.2 8A2 2 0 0114.08 22H7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+const ICON_SHARE='<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 16V4M12 4L7 9M12 4l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 14v4a2 2 0 002 2h12a2 2 0 002-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+const ICON_MORE='<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="5" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="19" cy="12" r="1.5" fill="currentColor"/></svg>';
 
-function addUserMessage(text){
-  const chat=document.getElementById('chat');
-  const g=chat.querySelector('.greeting'); if(g)g.remove();
-  const div=document.createElement('div');
-  div.className='msg-user';
-  div.textContent=text;
-  chat.appendChild(div);
-  chat.scrollTop=chat.scrollHeight;
+function getChatInner(){
+  let el=document.getElementById('chatInner');
+  const gr=document.getElementById('greetingWrap'); if(gr)gr.remove();
+  return el;
 }
-function addAiMessage(text, opts={}){
-  const chat=document.getElementById('chat');
-  const g=chat.querySelector('.greeting'); if(g)g.remove();
-
-  const wrap=document.createElement('div');
-  wrap.className='msg-ai-wrap';
-
-  const msg=document.createElement('div');
-  msg.className='msg-ai';
-  wrap.appendChild(msg);
-
-  const actions=document.createElement('div');
-  actions.className='msg-actions';
-  actions.innerHTML =
-    '<div class="msg-action-btn" onclick="copyMsg(this)" title="Копировать">'+ICON_COPY+'</div>'+
-    '<div class="msg-action-btn" onclick="likeMsg(this,\'like\')" title="Нравится">'+ICON_LIKE+'</div>'+
-    '<div class="msg-action-btn" onclick="likeMsg(this,\'dislike\')" title="Не нравится">'+ICON_DISLIKE+'</div>'+
-    '<div class="msg-action-btn" onclick="shareMsg(this)" title="Поделиться">'+ICON_SHARE+'</div>'+
-    '<div class="msg-action-btn" onclick="toggleMoreMenu(this)" title="Ещё">'+ICON_MORE+'</div>'+
+function addUserMsg(text){
+  const inner=getChatInner();
+  const div=document.createElement('div'); div.className='msg-user'; div.textContent=text;
+  inner.appendChild(div);
+  scrollChat();
+}
+function addAiMsg(text,opts={}){
+  const inner=getChatInner();
+  const wrap=document.createElement('div'); wrap.className='msg-ai-wrap';
+  const msg=document.createElement('div'); msg.className='msg-ai'; wrap.appendChild(msg);
+  const actions=document.createElement('div'); actions.className='msg-actions';
+  actions.innerHTML=
+    '<div class="msg-action-btn" onclick="copyMsg(this)">'+ICON_COPY+'</div>'+
+    '<div class="msg-action-btn" onclick="likeMsg(this,\'like\')">'+ICON_LIKE+'</div>'+
+    '<div class="msg-action-btn" onclick="likeMsg(this,\'dislike\')">'+ICON_DISLIKE+'</div>'+
+    '<div class="msg-action-btn" onclick="shareMsg(this)">'+ICON_SHARE+'</div>'+
+    '<div class="msg-action-btn" onclick="toggleMoreMenu(this)">'+ICON_MORE+'</div>'+
     '<div class="msg-more-menu"><div class="msg-more-item" onclick="regenerateMsg(this)">↻ Повторить</div></div>';
   wrap.appendChild(actions);
-
-  chat.appendChild(wrap);
-  chat.scrollTop=chat.scrollHeight;
-
-  if(opts.stream){
-    return streamInto(msg, text, chat);
-  }else{
-    renderContent(msg, text);
-    return Promise.resolve();
-  }
+  inner.appendChild(wrap);
+  scrollChat();
+  if(opts.stream) return streamInto(msg,text);
+  renderContent(msg,text); return Promise.resolve();
 }
-function streamInto(el, text, chat){
+function streamInto(el,text){
   return new Promise(resolve=>{
-    let i=0;
-    // During stream: show plain text fast
-    el.style.whiteSpace='pre-wrap';
+    let i=0; el.style.whiteSpace='pre-wrap';
     function step(){
       i+=3;
-      const shown = text.slice(0, Math.min(i, text.length));
-      // Show abc placeholder during stream
-      const display = shown.replace(/```abc[\s\S]*?```/g,'[♩ нотный стан]');
-      el.textContent = display + (i < text.length ? '▍' : '');
-      chat.scrollTop = chat.scrollHeight;
-      if(i < text.length){
-        setTimeout(step, 4);
-      } else {
-        // Stream done — render proper markdown + abc
-        renderContent(el, text);
-        chat.scrollTop = chat.scrollHeight;
-        resolve();
-      }
+      const shown=text.slice(0,Math.min(i,text.length));
+      el.textContent=shown.replace(/```abc[\s\S]*?```/g,'[♩ нотный стан]')+(i<text.length?'▍':'');
+      scrollChat();
+      if(i<text.length){ setTimeout(step,4); }
+      else{ renderContent(el,text); scrollChat(); resolve(); }
     }
     step();
   });
 }
+function scrollChat(){ const a=document.getElementById('chatArea'); if(a) a.scrollTop=a.scrollHeight; }
 function copyMsg(btn){
   const wrap=btn.closest('.msg-ai-wrap');
-  const msgEl=wrap.querySelector('.msg-ai');
-  const text = msgEl.dataset.raw || msgEl.textContent;
+  const text=(wrap.querySelector('.msg-ai').dataset.raw||wrap.querySelector('.msg-ai').textContent);
   navigator.clipboard.writeText(text).catch(()=>{});
-  btn.classList.add('liked');
-  setTimeout(()=>btn.classList.remove('liked'),900);
+  btn.classList.add('liked'); setTimeout(()=>btn.classList.remove('liked'),900);
 }
 function likeMsg(btn,type){
-  const group=btn.parentElement;
-  const likeBtn=group.children[1], dislikeBtn=group.children[2];
-  if(type==='like'){
-    likeBtn.classList.toggle('liked');
-    dislikeBtn.classList.remove('disliked');
-  }else{
-    dislikeBtn.classList.toggle('disliked');
-    likeBtn.classList.remove('liked');
-  }
+  const g=btn.parentElement;
+  const lb=g.children[1],db=g.children[2];
+  if(type==='like'){ lb.classList.toggle('liked'); db.classList.remove('disliked'); }
+  else{ db.classList.toggle('disliked'); lb.classList.remove('liked'); }
 }
 function shareMsg(btn){
-  const wrap=btn.closest('.msg-ai-wrap');
-  const text=wrap.querySelector('.msg-ai').textContent;
-  const formatted='HarmonyAI: '+text;
-  if(navigator.share){
-    navigator.share({text:formatted}).catch(()=>{});
-  }else{
-    navigator.clipboard.writeText(formatted).catch(()=>{});
-    btn.classList.add('liked');
-    setTimeout(()=>btn.classList.remove('liked'),900);
-  }
+  const text=btn.closest('.msg-ai-wrap').querySelector('.msg-ai').textContent;
+  if(navigator.share){ navigator.share({text:'HarmonyAI: '+text}).catch(()=>{}); }
+  else{ navigator.clipboard.writeText('HarmonyAI: '+text).catch(()=>{}); }
 }
 function toggleMoreMenu(btn){
   const menu=btn.nextElementSibling;
-  document.querySelectorAll('.msg-more-menu.open').forEach(m=>{ if(m!==menu) m.classList.remove('open'); });
+  document.querySelectorAll('.msg-more-menu.open').forEach(m=>{ if(m!==menu)m.classList.remove('open'); });
   menu.classList.toggle('open');
 }
 async function regenerateMsg(item){
-  const menu=item.parentElement;
-  menu.classList.remove('open');
-  const wrap=menu.closest('.msg-ai-wrap');
+  item.parentElement.classList.remove('open');
+  const wrap=item.closest('.msg-ai-wrap');
   const msgEl=wrap.querySelector('.msg-ai');
-
-  if(history.length && history[history.length-1].role==='assistant'){
-    history.pop();
-  }
-  msgEl.innerHTML='';
-  msgEl.style.whiteSpace='pre-wrap';
+  if(history.length&&history[history.length-1].role==='assistant') history.pop();
+  msgEl.innerHTML=''; msgEl.style.whiteSpace='pre-wrap';
   try{
-    const sysPrompt = await getSystemPrompt();
-    const res=await fetch('/api/chat',{
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({messages:[{role:'system',content:sysPrompt},...history]})
-    });
+    const sysPrompt=await getSystemPrompt();
+    const res=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'system',content:sysPrompt},...history]})});
     const data=await res.json();
     const reply=data.choices?.[0]?.message?.content||'Нет ответа';
-    await streamInto(msgEl, reply, document.getElementById('chat'));
+    await streamInto(msgEl,reply);
     history.push({role:'assistant',content:reply});
     await saveCurrentChat();
-  }catch(e){
-    renderContent(msgEl, 'Ошибка соединения: '+e.message);
-  }
+  }catch(e){ renderContent(msgEl,'Ошибка: '+e.message); }
 }
-
 function showTyping(){
-  const chat=document.getElementById('chat');
-  const div=document.createElement('div');
-  div.className='thinking';div.id='typing';
-  div.innerHTML='<div class="thinking-text">Думаю...</div>';
-  chat.appendChild(div);chat.scrollTop=chat.scrollHeight;
+  const inner=getChatInner();
+  const div=document.createElement('div'); div.className='thinking'; div.id='typingEl';
+  div.innerHTML='<div class="thinking-dots"><span></span><span></span><span></span></div><span style="font-size:14px;color:var(--text-secondary)">Думаю...</span>';
+  inner.appendChild(div); scrollChat();
 }
-function hideTyping(){const t=document.getElementById('typing');if(t)t.remove();}
+function hideTyping(){ const t=document.getElementById('typingEl'); if(t)t.remove(); }
 
 /* ===== Image upload ===== */
 function handleFile(input){
-  const file=input.files[0];if(!file)return;
+  const file=input.files[0]; if(!file) return;
   const reader=new FileReader();
-  reader.onload=e=>{
-    pendingImage=e.target.result.split(',')[1];
-    document.getElementById('msg').placeholder='Фото прикреплено — напиши вопрос...';
-  };
+  reader.onload=e=>{ pendingImage=e.target.result.split(',')[1]; document.getElementById('msgInput').placeholder='Фото прикреплено — напиши вопрос...'; };
   reader.readAsDataURL(file);
 }
 
-/* ===== Send message ===== */
+/* ===== Send ===== */
 async function send(){
-  const input=document.getElementById('msg');
+  const input=document.getElementById('msgInput');
   const text=input.value.trim();
-  if(!text && !pendingImage) return;
-  input.value='';
+  if(!text&&!pendingImage) return;
+  input.value=''; input.style.height='auto';
 
-  let userContent;
-  let displayText=text||'[фото]';
+  let userContent, displayText=text||'[фото]';
   if(pendingImage){
     userContent=[];
     if(text) userContent.push({type:'text',text});
     userContent.push({type:'image_url',image_url:{url:'data:image/jpeg;base64,'+pendingImage}});
-    pendingImage=null;
-    input.placeholder='Спросить HarmonyAI...';
-  }else{
-    userContent=text;
-  }
+    pendingImage=null; input.placeholder='Спросить HarmonyAI...';
+  }else{ userContent=text; }
 
-  addUserMessage(displayText);
+  addUserMsg(displayText);
   history.push({role:'user',content:userContent});
   await saveCurrentChat();
   showTyping();
 
   try{
-    const sysPrompt = await getSystemPrompt();
-    const res=await fetch('/api/chat',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({messages:[{role:'system',content:sysPrompt},...history]})
-    });
+    const sysPrompt=await getSystemPrompt();
+    const res=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'system',content:sysPrompt},...history]})});
     const data=await res.json();
-    if(data.error){
-      hideTyping();
-      await addAiMessage('**Ошибка:** '+(data.error.message||JSON.stringify(data.error)), {stream:false});
-      return;
-    }
+    if(data.error){ hideTyping(); await addAiMsg('**Ошибка:** '+(data.error.message||JSON.stringify(data.error)),{stream:false}); return; }
     const reply=data.choices?.[0]?.message?.content||'Нет ответа';
     hideTyping();
-    await addAiMessage(reply, {stream:true});
+    await addAiMsg(reply,{stream:true});
     history.push({role:'assistant',content:reply});
     await saveCurrentChat();
-  }catch(e){
-    hideTyping();
-    await addAiMessage('Ошибка соединения: '+e.message, {stream:false});
-  }
+  }catch(e){ hideTyping(); await addAiMsg('Ошибка: '+e.message,{stream:false}); }
 }
+
+/* ===== Close dropdowns on outside click ===== */
+document.addEventListener('click',e=>{
+  if(dropOpen&&!e.target.closest('#modelPillBtn')){
+    dropOpen=false;
+    document.getElementById('modelDropdown').classList.remove('open');
+    document.getElementById('modeSubDropdown').style.display='none';
+    modeSubModel=null;
+  }
+  if(!e.target.closest('.msg-action-btn'))
+    document.querySelectorAll('.msg-more-menu.open').forEach(m=>m.classList.remove('open'));
+});
 </script>
 </body>
 </html>
+ENDOFFILE
+wc -l /home/claude/index.html
