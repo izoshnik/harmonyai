@@ -1,1552 +1,1167 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HarmonyAI</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        /* ===== МОБИЛЬНАЯ ТЕМА (тёмная, liquid glass) ===== */
-        :root {
-            --bg-primary: #0b0b0e;
-            --bg-secondary: #1a1a1e;
-            --bg-card: rgba(255, 255, 255, 0.05);
-            --text-primary: #ffffff;
-            --text-secondary: #a0a0a0;
-            --border-color: rgba(255, 255, 255, 0.1);
-            --accent: #ffffff;
-            --button-bg: #ffffff;
-            --button-text: #000000;
-            --input-bg: rgba(255, 255, 255, 0.1);
-            --chat-bg: #0b0b0e;
-        }
-
-        /* ===== ДЕСКТОП (светлый) ===== */
-        @media (min-width: 769px) {
-            :root {
-                --bg-primary: #ffffff;
-                --bg-secondary: #f7f7f8;
-                --bg-card: rgba(0, 0, 0, 0.03);
-                --text-primary: #000000;
-                --text-secondary: #666666;
-                --border-color: rgba(0, 0, 0, 0.1);
-                --accent: #000000;
-                --button-bg: #000000;
-                --button-text: #ffffff;
-                --input-bg: rgba(0, 0, 0, 0.03);
-                --chat-bg: #ffffff;
-            }
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            overflow: hidden;
-            height: 100vh;
-        }
-
-        /* ===== ЭКРАНЫ АВТОРИЗАЦИИ ===== */
-        .auth-screen {
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            padding: 20px;
-            background: var(--bg-primary);
-        }
-
-        .auth-screen.active {
-            display: flex;
-        }
-
-        .auth-card {
-            background: var(--bg-secondary);
-            border-radius: 20px;
-            padding: 40px 30px;
-            max-width: 400px;
-            width: 100%;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-        }
-
-        .auth-title {
-            font-size: 28px;
-            font-weight: 700;
-            text-align: center;
-            margin-bottom: 10px;
-            line-height: 1.2;
-        }
-
-        .auth-subtitle {
-            font-size: 14px;
-            color: var(--text-secondary);
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .email-input {
-            width: 100%;
-            padding: 16px 20px;
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            background: var(--input-bg);
-            color: var(--text-primary);
-            font-size: 16px;
-            margin-bottom: 16px;
-            outline: none;
-        }
-
-        .email-input:focus {
-            border-color: var(--accent);
-        }
-
-        .btn-primary {
-            width: 100%;
-            padding: 16px;
-            background: var(--button-bg);
-            color: var(--button-text);
-            border: none;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            margin-bottom: 12px;
-        }
-
-        .btn-primary:active {
-            opacity: 0.8;
-        }
-
-        .btn-primary:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .btn-secondary {
-            width: 100%;
-            padding: 12px;
-            background: transparent;
-            color: var(--text-secondary);
-            border: none;
-            font-size: 14px;
-            cursor: pointer;
-        }
-
-        .otp-container {
-            display: flex;
-            gap: 8px;
-            justify-content: center;
-            margin: 24px 0;
-        }
-
-        .otp-input {
-            width: 44px;
-            height: 56px;
-            text-align: center;
-            font-size: 24px;
-            font-weight: 600;
-            border: 2px solid var(--border-color);
-            border-radius: 12px;
-            background: var(--input-bg);
-            color: var(--text-primary);
-            outline: none;
-        }
-
-        .otp-input:focus {
-            border-color: var(--accent);
-        }
-
-        .hidden {
-            display: none !important;
-        }
-
-        /* ===== ЧАТ ===== */
-        .chat-container {
-            display: none;
-            height: 100vh;
-            position: relative;
-            background: var(--chat-bg);
-        }
-
-        .chat-container.active {
-            display: flex;
-        }
-
-        /* ===== БОКОВОЕ МЕНЮ ===== */
-        .sidebar {
-            position: fixed;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 280px;
-            background: var(--bg-secondary);
-            border-right: 1px solid var(--border-color);
-            padding: 12px;
-            transform: translateX(-100%);
-            transition: transform 0.3s ease;
-            z-index: 1000;
-            overflow-y: auto;
-        }
-
-        .sidebar.open {
-            transform: translateX(0);
-        }
-
-        @media (min-width: 769px) {
-            .sidebar {
-                transform: translateX(0);
-                position: relative;
-                width: 260px;
-            }
-        }
-
-        .sidebar-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 16px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .sidebar-title {
-            font-size: 18px;
-            font-weight: 700;
-        }
-
-        .close-sidebar {
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            font-size: 24px;
-            cursor: pointer;
-            display: block;
-        }
-
-        @media (min-width: 769px) {
-            .close-sidebar {
-                display: none;
-            }
-        }
-
-        .new-chat-btn {
-            width: 100%;
-            padding: 12px;
-            background: var(--button-bg);
-            color: var(--button-text);
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            justify-content: center;
-        }
-
-        .chat-history-item {
-            padding: 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            margin-bottom: 4px;
-            font-size: 14px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .chat-history-item:hover {
-            background: var(--bg-card);
-        }
-
-        .overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 999;
-        }
-
-        .overlay.active {
-            display: block;
-        }
-
-        /* ===== ОСНОВНОЙ КОНТЕНТ ===== */
-        .main-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        .chat-header {
-            padding: 12px 16px;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            background: var(--bg-primary);
-        }
-
-        .burger-menu {
-            background: none;
-            border: none;
-            color: var(--text-primary);
-            font-size: 24px;
-            cursor: pointer;
-            padding: 4px;
-        }
-
-        @media (min-width: 769px) {
-            .burger-menu {
-                display: none;
-            }
-        }
-
-        .chat-messages {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
-            background: var(--chat-bg);
-        }
-
-        .welcome-screen {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            text-align: center;
-            padding: 20px;
-        }
-
-        .welcome-title {
-            font-size: 32px;
-            font-weight: 700;
-            margin-bottom: 8px;
-        }
-
-        .welcome-subtitle {
-            font-size: 16px;
-            color: var(--text-secondary);
-            margin-bottom: 32px;
-        }
-
-        .welcome-input-container {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 16px;
-            max-width: 768px;
-            width: 100%;
-            margin: 0 20px;
-            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
-        }
-
-        .welcome-input {
-            width: 100%;
-            border: none;
-            background: transparent;
-            color: var(--text-primary);
-            font-size: 16px;
-            outline: none;
-            resize: none;
-            min-height: 24px;
-        }
-
-        .input-footer {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 12px;
-            padding-top: 12px;
-            border-top: 1px solid var(--border-color);
-        }
-
-        .input-actions {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-        }
-
-        .icon-btn {
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-            padding: 8px;
-            border-radius: 8px;
-            font-size: 20px;
-        }
-
-        .icon-btn:hover {
-            background: var(--bg-card);
-        }
-
-        .model-selector {
-            position: relative;
-        }
-
-        .model-btn {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 8px 12px;
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            color: var(--text-primary);
-        }
-
-        .model-dropdown {
-            position: absolute;
-            bottom: 100%;
-            left: 0;
-            margin-bottom: 8px;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            min-width: 280px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-            overflow: hidden;
-            z-index: 100;
-        }
-
-        .model-option {
-            padding: 12px 16px;
-            cursor: pointer;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .model-option:last-child {
-            border-bottom: none;
-        }
-
-        .model-option:hover {
-            background: var(--bg-card);
-        }
-
-        .model-option.active {
-            background: var(--bg-card);
-        }
-
-        .model-option-title {
-            font-weight: 600;
-            margin-bottom: 2px;
-            color: var(--text-primary);
-        }
-
-        .model-option-desc {
-            font-size: 12px;
-            color: var(--text-secondary);
-        }
-
-        .mode-selector {
-            padding: 8px 0;
-        }
-
-        .mode-option {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 10px 12px;
-            cursor: pointer;
-        }
-
-        .mode-option:hover {
-            background: var(--bg-card);
-        }
-
-        .mode-option.active {
-            background: var(--bg-card);
-        }
-
-        .mode-option-left {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .mode-label {
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .mode-badge {
-            font-size: 11px;
-            color: var(--text-secondary);
-            background: var(--bg-card);
-            padding: 2px 6px;
-            border-radius: 4px;
-        }
-
-        .checkmark {
-            width: 20px;
-            height: 20px;
-            border: 2px solid var(--text-secondary);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: transparent;
-            font-size: 12px;
-        }
-
-        .mode-option.active .checkmark {
-            border-color: var(--accent);
-            background: var(--accent);
-            color: var(--bg-primary);
-        }
-
-        .thinking-toggle {
-            margin-top: 8px;
-            padding: 10px 12px;
-            border-top: 1px solid var(--border-color);
-        }
-
-        .toggle-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 4px;
-        }
-
-        .toggle-label {
-            font-weight: 600;
-            font-size: 14px;
-            color: var(--text-primary);
-        }
-
-        .toggle-desc {
-            font-size: 12px;
-            color: var(--text-secondary);
-        }
-
-        .toggle-switch {
-            position: relative;
-            width: 44px;
-            height: 24px;
-            background: var(--bg-card);
-            border-radius: 12px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        .toggle-switch.active {
-            background: #34c759;
-        }
-
-        .toggle-slider {
-            position: absolute;
-            top: 2px;
-            left: 2px;
-            width: 20px;
-            height: 20px;
-            background: white;
-            border-radius: 50%;
-            transition: transform 0.2s;
-        }
-
-        .toggle-switch.active .toggle-slider {
-            transform: translateX(20px);
-        }
-
-        .send-btn {
-            background: var(--button-bg);
-            color: var(--button-text);
-            border: none;
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-        }
-
-        /* ===== НАСТРОЙКИ ===== */
-        .settings-container {
-            display: none;
-            padding: 20px;
-            max-width: 600px;
-            margin: 0 auto;
-            overflow-y: auto;
-            height: 100vh;
-            background: var(--bg-primary);
-        }
-
-        .settings-container.active {
-            display: block;
-        }
-
-        .settings-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 24px;
-        }
-
-        .back-btn {
-            background: none;
-            border: none;
-            color: var(--text-primary);
-            font-size: 24px;
-            cursor: pointer;
-            padding: 4px;
-        }
-
-        .settings-title {
-            font-size: 24px;
-            font-weight: 700;
-        }
-
-        .settings-section {
-            background: var(--bg-secondary);
-            border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-
-        .settings-section-title {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 16px;
-            color: var(--text-primary);
-        }
-
-        .setting-item {
-            padding: 16px 0;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .setting-item:last-child {
-            border-bottom: none;
-        }
-
-        .setting-label {
-            font-size: 16px;
-            font-weight: 500;
-            margin-bottom: 8px;
-            color: var(--text-primary);
-        }
-
-        .setting-select {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 12px;
-            background: var(--bg-card);
-            border-radius: 8px;
-            cursor: pointer;
-        }
-
-        .setting-select-text {
-            font-size: 14px;
-            color: var(--text-secondary);
-        }
-
-        .dropdown-menu {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-            margin-top: 8px;
-            overflow: hidden;
-        }
-
-        .dropdown-item {
-            padding: 14px 16px;
-            cursor: pointer;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .dropdown-item:last-child {
-            border-bottom: none;
-        }
-
-        .dropdown-item:hover {
-            background: var(--bg-card);
-        }
-
-        .dropdown-item.active {
-            background: var(--bg-card);
-        }
-
-        .dropdown-item-title {
-            font-weight: 600;
-            margin-bottom: 2px;
-            color: var(--text-primary);
-        }
-
-        .dropdown-item-desc {
-            font-size: 12px;
-            color: var(--text-secondary);
-        }
-
-        .custom-instructions {
-            width: 100%;
-            min-height: 120px;
-            padding: 12px;
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            color: var(--text-primary);
-            font-size: 14px;
-            resize: vertical;
-            outline: none;
-            font-family: inherit;
-        }
-
-        .user-profile {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px;
-            background: var(--bg-card);
-            border-radius: 12px;
-            margin-bottom: 16px;
-        }
-
-        .user-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: var(--accent);
-            color: var(--bg-primary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-        }
-
-        .user-info {
-            flex: 1;
-        }
-
-        .user-email {
-            font-weight: 600;
-            font-size: 14px;
-            color: var(--text-primary);
-        }
-
-        .logout-btn {
-            padding: 8px 16px;
-            background: transparent;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            color: var(--text-secondary);
-            cursor: pointer;
-            font-size: 14px;
-        }
-
-        .toggle-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .toggle-info {
-            flex: 1;
-        }
-
-        .toggle-title {
-            font-weight: 600;
-            font-size: 14px;
-            margin-bottom: 2px;
-            color: var(--text-primary);
-        }
-
-        .toggle-description {
-            font-size: 12px;
-            color: var(--text-secondary);
-        }
-
-        .save-btn {
-            width: 100%;
-            padding: 14px;
-            background: var(--button-bg);
-            color: var(--button-text);
-            border: none;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            margin-top: 16px;
-        }
-
-        @media (max-width: 768px) {
-            .auth-title {
-                font-size: 24px;
-            }
-            .welcome-title {
-                font-size: 24px;
-            }
-            .settings-title {
-                font-size: 20px;
-            }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>HarmonyAI</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;height:100vh;}
+
+/* ======= МОБИЛЬ — ТЁМНАЯ ======= */
+:root{
+  --bg:#0b0b0e;
+  --bg2:#141417;
+  --bg3:rgba(255,255,255,0.06);
+  --text:#ffffff;
+  --text2:#a0a0a8;
+  --border:rgba(255,255,255,0.10);
+  --border2:rgba(255,255,255,0.06);
+  --send-bg:#ffffff;
+  --send-txt:#000000;
+  --user-bg:#1e1e24;
+  --user-txt:#ffffff;
+  --input-bg:rgba(255,255,255,0.06);
+  --hover:rgba(255,255,255,0.06);
+  --active:rgba(255,255,255,0.10);
+  --drop-bg:#1a1a1f;
+  --drop-shadow:0 8px 32px rgba(0,0,0,0.5);
+  --check:#22c55e;
+  --font-base:15px;
+}
+/* ======= ДЕСКТОП — СВЕТЛАЯ ======= */
+@media(min-width:769px){
+  :root{
+    --bg:#ffffff;
+    --bg2:#f7f7f8;
+    --bg3:rgba(0,0,0,0.03);
+    --text:#000000;
+    --text2:#666666;
+    --border:rgba(0,0,0,0.10);
+    --border2:rgba(0,0,0,0.06);
+    --send-bg:#000000;
+    --send-txt:#ffffff;
+    --user-bg:#000000;
+    --user-txt:#ffffff;
+    --input-bg:rgba(0,0,0,0.03);
+    --hover:rgba(0,0,0,0.04);
+    --active:rgba(0,0,0,0.07);
+    --drop-bg:#ffffff;
+    --drop-shadow:0 8px 32px rgba(0,0,0,0.10);
+    --check:#16a34a;
+  }
+}
+
+/* ======= AUTH ======= */
+.auth-wrap{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px;}
+.auth-wrap.gone{display:none;}
+.auth-card{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:36px 28px;max-width:380px;width:100%;display:flex;flex-direction:column;gap:0;}
+.auth-screen{display:none;flex-direction:column;gap:0;}
+.auth-screen.active{display:flex;}
+.auth-logo{font-size:14px;font-weight:700;color:var(--text);margin-bottom:28px;opacity:.6;}
+.auth-h1{font-size:28px;font-weight:800;color:var(--text);line-height:1.2;margin-bottom:8px;letter-spacing:-0.5px;}
+.auth-sub{font-size:14px;color:var(--text2);margin-bottom:28px;line-height:1.5;}
+.auth-input{width:100%;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--input-bg);font-size:15px;color:var(--text);font-family:inherit;outline:none;margin-bottom:10px;transition:border-color .15s;}
+.auth-input:focus{border-color:var(--text);}
+.auth-input::placeholder{color:var(--text2);}
+.auth-btn-primary{width:100%;padding:14px;border-radius:12px;background:var(--send-bg);color:var(--send-txt);font-size:15px;font-weight:700;border:none;cursor:pointer;margin-bottom:10px;font-family:inherit;transition:opacity .15s;}
+.auth-btn-primary:hover{opacity:.85;}
+.auth-btn-secondary{width:100%;padding:12px;border-radius:12px;background:transparent;color:var(--text2);font-size:14px;font-weight:500;border:1px solid var(--border);cursor:pointer;font-family:inherit;transition:background .15s;}
+.auth-btn-secondary:hover{background:var(--hover);}
+.auth-tos{font-size:12px;color:var(--text2);text-align:center;line-height:1.6;margin-top:12px;}
+.auth-beta{font-size:12px;color:var(--text2);text-align:center;margin-top:24px;}
+.auth-error{font-size:13px;color:#ef4444;text-align:center;display:none;margin-bottom:8px;}
+.otp-row{display:flex;gap:8px;justify-content:center;margin-bottom:10px;}
+.otp-box{width:46px;height:54px;border:1px solid var(--border);border-radius:12px;background:var(--input-bg);font-size:22px;font-weight:800;color:var(--text);text-align:center;font-family:inherit;outline:none;transition:border-color .15s;}
+.otp-box:focus{border-color:var(--text);}
+.auth-resend{font-size:13px;color:var(--text2);text-align:center;cursor:pointer;padding:8px;transition:color .15s;}
+.auth-resend:hover{color:var(--text);}
+.auth-resend.disabled{opacity:.4;cursor:default;pointer-events:none;}
+
+/* ======= ОСНОВНОЙ LAYOUT ======= */
+.app{display:none;height:100vh;overflow:hidden;}
+.app.show{display:flex;}
+
+/* ======= МОБИЛЬ: СТЕК ======= */
+@media(max-width:768px){
+  .app{flex-direction:column;position:relative;}
+  .sidebar{position:fixed;top:0;left:0;bottom:0;width:80%;max-width:300px;z-index:50;background:var(--bg2);border-right:1px solid var(--border);transform:translateX(-100%);transition:transform .28s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;padding:24px 14px 20px;}
+  .sidebar.open{transform:translateX(0);}
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:40;opacity:0;visibility:hidden;transition:opacity .25s;}
+  .overlay.show{opacity:1;visibility:visible;}
+  .main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+  .topbar{display:flex;align-items:center;padding:12px 16px;gap:10px;}
+  .topbar-logo{font-size:15px;font-weight:800;color:var(--text);flex:1;}
+}
+/* ======= ДЕСКТОП: БОКОВАЯ ПАНЕЛЬ ======= */
+@media(min-width:769px){
+  .app{flex-direction:row;}
+  .overlay{display:none;}
+  .sidebar{width:56px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:16px 0;gap:4px;transition:width .25s cubic-bezier(.4,0,.2,1);}
+  .sidebar.expanded{width:240px;align-items:stretch;padding:16px 10px;}
+  .main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);}
+  .topbar{display:none;}
+}
+
+/* ===== SIDEBAR CONTENTS ===== */
+.sb-icon-btn{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);transition:background .12s,color .12s;flex-shrink:0;}
+.sb-icon-btn:hover{background:var(--hover);color:var(--text);}
+@media(min-width:769px){
+  .sb-icon-btn{width:36px;height:36px;}
+  .sidebar.expanded .sb-icon-btn{width:100%;border-radius:9px;justify-content:flex-start;padding:0 10px;gap:10px;}
+  .sb-icon-label{display:none;font-size:13px;font-weight:500;color:var(--text);}
+  .sidebar.expanded .sb-icon-label{display:inline;}
+}
+.sb-top{display:flex;flex-direction:column;gap:4px;}
+.sb-chat-list{flex:1;overflow-y:auto;margin-top:8px;}
+.sb-chat-list::-webkit-scrollbar{width:3px;}
+.sb-chat-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.sb-chat-item{padding:8px 10px;border-radius:8px;font-size:13px;color:var(--text);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.75;transition:background .12s;}
+.sb-chat-item:hover,.sb-chat-item.active{background:var(--active);opacity:1;}
+@media(max-width:768px){
+  .sb-chat-list{display:block;}
+}
+@media(min-width:769px){
+  .sb-chat-list{display:none;}
+  .sidebar.expanded .sb-chat-list{display:block;}
+}
+.sb-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);padding:10px 10px 4px;display:none;}
+.sidebar.expanded .sb-label{display:block;}
+.sb-footer{margin-top:auto;}
+.sb-avatar{width:30px;height:30px;border-radius:50%;background:var(--text);color:var(--bg);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;}
+.sb-user-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:9px;cursor:pointer;transition:background .12s;}
+.sb-user-row:hover{background:var(--hover);}
+.sb-username{font-size:13px;font-weight:600;color:var(--text);display:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sidebar.expanded .sb-username{display:block;}
+
+/* ======= ТОПБАР (мобиль) ======= */
+.topbar-btn{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);transition:background .12s;}
+.topbar-btn:hover{background:var(--hover);}
+
+/* ======= ЧАТ ОБЛАСТЬ ======= */
+.chat-area{flex:1;overflow-y:auto;display:flex;flex-direction:column;scroll-behavior:smooth;}
+.chat-area::-webkit-scrollbar{width:6px;}
+.chat-area::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+.chat-inner{width:100%;max-width:720px;margin:0 auto;padding:24px 20px;display:flex;flex-direction:column;gap:20px;flex:1;}
+@media(max-width:768px){.chat-inner{padding:16px 14px;max-width:100%;}}
+
+/* Приветствие */
+.greeting-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 0;}
+@media(min-width:769px){.greeting-wrap{min-height:60vh;}}
+.greeting-title{font-size:36px;font-weight:800;color:var(--text);letter-spacing:-1px;margin-bottom:10px;}
+@media(max-width:768px){.greeting-title{font-size:26px;}}
+.greeting-sub{font-size:16px;color:var(--text2);transition:opacity .3s;}
+@media(max-width:768px){.greeting-sub{font-size:14px;}}
+
+/* Сообщения */
+.msg-user{align-self:flex-end;max-width:80%;background:var(--user-bg);color:var(--user-txt);border-radius:18px 18px 4px 18px;padding:12px 16px;font-size:var(--font-base);line-height:1.55;word-break:break-word;white-space:pre-wrap;}
+.msg-ai-wrap{display:flex;flex-direction:column;gap:8px;}
+.msg-ai{font-size:var(--font-base);line-height:1.7;color:var(--text);word-break:break-word;}
+.msg-ai h1,.msg-ai h2,.msg-ai h3{font-weight:700;margin:14px 0 6px;}
+.msg-ai h1{font-size:1.3em;}.msg-ai h2{font-size:1.15em;}.msg-ai h3{font-size:1.05em;}
+.msg-ai p{margin:6px 0;}.msg-ai p:first-child{margin-top:0;}
+.msg-ai ul,.msg-ai ol{padding-left:20px;margin:6px 0;}.msg-ai li{margin:3px 0;}
+.msg-ai code{background:var(--hover);padding:1px 5px;border-radius:4px;font-size:.9em;font-family:monospace;}
+.msg-ai pre{background:var(--hover);padding:12px;border-radius:10px;overflow-x:auto;margin:10px 0;}
+.msg-ai pre code{background:none;padding:0;}
+.msg-ai strong{font-weight:700;}
+.msg-ai blockquote{border-left:3px solid var(--border);padding-left:12px;color:var(--text2);margin:6px 0;}
+/* Actions */
+.msg-actions{display:flex;align-items:center;gap:4px;position:relative;}
+.mac-btn{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--text2);cursor:pointer;transition:background .12s,color .12s;}
+.mac-btn:hover{background:var(--hover);color:var(--text);}
+.mac-btn.liked{color:#22c55e;}.mac-btn.disliked{color:#ef4444;}
+.more-menu{position:absolute;bottom:34px;left:0;background:var(--drop-bg);border:1px solid var(--border);border-radius:12px;padding:5px;display:none;z-index:30;box-shadow:var(--drop-shadow);min-width:140px;}
+.more-menu.open{display:block;}
+.more-item{padding:8px 14px;font-size:13px;font-weight:500;color:var(--text);border-radius:8px;cursor:pointer;}
+.more-item:hover{background:var(--hover);}
+/* Думает */
+.thinking{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text2);padding:2px 0;}
+.think-dots{display:flex;gap:4px;}
+.think-dots span{width:5px;height:5px;border-radius:50%;background:var(--text2);animation:bop 1.2s infinite;}
+.think-dots span:nth-child(2){animation-delay:.2s;}.think-dots span:nth-child(3){animation-delay:.4s;}
+@keyframes bop{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+
+/* ======= INPUT BAR ======= */
+.input-wrap{padding:12px 20px 20px;display:flex;justify-content:center;background:var(--bg);}
+@media(max-width:768px){.input-wrap{padding:10px 12px 20px;}}
+.input-box{width:100%;max-width:720px;background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:14px 14px 10px;box-shadow:0 2px 12px rgba(0,0,0,0.06);transition:border-color .15s;}
+.input-box:focus-within{border-color:var(--text);}
+@media(max-width:768px){.input-box{border-radius:14px;}}
+.input-box textarea{width:100%;border:none;outline:none;resize:none;font-size:var(--font-base);color:var(--text);font-family:inherit;background:transparent;line-height:1.55;max-height:160px;min-height:22px;overflow-y:auto;}
+.input-box textarea::placeholder{color:var(--text2);}
+.input-bar-row{display:flex;align-items:center;justify-content:space-between;margin-top:8px;}
+.bar-left{display:flex;align-items:center;gap:4px;}
+.bar-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);border:none;background:transparent;transition:background .12s,color .12s;}
+.bar-icon:hover{background:var(--hover);color:var(--text);}
+.bar-right{display:flex;align-items:center;gap:8px;}
+/* Model pill */
+.model-pill{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:9px;background:var(--bg);border:1px solid var(--border);font-size:13px;font-weight:600;color:var(--text);cursor:pointer;position:relative;user-select:none;transition:background .12s;}
+.model-pill:hover{background:var(--hover);}
+.pill-name{font-weight:700;}.pill-mode{font-weight:400;color:var(--text2);margin-left:1px;}
+/* Send */
+.send-btn{width:34px;height:34px;border-radius:9px;background:var(--send-bg);color:var(--send-txt);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:opacity .15s;flex-shrink:0;}
+.send-btn:hover{opacity:.8;}
+/* AI disclaimer */
+.disclaimer{font-size:11px;color:var(--text2);text-align:center;padding:4px 0 0;opacity:.6;}
+
+/* ======= MODEL DROPDOWN ======= */
+.model-drop{position:absolute;bottom:calc(100% + 8px);right:0;background:var(--drop-bg);border:1px solid var(--border);border-radius:14px;padding:6px;box-shadow:var(--drop-shadow);display:none;z-index:200;min-width:220px;}
+.model-drop.open{display:block;}
+.md-option{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;cursor:pointer;transition:background .12s;}
+.md-option:hover{background:var(--hover);}
+.md-opt-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.md-opt-icon.lite{background:linear-gradient(135deg,#34d399,#0ea5a5);}
+.md-opt-icon.pro{background:linear-gradient(135deg,#a855f7,#6366f1);}
+.md-opt-name{font-size:13px;font-weight:700;color:var(--text);}
+.md-opt-desc{font-size:11px;color:var(--text2);}
+.md-check{font-size:14px;color:var(--check);margin-left:auto;}
+.md-divider{height:1px;background:var(--border);margin:4px 0;}
+/* Mode row */
+.md-mode-row{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:9px;cursor:pointer;transition:background .12s;}
+.md-mode-row:hover{background:var(--hover);}
+.md-mode-label{font-size:13px;font-weight:600;color:var(--text);}
+.md-mode-badge{font-size:11px;color:var(--text2);}
+/* Sub dropdown */
+.mode-sub{position:absolute;bottom:calc(100% + 8px);left:0;background:var(--drop-bg);border:1px solid var(--border);border-radius:12px;padding:5px;box-shadow:var(--drop-shadow);display:none;z-index:201;min-width:170px;}
+.mode-sub.open{display:block;}
+.ms-option{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:8px;cursor:pointer;transition:background .12s;}
+.ms-option:hover{background:var(--hover);}
+.ms-label{font-size:13px;font-weight:700;color:var(--text);}
+.ms-desc{font-size:11px;color:var(--text2);margin-top:1px;}
+.ms-check{color:var(--check);font-size:14px;}
+/* Think toggle */
+.md-think-row{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:9px;}
+.md-think-label{font-size:13px;font-weight:600;color:var(--text);}
+.md-think-sub{font-size:11px;color:var(--text2);}
+.sw{width:38px;height:22px;border-radius:11px;background:var(--border);cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;}
+.sw.on{background:var(--text);}
+.sw::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.25);}
+.sw.on::after{transform:translateX(16px);}
+@media(min-width:769px){.sw.on::after{background:#fff;}}
+
+/* ======= НАСТРОЙКИ (мобиль — полноэкранная; десктоп — попап) ======= */
+.settings-overlay{position:fixed;inset:0;z-index:300;background:var(--bg);}
+@media(min-width:769px){
+  .settings-overlay{background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;}
+  .settings-box{background:var(--bg2);border:1px solid var(--border);border-radius:20px;width:440px;max-height:85vh;overflow-y:auto;padding:24px;box-shadow:var(--drop-shadow);}
+}
+.settings-overlay.hidden{display:none;}
+.settings-box{background:var(--bg);}
+@media(max-width:768px){
+  .settings-box{height:100%;overflow-y:auto;padding:20px 16px;}
+}
+.sth{display:flex;align-items:center;gap:10px;margin-bottom:20px;}
+.sth-back{width:34px;height:34px;border-radius:50%;border:1px solid var(--border);background:var(--bg2);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text);}
+.sth-title{font-size:16px;font-weight:800;color:var(--text);flex:1;}
+/* Settings sections */
+.s-sect{margin-bottom:20px;}
+.s-sect-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);margin-bottom:8px;padding:0 2px;}
+.s-rows{background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+.s-row{display:flex;align-items:center;gap:12px;padding:13px 16px;cursor:pointer;transition:background .12s;}
+.s-row+.s-row{border-top:1px solid var(--border2);}
+.s-row:hover{background:var(--hover);}
+.s-row-icon{color:var(--text2);flex-shrink:0;}
+.s-row-text{flex:1;font-size:14px;font-weight:500;color:var(--text);}
+.s-row-val{font-size:12px;color:var(--text2);}
+.s-row-val.soon{font-size:10px;text-transform:uppercase;letter-spacing:.5px;background:var(--hover);padding:3px 8px;border-radius:6px;}
+.s-chev{color:var(--text2);}
+/* Profile */
+.prof-top{display:flex;align-items:center;gap:14px;margin-bottom:20px;}
+.prof-ava{width:52px;height:52px;border-radius:50%;background:var(--text);color:var(--bg);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;}
+.prof-name{font-size:16px;font-weight:700;color:var(--text);}
+.prof-email{font-size:13px;color:var(--text2);margin-top:2px;}
+.logout-btn{padding:8px 16px;border-radius:10px;border:1px solid #ef4444;color:#ef4444;font-size:13px;font-weight:600;cursor:pointer;background:transparent;font-family:inherit;margin-left:auto;}
+.logout-btn:hover{background:rgba(239,68,68,.08);}
+/* Memory toggles */
+.mem-rows{background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+.mem-row{display:flex;align-items:center;gap:14px;padding:14px 16px;}
+.mem-row+.mem-row{border-top:1px solid var(--border2);}
+.mem-info{flex:1;}
+.mem-title{font-size:14px;font-weight:600;color:var(--text);}
+.mem-desc{font-size:12px;color:var(--text2);margin-top:2px;line-height:1.4;}
+/* Персонализация */
+.pers-section{background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:16px;}
+.pers-row{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;transition:background .12s;position:relative;}
+.pers-row+.pers-row{border-top:1px solid var(--border2);}
+.pers-row:hover{background:var(--hover);}
+.pers-row-label{font-size:14px;font-weight:500;color:var(--text);}
+.pers-row-val{font-size:13px;color:var(--text2);display:flex;align-items:center;gap:4px;}
+.pers-drop{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--drop-bg);border:1px solid var(--border);border-radius:12px;padding:5px;box-shadow:var(--drop-shadow);z-index:50;display:none;}
+.pers-drop.open{display:block;}
+.pers-opt{padding:10px 14px;border-radius:8px;cursor:pointer;transition:background .12s;}
+.pers-opt:hover{background:var(--hover);}
+.pers-opt-title{font-size:14px;font-weight:600;color:var(--text);}
+.pers-opt-desc{font-size:12px;color:var(--text2);margin-top:1px;}
+.pers-opt.selected::before{content:'✓ ';color:var(--check);}
+/* Quick replies toggle & instructions */
+.pers-toggle-row{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px;}
+.pers-toggle-info{flex:1;}
+.pers-toggle-label{font-size:14px;font-weight:600;color:var(--text);}
+.pers-toggle-desc{font-size:12px;color:var(--text2);margin-top:4px;line-height:1.5;}
+.custom-instr-area{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px 16px;font-size:14px;color:var(--text);font-family:inherit;resize:none;outline:none;height:100px;transition:border-color .15s;}
+.custom-instr-area:focus{border-color:var(--text);}
+.custom-instr-area::placeholder{color:var(--text2);}
+.save-btn{width:100%;padding:13px;border-radius:12px;background:var(--send-bg);color:var(--send-txt);font-size:15px;font-weight:700;border:none;cursor:pointer;font-family:inherit;margin-top:8px;}
+</style>
 </head>
 <body>
 
-    <!-- ===== ЭКРАН 1: ПРИВЕТСТВИЕ ===== -->
-    <div id="authScreen1" class="auth-screen active">
-        <div class="auth-card">
-            <h1 class="auth-title">Думает быстро,<br>результат быстрее</h1>
-            <p class="auth-subtitle">Помощник для музыкантов</p>
-            <button type="button" class="btn-primary" id="btnContinueEmail">Продолжить с Email</button>
-            <p style="margin-top: 16px; font-size: 12px; color: var(--text-secondary); text-align: center;">
-                Продолжая, вы соглашаетесь с нашей Политикой Конфиденциальности и соглашаетесь на отправку сообщений на ваш email.
-            </p>
-            <p style="margin-top: 24px; font-size: 12px; color: var(--text-secondary); text-align: center;">beta version 1.0</p>
-        </div>
+<!-- ======= AUTH ======= -->
+<div class="auth-wrap" id="authWrap">
+  <!-- Экран 1 -->
+  <div class="auth-card">
+    <div class="auth-screen active" id="authS1">
+      <div class="auth-logo">HarmonyAI</div>
+      <div class="auth-h1">Думает быстро,<br>результат быстрее</div>
+      <div class="auth-sub">Помощник для музыкантов</div>
+      <button class="auth-btn-primary" onclick="goToEmail()">Продолжить с Email</button>
+      <div class="auth-tos">Продолжая, вы соглашаетесь с Политикой конфиденциальности и соглашаетесь на отправку сообщений на ваш email.</div>
+      <div class="auth-beta">beta version 1.0</div>
+    </div>
+    <!-- Экран 2 -->
+    <div class="auth-screen" id="authS2">
+      <div class="auth-logo">HarmonyAI</div>
+      <div class="auth-h1">Введите ваш<br>Email адрес</div>
+      <input class="auth-input" id="emailInp" type="email" placeholder="Введите email.." autocomplete="email" inputmode="email">
+      <div class="auth-error" id="emailErr"></div>
+      <button class="auth-btn-primary" id="btnSend" onclick="sendOTP()">Продолжить</button>
+      <button class="auth-btn-secondary" onclick="showAuthS(1)">← Назад</button>
+      <div class="auth-beta">beta version 1.0</div>
+    </div>
+    <!-- Экран 3 -->
+    <div class="auth-screen" id="authS3">
+      <div class="auth-logo">HarmonyAI</div>
+      <div class="auth-h1">Введите 6-ти<br>значный код</div>
+      <div class="otp-row" id="otpRow">
+        <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
+        <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
+        <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
+        <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
+        <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
+        <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
+      </div>
+      <div class="auth-error" id="codeErr"></div>
+      <button class="auth-btn-primary" id="btnVerify" onclick="verifyOTP()">Подтвердить</button>
+      <div class="auth-resend" id="btnResend" onclick="resendOTP()">Не приходит код? Отправить снова</div>
+      <button class="auth-btn-secondary" onclick="showAuthS(2)">← Изменить email</button>
+      <div class="auth-beta">beta version 1.0</div>
+    </div>
+  </div>
+</div>
+
+<!-- ======= APP ======= -->
+<div class="app" id="app">
+  <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+  <!-- САЙДБАР -->
+  <div class="sidebar" id="sidebar">
+    <div class="sb-top">
+      <div class="sb-icon-btn" onclick="toggleSidebar()" title="Боковая панель">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="2" rx="1" fill="currentColor"/><rect x="3" y="11" width="18" height="2" rx="1" fill="currentColor"/><rect x="3" y="17" width="18" height="2" rx="1" fill="currentColor"/></svg>
+        <span class="sb-icon-label">Свернуть</span>
+      </div>
+      <div class="sb-icon-btn" onclick="newChat()" title="Новый чат">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <span class="sb-icon-label">Новый чат</span>
+      </div>
+      <div class="sb-icon-btn" id="sbChatsBtn" onclick="toggleChatList()" title="Список чатов">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="sb-icon-label">Чаты</span>
+      </div>
+    </div>
+    <div class="sb-label">Недавние</div>
+    <div class="sb-chat-list" id="sbChatList"></div>
+    <div class="sb-footer">
+      <div class="sb-user-row" onclick="openSettings()">
+        <div class="sb-avatar" id="sbAvatar">?</div>
+        <div class="sb-username" id="sbUsername">Загрузка...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ОСНОВНАЯ ОБЛАСТЬ -->
+  <div class="main" id="main">
+    <!-- Мобильный топбар -->
+    <div class="topbar">
+      <div class="topbar-btn" onclick="toggleSidebar()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="2" rx="1" fill="currentColor"/><rect x="3" y="11" width="18" height="2" rx="1" fill="currentColor"/><rect x="3" y="17" width="18" height="2" rx="1" fill="currentColor"/></svg>
+      </div>
+      <div class="topbar-logo">HarmonyAI</div>
+      <div class="topbar-btn" onclick="newChat()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </div>
+      <div class="topbar-btn" onclick="openSettings()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" stroke-width="2"/></svg>
+      </div>
     </div>
 
-    <!-- ===== ЭКРАН 2: EMAIL ===== -->
-    <div id="authScreen2" class="auth-screen">
-        <div class="auth-card">
-            <h2 class="auth-title" style="font-size: 24px;">Введите ваш Email адрес</h2>
-            <input type="email" id="emailInput" class="email-input" placeholder="Enter your email">
-            <button type="button" class="btn-primary" id="btnSendOTP">Продолжить</button>
-            <button type="button" class="btn-secondary" id="btnBackToWelcome">← Назад</button>
-            <p style="margin-top: 24px; font-size: 12px; color: var(--text-secondary); text-align: center;">beta version 1.0</p>
+    <div class="chat-area" id="chatArea">
+      <div class="chat-inner" id="chatInner">
+        <div class="greeting-wrap" id="greetingWrap">
+          <div class="greeting-title">Привет! Я Harmony Ai</div>
+          <div class="greeting-sub" id="greetSub">Спроси меня про любой аккорд 🎵</div>
         </div>
+      </div>
     </div>
 
-    <!-- ===== ЭКРАН 3: OTP ===== -->
-    <div id="authScreen3" class="auth-screen">
-        <div class="auth-card">
-            <h2 class="auth-title" style="font-size: 24px;">Введите 6-ти значный код</h2>
-            <div class="otp-container">
-                <input type="text" class="otp-input" maxlength="1" data-index="0">
-                <input type="text" class="otp-input" maxlength="1" data-index="1">
-                <input type="text" class="otp-input" maxlength="1" data-index="2">
-                <input type="text" class="otp-input" maxlength="1" data-index="3">
-                <input type="text" class="otp-input" maxlength="1" data-index="4">
-                <input type="text" class="otp-input" maxlength="1" data-index="5">
-            </div>
-            <button type="button" class="btn-primary" id="btnVerifyOTP">Подтвердить</button>
-            <button type="button" class="btn-secondary" id="btnResendOTP">Не приходит код? Отправить снова</button>
-            <button type="button" class="btn-secondary" id="btnChangeEmail">← Изменить email</button>
-            <p style="margin-top: 24px; font-size: 12px; color: var(--text-secondary); text-align: center;">beta version 1.0</p>
-        </div>
-    </div>
-
-    <!-- ===== ЧАТ ===== -->
-    <div id="chatContainer" class="chat-container">
-        <div class="overlay" id="overlay"></div>
-
-        <!-- Боковое меню -->
-        <div class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <span class="sidebar-title">HarmonyAI</span>
-                <button type="button" class="close-sidebar" id="btnCloseSidebar">×</button>
-            </div>
-            <button type="button" class="new-chat-btn" id="btnNewChat">
-                <span>+</span>
-                Новый чат
+    <div class="input-wrap">
+      <div class="input-box" id="inputBox">
+        <textarea id="msgTa" placeholder="Введите сообщение .." rows="1"
+          oninput="taResize(this)"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg();}"></textarea>
+        <div class="input-bar-row">
+          <div class="bar-left">
+            <button class="bar-icon" onclick="document.getElementById('fileInp').click()" title="Добавить фото/файл">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
             </button>
-            <div style="margin-bottom: 12px; font-size: 12px; color: var(--text-secondary);">Недавние</div>
-            <div id="chatHistory">
-                <div style="font-size: 14px; color: var(--text-secondary); padding: 12px;">Загрузка...</div>
+            <input type="file" id="fileInp" accept="image/*" style="display:none" onchange="handleFile(this)">
+          </div>
+          <div class="bar-right">
+            <!-- Иконка лоадера Anthropic -->
+            <div id="loadingIcon" style="display:none;width:22px;height:22px;">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="animation:spin 1s linear infinite;width:22px;height:22px;">
+                <path d="M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12" stroke="var(--text)" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+              <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
             </div>
-        </div>
-
-        <!-- Основной контент -->
-        <div class="main-content">
-            <div class="chat-header">
-                <button type="button" class="burger-menu" id="btnBurger">☰</button>
-                <span style="font-weight: 600;">HarmonyAI</span>
-                <div style="flex: 1;"></div>
-                <button type="button" class="icon-btn" id="btnOpenSettings">⚙️</button>
-            </div>
-
-            <div class="chat-messages">
-                <div class="welcome-screen">
-                    <h1 class="welcome-title">Привет! Я Harmony Ai</h1>
-                    <p class="welcome-subtitle">Спроси меня про любой аккорд или интервал 🎵</p>
-                    <div class="welcome-input-container">
-                        <textarea class="welcome-input" id="messageInput" placeholder="Как я могу помочь тебе?" rows="1"></textarea>
-                        <div class="input-footer">
-                            <div class="input-actions">
-                                <button type="button" class="icon-btn" title="Добавить фото/файл">📎</button>
-                            </div>
-                            <div style="display: flex; gap: 12px; align-items: center;">
-                                <div class="model-selector">
-                                    <div class="model-btn" id="btnModelSelector">
-                                        <span id="selectedModel">MusMind lite</span>
-                                        <span>▾</span>
-                                    </div>
-                                    <div class="model-dropdown hidden" id="modelDropdown">
-                                        <div class="model-option active" data-model="lite" id="modelLite">
-                                            <div class="model-option-title">MusMind lite</div>
-                                            <div class="model-option-desc">Быстро и легко</div>
-                                        </div>
-                                        <div class="model-option" data-model="pro" id="modelPro">
-                                            <div class="model-option-title">MusMind pro</div>
-                                            <div class="model-option-desc">Максимум возможностей</div>
-                                        </div>
-                                        <div class="mode-selector">
-                                            <div class="mode-option active" id="modeLow">
-                                                <div class="mode-option-left">
-                                                    <span class="mode-label">Low</span>
-                                                    <span class="mode-badge">Обычный</span>
-                                                </div>
-                                                <div class="checkmark">✓</div>
-                                            </div>
-                                            <div class="mode-option" id="modeMax">
-                                                <div class="mode-option-left">
-                                                    <span class="mode-label">Max</span>
-                                                </div>
-                                                <div class="checkmark">✓</div>
-                                            </div>
-                                            <div class="thinking-toggle">
-                                                <div class="toggle-header">
-                                                    <span class="toggle-label">Думать</span>
-                                                    <div class="toggle-switch" id="thinkingToggle">
-                                                        <div class="toggle-slider"></div>
-                                                    </div>
-                                                </div>
-                                                <div class="toggle-desc">Для решения сложных задач</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <button type="button" class="send-btn" id="btnSend">Отправить</button>
-                            </div>
-                        </div>
-                    </div>
+            <!-- Model pill -->
+            <div class="model-pill" id="modelPill" onclick="toggleModelDrop(event)">
+              <span class="pill-name">MusMind</span>
+              <span class="pill-mode" id="pillMode"> lite</span>
+              <span style="font-size:10px;color:var(--text2);margin-left:2px;">▾</span>
+              <!-- Dropdown -->
+              <div class="model-drop" id="modelDrop" onclick="event.stopPropagation()">
+                <!-- Lite -->
+                <div class="md-option" onclick="selectModel('lite')">
+                  <div class="md-opt-icon lite">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M5 14C5 8 9 4 19 4C19 14 15 19 9 19C7 19 5 17 5 14Z" stroke="white" stroke-width="2"/><path d="M5 19L11 13" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+                  </div>
+                  <div><div class="md-opt-name">MusMind Lite</div><div class="md-opt-desc">Быстро и легко</div></div>
+                  <div class="md-check" id="ck-lite">✓</div>
                 </div>
+                <!-- Mode -->
+                <div class="md-mode-row" id="modeRow" onclick="toggleModeSub(event)">
+                  <div><div class="md-mode-label">Режим</div></div>
+                  <div style="display:flex;align-items:center;gap:6px;">
+                    <span class="md-mode-badge" id="modeLabel">Low</span>
+                    <span style="font-size:11px;color:var(--text2);">›</span>
+                  </div>
+                </div>
+                <div class="md-divider"></div>
+                <!-- Pro -->
+                <div class="md-option" onclick="selectModel('pro')">
+                  <div class="md-opt-icon pro">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" stroke="white" stroke-width="1.5" stroke-linejoin="round" fill="white" fill-opacity="0.2"/></svg>
+                  </div>
+                  <div><div class="md-opt-name">MusMind Pro</div><div class="md-opt-desc">Максимум возможностей</div></div>
+                  <div class="md-check" id="ck-pro" style="opacity:0">✓</div>
+                </div>
+                <div class="md-divider"></div>
+                <!-- Think -->
+                <div class="md-think-row">
+                  <div><div class="md-think-label">Думать</div><div class="md-think-sub">Для решения сложных задач</div></div>
+                  <div class="sw" id="thinkSw" onclick="toggleThink(event)"></div>
+                </div>
+              </div>
+              <!-- Mode sub -->
+              <div class="mode-sub" id="modeSub" onclick="event.stopPropagation()">
+                <div class="ms-option" onclick="selectMode('low')">
+                  <div><div class="ms-label">Low</div><div class="ms-desc">Обычный</div></div>
+                  <span class="ms-check" id="ck-low">✓</span>
+                </div>
+                <div class="ms-option" onclick="selectMode('max')">
+                  <div><div class="ms-label">Max</div></div>
+                  <span class="ms-check" id="ck-max" style="opacity:0">✓</span>
+                </div>
+              </div>
             </div>
+            <button class="send-btn" onclick="sendMsg()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
         </div>
+        <div class="disclaimer">Это ИИ: HarmonyAI может допускать ошибки.</div>
+      </div>
     </div>
+  </div>
+</div>
 
-    <!-- ===== НАСТРОЙКИ (с персонализацией) ===== -->
-    <div id="settingsContainer" class="settings-container">
-        <div class="settings-header">
-            <button type="button" class="back-btn" id="btnBackFromSettings">←</button>
-            <h1 class="settings-title">Персонализация</h1>
-            <div style="flex: 1;"></div>
-            <button type="button" class="save-btn" id="btnSaveSettings" style="width: auto; padding: 8px 16px; margin: 0; font-size: 14px;">Сохранить</button>
+<!-- ======= SETTINGS OVERLAY ======= -->
+<div class="settings-overlay hidden" id="settingsOverlay" onclick="if(event.target===this)closeSettings()">
+  <div class="settings-box">
+    <div id="settingsContent"></div>
+  </div>
+</div>
+
+<script>
+const SB_URL='https://cqthnymltqpcxtpiryka.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNxdGhueW1sdHFwY3h0cGlyeWthIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MjY3NzYsImV4cCI6MjA5NzAwMjc3Nn0.b-6lSdjT7XwWkt607ORwGfKYSn3CLZJB3mcs4QQUSoE';
+const sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
+
+let curUser=null,curEmail='',resendTimer=null,resendLeft=0;
+let sidebarExpanded=false,chatListOpen=false;
+let curModel='lite',curMode='low',thinkOn=false,dropOpen=false,modeSubOpen=false;
+let chatHistory=[],pendingImg=null,curChatId=null;
+let chats=[];
+
+/* marked setup */
+if(typeof marked!=='undefined') marked.setOptions({breaks:true,gfm:true});
+
+/* ===== GREETINGS ===== */
+const GREETS=[
+  'Спроси меня про любой аккорд 🎵',
+  'Помогу разобрать сольфеджио 📝',
+  'Покажу любую гамму в нотах 🎼',
+  'Объясню любой музыкальный термин 🎹',
+  'Умею распознавать ноты с фото 📸',
+  'Помогаю не только с музыкой 💡',
+  'Построю аккордовую цепочку T–S–D–T 🎸',
+];
+let greetIdx=0;
+setInterval(()=>{
+  const el=document.getElementById('greetSub'); if(!el)return;
+  greetIdx=(greetIdx+1)%GREETS.length;
+  el.style.opacity='0';
+  setTimeout(()=>{el.textContent=GREETS[greetIdx];el.style.opacity='1';},300);
+},4000);
+
+/* ===== AUTH ===== */
+function showAuthS(n){
+  [1,2,3].forEach(i=>{
+    const el=document.getElementById('authS'+i);
+    if(el) el.classList.toggle('active',i===n);
+  });
+}
+function goToEmail(){
+  showAuthS(2);
+  setTimeout(()=>{const e=document.getElementById('emailInp');if(e)e.focus();},100);
+}
+function isEmail(e){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);}
+function tErr(msg){
+  if(!msg)return 'Что-то пошло не так';
+  if(msg.includes('rate limit'))return 'Слишком много попыток — подождите';
+  if(msg.includes('invalid email'))return 'Введите корректный email';
+  if(msg.includes('expired'))return 'Код устарел — запросите новый';
+  if(msg.includes('Invalid OTP')||msg.includes('Token has'))return 'Неверный код';
+  return msg;
+}
+async function sendOTP(){
+  const email=document.getElementById('emailInp').value.trim();
+  const err=document.getElementById('emailErr');
+  err.style.display='none';
+  if(!isEmail(email)){err.textContent='Введите корректный email';err.style.display='block';return;}
+  const btn=document.getElementById('btnSend');
+  btn.textContent='Отправляем...';btn.disabled=true;
+  const {error}=await sb.auth.signInWithOtp({email,options:{shouldCreateUser:true}});
+  btn.textContent='Продолжить';btn.disabled=false;
+  if(error){err.textContent=tErr(error.message);err.style.display='block';return;}
+  curEmail=email;
+  clearOTP();
+  document.getElementById('codeErr').style.display='none';
+  showAuthS(3);
+  setTimeout(()=>{const b=document.querySelectorAll('.otp-box')[0];if(b)b.focus();},100);
+  startResend();
+}
+function clearOTP(){document.querySelectorAll('.otp-box').forEach(b=>b.value='');}
+function getOTP(){return Array.from(document.querySelectorAll('.otp-box')).map(b=>b.value).join('');}
+async function verifyOTP(){
+  const code=getOTP();
+  const err=document.getElementById('codeErr');
+  err.style.display='none';
+  if(!/^\d{6}$/.test(code)){err.textContent='Введите 6-значный код';err.style.display='block';return;}
+  const btn=document.getElementById('btnVerify');
+  btn.textContent='Проверяем...';btn.disabled=true;
+  const {error}=await sb.auth.verifyOtp({email:curEmail,token:code,type:'email'});
+  btn.textContent='Подтвердить';btn.disabled=false;
+  if(error){err.textContent=tErr(error.message);err.style.display='block';return;}
+  await initSession();
+}
+async function resendOTP(){
+  if(resendLeft>0)return;
+  await sb.auth.signInWithOtp({email:curEmail});
+  startResend();
+}
+function startResend(){
+  resendLeft=60;
+  if(resendTimer)clearInterval(resendTimer);
+  const btn=document.getElementById('btnResend');
+  btn.classList.add('disabled');
+  btn.textContent='Отправить снова через 60 с';
+  resendTimer=setInterval(()=>{
+    resendLeft--;
+    if(resendLeft>0){btn.textContent='Отправить снова через '+resendLeft+' с';}
+    else{btn.textContent='Не приходит код? Отправить снова';btn.classList.remove('disabled');clearInterval(resendTimer);}
+  },1000);
+}
+
+/* OTP boxes */
+function setupOTPBoxes(){
+  const boxes=document.querySelectorAll('.otp-box');
+  boxes.forEach((b,i)=>{
+    b.addEventListener('input',()=>{
+      b.value=b.value.replace(/[^0-9]/g,'').slice(0,1);
+      if(b.value&&i<boxes.length-1)boxes[i+1].focus();
+    });
+    b.addEventListener('keydown',e=>{
+      if(e.key==='Backspace'&&!b.value&&i>0)boxes[i-1].focus();
+      if(e.key==='Enter')verifyOTP();
+    });
+    b.addEventListener('paste',e=>{
+      e.preventDefault();
+      const txt=(e.clipboardData.getData('text')||'').replace(/[^0-9]/g,'').slice(0,6);
+      txt.split('').forEach((ch,j)=>{if(boxes[j])boxes[j].value=ch;});
+      const last=Math.min(txt.length,6)-1;
+      if(boxes[last])boxes[last].focus();
+    });
+  });
+}
+setupOTPBoxes();
+
+/* ===== SESSION ===== */
+async function initSession(){
+  const {data:{session}}=await sb.auth.getSession();
+  if(session){
+    await loadProfile(session.user.id,session.user.email);
+    await loadChats();
+    document.getElementById('authWrap').classList.add('gone');
+    document.getElementById('app').classList.add('show');
+    updateUserUI();
+    newChat();
+  }else{
+    document.getElementById('authWrap').classList.remove('gone');
+    document.getElementById('app').classList.remove('show');
+  }
+}
+sb.auth.onAuthStateChange(async(event,session)=>{
+  if(event==='SIGNED_IN'&&session){
+    if(!curUser){
+      await loadProfile(session.user.id,session.user.email);
+      await loadChats();
+      document.getElementById('authWrap').classList.add('gone');
+      document.getElementById('app').classList.add('show');
+      updateUserUI();
+    }
+  }
+});
+initSession();
+
+async function loadProfile(uid,email){
+  const {data}=await sb.from('profiles').select('*').eq('id',uid).single();
+  curUser={id:uid,email,nickname:data?.nickname||email.split('@')[0],role:data?.role||'user',settings:data?.settings||{}};
+}
+function updateUserUI(){
+  if(!curUser)return;
+  const ch=(curUser.nickname||curUser.email).charAt(0).toUpperCase();
+  const av=document.getElementById('sbAvatar');
+  const un=document.getElementById('sbUsername');
+  if(av)av.textContent=ch;
+  if(un)un.textContent=curUser.nickname||curUser.email;
+}
+async function logOut(){
+  await sb.auth.signOut();
+  curUser=null;chatHistory=[];curChatId=null;chats=[];
+  document.getElementById('authWrap').classList.remove('gone');
+  document.getElementById('app').classList.remove('show');
+  closeSettings();
+  showAuthS(1);
+}
+
+/* ===== SIDEBAR ===== */
+function toggleSidebar(){
+  const sb=document.getElementById('sidebar');
+  if(window.innerWidth<769){
+    const open=sb.classList.toggle('open');
+    document.getElementById('overlay').classList.toggle('show',open);
+  }else{
+    sidebarExpanded=!sidebarExpanded;
+    sb.classList.toggle('expanded',sidebarExpanded);
+    if(sidebarExpanded){
+      const cl=document.getElementById('sbChatList');
+      if(cl)cl.style.display='block';
+    }
+  }
+}
+function closeSidebar(){
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+}
+function toggleChatList(){
+  const cl=document.getElementById('sbChatList');
+  if(!cl)return;
+  chatListOpen=!chatListOpen;
+  cl.style.display=chatListOpen?'block':'none';
+}
+
+/* ===== CHATS ===== */
+async function loadChats(){
+  if(!curUser)return;
+  const {data}=await sb.from('chats').select('id,title,updated_at').order('updated_at',{ascending:false}).limit(30);
+  if(data)chats=data;
+  renderChatList();
+}
+function renderChatList(){
+  const el=document.getElementById('sbChatList'); if(!el)return;
+  el.innerHTML='';
+  chats.forEach(c=>{
+    const d=document.createElement('div');
+    d.className='sb-chat-item'+(c.id===curChatId?' active':'');
+    d.textContent=c.title||'Новый чат';
+    d.onclick=()=>openChat(c.id);
+    el.appendChild(d);
+  });
+}
+async function openChat(id){
+  closeSidebar();
+  const {data}=await sb.from('chats').select('history').eq('id',id).single();
+  if(!data)return;
+  curChatId=id;
+  chatHistory=data.history||[];
+  const inner=document.getElementById('chatInner'); inner.innerHTML='';
+  chatHistory.forEach(m=>{
+    const txt=typeof m.content==='string'?m.content:(Array.isArray(m.content)?m.content.find(c=>c.type==='text')?.text:'[фото]');
+    if(m.role==='user')addUserBubble(txt);
+    else addAiBubble(txt,false);
+  });
+  renderChatList();
+}
+function newChat(){
+  curChatId=null;chatHistory=[];
+  const inner=document.getElementById('chatInner');
+  inner.innerHTML=`<div class="greeting-wrap" id="greetingWrap">
+    <div class="greeting-title">Привет! Я Harmony Ai</div>
+    <div class="greeting-sub" id="greetSub">${GREETS[greetIdx]}</div>
+  </div>`;
+  renderChatList();
+  closeSidebar();
+}
+async function saveChat(title){
+  if(!curUser||chatHistory.length===0)return;
+  if(!curChatId){
+    curChatId='chat_'+Date.now();
+    const {error}=await sb.from('chats').insert({id:curChatId,user_id:curUser.id,title:title||'Новый чат',history:chatHistory,updated_at:new Date().toISOString()});
+    if(!error){chats.unshift({id:curChatId,title:title||'Новый чат'});renderChatList();}
+  }else{
+    await sb.from('chats').update({history:chatHistory,updated_at:new Date().toISOString()}).eq('id',curChatId);
+  }
+}
+
+/* ===== MODEL PICKER ===== */
+function toggleModelDrop(e){
+  e.stopPropagation();
+  dropOpen=!dropOpen;
+  document.getElementById('modelDrop').classList.toggle('open',dropOpen);
+  if(!dropOpen){document.getElementById('modeSub').classList.remove('open');modeSubOpen=false;}
+}
+function selectModel(m){
+  curModel=m;
+  document.getElementById('ck-lite').style.opacity=m==='lite'?'1':'0';
+  document.getElementById('ck-pro').style.opacity=m==='pro'?'1':'0';
+  updatePill();
+  document.getElementById('modelDrop').classList.remove('open');
+  document.getElementById('modeSub').classList.remove('open');
+  dropOpen=false;modeSubOpen=false;
+}
+function toggleModeSub(e){
+  e.stopPropagation();
+  modeSubOpen=!modeSubOpen;
+  document.getElementById('modeSub').classList.toggle('open',modeSubOpen);
+}
+function selectMode(m){
+  curMode=m;
+  document.getElementById('ck-low').style.opacity=m==='low'?'1':'0';
+  document.getElementById('ck-max').style.opacity=m==='max'?'1':'0';
+  document.getElementById('modeLabel').textContent=m==='low'?'Low':'Max';
+  updatePill();
+  document.getElementById('modeSub').classList.remove('open');
+  modeSubOpen=false;
+}
+function toggleThink(e){e.stopPropagation();thinkOn=!thinkOn;document.getElementById('thinkSw').classList.toggle('on',thinkOn);}
+function updatePill(){document.getElementById('pillMode').textContent=' '+curModel+(curMode==='max'?' · max':'');}
+
+document.addEventListener('click',e=>{
+  if(dropOpen&&!e.target.closest('#modelPill')){
+    dropOpen=false;modeSubOpen=false;
+    document.getElementById('modelDrop').classList.remove('open');
+    document.getElementById('modeSub').classList.remove('open');
+  }
+  if(!e.target.closest('.mac-btn'))
+    document.querySelectorAll('.more-menu.open').forEach(m=>m.classList.remove('open'));
+});
+
+/* ===== SETTINGS ===== */
+function openSettings(){
+  closeSidebar();
+  renderSettings();
+  document.getElementById('settingsOverlay').classList.remove('hidden');
+}
+function closeSettings(){document.getElementById('settingsOverlay').classList.add('hidden');}
+
+const STYLES={default:'По умолчанию',professional:'Профессиональный',friendly:'Дружелюбный',frank:'Откровенный',whimsical:'Причудливый',efficient:'Эффективный',cynical:'Циничный'};
+const STYLE_DESCS={default:'Предпочитаемый стиль и тон',professional:'Тактичный и точный',friendly:'Тёплый и разговорчивый',frank:'Прямой и мотивирующий',whimsical:'Весёлый и творческий',efficient:'Немногословный и чёткий',cynical:'Критикующий и саркастичный'};
+const OPTS={default:'По умолчанию',low:'Низкая',medium:'Средняя',high:'Высокая',reserved:'Сдержанный',moderate:'Умеренный',off:'Выкл',on:'Вкл',none:'Нет',some:'Немного',many:'Много'};
+let persDropOpen=null;
+function getSettings(){return curUser?.settings||{};}
+function renderSettings(screen){
+  const s=getSettings();
+  const el=document.getElementById('settingsContent');
+  if(!screen||screen==='main'){
+    const ch=(curUser?.nickname||curUser?.email||'?').charAt(0).toUpperCase();
+    el.innerHTML=`
+      <div class="sth">
+        <div class="sth-title">Настройки</div>
+        <button class="sth-back" onclick="closeSettings()" style="margin-left:auto;border-radius:9px;font-size:14px;padding:0 14px;height:34px;font-weight:600;">✕</button>
+      </div>
+      <div class="prof-top">
+        <div class="prof-ava">${ch}</div>
+        <div class="prof-info">
+          <div class="prof-name">${curUser?.nickname||curUser?.email?.split('@')[0]||'Пользователь'}</div>
+          <div class="prof-email">${curUser?.email||''}</div>
         </div>
-
-        <!-- Базовый стиль -->
-        <div class="settings-section">
-            <div class="settings-section-title">Базовый стиль и тон</div>
-            <div class="setting-item">
-                <div class="setting-select" id="btnStyleSelect">
-                    <span class="setting-select-text" id="styleValue">По умолчанию</span>
-                    <span>▾</span>
-                </div>
-                <div class="dropdown-menu hidden" id="styleDropdown">
-                    <div class="dropdown-item active" data-value="default">
-                        <div class="dropdown-item-title">По умолчанию</div>
-                        <div class="dropdown-item-desc">Предпочитаемый стиль и тон</div>
-                    </div>
-                    <div class="dropdown-item" data-value="professional">
-                        <div class="dropdown-item-title">Профессиональный</div>
-                        <div class="dropdown-item-desc">Тактичный и точный</div>
-                    </div>
-                    <div class="dropdown-item" data-value="friendly">
-                        <div class="dropdown-item-title">Дружелюбный</div>
-                        <div class="dropdown-item-desc">Тёплый и разговорчивый</div>
-                    </div>
-                    <div class="dropdown-item" data-value="frank">
-                        <div class="dropdown-item-title">Откровенный</div>
-                        <div class="dropdown-item-desc">Прямой и мотивирующий</div>
-                    </div>
-                    <div class="dropdown-item" data-value="whimsical">
-                        <div class="dropdown-item-title">Причудливый</div>
-                        <div class="dropdown-item-desc">Весёлый и творческий</div>
-                    </div>
-                    <div class="dropdown-item" data-value="efficient">
-                        <div class="dropdown-item-title">Эффективный</div>
-                        <div class="dropdown-item-desc">Немногословный и чёткий</div>
-                    </div>
-                    <div class="dropdown-item" data-value="cynical">
-                        <div class="dropdown-item-title">Циничный</div>
-                        <div class="dropdown-item-desc">Критикующий и саркастичный</div>
-                    </div>
-                </div>
-            </div>
+        <button class="logout-btn" onclick="logOut()">Выйти</button>
+      </div>
+      <div class="s-sect">
+        <div class="s-sect-label">Настроить HarmonyAI</div>
+        <div class="s-rows">
+          <div class="s-row" onclick="renderSettings('personalization')">
+            <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="M20 21a8 8 0 10-16 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+            <div class="s-row-text">Персонализация</div>
+            <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+          </div>
+          <div class="s-row" onclick="renderSettings('memory')">
+            <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26C17.81 13.47 19 11.38 19 9c0-3.87-3.13-7-7-7z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 21h6M10 17v-4M14 17v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+            <div class="s-row-text">Память</div>
+            <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+          </div>
         </div>
-
-        <!-- Остальные настройки -->
-        <div class="settings-section">
-            <div class="setting-item">
-                <div class="setting-label">Доброжелательность</div>
-                <div class="setting-select" id="btnFriendlinessSelect">
-                    <span class="setting-select-text" id="friendlinessValue">По умолчанию</span>
-                    <span>▾</span>
-                </div>
-                <div class="dropdown-menu hidden" id="friendlinessDropdown">
-                    <div class="dropdown-item active" data-value="default">
-                        <div class="dropdown-item-title">По умолчанию</div>
-                    </div>
-                    <div class="dropdown-item" data-value="low">
-                        <div class="dropdown-item-title">Низкая</div>
-                    </div>
-                    <div class="dropdown-item" data-value="medium">
-                        <div class="dropdown-item-title">Средняя</div>
-                    </div>
-                    <div class="dropdown-item" data-value="high">
-                        <div class="dropdown-item-title">Высокая</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="setting-item">
-                <div class="setting-label">Энтузиазм</div>
-                <div class="setting-select" id="btnEnthusiasmSelect">
-                    <span class="setting-select-text" id="enthusiasmValue">По умолчанию</span>
-                    <span>▾</span>
-                </div>
-                <div class="dropdown-menu hidden" id="enthusiasmDropdown">
-                    <div class="dropdown-item active" data-value="default">
-                        <div class="dropdown-item-title">По умолчанию</div>
-                    </div>
-                    <div class="dropdown-item" data-value="reserved">
-                        <div class="dropdown-item-title">Сдержанный</div>
-                    </div>
-                    <div class="dropdown-item" data-value="moderate">
-                        <div class="dropdown-item-title">Умеренный</div>
-                    </div>
-                    <div class="dropdown-item" data-value="high">
-                        <div class="dropdown-item-title">Высокий</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="setting-item">
-                <div class="setting-label">Заголовки и списки</div>
-                <div class="setting-select" id="btnHeadingsSelect">
-                    <span class="setting-select-text" id="headingsValue">По умолчанию</span>
-                    <span>▾</span>
-                </div>
-                <div class="dropdown-menu hidden" id="headingsDropdown">
-                    <div class="dropdown-item active" data-value="default">
-                        <div class="dropdown-item-title">По умолчанию</div>
-                    </div>
-                    <div class="dropdown-item" data-value="off">
-                        <div class="dropdown-item-title">Выкл</div>
-                    </div>
-                    <div class="dropdown-item" data-value="on">
-                        <div class="dropdown-item-title">Вкл</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="setting-item">
-                <div class="setting-label">Эмодзи</div>
-                <div class="setting-select" id="btnEmojisSelect">
-                    <span class="setting-select-text" id="emojisValue">По умолчанию</span>
-                    <span>▾</span>
-                </div>
-                <div class="dropdown-menu hidden" id="emojisDropdown">
-                    <div class="dropdown-item active" data-value="default">
-                        <div class="dropdown-item-title">По умолчанию</div>
-                    </div>
-                    <div class="dropdown-item" data-value="none">
-                        <div class="dropdown-item-title">Нет</div>
-                    </div>
-                    <div class="dropdown-item" data-value="some">
-                        <div class="dropdown-item-title">Немного</div>
-                    </div>
-                    <div class="dropdown-item" data-value="many">
-                        <div class="dropdown-item-title">Много</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="setting-item">
-                <div class="toggle-row">
-                    <div class="toggle-info">
-                        <div class="toggle-title">Быстрые ответы</div>
-                        <div class="toggle-description">Иногда HarmonyAi может использовать свои общие знания, чтобы давать быстрые и подробные ответы. Такие ответы не персонализированы и не учитывают сохранённую информацию.</div>
-                    </div>
-                    <div class="toggle-switch active" id="quickRepliesToggle">
-                        <div class="toggle-slider"></div>
-                    </div>
-                </div>
-            </div>
+      </div>
+      <div class="s-sect">
+        <div class="s-sect-label">Учётная запись</div>
+        <div class="s-rows">
+          <div class="s-row">
+            <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" stroke-width="2"/><path d="M3 7l9 7 9-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+            <div class="s-row-text">Электронная почта</div>
+            <div class="s-row-val" style="font-size:12px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${curUser?.email||''}</div>
+          </div>
+          <div class="s-row">
+            <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7l3-7z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></div>
+            <div class="s-row-text">Подписка</div>
+            <div class="s-row-val">MusMind Lite</div>
+          </div>
+          <div class="s-row">
+            <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z" stroke="currentColor" stroke-width="2"/><path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+            <div class="s-row-text">Перейти на MusMind Pro</div>
+            <div class="s-row-val soon">Скоро</div>
+          </div>
         </div>
-
-        <!-- Пользовательские инструкции -->
-        <div class="settings-section">
-            <div class="settings-section-title">Пользовательские инструкции</div>
-            <textarea class="custom-instructions" id="customInstructions" placeholder="Поделитесь чем-нибудь еще, что вы хотели бы включить для рассмотрения в ответе Harmony Ai."></textarea>
+      </div>`;
+  }else if(screen==='memory'){
+    const memSave=(s.memSave!==false);
+    const memRecall=(s.memRecall!==false);
+    el.innerHTML=`
+      <div class="sth">
+        <div class="sth-back" onclick="renderSettings('main')">
+          <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
-
-        <!-- Профиль -->
-        <div class="settings-section">
-            <div class="user-profile">
-                <div class="user-avatar" id="userAvatar">U</div>
-                <div class="user-info">
-                    <div class="user-email" id="userEmail">user@example.com</div>
-                </div>
-                <button type="button" class="logout-btn" id="btnLogout">Выйти</button>
-            </div>
+        <div class="sth-title">Память</div>
+      </div>
+      <div class="mem-rows">
+        <div class="mem-row">
+          <div class="mem-info"><div class="mem-title">Сохранять память</div><div class="mem-desc">HarmonyAI запоминает детали из разговоров</div></div>
+          <div class="sw ${memSave?'on':''}" id="swSave" onclick="this.classList.toggle('on');saveSettingField('memSave',this.classList.contains('on'))"></div>
         </div>
+        <div class="mem-row">
+          <div class="mem-info"><div class="mem-title">Ссылаться на память</div><div class="mem-desc">Использует память при ответах</div></div>
+          <div class="sw ${memRecall?'on':''}" id="swRecall" onclick="this.classList.toggle('on');saveSettingField('memRecall',this.classList.contains('on'))"></div>
+        </div>
+      </div>`;
+  }else if(screen==='personalization'){
+    const st=s.style||'default';
+    const fr=s.friendliness||'default';
+    const en=s.enthusiasm||'default';
+    const hd=s.headings||'default';
+    const em=s.emojis||'default';
+    const qr=(s.quickReplies!==false);
+    const ci=s.customInstructions||'';
+    el.innerHTML=`
+      <div class="sth">
+        <div class="sth-back" onclick="renderSettings('main')">
+          <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="sth-title">Персонализация</div>
+        <button style="margin-left:auto;padding:7px 16px;border-radius:10px;background:var(--bg2);border:1px solid var(--border);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;" onclick="savePers()">Сохранить</button>
+      </div>
+      <div class="s-sect-label" style="margin-bottom:8px">Базовый стиль и тон</div>
+      ${persDropRow('style',st,'styleVal',Object.keys(STYLES).map(k=>({val:k,label:STYLES[k],desc:STYLE_DESCS[k]})))}
+      <div class="pers-section" style="margin-bottom:16px">
+        <div class="pers-row">
+          <div class="pers-row-label">Доброжелательность</div>
+          ${persDropRow('friendliness',fr,'frVal',[{val:'default',label:'По умолчанию'},{val:'low',label:'Низкая'},{val:'medium',label:'Средняя'},{val:'high',label:'Высокая'}],true)}
+        </div>
+        <div class="pers-row" style="border-top:1px solid var(--border2)">
+          <div class="pers-row-label">Энтузиазм</div>
+          ${persDropRow('enthusiasm',en,'enVal',[{val:'default',label:'По умолчанию'},{val:'reserved',label:'Сдержанный'},{val:'moderate',label:'Умеренный'},{val:'high',label:'Высокий'}],true)}
+        </div>
+        <div class="pers-row" style="border-top:1px solid var(--border2)">
+          <div class="pers-row-label">Заголовки и списки</div>
+          ${persDropRow('headings',hd,'hdVal',[{val:'default',label:'По умолчанию'},{val:'off',label:'Выкл'},{val:'on',label:'Вкл'}],true)}
+        </div>
+        <div class="pers-row" style="border-top:1px solid var(--border2)">
+          <div class="pers-row-label">Эмодзи</div>
+          ${persDropRow('emojis',em,'emVal',[{val:'default',label:'По умолчанию'},{val:'none',label:'Нет'},{val:'some',label:'Немного'},{val:'many',label:'Много'}],true)}
+        </div>
+      </div>
+      <div class="pers-toggle-row">
+        <div class="pers-toggle-info">
+          <div class="pers-toggle-label">Быстрые ответы</div>
+          <div class="pers-toggle-desc">Иногда HarmonyAi может использовать свои общие знания для быстрых ответов. Такие ответы не персонализированы.</div>
+        </div>
+        <div class="sw ${qr?'on':''}" id="swQR" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="s-sect-label" style="margin-bottom:8px">Пользовательские инструкции</div>
+      <textarea class="custom-instr-area" id="custInstr" placeholder="Поделитесь чем-нибудь ещё, что вы хотели бы включить для рассмотрения в ответе Harmony Ai.">${ci}</textarea>
+      <button class="save-btn" onclick="savePers()">Сохранить</button>`;
+    setupPersDropdowns();
+  }
+}
+function persDropRow(field,cur,valId,opts,inline){
+  const label=opts.find(o=>o.val===cur)?.label||'По умолчанию';
+  return inline?`
+    <div class="pers-row-val" onclick="openPersDropInline(event,'${field}','${valId}')">
+      <span id="${valId}">${label}</span>
+      <span style="font-size:12px;opacity:.6">⌃</span>
     </div>
+  `:`
+    <div class="pers-section" style="margin-bottom:16px">
+      <div class="pers-row" onclick="openPersDropInline(event,'${field}','${valId}')">
+        <div class="pers-row-val" style="flex:1">
+          <span id="${valId}">${label}</span>
+          <span style="font-size:12px;opacity:.6;margin-left:4px">⌃</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+const PERS_OPTS={
+  style:Object.keys(STYLES).map(k=>({val:k,label:STYLES[k],desc:STYLE_DESCS[k]})),
+  friendliness:[{val:'default',label:'По умолчанию'},{val:'low',label:'Низкая'},{val:'medium',label:'Средняя'},{val:'high',label:'Высокая'}],
+  enthusiasm:[{val:'default',label:'По умолчанию'},{val:'reserved',label:'Сдержанный'},{val:'moderate',label:'Умеренный'},{val:'high',label:'Высокий'}],
+  headings:[{val:'default',label:'По умолчанию'},{val:'off',label:'Выкл'},{val:'on',label:'Вкл'}],
+  emojis:[{val:'default',label:'По умолчанию'},{val:'none',label:'Нет'},{val:'some',label:'Немного'},{val:'many',label:'Много'}],
+};
+let curPersDropEl=null;
+function openPersDropInline(e,field,valId){
+  e.stopPropagation();
+  const existing=document.getElementById('inlineDrop');
+  if(existing&&existing.dataset.field===field){existing.remove();curPersDropEl=null;return;}
+  if(existing)existing.remove();
+  const target=e.currentTarget;
+  const drop=document.createElement('div');
+  drop.id='inlineDrop';drop.dataset.field=field;
+  drop.style.cssText='position:absolute;left:0;right:0;background:var(--drop-bg);border:1px solid var(--border);border-radius:12px;padding:5px;z-index:100;box-shadow:var(--drop-shadow);margin-top:4px;';
+  const opts=PERS_OPTS[field]||[];
+  const cur=getSettings()[field]||'default';
+  opts.forEach(opt=>{
+    const d=document.createElement('div');
+    d.className='pers-opt'+(opt.val===cur?' selected':'');
+    d.innerHTML=`<div class="pers-opt-title">${opt.label}</div>${opt.desc?`<div class="pers-opt-desc">${opt.desc}</div>`:''}`;
+    d.onclick=(ev)=>{
+      ev.stopPropagation();
+      document.getElementById(valId).textContent=opt.label;
+      drop.remove();curPersDropEl=null;
+      if(!curUser)return;
+      if(!curUser.settings)curUser.settings={};
+      curUser.settings[field]=opt.val;
+    };
+    drop.appendChild(d);
+  });
+  target.style.position='relative';
+  target.appendChild(drop);
+  curPersDropEl=drop;
+}
+function setupPersDropdowns(){
+  document.addEventListener('click',hidePersDrops,{once:false});
+}
+function hidePersDrops(e){
+  if(curPersDropEl&&!curPersDropEl.contains(e.target)){
+    curPersDropEl.remove();curPersDropEl=null;
+  }
+}
+async function savePers(){
+  const qr=document.getElementById('swQR')?.classList.contains('on');
+  const ci=document.getElementById('custInstr')?.value||'';
+  if(!curUser)return;
+  if(!curUser.settings)curUser.settings={};
+  curUser.settings.quickReplies=qr;
+  curUser.settings.customInstructions=ci;
+  await sb.from('profiles').upsert({id:curUser.id,settings:curUser.settings},{onConflict:'id'});
+  renderSettings('main');
+}
+async function saveSettingField(key,val){
+  if(!curUser)return;
+  if(!curUser.settings)curUser.settings={};
+  curUser.settings[key]=val;
+  await sb.from('profiles').upsert({id:curUser.id,settings:curUser.settings},{onConflict:'id'});
+}
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
+/* ===== SYSTEM PROMPT ===== */
+const BASE_SYSTEM=`Ты HarmonyAI — музыкальный ИИ-помощник для учеников музыкальной школы. Ты мужского пола — говори о себе в мужском роде. Отвечай на русском языке. Будь дружелюбным и понятным.
+Ты знаешь: сольфеджио, нотную грамоту, интервалы, аккорды, лады, ритм, музыкальные термины. Помогаешь и с другими предметами.
+ФОРМАТИРОВАНИЕ: используй Markdown — **жирный**, # заголовки, списки.
+ФОТО: если присылают фото с нотами — разбери каждую ноту и аккорд.`;
+function buildSystem(){
+  const s=getSettings();
+  let sys=BASE_SYSTEM;
+  const styleMap={professional:'Отвечай профессионально и точно.',friendly:'Отвечай тепло и разговорчиво.',frank:'Отвечай прямо и мотивируя.',whimsical:'Отвечай весело и творчески.',efficient:'Отвечай коротко и по делу.',cynical:'Можешь быть немного саркастичным.'};
+  if(s.style&&styleMap[s.style])sys+='\nСТИЛЬ: '+styleMap[s.style];
+  if(curMode==='low')sys+='\nРЕЖИМ Low: отвечай кратко, максимум 3-4 предложения.';
+  if(curMode==='max')sys+='\nРЕЖИМ Max: отвечай подробно, с объяснениями и примерами.';
+  if(thinkOn)sys+='\nРЕЖИМ ДУМАТЬ: тщательно анализируй задачу, покажи ход рассуждений.';
+  if(s.customInstructions)sys+='\nДОПОЛНИТЕЛЬНО от пользователя: '+s.customInstructions;
+  return sys;
+}
 
-            // ===== SUPABASE ИНИЦИАЛИЗАЦИЯ =====
-            var supabaseUrl = 'https://cqthnymltqpcxtpiryka.supabase.co';
-            var supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNxdGhueW1sdHFwY3h0cGlyeWthIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MjY3NzYsImV4cCI6MjA5NzAwMjc3Nn0.b-6lSdjT7XwWkt607ORwGfKYSn3CLZJB3mcs4QQUSoE';
-            var supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey, {
-                auth: {
-                    persistSession: true,
-                    autoRefreshToken: true,
-                    detectSessionInUrl: false
-                }
-            });
+/* ===== FILE UPLOAD ===== */
+function handleFile(inp){
+  const f=inp.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=e=>{pendingImg=e.target.result.split(',')[1];document.getElementById('msgTa').placeholder='Фото прикреплено — напишите вопрос...';};
+  r.readAsDataURL(f);
+}
 
-            // ===== ПЕРЕМЕННЫЕ =====
-            var currentUser = null;
-            var currentEmail = '';
-            var selectedModelType = 'lite';
-            var selectedMode = 'low';
-            var thinkingEnabled = false;
-            var sidebarOpen = false;
+/* ===== TEXTAREA ===== */
+function taResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,160)+'px';}
 
-            var userSettings = {
-                style: 'default',
-                friendliness: 'default',
-                enthusiasm: 'default',
-                headings: 'default',
-                emojis: 'default',
-                quickReplies: true,
-                customInstructions: ''
-            };
+/* ===== MESSAGES ===== */
+const IC_COPY='<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke="currentColor" stroke-width="2"/></svg>';
+const IC_LIKE='<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M7 22H4a1 1 0 01-1-1v-9a1 1 0 011-1h3m4-9l1 1v6h6.28a2 2 0 011.98 2.3l-1.2 8A2 2 0 0114.08 22H7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+const IC_DISLIKE='<svg width="13" height="13" style="transform:rotate(180deg)" viewBox="0 0 24 24" fill="none"><path d="M7 22H4a1 1 0 01-1-1v-9a1 1 0 011-1h3m4-9l1 1v6h6.28a2 2 0 011.98 2.3l-1.2 8A2 2 0 0114.08 22H7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+const IC_REGEN='<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M1 4v6h6M23 20v-6h-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 013.51 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const IC_MORE='<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="5" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="19" cy="12" r="1.5" fill="currentColor"/></svg>';
 
-            // ===== ПРОВЕРКА СЕССИИ ПРИ ЗАГРУЗКЕ =====
-            supabase.auth.getSession().then(function(result) {
-                var session = result.data.session;
-                if (session) {
-                    currentUser = session.user;
-                    showChat();
-                    loadUserSettings();
-                }
-            });
+function getChatInner(){
+  const inner=document.getElementById('chatInner');
+  const gr=document.getElementById('greetingWrap');if(gr)gr.remove();
+  return inner;
+}
+function addUserBubble(text){
+  const inner=getChatInner();
+  const d=document.createElement('div');d.className='msg-user';d.textContent=text;
+  inner.appendChild(d);scrollChat();
+}
+function addAiBubble(text,stream=true){
+  const inner=getChatInner();
+  const wrap=document.createElement('div');wrap.className='msg-ai-wrap';
+  const msg=document.createElement('div');msg.className='msg-ai';wrap.appendChild(msg);
+  const actions=document.createElement('div');actions.className='msg-actions';
+  actions.innerHTML=
+    `<div class="mac-btn" onclick="cpMsg(this)" title="Копировать">${IC_COPY}</div>`+
+    `<div class="mac-btn" onclick="likeMsg(this,'like')" title="Нравится">${IC_LIKE}</div>`+
+    `<div class="mac-btn" onclick="likeMsg(this,'dislike')" title="Не нравится">${IC_DISLIKE}</div>`+
+    `<div class="mac-btn" onclick="toggleMore(this)" title="Ещё">${IC_MORE}</div>`+
+    `<div class="more-menu"><div class="more-item" onclick="regenMsg(this)">${IC_REGEN} Повторить</div></div>`;
+  wrap.appendChild(actions);
+  inner.appendChild(wrap);scrollChat();
+  if(stream)return streamText(msg,text);
+  renderMd(msg,text);return Promise.resolve();
+}
+function renderMd(el,text){
+  if(typeof marked!=='undefined')el.innerHTML=marked.parse(text);
+  else{el.textContent=text;}
+  el.dataset.raw=text;
+}
+function streamText(el,text){
+  return new Promise(resolve=>{
+    let i=0;el.style.whiteSpace='pre-wrap';
+    function step(){
+      i+=3;
+      el.textContent=text.slice(0,Math.min(i,text.length))+(i<text.length?'▍':'');
+      scrollChat();
+      if(i<text.length)setTimeout(step,5);
+      else{renderMd(el,text);scrollChat();resolve();}
+    }
+    step();
+  });
+}
+function scrollChat(){const a=document.getElementById('chatArea');if(a)a.scrollTop=a.scrollHeight;}
+function cpMsg(btn){
+  const txt=(btn.closest('.msg-ai-wrap').querySelector('.msg-ai').dataset.raw||btn.closest('.msg-ai-wrap').querySelector('.msg-ai').textContent);
+  navigator.clipboard.writeText(txt).catch(()=>{});
+  btn.classList.add('liked');setTimeout(()=>btn.classList.remove('liked'),800);
+}
+function likeMsg(btn,t){
+  const g=btn.parentElement;
+  const lb=g.children[1],db=g.children[2];
+  if(t==='like'){lb.classList.toggle('liked');db.classList.remove('disliked');}
+  else{db.classList.toggle('disliked');lb.classList.remove('liked');}
+}
+function toggleMore(btn){
+  const m=btn.nextElementSibling;
+  document.querySelectorAll('.more-menu.open').forEach(x=>{if(x!==m)x.classList.remove('open');});
+  m.classList.toggle('open');
+}
+async function regenMsg(item){
+  item.parentElement.classList.remove('open');
+  const wrap=item.closest('.msg-ai-wrap');
+  const msgEl=wrap.querySelector('.msg-ai');
+  if(chatHistory.length&&chatHistory[chatHistory.length-1].role==='assistant')chatHistory.pop();
+  msgEl.innerHTML='';msgEl.style.whiteSpace='pre-wrap';
+  showLoading(true);
+  try{
+    const res=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'system',content:buildSystem()},...chatHistory]})});
+    const data=await res.json();
+    const reply=data.choices?.[0]?.message?.content||'Нет ответа';
+    showLoading(false);
+    await streamText(msgEl,reply);
+    chatHistory.push({role:'assistant',content:reply});
+    await saveChat();
+  }catch(e){showLoading(false);renderMd(msgEl,'Ошибка: '+e.message);}
+}
+function showTyping(){
+  const inner=getChatInner();
+  const d=document.createElement('div');d.className='thinking';d.id='typEl';
+  d.innerHTML='<div class="think-dots"><span></span><span></span><span></span></div><span>Думаю...</span>';
+  inner.appendChild(d);scrollChat();
+}
+function hideTyping(){const t=document.getElementById('typEl');if(t)t.remove();}
+function showLoading(v){document.getElementById('loadingIcon').style.display=v?'flex':'none';}
 
-            supabase.auth.onAuthStateChange(function(event, session) {
-                if (event === 'SIGNED_IN' && session) {
-                    currentUser = session.user;
-                    showChat();
-                    loadUserSettings();
-                } else if (event === 'SIGNED_OUT') {
-                    currentUser = null;
-                    location.reload();
-                }
-            });
+/* ===== SEND ===== */
+async function sendMsg(){
+  const ta=document.getElementById('msgTa');
+  const text=ta.value.trim();
+  if(!text&&!pendingImg)return;
+  ta.value='';ta.style.height='auto';
 
-            // ===== НАВИГАЦИЯ =====
-            function showAuthScreen(num) {
-                document.getElementById('authScreen1').classList.remove('active');
-                document.getElementById('authScreen2').classList.remove('active');
-                document.getElementById('authScreen3').classList.remove('active');
-                document.getElementById('authScreen' + num).classList.add('active');
-            }
+  let userContent,displayText=text||'[фото]';
+  if(pendingImg){
+    userContent=[];
+    if(text)userContent.push({type:'text',text});
+    userContent.push({type:'image_url',image_url:{url:'data:image/jpeg;base64,'+pendingImg}});
+    pendingImg=null;ta.placeholder='Введите сообщение ..';
+  }else{userContent=text;}
 
-            function showChat() {
-                document.getElementById('authScreen1').classList.remove('active');
-                document.getElementById('authScreen2').classList.remove('active');
-                document.getElementById('authScreen3').classList.remove('active');
-                document.getElementById('chatContainer').classList.add('active');
+  addUserBubble(displayText);
+  chatHistory.push({role:'user',content:userContent});
+  if(chatHistory.length===1)await saveChat(displayText.slice(0,40));
+  else await saveChat();
+  showLoading(true);showTyping();
 
-                if (currentUser) {
-                    document.getElementById('userEmail').textContent = currentUser.email;
-                    document.getElementById('userAvatar').textContent = currentUser.email.charAt(0).toUpperCase();
-                }
-            }
-
-            function showSettings() {
-                document.getElementById('chatContainer').classList.remove('active');
-                document.getElementById('settingsContainer').classList.add('active');
-            }
-
-            function hideSettings() {
-                document.getElementById('settingsContainer').classList.remove('active');
-                document.getElementById('chatContainer').classList.add('active');
-            }
-
-            // ===== ОТПРАВКА OTP =====
-            document.getElementById('btnContinueEmail').addEventListener('click', function() {
-                showAuthScreen(2);
-            });
-
-            document.getElementById('btnBackToWelcome').addEventListener('click', function() {
-                showAuthScreen(1);
-            });
-
-            document.getElementById('btnSendOTP').addEventListener('click', function() {
-                var email = document.getElementById('emailInput').value.trim();
-                if (!email) {
-                    alert('Введите email');
-                    return;
-                }
-                currentEmail = email;
-
-                supabase.auth.signInWithOtp({ 
-                    email: email,
-                    options: {
-                        shouldCreateUser: true
-                    }
-                }).then(function(result) {
-                    if (result.error) {
-                        alert('Ошибка: ' + result.error.message);
-                    } else {
-                        showAuthScreen(3);
-                        setupOTPInputs();
-                    }
-                });
-            });
-
-            document.getElementById('btnChangeEmail').addEventListener('click', function() {
-                showAuthScreen(2);
-            });
-
-            // ===== OTP ВВОД =====
-            function setupOTPInputs() {
-                var inputs = document.querySelectorAll('.otp-input');
-                inputs.forEach(function(input) { input.value = ''; });
-
-                inputs.forEach(function(input, index) {
-                    input.addEventListener('input', function(e) {
-                        if (e.target.value.length === 1) {
-                            if (index < 5) inputs[index + 1].focus();
-                        }
-                    });
-                    input.addEventListener('keydown', function(e) {
-                        if (e.key === 'Backspace' && !e.target.value && index > 0) {
-                            inputs[index - 1].focus();
-                        }
-                    });
-                    input.addEventListener('paste', function(e) {
-                        e.preventDefault();
-                        var pasteData = e.clipboardData.getData('text').slice(0, 6);
-                        pasteData.split('').forEach(function(char, i) {
-                            if (inputs[i]) inputs[i].value = char;
-                        });
-                        if (inputs[pasteData.length - 1]) {
-                            inputs[pasteData.length - 1].focus();
-                        }
-                    });
-                });
-            }
-
-            document.getElementById('btnVerifyOTP').addEventListener('click', function() {
-                var inputs = document.querySelectorAll('.otp-input');
-                var code = '';
-                inputs.forEach(function(input) { code += input.value; });
-
-                if (code.length !== 6) {
-                    alert('Введите 6-значный код');
-                    return;
-                }
-
-                supabase.auth.verifyOtp({
-                    email: currentEmail,
-                    token: code,
-                    type: 'email'
-                }).then(function(result) {
-                    if (result.error) {
-                        alert('Ошибка: ' + result.error.message);
-                    } else {
-                        currentUser = result.data.user;
-                        showChat();
-                        loadUserSettings();
-                    }
-                });
-            });
-
-            document.getElementById('btnResendOTP').addEventListener('click', function() {
-                var btn = document.getElementById('btnResendOTP');
-                btn.disabled = true;
-                btn.textContent = 'Отправлено';
-
-                supabase.auth.signInWithOtp({ email: currentEmail }).then(function(result) {
-                    if (result.error) {
-                        alert('Ошибка: ' + result.error.message);
-                    }
-                });
-
-                setTimeout(function() {
-                    btn.disabled = false;
-                    btn.textContent = 'Не приходит код? Отправить снова';
-                }, 60000);
-            });
-
-            // ===== БОКОВОЕ МЕНЮ =====
-            function toggleSidebar() {
-                sidebarOpen = !sidebarOpen;
-                document.getElementById('sidebar').classList.toggle('open', sidebarOpen);
-                document.getElementById('overlay').classList.toggle('active', sidebarOpen);
-            }
-
-            document.getElementById('btnBurger').addEventListener('click', toggleSidebar);
-            document.getElementById('btnCloseSidebar').addEventListener('click', toggleSidebar);
-            document.getElementById('overlay').addEventListener('click', toggleSidebar);
-
-            document.getElementById('btnNewChat').addEventListener('click', function() {
-                toggleSidebar();
-            });
-
-            // ===== НАСТРОЙКИ =====
-            document.getElementById('btnOpenSettings').addEventListener('click', showSettings);
-            document.getElementById('btnBackFromSettings').addEventListener('click', hideSettings);
-
-            document.getElementById('btnLogout').addEventListener('click', function() {
-                supabase.auth.signOut().then(function() {
-                    location.reload();
-                });
-            });
-
-            // ===== ВЫБОР МОДЕЛИ =====
-            document.getElementById('btnModelSelector').addEventListener('click', function(e) {
-                e.stopPropagation();
-                document.getElementById('modelDropdown').classList.toggle('hidden');
-            });
-
-            document.getElementById('modelLite').addEventListener('click', function() {
-                selectedModelType = 'lite';
-                document.getElementById('selectedModel').textContent = 'MusMind lite';
-                document.getElementById('modelLite').classList.add('active');
-                document.getElementById('modelPro').classList.remove('active');
-                document.getElementById('modelDropdown').classList.add('hidden');
-            });
-
-            document.getElementById('modelPro').addEventListener('click', function() {
-                selectedModelType = 'pro';
-                document.getElementById('selectedModel').textContent = 'MusMind pro';
-                document.getElementById('modelPro').classList.add('active');
-                document.getElementById('modelLite').classList.remove('active');
-                document.getElementById('modelDropdown').classList.add('hidden');
-            });
-
-            // ===== РЕЖИМ LOW/MAX =====
-            document.getElementById('modeLow').addEventListener('click', function() {
-                selectedMode = 'low';
-                document.getElementById('modeLow').classList.add('active');
-                document.getElementById('modeMax').classList.remove('active');
-            });
-
-            document.getElementById('modeMax').addEventListener('click', function() {
-                selectedMode = 'max';
-                document.getElementById('modeMax').classList.add('active');
-                document.getElementById('modeLow').classList.remove('active');
-            });
-
-            // ===== ДУМАТЬ =====
-            document.getElementById('thinkingToggle').addEventListener('click', function() {
-                thinkingEnabled = !thinkingEnabled;
-                document.getElementById('thinkingToggle').classList.toggle('active', thinkingEnabled);
-            });
-
-            // ===== DROPDOWNS =====
-            function setupDropdown(btnId, dropdownId, valueId, callback) {
-                document.getElementById(btnId).addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    document.querySelectorAll('.dropdown-menu').forEach(function(d) {
-                        if (d.id !== dropdownId) d.classList.add('hidden');
-                    });
-                    document.getElementById(dropdownId).classList.toggle('hidden');
-                });
-
-                document.getElementById(dropdownId).querySelectorAll('.dropdown-item').forEach(function(item) {
-                    item.addEventListener('click', function() {
-                        var value = item.getAttribute('data-value');
-                        var title = item.querySelector('.dropdown-item-title').textContent;
-                        document.getElementById(valueId).textContent = title;
-
-                        document.getElementById(dropdownId).querySelectorAll('.dropdown-item').forEach(function(i) {
-                            i.classList.remove('active');
-                        });
-                        item.classList.add('active');
-
-                        if (callback) callback(value);
-                    });
-                });
-            }
-
-            setupDropdown('btnStyleSelect', 'styleDropdown', 'styleValue', function(v) { userSettings.style = v; });
-            setupDropdown('btnFriendlinessSelect', 'friendlinessDropdown', 'friendlinessValue', function(v) { userSettings.friendliness = v; });
-            setupDropdown('btnEnthusiasmSelect', 'enthusiasmDropdown', 'enthusiasmValue', function(v) { userSettings.enthusiasm = v; });
-            setupDropdown('btnHeadingsSelect', 'headingsDropdown', 'headingsValue', function(v) { userSettings.headings = v; });
-            setupDropdown('btnEmojisSelect', 'emojisDropdown', 'emojisValue', function(v) { userSettings.emojis = v; });
-
-            document.addEventListener('click', function() {
-                document.querySelectorAll('.dropdown-menu').forEach(function(d) {
-                    d.classList.add('hidden');
-                });
-                document.getElementById('modelDropdown').classList.add('hidden');
-            });
-
-            // ===== БЫСТРЫЕ ОТВЕТЫ =====
-            document.getElementById('quickRepliesToggle').addEventListener('click', function() {
-                userSettings.quickReplies = !userSettings.quickReplies;
-                document.getElementById('quickRepliesToggle').classList.toggle('active', userSettings.quickReplies);
-            });
-
-            // ===== СОХРАНЕНИЕ НАСТРОЕК =====
-            document.getElementById('btnSaveSettings').addEventListener('click', function() {
-                userSettings.customInstructions = document.getElementById('customInstructions').value;
-
-                if (currentUser) {
-                    supabase.from('profiles').upsert({
-                        id: currentUser.id,
-                        settings: userSettings
-                    }, { onConflict: 'id' }).then(function(result) {
-                        if (result.error) {
-                            console.error('Error saving:', result.error);
-                            alert('Ошибка сохранения: ' + result.error.message);
-                        } else {
-                            alert('Настройки сохранены!');
-                            hideSettings();
-                        }
-                    });
-                } else {
-                    hideSettings();
-                }
-            });
-
-            // ===== ЗАГРУЗКА НАСТРОЕК =====
-            function loadUserSettings() {
-                if (!currentUser) return;
-
-                supabase.from('profiles').select('settings').eq('id', currentUser.id).single().then(function(result) {
-                    if (result.data && result.data.settings) {
-                        userSettings = Object.assign(userSettings, result.data.settings);
-                        applyUserSettings();
-                    }
-                });
-            }
-
-            function applyUserSettings() {
-                document.getElementById('customInstructions').value = userSettings.customInstructions || '';
-                document.getElementById('quickRepliesToggle').classList.toggle('active', userSettings.quickReplies);
-
-                var styleNames = {
-                    'default': 'По умолчанию',
-                    'professional': 'Профессиональный',
-                    'friendly': 'Дружелюбный',
-                    'frank': 'Откровенный',
-                    'whimsical': 'Причудливый',
-                    'efficient': 'Эффективный',
-                    'cynical': 'Циничный'
-                };
-                document.getElementById('styleValue').textContent = styleNames[userSettings.style] || 'По умолчанию';
-
-                var friendlinessNames = {
-                    'default': 'По умолчанию', 'low': 'Низкая', 'medium': 'Средняя', 'high': 'Высокая'
-                };
-                document.getElementById('friendlinessValue').textContent = friendlinessNames[userSettings.friendliness] || 'По умолчанию';
-
-                var enthusiasmNames = {
-                    'default': 'По умолчанию', 'reserved': 'Сдержанный', 'moderate': 'Умеренный', 'high': 'Высокий'
-                };
-                document.getElementById('enthusiasmValue').textContent = enthusiasmNames[userSettings.enthusiasm] || 'По умолчанию';
-
-                var headingsNames = {
-                    'default': 'По умолчанию', 'off': 'Выкл', 'on': 'Вкл'
-                };
-                document.getElementById('headingsValue').textContent = headingsNames[userSettings.headings] || 'По умолчанию';
-
-                var emojisNames = {
-                    'default': 'По умолчанию', 'none': 'Нет', 'some': 'Немного', 'many': 'Много'
-                };
-                document.getElementById('emojisValue').textContent = emojisNames[userSettings.emojis] || 'По умолчанию';
-            }
-
-            // ===== ОТПРАВКА СООБЩЕНИЯ (РЕАЛЬНАЯ, ЧЕРЕЗ API) =====
-            document.getElementById('btnSend').addEventListener('click', sendMessage);
-            document.getElementById('messageInput').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    sendMessage();
-                }
-            });
-
-            function sendMessage() {
-                var text = document.getElementById('messageInput').value.trim();
-                if (!text) return;
-
-                // Показываем сообщение пользователя
-                addMessage(text, 'user');
-                document.getElementById('messageInput').value = '';
-
-                // Показываем индикатор "печатает"
-                var loadingId = addMessage('Печатает...', 'ai', true);
-
-                // Отправляем на сервер
-                fetch('/api/chat', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        message: text,
-                        model: selectedModelType,
-                        mode: selectedMode,
-                        thinking: thinkingEnabled,
-                        settings: userSettings
-                    })
-                })
-                .then(function(response) {
-                    return response.json();
-                })
-                .then(function(data) {
-                    // Убираем индикатор
-                    removeMessage(loadingId);
-                    // Показываем ответ
-                    addMessage(data.response, 'ai');
-                })
-                .catch(function(error) {
-                    console.error('Error:', error);
-                    removeMessage(loadingId);
-                    addMessage('Ошибка: не удалось получить ответ. Проверьте подключение к интернету.', 'ai');
-                });
-            }
-
-            function addMessage(text, sender, isLoading) {
-                var messagesContainer = document.querySelector('.chat-messages');
-                var messageDiv = document.createElement('div');
-                messageDiv.style.cssText = 'margin-bottom: 16px; padding: 12px 16px; border-radius: 12px; max-width: 80%; word-wrap: break-word; background: ' + 
-                    (sender === 'user' ? 'var(--button-bg); color: var(--button-text)' : 'var(--bg-secondary)') + 
-                    '; align-self: ' + (sender === 'user' ? 'flex-end' : 'flex-start') + ';';
-                messageDiv.textContent = text;
-                messageDiv.id = 'msg-' + Date.now();
-                messagesContainer.appendChild(messageDiv);
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                return messageDiv.id;
-            }
-
-            function removeMessage(id) {
-                var msg = document.getElementById(id);
-                if (msg) msg.remove();
-            }
-
-            document.getElementById('messageInput').addEventListener('input', function() {
-                this.style.height = 'auto';
-                this.style.height = Math.min(this.scrollHeight, 200) + 'px';
-            });
-
-        });
-    </script>
+  try{
+    const res=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'system',content:buildSystem()},...chatHistory]})});
+    const data=await res.json();
+    if(data.error){hideTyping();showLoading(false);await addAiBubble('**Ошибка:** '+(data.error.message||JSON.stringify(data.error)),false);return;}
+    const reply=data.choices?.[0]?.message?.content||'Нет ответа';
+    hideTyping();showLoading(false);
+    await addAiBubble(reply,true);
+    chatHistory.push({role:'assistant',content:reply});
+    await saveChat();
+  }catch(e){hideTyping();showLoading(false);await addAiBubble('Ошибка соединения: '+e.message,false);}
+}
+</script>
 </body>
 </html>
