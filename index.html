@@ -25,21 +25,23 @@
             --button-bg: #ffffff;
             --button-text: #000000;
             --input-bg: rgba(255, 255, 255, 0.1);
+            --chat-bg: #0b0b0e;
         }
 
-        /* ===== ДЕСКТОПНАЯ ТЕМА (светлая) ===== */
+        /* ===== ДЕСКТОПНАЯ ТЕМА (светлая, как ChatGPT) ===== */
         @media (min-width: 769px) {
             :root {
                 --bg-primary: #ffffff;
                 --bg-secondary: #f7f7f8;
-                --bg-card: rgba(0, 0, 0, 0.05);
+                --bg-card: rgba(0, 0, 0, 0.03);
                 --text-primary: #000000;
                 --text-secondary: #666666;
                 --border-color: rgba(0, 0, 0, 0.1);
                 --accent: #000000;
                 --button-bg: #000000;
                 --button-text: #ffffff;
-                --input-bg: rgba(0, 0, 0, 0.05);
+                --input-bg: rgba(0, 0, 0, 0.03);
+                --chat-bg: #ffffff;
             }
         }
 
@@ -59,6 +61,7 @@
             justify-content: center;
             min-height: 100vh;
             padding: 20px;
+            background: var(--bg-primary);
         }
 
         .auth-screen.active {
@@ -170,6 +173,7 @@
             display: none;
             height: 100vh;
             position: relative;
+            background: var(--chat-bg);
         }
 
         .chat-container.active {
@@ -185,7 +189,7 @@
             width: 280px;
             background: var(--bg-secondary);
             border-right: 1px solid var(--border-color);
-            padding: 16px;
+            padding: 12px;
             transform: translateX(-100%);
             transition: transform 0.3s ease;
             z-index: 1000;
@@ -208,13 +212,13 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 20px;
-            padding-bottom: 16px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
             border-bottom: 1px solid var(--border-color);
         }
 
         .sidebar-title {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 700;
         }
 
@@ -247,6 +251,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            justify-content: center;
         }
 
         .chat-history-item {
@@ -288,11 +293,12 @@
         }
 
         .chat-header {
-            padding: 16px;
+            padding: 12px 16px;
             border-bottom: 1px solid var(--border-color);
             display: flex;
             align-items: center;
             gap: 12px;
+            background: var(--bg-primary);
         }
 
         .burger-menu {
@@ -314,6 +320,7 @@
             flex: 1;
             overflow-y: auto;
             padding: 20px;
+            background: var(--chat-bg);
         }
 
         .welcome-screen {
@@ -329,7 +336,13 @@
         .welcome-title {
             font-size: 32px;
             font-weight: 700;
-            margin-bottom: 24px;
+            margin-bottom: 8px;
+        }
+
+        .welcome-subtitle {
+            font-size: 16px;
+            color: var(--text-secondary);
+            margin-bottom: 32px;
         }
 
         .welcome-input-container {
@@ -337,9 +350,10 @@
             border: 1px solid var(--border-color);
             border-radius: 16px;
             padding: 16px;
-            max-width: 600px;
+            max-width: 768px;
             width: 100%;
             margin: 0 20px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
         }
 
         .welcome-input {
@@ -407,8 +421,8 @@
             background: var(--bg-secondary);
             border: 1px solid var(--border-color);
             border-radius: 12px;
-            min-width: 220px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            min-width: 280px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
             overflow: hidden;
             z-index: 100;
         }
@@ -571,6 +585,7 @@
             margin: 0 auto;
             overflow-y: auto;
             height: 100vh;
+            background: var(--bg-primary);
         }
 
         .settings-container.active {
@@ -647,7 +662,7 @@
             background: var(--bg-secondary);
             border: 1px solid var(--border-color);
             border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
             margin-top: 8px;
             overflow: hidden;
         }
@@ -862,6 +877,7 @@
             <div class="chat-messages">
                 <div class="welcome-screen">
                     <h1 class="welcome-title">Привет! Я Harmony Ai</h1>
+                    <p class="welcome-subtitle">Спроси меня про любой аккорд или интервал 🎵</p>
                     <div class="welcome-input-container">
                         <textarea class="welcome-input" id="messageInput" placeholder="Как я могу помочь тебе?" rows="1"></textarea>
                         <div class="input-footer">
@@ -1128,7 +1144,6 @@
                 }
             });
 
-            // Слушаем изменения сессии (вход/выход)
             supabase.auth.onAuthStateChange(function(event, session) {
                 if (event === 'SIGNED_IN' && session) {
                     currentUser = session.user;
@@ -1140,7 +1155,7 @@
                 }
             });
 
-            // ===== НАВИГАЦИЯ МЕЖДУ ЭКРАНАМИ =====
+            // ===== НАВИГАЦИЯ =====
             function showAuthScreen(num) {
                 document.getElementById('authScreen1').classList.remove('active');
                 document.getElementById('authScreen2').classList.remove('active');
@@ -1187,7 +1202,12 @@
                 }
                 currentEmail = email;
 
-                supabase.auth.signInWithOtp({ email: email }).then(function(result) {
+                supabase.auth.signInWithOtp({ 
+                    email: email,
+                    options: {
+                        shouldCreateUser: true
+                    }
+                }).then(function(result) {
                     if (result.error) {
                         alert('Ошибка: ' + result.error.message);
                     } else {
@@ -1338,11 +1358,10 @@
                 document.getElementById('thinkingToggle').classList.toggle('active', thinkingEnabled);
             });
 
-            // ===== DROPDOWNS В НАСТРОЙКАХ =====
+            // ===== DROPDOWNS =====
             function setupDropdown(btnId, dropdownId, valueId, callback) {
                 document.getElementById(btnId).addEventListener('click', function(e) {
                     e.stopPropagation();
-                    // Закрыть все остальные
                     document.querySelectorAll('.dropdown-menu').forEach(function(d) {
                         if (d.id !== dropdownId) d.classList.add('hidden');
                     });
@@ -1355,7 +1374,6 @@
                         var title = item.querySelector('.dropdown-item-title').textContent;
                         document.getElementById(valueId).textContent = title;
 
-                        // Обновить активный элемент
                         document.getElementById(dropdownId).querySelectorAll('.dropdown-item').forEach(function(i) {
                             i.classList.remove('active');
                         });
@@ -1372,7 +1390,6 @@
             setupDropdown('btnHeadingsSelect', 'headingsDropdown', 'headingsValue', function(v) { userSettings.headings = v; });
             setupDropdown('btnEmojisSelect', 'emojisDropdown', 'emojisValue', function(v) { userSettings.emojis = v; });
 
-            // Закрыть dropdown при клике вне
             document.addEventListener('click', function() {
                 document.querySelectorAll('.dropdown-menu').forEach(function(d) {
                     d.classList.add('hidden');
@@ -1462,10 +1479,8 @@
                 if (!text) return;
 
                 alert('Отправка: ' + text + '\nМодель: ' + selectedModelType + '\nРежим: ' + selectedMode + '\nДумать: ' + thinkingEnabled);
-                // Здесь будет реальная отправка через /api/chat
             });
 
-            // Автоувеличение textarea
             document.getElementById('messageInput').addEventListener('input', function() {
                 this.style.height = 'auto';
                 this.style.height = Math.min(this.scrollHeight, 200) + 'px';
