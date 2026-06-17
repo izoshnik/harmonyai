@@ -695,6 +695,7 @@ let curModel='lite',curMode='low',thinkOn=false,dropOpen=false,modeSubOpen=false
 let chatHistory=[],pendingImg=null,curChatId=null;
 let chats=[];
 let abcCounter=0;
+let authHydrationPromise=null,authHydratedUserId='';
 const CHAT_TIMEOUT_MS=60000;
 const FALLBACK_API_ORIGIN='https://harmonyai.qd.je';
 
@@ -772,14 +773,51 @@ async function waitForSession(timeoutMs=6000){
   }
   return null;
 }
-async function applySignedInState(session){
+function ensureSignedInShell(session){
   if(!session?.user)throw new Error('Сессия не создалась после подтверждения кода');
-  await loadProfile(session.user.id,session.user.email);
-  await loadChats();
+  const uid=session.user.id;
+  const email=session.user.email||'';
+  const nicknameBase=email.split('@')[0]||'Пользователь';
+  if(!curUser||curUser.id!==uid){
+    curUser={id:uid,email,nickname:nicknameBase,role:'user',settings:{}};
+  }else{
+    curUser.email=email||curUser.email;
+    curUser.nickname=curUser.nickname||nicknameBase;
+    curUser.settings=curUser.settings||{};
+  }
   document.getElementById('authWrap').classList.add('gone');
   document.getElementById('app').classList.add('show');
   updateUserUI();
   if(!curChatId&&chatHistory.length===0)newChat();
+}
+async function hydrateSignedInState(session){
+  const uid=session?.user?.id;
+  if(!uid)return;
+  if(authHydrationPromise&&authHydratedUserId===uid)return authHydrationPromise;
+  authHydratedUserId=uid;
+  authHydrationPromise=(async()=>{
+    const [profileResult,chatsResult]=await Promise.allSettled([
+      withTimeout(loadProfile(uid,session.user.email),8000,'Загрузка профиля заняла слишком много времени'),
+      withTimeout(loadChats(),8000,'Загрузка чатов заняла слишком много времени')
+    ]);
+    if(profileResult.status==='rejected')console.warn('Profile hydrate failed',profileResult.reason);
+    if(chatsResult.status==='rejected')console.warn('Chats hydrate failed',chatsResult.reason);
+    updateUserUI();
+    renderChatList();
+  })().finally(()=>{
+    authHydrationPromise=null;
+  });
+  return authHydrationPromise;
+}
+function beginSignedInState(session){
+  ensureSignedInShell(session);
+  Promise.resolve()
+    .then(()=>hydrateSignedInState(session))
+    .catch(err=>console.warn('Signed-in hydration failed',err));
+}
+async function applySignedInState(session){
+  ensureSignedInShell(session);
+  await hydrateSignedInState(session);
 }
 function isRetryableOtpIssue(err){
   const low=String(err?.message||err||'').toLowerCase();
@@ -806,7 +844,7 @@ async function verifyOtpDirect(email,code,type){
       },
       body:JSON.stringify({email,token:code,type})
     }),
-    20000,
+    8000,
     'Проверка кода заняла слишком много времени'
   );
   let data=null;
@@ -815,7 +853,11 @@ async function verifyOtpDirect(email,code,type){
     throw new Error(data?.msg||data?.error_description||data?.error||`Ошибка проверки кода (${res.status})`);
   }
   if(data?.access_token&&data?.refresh_token){
-    const {data:setData,error:setError}=await sb.auth.setSession({access_token:data.access_token,refresh_token:data.refresh_token});
+    const {data:setData,error:setError}=await withTimeout(
+      sb.auth.setSession({access_token:data.access_token,refresh_token:data.refresh_token}),
+      8000,
+      'Сохранение сессии заняло слишком много времени'
+    );
     if(setError)throw setError;
     return {data:{session:setData?.session||null,user:setData?.user||data?.user||null}};
   }
@@ -824,7 +866,7 @@ async function verifyOtpDirect(email,code,type){
 async function verifyOtpViaSdk(email,code,type){
   const result=await withTimeout(
     sb.auth.verifyOtp({email,token:code,type}),
-    20000,
+    8000,
     'Проверка кода заняла слишком много времени'
   );
   if(result?.error)throw result.error;
@@ -836,7 +878,6 @@ async function verifyOtpVariants(email,code){
     ()=>verifyOtpDirect(email,code,'email'),
     ()=>verifyOtpViaSdk(email,code,'email'),
     ()=>verifyOtpDirect(email,code,'signup'),
-    ()=>verifyOtpViaSdk(email,code,'signup'),
     ()=>verifyOtpDirect(email,code,'magiclink')
   ];
   for(const run of attempts){
@@ -899,7 +940,7 @@ async function verifyOTP(){
     if(requestNonce!==otpRequestNonce)throw new Error('Был запрошен новый код. Введите последний код из письма');
     const session=result.data?.session||await waitForSession(12000);
     if(!session)throw new Error('Не удалось завершить вход — запросите новый код');
-    await applySignedInState(session);
+    beginSignedInState(session);
   }catch(e){
     err.textContent=tErr(e.message);err.style.display='block';
   }finally{
@@ -962,20 +1003,25 @@ function startResend(){
 
 /* ===== SESSION ===== */
 async function initSession(){
-  const {data:{session}}=await sb.auth.getSession();
+  const {data:{session}}=await withTimeout(
+    sb.auth.getSession(),
+    8000,
+    'Проверка сохранённой сессии заняла слишком много времени'
+  );
   if(session){
-    await applySignedInState(session);
+    beginSignedInState(session);
     return;
   }
   document.getElementById('authWrap').classList.remove('gone');
   document.getElementById('app').classList.remove('show');
   showAuthS(1);
 }
-sb.auth.onAuthStateChange(async(event,session)=>{
+sb.auth.onAuthStateChange((event,session)=>{
   if(event==='SIGNED_IN'&&session?.user){
-    await applySignedInState(session);
+    beginSignedInState(session);
   }
   if(event==='SIGNED_OUT'){
+    authHydrationPromise=null;authHydratedUserId='';
     curUser=null;chatHistory=[];curChatId=null;chats=[];
     document.getElementById('authWrap').classList.remove('gone');
     document.getElementById('app').classList.remove('show');
