@@ -7,6 +7,8 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/abcjs@6.2.3/dist/abcjs-basic-min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -314,20 +316,20 @@ body{background:var(--bg);color:var(--text);}
 .ms-desc{font-size:11px;color:var(--text2);margin-top:1px;}
 .ms-check{color:var(--check);font-size:14px;}
 @media(max-width:768px){
-  .input-box{position:relative;overflow:visible;border-radius:30px;padding:18px 18px 88px;min-height:156px;background:linear-gradient(180deg,rgba(22,22,28,.76),rgba(17,17,22,.92));backdrop-filter:blur(18px);border-color:rgba(255,255,255,0.09);box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 10px 34px rgba(0,0,0,.22);}
-  .input-box textarea{min-height:54px;padding-right:10px;font-size:17px;line-height:1.42;}
+  .input-box{position:relative;overflow:visible;border-radius:30px;padding:18px 18px 96px;min-height:176px;background:linear-gradient(180deg,rgba(22,22,28,.76),rgba(17,17,22,.92));backdrop-filter:blur(18px);border-color:rgba(255,255,255,0.09);box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 10px 34px rgba(0,0,0,.22);}
+  .input-box textarea{min-height:70px;padding-right:8px;font-size:17px;line-height:1.42;}
   .input-box textarea::placeholder{color:rgba(212,209,220,.58);}
-  .input-bar-row{position:relative;margin-top:0;height:0;}
-  .bar-left{position:absolute;left:0;bottom:24px;z-index:2;}
-  .bar-right{position:absolute;left:0;right:0;bottom:0;height:0;display:block;min-width:0;}
+  .input-bar-row{position:absolute;left:18px;right:18px;bottom:40px;height:64px;margin-top:0;}
+  .bar-left{position:absolute;left:0;top:50%;transform:translateY(-50%);z-index:2;}
+  .bar-right{position:absolute;left:54px;right:0;top:0;bottom:0;display:block;min-width:0;}
   .bar-icon{width:44px;height:44px;border-radius:16px;color:rgba(255,255,255,.9);}
   .bar-icon svg{width:24px;height:24px;}
-  .model-pill{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);min-width:190px;max-width:228px;height:42px;padding:0 22px;border-radius:999px;gap:6px;background:rgba(228,228,234,.93);border-color:rgba(255,255,255,.16);color:#1d1d21;box-shadow:0 12px 26px rgba(0,0,0,.22);}
+  .model-pill{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);min-width:196px;max-width:232px;height:42px;padding:0 22px;border-radius:999px;gap:6px;background:rgba(228,228,234,.93);border-color:rgba(255,255,255,.16);color:#1d1d21;box-shadow:0 12px 26px rgba(0,0,0,.22);}
   .model-pill:hover{background:rgba(218,218,224,.96);}
   .pill-name{max-width:132px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#1d1d21;font-size:14px;font-weight:700;}
   .pill-mode{font-size:13px;color:rgba(29,29,33,.72);text-transform:none;}
   .pill-caret{display:none;}
-  .mobile-model-drop.compact-mobile-picker{left:50%;right:auto;bottom:calc(100% + 16px);transform:translateX(-50%);width:min(276px, calc(100vw - 56px));min-width:0;max-height:min(62vh,420px);overflow-y:auto;padding:12px;border-radius:22px;background:rgba(20,20,27,.97);border:1px solid rgba(255,255,255,.09);backdrop-filter:blur(22px);box-shadow:0 24px 48px rgba(0,0,0,.35);}
+  .mobile-model-drop.compact-mobile-picker{left:50%;right:auto;bottom:calc(100% + 14px);transform:translateX(-50%);width:min(276px, calc(100vw - 56px));min-width:0;max-height:min(62vh,420px);overflow-y:auto;padding:12px;border-radius:22px;background:rgba(20,20,27,.97);border:1px solid rgba(255,255,255,.09);backdrop-filter:blur(22px);box-shadow:0 24px 48px rgba(0,0,0,.35);}
   .mobile-mode-sub{display:none!important;}
   .desktop-model-wrap{display:none!important;}
   .mmp-title{font-size:13px;font-weight:700;color:var(--text);padding:2px 4px 10px;}
@@ -345,9 +347,9 @@ body{background:var(--bg);color:var(--text);}
   .mmp-think-copy{display:flex;flex-direction:column;gap:2px;}
   .mmp-think-title{font-size:14px;font-weight:700;color:var(--text);}
   .mmp-think-sub{font-size:11px;color:var(--text2);line-height:1.35;}
-  .send-btn{position:absolute;right:2px;bottom:16px;width:72px;height:72px;border-radius:24px;background:#fff;color:#111;border:1px solid rgba(255,255,255,.2);box-shadow:0 14px 30px rgba(0,0,0,.28);}
+  .send-btn{position:absolute;right:0;top:50%;transform:translateY(-50%);width:72px;height:72px;border-radius:24px;background:#fff;color:#111;border:1px solid rgba(255,255,255,.2);box-shadow:0 14px 30px rgba(0,0,0,.28);}
   .send-btn svg{width:24px;height:24px;}
-  .disclaimer{position:absolute;left:0;right:0;bottom:12px;padding:0 18px;font-size:11px;color:rgba(179,176,189,.42);opacity:1;}
+  .disclaimer{position:absolute;left:0;right:0;bottom:14px;padding:0 18px;font-size:11px;color:rgba(179,176,189,.42);opacity:1;}
 }
 @media(min-width:769px){
   .mobile-model-drop,.mobile-mode-sub{display:none!important;}
@@ -582,7 +584,7 @@ body{background:var(--bg);color:var(--text);}
             <button class="bar-icon" onclick="document.getElementById('fileInp').click()" title="Добавить фото">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M16.5 6.5L9 14a3.5 3.5 0 105 5l8-8a5.5 5.5 0 00-7.78-7.78l-8.7 8.7a7.5 7.5 0 1010.6 10.6l7.4-7.4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
-            <input type="file" id="fileInp" accept="image/*" style="display:none" onchange="handleFile(this)">
+            <input type="file" id="fileInp" accept="image/*,.pdf,.md,.markdown,.txt,.docx" style="display:none" onchange="handleFile(this)">
           </div>
           <div class="bar-right">
             <!-- Model pill -->
@@ -701,20 +703,25 @@ body{background:var(--bg);color:var(--text);}
 const SB_URL='https://cqthnymltqpcxtpiryka.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNxdGhueW1sdHFwY3h0cGlyeWthIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MjY3NzYsImV4cCI6MjA5NzAwMjc3Nn0.b-6lSdjT7XwWkt607ORwGfKYSn3CLZJB3mcs4QQUSoE';
 const sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+if(window.pdfjsLib)window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
 let curUser=null,curEmail='',resendTimer=null,resendLeft=0;
 let sidebarExpanded=false;
 let curModel='lite',curMode='low',thinkOn=false,dropOpen=false,modeSubOpen=false,modelsSubOpen=false;
-let chatHistory=[],pendingImg=null,curChatId=null;
+let chatHistory=[],pendingImg=null,pendingDoc=null,curChatId=null;
 let chats=[];
 let abcCounter=0;
 let authHydrationPromise=null,authHydratedUserId='';
+let knowledgeDocs=[];
 const CHAT_TIMEOUT_MS=60000;
 const FALLBACK_API_ORIGIN='https://harmonyai.qd.je';
+const KB_GLOBAL_KEY='harmonyai_global_kb_v1';
+const KB_USER_PREFIX='harmonyai_user_kb_v1_';
 
 /* marked setup */
 if(typeof marked!=='undefined') marked.setOptions({breaks:true,gfm:true});
 function isDesktop(){return window.innerWidth>=769;}
+function isDeveloper(){return curUser?.role==='developer';}
 function withTimeout(promise,ms,message){
   let timer;
   return Promise.race([
@@ -1046,6 +1053,8 @@ initSession();
 async function loadProfile(uid,email){
   const {data}=await sb.from('profiles').select('*').eq('id',uid).maybeSingle();
   curUser={id:uid,email,nickname:data?.nickname||email.split('@')[0],role:data?.role||'user',settings:data?.settings||{}};
+  loadKnowledgeDocs();
+  await loadKnowledgeDocsFromSupabase();
 }
 function updateUserUI(){
   if(!curUser)return;
@@ -1054,6 +1063,208 @@ function updateUserUI(){
   const un=document.getElementById('sbUsername');
   if(av)av.textContent=ch;
   if(un)un.textContent=curUser.nickname||curUser.email;
+}
+function kbUserKey(){return KB_USER_PREFIX+(curUser?.id||'guest');}
+function readKb(key){
+  try{
+    const raw=localStorage.getItem(key);
+    return raw?JSON.parse(raw):[];
+  }catch(e){return [];}
+}
+function writeKb(key,docs){
+  try{
+    localStorage.setItem(key,JSON.stringify(docs.slice(0,12)));
+    return true;
+  }catch(e){
+    console.warn('KB save failed',e);
+    return false;
+  }
+}
+function loadKnowledgeDocs(){
+  knowledgeDocs=[...readKb(KB_GLOBAL_KEY),...readKb(kbUserKey())];
+}
+async function loadKnowledgeDocsFromSupabase(){
+  if(!curUser)return;
+  try{
+    const {data,error}=await sb
+      .from('knowledge_documents')
+      .select('id,title,scope,source_type,owner_user_id,created_at,knowledge_chunks(chunk_index,content)')
+      .eq('is_active',true)
+      .or(`scope.eq.global,and(scope.eq.user,owner_user_id.eq.${curUser.id})`)
+      .order('created_at',{ascending:false})
+      .limit(30);
+    if(error)throw error;
+    knowledgeDocs=(data||[]).map(doc=>({
+      id:doc.id,
+      name:doc.title,
+      kind:doc.source_type||'document',
+      chunks:(doc.knowledge_chunks||[]).sort((a,b)=>a.chunk_index-b.chunk_index).map(item=>item.content)
+    }));
+  }catch(e){
+    console.warn('KB sync load failed',e);
+  }
+}
+function normalizeDocText(text){
+  return String(text||'')
+    .replace(/\u00A0/g,' ')
+    .replace(/\r/g,'')
+    .replace(/[ \t]+\n/g,'\n')
+    .replace(/\n{3,}/g,'\n\n')
+    .replace(/[ \t]{2,}/g,' ')
+    .trim();
+}
+function chunkText(text,size=1800,overlap=220){
+  const src=normalizeDocText(text);
+  if(!src)return [];
+  const out=[];
+  let start=0;
+  while(start<src.length){
+    const end=Math.min(src.length,start+size);
+    out.push(src.slice(start,end));
+    if(end>=src.length)break;
+    start=Math.max(end-overlap,start+300);
+  }
+  return out.slice(0,120);
+}
+function makeKnowledgeDoc(fileName,text,kind){
+  const clean=normalizeDocText(text);
+  return {
+    id:'doc_'+Date.now()+'_'+Math.random().toString(36).slice(2,8),
+    name:fileName,
+    kind:kind||'document',
+    createdAt:new Date().toISOString(),
+    preview:clean.slice(0,220),
+    chars:clean.length,
+    chunks:chunkText(clean)
+  };
+}
+function storeKnowledgeDoc(doc,scope='user'){
+  if(!doc?.chunks?.length)return false;
+  const key=scope==='global'?KB_GLOBAL_KEY:kbUserKey();
+  const docs=readKb(key).filter(item=>item.id!==doc.id);
+  docs.unshift(doc);
+  const ok=writeKb(key,docs);
+  loadKnowledgeDocs();
+  syncKnowledgeDocToSupabase(doc,scope).catch(err=>console.warn('KB sync save failed',err));
+  return ok;
+}
+async function syncKnowledgeDocToSupabase(doc,scope='user'){
+  if(!curUser||!doc?.chunks?.length)return false;
+  const {data:inserted,error}=await sb
+    .from('knowledge_documents')
+    .insert({
+      title:doc.name,
+      scope,
+      source_type:doc.kind||'document',
+      owner_user_id:curUser.id,
+      created_by:curUser.id,
+      content_preview:doc.preview||'',
+      chunk_count:doc.chunks.length,
+      meta:{client_doc_id:doc.id, chars:doc.chars||0}
+    })
+    .select('id')
+    .single();
+  if(error)throw error;
+  const chunkRows=doc.chunks.map((content,index)=>({
+    document_id:inserted.id,
+    chunk_index:index,
+    content
+  }));
+  const {error:chunkError}=await sb.from('knowledge_chunks').insert(chunkRows);
+  if(chunkError)throw chunkError;
+  await loadKnowledgeDocsFromSupabase();
+  return true;
+}
+function rememberDeveloperMessage(text){
+  const clean=normalizeDocText(text);
+  if(!isDeveloper()||clean.length<12)return;
+  storeKnowledgeDoc(makeKnowledgeDoc('Developer note',clean,'note'),'global');
+}
+async function recordFeedbackToSupabase(rawAnswer,correction,note=''){
+  if(!curUser||!correction)return false;
+  const payload={
+    user_id:curUser.id,
+    assistant_excerpt:normalizeDocText(rawAnswer).slice(0,1500),
+    corrected_answer:normalizeDocText(correction).slice(0,4000),
+    note:normalizeDocText(note).slice(0,2000),
+    is_global:isDeveloper(),
+    status:'active'
+  };
+  const {error}=await sb.from('message_feedback').insert(payload);
+  if(error)throw error;
+  return true;
+}
+function tokenizeForSearch(text){
+  return Array.from(new Set(String(text||'').toLowerCase().replace(/[^a-zа-я0-9#]+/gi,' ').split(/\s+/).filter(word=>word.length>2)));
+}
+function topChunksFromDocs(query,docs,limit=4,maxChars=8000){
+  const tokens=tokenizeForSearch(query);
+  const scored=[];
+  docs.forEach(doc=>{
+    (doc.chunks||[]).forEach(chunk=>{
+      const low=chunk.toLowerCase();
+      let score=0;
+      tokens.forEach(token=>{if(low.includes(token))score+=token.length>5?3:2;});
+      if(doc.kind==='note')score+=1;
+      if(score>0||!tokens.length)scored.push({score,chunk,name:doc.name});
+    });
+  });
+  scored.sort((a,b)=>b.score-a.score);
+  const selected=[];
+  let chars=0;
+  for(const item of scored){
+    if(selected.length>=limit)break;
+    if(chars+item.chunk.length>maxChars)continue;
+    selected.push(item);
+    chars+=item.chunk.length;
+  }
+  return selected;
+}
+function buildKnowledgeContext(query){
+  if(!knowledgeDocs.length)return '';
+  const selected=topChunksFromDocs(query,knowledgeDocs,4,9000);
+  if(!selected.length)return '';
+  return '\nБАЗА ЗНАНИЙ / ЗАГРУЖЕННЫЕ МАТЕРИАЛЫ:\n'+selected.map((item,i)=>`[Источник ${i+1}: ${item.name}]\n${item.chunk}`).join('\n\n');
+}
+function buildPendingDocContext(query){
+  if(!pendingDoc?.chunks?.length)return '';
+  const selected=topChunksFromDocs(query,[pendingDoc],4,7000);
+  if(!selected.length)return '';
+  return '\nТЕКУЩЕЕ ПРИКРЕПЛЕНИЕ:\n'+selected.map((item,i)=>`[Файл ${i+1}: ${pendingDoc.name}]\n${item.chunk}`).join('\n\n');
+}
+function updateComposerPlaceholder(){
+  const ta=document.getElementById('msgTa');
+  if(!ta)return;
+  if(pendingDoc)ta.placeholder=`Файл "${pendingDoc.name}" загружен — задайте вопрос...`;
+  else if(pendingImg)ta.placeholder='Фото прикреплено — напишите вопрос...';
+  else ta.placeholder='Введите сообщение..';
+}
+async function parsePdfFile(file){
+  const arr=await file.arrayBuffer();
+  const pdf=await window.pdfjsLib.getDocument({data:arr}).promise;
+  const pages=[];
+  for(let i=1;i<=pdf.numPages;i++){
+    const page=await pdf.getPage(i);
+    const content=await page.getTextContent();
+    pages.push(content.items.map(item=>item.str).join(' '));
+  }
+  return pages.join('\n\n');
+}
+async function parseDocxFile(file){
+  const arr=await file.arrayBuffer();
+  const result=await window.mammoth.extractRawText({arrayBuffer:arr});
+  return result.value||'';
+}
+async function parseTextFile(file){
+  return await file.text();
+}
+async function parseGenericFile(file){
+  const name=(file.name||'').toLowerCase();
+  if(file.type.startsWith('image/'))return {kind:'image'};
+  if(name.endsWith('.pdf'))return {kind:'document',text:await parsePdfFile(file)};
+  if(name.endsWith('.docx'))return {kind:'document',text:await parseDocxFile(file)};
+  if(name.endsWith('.md')||name.endsWith('.markdown')||name.endsWith('.txt'))return {kind:'document',text:await parseTextFile(file)};
+  throw new Error('Поддерживаются только image, pdf, md, txt и docx');
 }
 async function logOut(){
   await sb.auth.signOut();
@@ -1308,7 +1519,8 @@ function isNotationRequest(text){
 function buildSystem(){
   const s=curUser?.settings||{};
   let sys=BASE_SYSTEM;
-  if(isNotationRequest(getLastUserText())){
+  const currentQuery=getLastUserText();
+  if(isNotationRequest(currentQuery)){
     sys+=`\nСПЕЦИАЛЬНО ДЛЯ ТЕКУЩЕГО НОТНОГО ЗАПРОСА:
 - если нужен длинный пример, дели его на столько ABC-блоков, сколько нужно;
 - не сокращай материал до одной октавы, если пользователь просит две и больше;
@@ -1321,16 +1533,38 @@ function buildSystem(){
   if(curMode==='low')sys+='\nРЕЖИМ Low: отвечай кратко, максимум 3-4 предложения.';
   if(curMode==='max')sys+='\nРЕЖИМ Max: отвечай подробно, с объяснениями и примерами.';
   if(thinkOn)sys+='\nРЕЖИМ ДУМАТЬ: тщательно анализируй задачу, покажи ход рассуждений.';
+  if(isDeveloper())sys+='\nПользователь с ролью developer. Его заметки и загруженные материалы считай приоритетными источниками знаний.';
+  sys+=buildKnowledgeContext(currentQuery);
+  sys+=buildPendingDocContext(currentQuery);
   if(s.customInstructions)sys+='\nДОПОЛНИТЕЛЬНО от пользователя: '+s.customInstructions;
   return sys;
 }
 
 /* ===== FILE UPLOAD ===== */
-function handleFile(inp){
+async function handleFile(inp){
   const f=inp.files[0];if(!f)return;
-  const r=new FileReader();
-  r.onload=e=>{pendingImg=e.target.result.split(',')[1];document.getElementById('msgTa').placeholder='Фото прикреплено — напишите вопрос...';};
-  r.readAsDataURL(f);
+  try{
+    if(f.type.startsWith('image/')){
+      pendingDoc=null;
+      const r=new FileReader();
+      r.onload=e=>{pendingImg=e.target.result.split(',')[1];updateComposerPlaceholder();};
+      r.readAsDataURL(f);
+      return;
+    }
+    pendingImg=null;
+    const parsed=await parseGenericFile(f);
+    if(parsed.kind!=='document')throw new Error('Не удалось прочитать файл');
+    const doc=makeKnowledgeDoc(f.name,parsed.text,f.name.split('.').pop().toLowerCase());
+    if(!doc.chunks.length)throw new Error('В файле не найден читаемый текст');
+    pendingDoc=doc;
+    storeKnowledgeDoc(doc,isDeveloper()?'global':'user');
+    updateComposerPlaceholder();
+  }catch(e){
+    pendingImg=null;pendingDoc=null;updateComposerPlaceholder();
+    alert('Ошибка загрузки файла: '+e.message);
+  }finally{
+    inp.value='';
+  }
 }
 
 /* ===== TEXTAREA ===== */
@@ -1492,11 +1726,27 @@ function cpMsg(btn){
   navigator.clipboard.writeText(txt).catch(()=>{});
   btn.classList.add('liked');setTimeout(()=>btn.classList.remove('liked'),800);
 }
-function likeMsg(btn,t){
+async function likeMsg(btn,t){
   const g=btn.parentElement;
   const lb=g.children[1],db=g.children[2];
   if(t==='like'){lb.classList.toggle('liked');db.classList.remove('disliked');}
-  else{db.classList.toggle('disliked');lb.classList.remove('liked');}
+  else{
+    const becameActive=!db.classList.contains('disliked');
+    db.classList.toggle('disliked');
+    lb.classList.remove('liked');
+    if(becameActive){
+      const wrap=btn.closest('.msg-ai-wrap');
+      const raw=wrap?.querySelector('.msg-ai')?.dataset?.raw||wrap?.querySelector('.msg-ai')?.textContent||'';
+      const correction=prompt('Что здесь было неверно? Напишите правильный вариант. Это сохранится как исправление для ИИ.');
+      if(correction&&correction.trim()){
+        try{
+          await recordFeedbackToSupabase(raw,correction,'Пользователь указал на ошибку через dislike');
+        }catch(e){
+          alert('Не удалось сохранить исправление: '+e.message);
+        }
+      }
+    }
+  }
 }
 function toggleMore(btn){
   const m=btn.nextElementSibling;
@@ -1547,7 +1797,9 @@ async function requestChatReply(){
     messages:[{role:'system',content:buildSystem()},...chatHistory],
     model:curModel,
     effort:curMode,
-    think:thinkOn
+    think:thinkOn,
+    userId:curUser?.id||null,
+    userEmail:curUser?.email||null
   };
   let lastError=null;
   for(const endpoint of buildApiCandidates()){
@@ -1578,15 +1830,17 @@ async function requestChatReply(){
 async function sendMsg(){
   const ta=document.getElementById('msgTa');
   const text=ta.value.trim();
-  if(!text&&!pendingImg)return;
+  if(!text&&!pendingImg&&!pendingDoc)return;
   ta.value='';ta.style.height='auto';
 
-  let userContent,displayText=text||'[фото]';
+  let userContent,displayText=text||(pendingImg?'[фото]':pendingDoc?`[файл: ${pendingDoc.name}]`:'');
+  if(isDeveloper()&&text)rememberDeveloperMessage(text);
   if(pendingImg){
     userContent=[];
     if(text)userContent.push({type:'text',text});
     userContent.push({type:'image_url',image_url:{url:'data:image/jpeg;base64,'+pendingImg}});
-    pendingImg=null;ta.placeholder='Введите сообщение..';
+  }else if(pendingDoc){
+    userContent=(text?text+'\n\n':'')+`[ПРИКРЕПЛЁН ФАЙЛ: ${pendingDoc.name}]\nИспользуй загруженный материал из контекста и базы знаний при ответе.`;
   }else{userContent=text;}
 
   addUserBubble(displayText);
@@ -1601,6 +1855,9 @@ async function sendMsg(){
     await addAiBubble(reply,true);
     chatHistory.push({role:'assistant',content:reply});
     await saveChat();
+    pendingImg=null;
+    pendingDoc=null;
+    updateComposerPlaceholder();
   }catch(e){hideTyping();await addAiBubble('Ошибка: '+e.message,false);}
 }
 
