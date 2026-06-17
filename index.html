@@ -103,9 +103,9 @@ body{background:var(--bg);color:var(--text);}
 .app.show{display:flex;}
 @media(max-width:768px){
   .app{flex-direction:column;}
-  .sidebar{position:fixed;top:0;left:0;bottom:0;width:80%;max-width:300px;z-index:50;background:var(--bg2);border-right:1px solid var(--border);transform:translateX(-100%);transition:transform .28s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;padding:20px 14px 16px;}
+  .sidebar{position:fixed;top:0;left:0;bottom:0;width:min(78vw,286px);z-index:50;background:rgba(18,18,22,.96);backdrop-filter:blur(18px);border-right:1px solid rgba(255,255,255,.08);box-shadow:18px 0 48px rgba(0,0,0,.34);transform:translateX(-100%);transition:transform .28s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;padding:18px 14px 16px;}
   .sidebar.open{transform:translateX(0);}
-  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:40;opacity:0;visibility:hidden;transition:opacity .25s;}
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.42);backdrop-filter:blur(2px);z-index:40;opacity:0;visibility:hidden;transition:opacity .25s;}
   .overlay.show{opacity:1;visibility:visible;}
   .main{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative;z-index:1;}
   .topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;gap:10px;position:relative;z-index:2;}
@@ -154,6 +154,10 @@ body{background:var(--bg);color:var(--text);}
 @media(min-width:769px){
   .sb-footer{width:100%;padding:8px 8px 0;}
   .sidebar:not(.expanded) .sb-user-row{width:40px;height:40px;padding:0;justify-content:center;margin:0 auto;}
+}
+@media(max-width:768px){
+  .sb-footer{padding-top:14px;border-top:1px solid rgba(255,255,255,.06);}
+  .sb-user-row{padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.03);}
 }
 
 /* Topbar buttons */
@@ -285,6 +289,30 @@ body{background:var(--bg);color:var(--text);}
 .ms-label{font-size:13px;font-weight:700;color:var(--text);}
 .ms-desc{font-size:11px;color:var(--text2);margin-top:1px;}
 .ms-check{color:var(--check);font-size:14px;}
+@media(max-width:768px){
+  .input-box{position:relative;overflow:visible;border-radius:24px;padding:12px 12px 10px;background:rgba(255,255,255,0.04);backdrop-filter:blur(14px);border-color:rgba(255,255,255,0.08);}
+  .bar-right{position:relative;display:flex;align-items:center;gap:8px;}
+  .model-pill{max-width:190px;padding:8px 12px;border-radius:14px;gap:8px;background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.12);}
+  .pill-name{max-width:106px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .pill-mode{font-size:11px;text-transform:lowercase;}
+  .mobile-model-drop.compact-mobile-picker{right:0;left:auto;bottom:calc(100% + 10px);width:min(248px, calc(100vw - 48px));min-width:0;padding:10px;border-radius:20px;background:rgba(20,20,27,.97);border:1px solid rgba(255,255,255,.09);backdrop-filter:blur(22px);box-shadow:0 24px 48px rgba(0,0,0,.35);}
+  .mobile-mode-sub{display:none!important;}
+  .mmp-title{font-size:13px;font-weight:700;color:var(--text);padding:2px 4px 10px;}
+  .mmp-section{display:flex;flex-direction:column;gap:6px;}
+  .mmp-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text2);padding:2px 4px;}
+  .mmp-opt{width:100%;border:none;background:transparent;color:var(--text);display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:8px;padding:10px 12px;border-radius:12px;font-family:inherit;font-size:14px;cursor:pointer;text-align:left;}
+  .mmp-opt:hover{background:rgba(255,255,255,.06);}
+  .mmp-opt.on{background:rgba(255,255,255,.07);}
+  .mmp-opt span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .mmp-sub{font-size:11px;color:var(--text2);white-space:nowrap;}
+  .mmp-check{color:var(--check);opacity:0;}
+  .mmp-opt.on .mmp-check{opacity:1;}
+  .mmp-divider{height:1px;background:rgba(255,255,255,.08);margin:8px 0;}
+  .mmp-think{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 4px 4px;}
+  .mmp-think-copy{display:flex;flex-direction:column;gap:2px;}
+  .mmp-think-title{font-size:14px;font-weight:700;color:var(--text);}
+  .mmp-think-sub{font-size:11px;color:var(--text2);line-height:1.35;}
+}
 @media(min-width:769px){
   .mobile-model-drop,.mobile-mode-sub{display:none!important;}
   .desktop-model-wrap{position:absolute;right:0;bottom:calc(100% + 10px);display:none;z-index:220;}
@@ -496,9 +524,6 @@ body{background:var(--bg);color:var(--text);}
         <button class="topbar-btn" onclick="newChat()">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         </button>
-        <button class="topbar-btn" onclick="openSettings()">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" stroke-width="2"/></svg>
-        </button>
       </div>
     </div>
 
@@ -530,50 +555,43 @@ body{background:var(--bg);color:var(--text);}
               <span class="pill-mode" id="pillMode">lite · low</span>
               <span style="font-size:10px;color:var(--text2);margin-left:1px;">▾</span>
               <!-- Dropdown -->
-              <div class="model-drop mobile-model-drop" id="modelDrop" onclick="event.stopPropagation()">
-                <!-- Lite -->
-                <div class="md-option" onclick="selectModel('lite')">
-                  <div class="md-opt-icon lite">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 14C5 8 9 4 19 4C19 14 15 19 9 19C7 19 5 17 5 14Z" stroke="white" stroke-width="2"/><path d="M5 19L11 13" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
-                  </div>
-                  <div><div class="md-opt-name">MusMind Lite</div><div class="md-opt-desc">Быстро и легко</div></div>
-                  <div class="md-check" id="ck-lite">✓</div>
+              <div class="model-drop mobile-model-drop compact-mobile-picker" id="modelDrop" onclick="event.stopPropagation()">
+                <div class="mmp-title">Параметры</div>
+                <div class="mmp-section">
+                  <div class="mmp-label">Модель</div>
+                  <button class="mmp-opt" id="mobModelLite" onclick="selectModel('lite')">
+                    <span>MusMind Lite</span>
+                    <span class="mmp-check">✓</span>
+                  </button>
+                  <button class="mmp-opt" id="mobModelPro" onclick="selectModel('pro')">
+                    <span>MusMind Pro</span>
+                    <span class="mmp-check">✓</span>
+                  </button>
                 </div>
-                <!-- Mode row -->
-                <div class="md-mode-row" id="modeRowLite" onclick="openModeSub(event)">
-                  <div><div class="md-mode-label">Режим</div></div>
-                  <div style="display:flex;align-items:center;gap:6px;">
-                    <span class="md-mode-badge" id="modeLabel">Low</span>
-                    <span style="font-size:11px;color:var(--text2);">›</span>
-                  </div>
+                <div class="mmp-divider"></div>
+                <div class="mmp-section">
+                  <div class="mmp-label">Режим</div>
+                  <button class="mmp-opt" id="mobModeLow" onclick="selectMode('low')">
+                    <span>Low</span>
+                    <span class="mmp-sub">Обычный</span>
+                    <span class="mmp-check">✓</span>
+                  </button>
+                  <button class="mmp-opt" id="mobModeMax" onclick="selectMode('max')">
+                    <span>Max</span>
+                    <span class="mmp-sub">Для сложных задач</span>
+                    <span class="mmp-check">✓</span>
+                  </button>
                 </div>
-                <div class="md-divider"></div>
-                <!-- Pro -->
-                <div class="md-option" onclick="selectModel('pro')">
-                  <div class="md-opt-icon pro">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" stroke="white" stroke-width="1.5" stroke-linejoin="round" fill="white" fill-opacity="0.2"/></svg>
+                <div class="mmp-divider"></div>
+                <div class="mmp-think">
+                  <div class="mmp-think-copy">
+                    <div class="mmp-think-title">Думать</div>
+                    <div class="mmp-think-sub">Для решения сложных задач</div>
                   </div>
-                  <div><div class="md-opt-name">MusMind Pro</div><div class="md-opt-desc">Максимум возможностей</div></div>
-                  <div class="md-check" id="ck-pro" style="opacity:0">✓</div>
-                </div>
-                <div class="md-divider"></div>
-                <!-- Think -->
-                <div class="md-think-row">
-                  <div><div class="md-think-label">Думать</div><div class="md-think-sub">Для решения сложных задач</div></div>
-                  <div class="sw" id="thinkSw" onclick="toggleThink(event)"></div>
+                  <div class="sw" id="mobThinkSw" onclick="toggleThink(event)"></div>
                 </div>
               </div>
-              <!-- Mode sub-dropdown -->
-              <div class="mode-sub mobile-mode-sub" id="modeSub" onclick="event.stopPropagation()">
-                <div class="ms-option" onclick="selectMode('low')">
-                  <div><div class="ms-label">Low</div><div class="ms-desc">Краткий ответ</div></div>
-                  <span class="ms-check" id="ck-low">✓</span>
-                </div>
-                <div class="ms-option" onclick="selectMode('max')">
-                  <div><div class="ms-label">Max</div><div class="ms-desc">Подробный ответ</div></div>
-                  <span class="ms-check" id="ck-max" style="opacity:0">✓</span>
-                </div>
-              </div>
+              <div class="mode-sub mobile-mode-sub" id="modeSub" onclick="event.stopPropagation()"></div>
               <div class="desktop-model-wrap" id="desktopModelWrap" onclick="event.stopPropagation()">
                 <div class="desktop-model-drop" id="desktopModelDrop">
                   <div class="desktop-row" onclick="closeDesktopSubs()">
@@ -655,6 +673,7 @@ let chatHistory=[],pendingImg=null,curChatId=null;
 let chats=[];
 let abcCounter=0;
 const CHAT_TIMEOUT_MS=60000;
+const FALLBACK_API_ORIGIN='https://harmonyai.qd.je';
 
 /* marked setup */
 if(typeof marked!=='undefined') marked.setOptions({breaks:true,gfm:true});
@@ -686,6 +705,9 @@ setInterval(()=>{
 },4000);
 
 /* ===== AUTH ===== */
+let otpRequestNonce=0;
+let otpVerifyBusy=false;
+
 function showAuthS(n){
   [1,2,3].forEach(i=>{
     const el=document.getElementById('authS'+i);
@@ -698,12 +720,50 @@ function goToEmail(){
 }
 function isEmail(e){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);}
 function tErr(msg){
-  if(!msg)return 'Что-то пошло не так';
-  if(msg.includes('rate limit'))return 'Слишком много попыток — подождите';
-  if(msg.includes('invalid email'))return 'Введите корректный email';
-  if(msg.includes('expired')||msg.includes('Token has'))return 'Код устарел — запросите новый';
-  if(msg.includes('Invalid OTP')||msg.includes('Invalid token'))return 'Неверный код';
-  return msg;
+  const text=String(msg||'');
+  const low=text.toLowerCase();
+  if(!text)return 'Что-то пошло не так';
+  if(low.includes('rate limit'))return 'Слишком много попыток — подождите';
+  if(low.includes('invalid email'))return 'Введите корректный email';
+  if(low.includes('expired')||low.includes('token has'))return 'Код устарел — запросите новый';
+  if(low.includes('invalid otp')||low.includes('invalid token'))return 'Неверный код';
+  if(low.includes('session'))return 'Не удалось завершить вход — запросите новый код';
+  return text;
+}
+async function waitForSession(timeoutMs=6000){
+  const started=Date.now();
+  while(Date.now()-started<timeoutMs){
+    const {data:{session}}=await sb.auth.getSession();
+    if(session)return session;
+    await new Promise(resolve=>setTimeout(resolve,250));
+  }
+  return null;
+}
+async function applySignedInState(session){
+  if(!session?.user)throw new Error('Сессия не создалась после подтверждения кода');
+  await loadProfile(session.user.id,session.user.email);
+  await loadChats();
+  document.getElementById('authWrap').classList.add('gone');
+  document.getElementById('app').classList.add('show');
+  updateUserUI();
+  if(!curChatId&&chatHistory.length===0)newChat();
+}
+async function verifyOtpVariants(email,code){
+  const variants=['email','magiclink'];
+  let lastError=null;
+  for(const type of variants){
+    const result=await withTimeout(
+      sb.auth.verifyOtp({email,token:code,type}),
+      15000,
+      'Проверка кода заняла слишком много времени'
+    );
+    if(!result.error)return result;
+    lastError=result.error;
+    const msg=String(result.error.message||'').toLowerCase();
+    const retryable=msg.includes('invalid')||msg.includes('expired')||msg.includes('token has');
+    if(!retryable)throw result.error;
+  }
+  throw lastError||new Error('Не удалось подтвердить код');
 }
 
 async function sendOTP(){
@@ -713,15 +773,17 @@ async function sendOTP(){
   if(!isEmail(email)){err.textContent='Введите корректный email';err.style.display='block';return;}
   const btn=document.getElementById('btnSend');
   btn.textContent='Отправляем...';btn.disabled=true;
+  const requestNonce=++otpRequestNonce;
   try{
+    clearOTP();
     const {error}=await withTimeout(
       sb.auth.signInWithOtp({email,options:{shouldCreateUser:true}}),
       15000,
       'Сервис авторизации слишком долго отвечает'
     );
     if(error) throw error;
+    if(requestNonce!==otpRequestNonce)return;
     curEmail=email;
-    clearOTP();
     document.getElementById('codeErr').style.display='none';
     showAuthS(3);
     setTimeout(()=>{const b=document.querySelectorAll('.otp-box')[0];if(b)b.focus();},100);
@@ -736,43 +798,47 @@ function clearOTP(){document.querySelectorAll('.otp-box').forEach(b=>b.value='')
 function getOTP(){return Array.from(document.querySelectorAll('.otp-box')).map(b=>b.value).join('');}
 
 async function verifyOTP(){
+  if(otpVerifyBusy)return;
   const code=getOTP();
   const err=document.getElementById('codeErr');
   err.style.display='none';
   if(!/^\d{6}$/.test(code)){err.textContent='Введите 6-значный код';err.style.display='block';return;}
   const btn=document.getElementById('btnVerify');
   btn.textContent='Проверяем...';btn.disabled=true;
+  otpVerifyBusy=true;
+  const requestNonce=otpRequestNonce;
   try{
     const email=curEmail||document.getElementById('emailInp').value.trim();
-    const {error}=await withTimeout(
-      sb.auth.verifyOtp({email,token:code,type:'email'}),
-      15000,
-      'Проверка кода заняла слишком много времени'
-    );
-    if(error) throw error;
-    const {data:{session}}=await withTimeout(
-      sb.auth.getSession(),
-      8000,
-      'Сессия не создалась после подтверждения кода'
-    );
-    if(!session) throw new Error('Сессия не создалась после подтверждения кода');
-    await initSession();
+    if(!email)throw new Error('Email потерян — введите его заново');
+    const result=await verifyOtpVariants(email,code);
+    if(requestNonce!==otpRequestNonce)throw new Error('Был запрошен новый код. Введите последний код из письма');
+    const session=result.data?.session||await waitForSession(6000);
+    if(!session)throw new Error('Не удалось завершить вход — запросите новый код');
+    await applySignedInState(session);
   }catch(e){
     err.textContent=tErr(e.message);err.style.display='block';
   }finally{
+    otpVerifyBusy=false;
     btn.textContent='Подтвердить';btn.disabled=false;
   }
 }
 async function resendOTP(){
-  if(resendLeft>0)return;
+  if(resendLeft>0||!curEmail)return;
+  const requestNonce=++otpRequestNonce;
   try{
+    clearOTP();
     await withTimeout(
       sb.auth.signInWithOtp({email:curEmail,options:{shouldCreateUser:true}}),
       15000,
       'Повторная отправка кода заняла слишком много времени'
     );
+    if(requestNonce!==otpRequestNonce)return;
     startResend();
-  }catch(e){}
+    document.getElementById('codeErr').style.display='none';
+  }catch(e){
+    const err=document.getElementById('codeErr');
+    err.textContent=tErr(e.message);err.style.display='block';
+  }
 }
 function startResend(){
   resendLeft=60;
@@ -813,27 +879,22 @@ function startResend(){
 async function initSession(){
   const {data:{session}}=await sb.auth.getSession();
   if(session){
-    await loadProfile(session.user.id,session.user.email);
-    await loadChats();
-    document.getElementById('authWrap').classList.add('gone');
-    document.getElementById('app').classList.add('show');
-    updateUserUI();
-    newChat();
-  }else{
+    await applySignedInState(session);
+    return;
+  }
+  document.getElementById('authWrap').classList.remove('gone');
+  document.getElementById('app').classList.remove('show');
+  showAuthS(1);
+}
+sb.auth.onAuthStateChange(async(event,session)=>{
+  if(event==='SIGNED_IN'&&session?.user){
+    await applySignedInState(session);
+  }
+  if(event==='SIGNED_OUT'){
+    curUser=null;chatHistory=[];curChatId=null;chats=[];
     document.getElementById('authWrap').classList.remove('gone');
     document.getElementById('app').classList.remove('show');
     showAuthS(1);
-  }
-}
-sb.auth.onAuthStateChange(async(event,session)=>{
-  if(event==='SIGNED_IN'&&session){
-    if(!curUser){
-      await loadProfile(session.user.id,session.user.email);
-      await loadChats();
-      document.getElementById('authWrap').classList.add('gone');
-      document.getElementById('app').classList.add('show');
-      updateUserUI();
-    }
   }
 });
 initSession();
@@ -938,15 +999,12 @@ async function saveChat(title){
 
 /* ===== MODEL PICKER ===== */
 function closeDesktopSubs(){
-  modeSubOpen=false;
-  modelsSubOpen=false;
+  modeSubOpen=false;modelsSubOpen=false;
   document.getElementById('desktopModeSub')?.classList.remove('open');
   document.getElementById('desktopModelsSub')?.classList.remove('open');
 }
 function closeModelMenus(){
-  dropOpen=false;
-  modeSubOpen=false;
-  modelsSubOpen=false;
+  dropOpen=false;modeSubOpen=false;modelsSubOpen=false;
   document.getElementById('modelDrop')?.classList.remove('open');
   document.getElementById('modeSub')?.classList.remove('open');
   document.getElementById('desktopModelWrap')?.classList.remove('open');
@@ -957,13 +1015,12 @@ function toggleModelDrop(e){
   e.stopPropagation();
   if(isDesktop()){
     dropOpen=!dropOpen;
-    document.getElementById('desktopModelWrap').classList.toggle('open',dropOpen);
+    document.getElementById('desktopModelWrap')?.classList.toggle('open',dropOpen);
     if(!dropOpen)closeDesktopSubs();
     return;
   }
   dropOpen=!dropOpen;
-  document.getElementById('modelDrop').classList.toggle('open',dropOpen);
-  if(!dropOpen){document.getElementById('modeSub').classList.remove('open');modeSubOpen=false;}
+  document.getElementById('modelDrop')?.classList.toggle('open',dropOpen);
 }
 function selectModel(m){
   curModel=m;
@@ -972,22 +1029,22 @@ function selectModel(m){
 }
 function openModeSub(e){
   e.stopPropagation();
+  if(!isDesktop())return;
   if(isDesktop()){
     modeSubOpen=!modeSubOpen;
     modelsSubOpen=false;
-    document.getElementById('desktopModeSub').classList.toggle('open',modeSubOpen);
-    document.getElementById('desktopModelsSub').classList.remove('open');
+    document.getElementById('desktopModeSub')?.classList.toggle('open',modeSubOpen);
+    document.getElementById('desktopModelsSub')?.classList.remove('open');
     return;
   }
-  modeSubOpen=!modeSubOpen;
-  document.getElementById('modeSub').classList.toggle('open',modeSubOpen);
 }
 function openModelsSub(e){
   e.stopPropagation();
+  if(!isDesktop())return;
   modelsSubOpen=!modelsSubOpen;
   modeSubOpen=false;
-  document.getElementById('desktopModelsSub').classList.toggle('open',modelsSubOpen);
-  document.getElementById('desktopModeSub').classList.remove('open');
+  document.getElementById('desktopModelsSub')?.classList.toggle('open',modelsSubOpen);
+  document.getElementById('desktopModeSub')?.classList.remove('open');
 }
 function selectMode(m){
   curMode=m;
@@ -999,25 +1056,44 @@ function toggleThink(e){
   thinkOn=!thinkOn;
   refreshModelUI();
 }
+function toggleClass(id,className,value){
+  const el=document.getElementById(id);
+  if(el)el.classList.toggle(className,value);
+}
+function setOpacity(id,value){
+  const el=document.getElementById(id);
+  if(el)el.style.opacity=value;
+}
+function setText(id,value){
+  const el=document.getElementById(id);
+  if(el)el.textContent=value;
+}
 function refreshModelUI(){
   const shortModel=curModel==='lite'?'lite':'pro';
+  const mobileModel=curModel==='lite'?'MusMind Lite':'MusMind Pro';
   const fullModel=curModel==='lite'?'MusMind Lite':'MusMind Pro';
   const modeLabel=curMode==='low'?'Low':'Max';
-  document.getElementById('pillName').textContent='MusMind';
-  document.getElementById('pillMode').textContent=isDesktop()?shortModel:(shortModel+' · '+curMode);
-  document.getElementById('ck-lite').style.opacity=curModel==='lite'?'1':'0';
-  document.getElementById('ck-pro').style.opacity=curModel==='pro'?'1':'0';
-  document.getElementById('ck-low').style.opacity=curMode==='low'?'1':'0';
-  document.getElementById('ck-max').style.opacity=curMode==='max'?'1':'0';
-  document.getElementById('modeLabel').textContent=modeLabel;
-  document.getElementById('thinkSw').classList.toggle('on',thinkOn);
-  document.getElementById('desktopModelCurrent').textContent=fullModel;
-  document.getElementById('desktopModeLabel').textContent=modeLabel;
-  document.getElementById('desktopCkLite').classList.toggle('on',curModel==='lite');
-  document.getElementById('desktopCkPro').classList.toggle('on',curModel==='pro');
-  document.getElementById('desktopCkLow').classList.toggle('on',curMode==='low');
-  document.getElementById('desktopCkMax').classList.toggle('on',curMode==='max');
-  document.getElementById('desktopThinkSw').classList.toggle('on',thinkOn);
+  const modeTiny=curMode==='low'?'low':'max';
+  setText('pillName',isDesktop()?'MusMind':mobileModel);
+  setText('pillMode',isDesktop()?shortModel:modeTiny);
+  setText('modeLabel',modeLabel);
+  setText('desktopModelCurrent',fullModel);
+  setText('desktopModeLabel',modeLabel);
+  setOpacity('ck-lite',curModel==='lite'?'1':'0');
+  setOpacity('ck-pro',curModel==='pro'?'1':'0');
+  setOpacity('ck-low',curMode==='low'?'1':'0');
+  setOpacity('ck-max',curMode==='max'?'1':'0');
+  toggleClass('thinkSw','on',thinkOn);
+  toggleClass('desktopThinkSw','on',thinkOn);
+  toggleClass('mobThinkSw','on',thinkOn);
+  toggleClass('desktopCkLite','on',curModel==='lite');
+  toggleClass('desktopCkPro','on',curModel==='pro');
+  toggleClass('desktopCkLow','on',curMode==='low');
+  toggleClass('desktopCkMax','on',curMode==='max');
+  toggleClass('mobModelLite','on',curModel==='lite');
+  toggleClass('mobModelPro','on',curModel==='pro');
+  toggleClass('mobModeLow','on',curMode==='low');
+  toggleClass('mobModeMax','on',curMode==='max');
 }
 refreshModelUI();
 window.addEventListener('resize',()=>{closeModelMenus();refreshModelUI();});
@@ -1185,6 +1261,12 @@ function tChatErr(msg){
   }
   return text||'Что-то пошло не так при запросе к модели';
 }
+function buildApiCandidates(){
+  const endpoints=[];
+  if(window.location.protocol!=='file:')endpoints.push('/api/chat');
+  endpoints.push(`${FALLBACK_API_ORIGIN}/api/chat`);
+  return [...new Set(endpoints)];
+}
 async function requestChatReply(){
   const payload={
     messages:[{role:'system',content:buildSystem()},...chatHistory],
@@ -1192,17 +1274,29 @@ async function requestChatReply(){
     effort:curMode,
     think:thinkOn
   };
-  const res=await withTimeout(
-    fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),
-    CHAT_TIMEOUT_MS,
-    'Сервер слишком долго отвечает'
-  );
-  let data=null;
-  try{data=await res.json();}catch(e){data=null;}
-  if(!res.ok||data?.error)throw new Error(tChatErr(data?.error?.message||`Ошибка сервера (${res.status})`));
-  const reply=data?.choices?.[0]?.message?.content?.trim();
-  if(!reply)throw new Error('Модель вернула пустой ответ');
-  return reply;
+  let lastError=null;
+  for(const endpoint of buildApiCandidates()){
+    try{
+      const res=await withTimeout(
+        fetch(endpoint,{method:'POST',mode:'cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),
+        CHAT_TIMEOUT_MS,
+        'Сервер слишком долго отвечает'
+      );
+      let data=null;
+      try{data=await res.json();}catch(e){data=null;}
+      if(!res.ok||data?.error)throw new Error(tChatErr(data?.error?.message||`Ошибка сервера (${res.status})`));
+      const reply=data?.choices?.[0]?.message?.content?.trim();
+      if(!reply)throw new Error('Модель вернула пустой ответ');
+      return reply;
+    }catch(e){
+      lastError=e;
+      if(String(e?.message||'').toLowerCase().includes('failed to fetch'))continue;
+    }
+  }
+  if(window.location.protocol==='file:'){
+    throw new Error('Локальный HTML не смог подключиться к серверу чата. На домене всё должно работать, а для локального просмотра нужен доступный backend.');
+  }
+  throw lastError||new Error('Не удалось получить ответ от сервера');
 }
 
 /* ===== SEND ===== */
