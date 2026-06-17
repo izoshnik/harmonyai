@@ -350,9 +350,26 @@ async function callOpenAI(apiKey, modelName, messages) {
   return { response, data };
 }
 
+function isQuotaExceeded(status, message = '') {
+  const low = String(message || '').toLowerCase();
+  return (
+    status === 429 && (
+      low.includes('quota') ||
+      low.includes('resource has been exhausted') ||
+      low.includes('resource exhausted') ||
+      low.includes('exceeded your current quota') ||
+      low.includes('billing') ||
+      low.includes('insufficient balance') ||
+      low.includes('token limit exceeded')
+    )
+  );
+}
+
 function selectRoute(profile, requestedModel) {
   const plan = profile?.plan || 'free';
-  if (plan === 'premium') {
+  const wantsPro = requestedModel === 'pro';
+
+  if (wantsPro && plan === 'premium') {
     const provider = (process.env.PREMIUM_PROVIDER || 'openai').toLowerCase();
     if (provider === 'openai' && process.env.OPENAI_API_KEY) {
       return {
@@ -373,7 +390,7 @@ function selectRoute(profile, requestedModel) {
   return {
     provider: 'gemini',
     apiKey: process.env.GEMINI_API_KEY,
-    models: FREE_MODEL_CHAINS[requestedModel] || FREE_MODEL_CHAINS.lite
+    models: wantsPro ? FREE_MODEL_CHAINS.pro : FREE_MODEL_CHAINS.lite
   };
 }
 
@@ -425,6 +442,11 @@ export default async function handler(req, res) {
         const errorMessage = data?.error?.message || '';
         if (!response.ok || data.error) {
           lastError = { status: response.status || 500, message: errorMessage || `Ошибка модели ${modelName}`, model: modelName };
+          if (isQuotaExceeded(response.status, errorMessage)) {
+            return res.status(429).json({
+              error: { message: 'Ошибка 1511. Сообщите в поддержку.' }
+            });
+          }
           if (isOverloaded(response.status, errorMessage)) await sleep(800);
           continue;
         }
@@ -445,6 +467,11 @@ export default async function handler(req, res) {
         const errorMessage = data?.error?.message || '';
         if (!response.ok || data.error) {
           lastError = { status: response.status || 500, message: errorMessage || `Ошибка модели ${modelName}`, model: modelName };
+          if (isQuotaExceeded(response.status, errorMessage)) {
+            return res.status(429).json({
+              error: { message: 'Ошибка 1511. Сообщите в поддержку.' }
+            });
+          }
           if (isOverloaded(response.status, errorMessage) && attempt === 0) {
             await sleep(900);
             continue;
@@ -457,6 +484,12 @@ export default async function handler(req, res) {
           model: modelName
         });
       }
+    }
+
+    if (lastError && isQuotaExceeded(lastError.status, lastError.message)) {
+      return res.status(429).json({
+        error: { message: 'Ошибка 1511. Сообщите в поддержку.' }
+      });
     }
 
     if (lastError && isOverloaded(lastError.status, lastError.message)) {
