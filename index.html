@@ -347,8 +347,8 @@ body{background:var(--bg);color:var(--text);}
   .mmp-think-copy{display:flex;flex-direction:column;gap:2px;}
   .mmp-think-title{font-size:14px;font-weight:700;color:var(--text);}
   .mmp-think-sub{font-size:11px;color:var(--text2);line-height:1.35;}
-  .send-btn{position:absolute;right:0;top:50%;transform:translateY(-50%);width:72px;height:72px;border-radius:24px;background:#fff;color:#111;border:1px solid rgba(255,255,255,.2);box-shadow:0 14px 30px rgba(0,0,0,.28);}
-  .send-btn svg{width:24px;height:24px;}
+  .send-btn{position:absolute;right:0;top:50%;transform:translateY(-50%);width:56px;height:56px;border-radius:18px;background:#fff;color:#111;border:1px solid rgba(255,255,255,.2);box-shadow:0 12px 24px rgba(0,0,0,.24);}
+  .send-btn svg{width:22px;height:22px;}
   .disclaimer{position:absolute;left:0;right:0;bottom:14px;padding:0 18px;font-size:11px;color:rgba(179,176,189,.42);opacity:1;}
 }
 @media(min-width:769px){
@@ -714,7 +714,7 @@ let abcCounter=0;
 let authHydrationPromise=null,authHydratedUserId='';
 let knowledgeDocs=[];
 const CHAT_TIMEOUT_MS=60000;
-const FALLBACK_API_ORIGIN='https://harmonyai.qd.je';
+const PRIMARY_API_ORIGIN='https://harmonyai-zeta.vercel.app';
 const KB_GLOBAL_KEY='harmonyai_global_kb_v1';
 const KB_USER_PREFIX='harmonyai_user_kb_v1_';
 
@@ -1781,16 +1781,14 @@ function tChatErr(msg){
   if(low.includes('high demand')||low.includes('overloaded')||low.includes('resource exhausted')||low.includes('try again later')){
     return 'Модель временно перегружена. Я уже попробовал резервный вариант, но сервис всё ещё занят. Повторите через минуту.';
   }
-  if(low.includes('fetch')||low.includes('network')){
-    return 'Сервер временно недоступен. Попробуйте ещё раз.';
+  if(low.includes('failed to fetch')||low.includes('load failed')||low.includes('fetch')||low.includes('network')){
+    return 'Сервер чата недоступен. Проверьте деплой Vercel и файл api/chat.js, потом попробуйте ещё раз.';
   }
   return text||'Что-то пошло не так при запросе к модели';
 }
 function buildApiCandidates(){
-  const endpoints=[];
-  if(window.location.protocol!=='file:')endpoints.push('/api/chat');
-  endpoints.push(`${FALLBACK_API_ORIGIN}/api/chat`);
-  return [...new Set(endpoints)];
+  const base=window.location.protocol==='file:' ? PRIMARY_API_ORIGIN : window.location.origin;
+  return [`${String(base).replace(/\/$/,'')}/api/chat`];
 }
 async function requestChatReply(){
   const payload={
