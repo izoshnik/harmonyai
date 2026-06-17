@@ -259,6 +259,7 @@ body{background:var(--bg);color:var(--text);}
 .model-pill{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:9px;background:var(--bg);border:1px solid var(--border);font-size:13px;font-weight:600;color:var(--text);cursor:pointer;position:relative;user-select:none;transition:background .12s;}
 .model-pill:hover{background:var(--hover);}
 .pill-name{font-weight:700;}.pill-mode{font-weight:400;color:var(--text2);margin-left:1px;font-size:12px;}
+.pill-caret{font-size:10px;color:var(--text2);margin-left:1px;}
 @media(max-width:768px){.model-pill{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.12);}}
 @media(min-width:769px){
   .model-pill{padding:6px 12px;border-radius:12px;background:#fff;box-shadow:0 4px 14px rgba(0,0,0,.04);}
@@ -304,13 +305,20 @@ body{background:var(--bg);color:var(--text);}
 .ms-desc{font-size:11px;color:var(--text2);margin-top:1px;}
 .ms-check{color:var(--check);font-size:14px;}
 @media(max-width:768px){
-  .input-box{position:relative;overflow:visible;border-radius:24px;padding:12px 12px 10px;background:rgba(255,255,255,0.04);backdrop-filter:blur(14px);border-color:rgba(255,255,255,0.08);}
-  .bar-right{position:relative;display:flex;align-items:center;gap:8px;flex-shrink:0;min-width:0;}
-  .model-pill{max-width:198px;padding:8px 12px;border-radius:14px;gap:8px;background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.12);}
-  .pill-name{max-width:114px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .pill-mode{font-size:11px;text-transform:lowercase;}
-  .mobile-model-drop.compact-mobile-picker{right:0;left:auto;bottom:calc(100% + 10px);width:min(266px, calc(100vw - 44px));min-width:0;max-height:min(62vh,420px);overflow-y:auto;padding:12px;border-radius:22px;background:rgba(20,20,27,.97);border:1px solid rgba(255,255,255,.09);backdrop-filter:blur(22px);box-shadow:0 24px 48px rgba(0,0,0,.35);transform-origin:bottom right;}
+  .input-box{position:relative;overflow:visible;border-radius:24px;padding:14px 14px 72px;min-height:126px;background:rgba(255,255,255,0.04);backdrop-filter:blur(14px);border-color:rgba(255,255,255,0.08);}
+  .input-box textarea{min-height:54px;padding-right:10px;}
+  .input-bar-row{position:relative;margin-top:0;height:0;}
+  .bar-left{position:absolute;left:4px;bottom:0;z-index:2;}
+  .bar-right{position:absolute;left:0;right:0;bottom:0;height:0;display:block;min-width:0;}
+  .bar-icon{width:42px;height:42px;border-radius:14px;color:rgba(255,255,255,.82);}
+  .model-pill{position:absolute;left:50%;bottom:2px;transform:translateX(-50%);max-width:192px;height:32px;padding:0 14px;border-radius:999px;gap:4px;background:rgba(206,206,212,.9);border-color:rgba(255,255,255,.18);color:#1d1d21;box-shadow:0 10px 24px rgba(0,0,0,.22);}
+  .model-pill:hover{background:rgba(218,218,224,.96);}
+  .pill-name{max-width:116px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#1d1d21;font-size:12px;}
+  .pill-mode{font-size:11px;color:rgba(29,29,33,.72);text-transform:none;}
+  .pill-caret{display:none;}
+  .mobile-model-drop.compact-mobile-picker{left:50%;right:auto;bottom:calc(100% + 14px);transform:translateX(-50%);width:min(276px, calc(100vw - 44px));min-width:0;max-height:min(62vh,420px);overflow-y:auto;padding:12px;border-radius:22px;background:rgba(20,20,27,.97);border:1px solid rgba(255,255,255,.09);backdrop-filter:blur(22px);box-shadow:0 24px 48px rgba(0,0,0,.35);}
   .mobile-mode-sub{display:none!important;}
+  .desktop-model-wrap{display:none!important;}
   .mmp-title{font-size:13px;font-weight:700;color:var(--text);padding:2px 4px 10px;}
   .mmp-section{display:flex;flex-direction:column;gap:6px;}
   .mmp-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text2);padding:2px 4px;}
@@ -326,6 +334,7 @@ body{background:var(--bg);color:var(--text);}
   .mmp-think-copy{display:flex;flex-direction:column;gap:2px;}
   .mmp-think-title{font-size:14px;font-weight:700;color:var(--text);}
   .mmp-think-sub{font-size:11px;color:var(--text2);line-height:1.35;}
+  .send-btn{position:absolute;right:-2px;bottom:-2px;width:54px;height:54px;border-radius:18px;background:#fff;color:#111;border:1px solid rgba(255,255,255,.18);box-shadow:0 12px 28px rgba(0,0,0,.28);}
 }
 @media(min-width:769px){
   .mobile-model-drop,.mobile-mode-sub{display:none!important;}
@@ -567,7 +576,7 @@ body{background:var(--bg);color:var(--text);}
             <div class="model-pill" id="modelPill" onclick="toggleModelDrop(event)">
               <span class="pill-name" id="pillName">MusMind</span>
               <span class="pill-mode" id="pillMode">lite · low</span>
-              <span style="font-size:10px;color:var(--text2);margin-left:1px;">▾</span>
+              <span class="pill-caret">▾</span>
               <!-- Dropdown -->
               <div class="model-drop mobile-model-drop compact-mobile-picker" id="modelDrop" onclick="event.stopPropagation()">
                 <div class="mmp-title">Параметры</div>
@@ -733,6 +742,16 @@ function goToEmail(){
   setTimeout(()=>{const e=document.getElementById('emailInp');if(e)e.focus();},100);
 }
 function isEmail(e){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);}
+function getSafeRedirectUrl(){
+  if(/^https?:$/.test(window.location.protocol))return window.location.origin;
+  return undefined;
+}
+function buildOtpSendOptions(email){
+  const redirect=getSafeRedirectUrl();
+  return redirect
+    ? {email,options:{shouldCreateUser:true,emailRedirectTo:redirect}}
+    : {email,options:{shouldCreateUser:true}};
+}
 function tErr(msg){
   const text=String(msg||'');
   const low=text.toLowerCase();
@@ -762,20 +781,72 @@ async function applySignedInState(session){
   updateUserUI();
   if(!curChatId&&chatHistory.length===0)newChat();
 }
+function isRetryableOtpIssue(err){
+  const low=String(err?.message||err||'').toLowerCase();
+  return !low
+    || low.includes('invalid')
+    || low.includes('expired')
+    || low.includes('token has')
+    || low.includes('session')
+    || low.includes('fetch')
+    || low.includes('network')
+    || low.includes('слишком много времени')
+    || low.includes('timed out')
+    || low.includes('timeout');
+}
+async function verifyOtpDirect(email,code,type){
+  const res=await withTimeout(
+    fetch(`${SB_URL}/auth/v1/verify`,{
+      method:'POST',
+      mode:'cors',
+      headers:{
+        'Content-Type':'application/json',
+        apikey:SB_KEY,
+        Authorization:`Bearer ${SB_KEY}`
+      },
+      body:JSON.stringify({email,token:code,type})
+    }),
+    20000,
+    'Проверка кода заняла слишком много времени'
+  );
+  let data=null;
+  try{data=await res.json();}catch(e){data=null;}
+  if(!res.ok){
+    throw new Error(data?.msg||data?.error_description||data?.error||`Ошибка проверки кода (${res.status})`);
+  }
+  if(data?.access_token&&data?.refresh_token){
+    const {data:setData,error:setError}=await sb.auth.setSession({access_token:data.access_token,refresh_token:data.refresh_token});
+    if(setError)throw setError;
+    return {data:{session:setData?.session||null,user:setData?.user||data?.user||null}};
+  }
+  return {data:{session:data?.session||null,user:data?.user||null}};
+}
+async function verifyOtpViaSdk(email,code,type){
+  const result=await withTimeout(
+    sb.auth.verifyOtp({email,token:code,type}),
+    20000,
+    'Проверка кода заняла слишком много времени'
+  );
+  if(result?.error)throw result.error;
+  return result;
+}
 async function verifyOtpVariants(email,code){
-  const variants=['email','magiclink'];
   let lastError=null;
-  for(const type of variants){
-    const result=await withTimeout(
-      sb.auth.verifyOtp({email,token:code,type}),
-      15000,
-      'Проверка кода заняла слишком много времени'
-    );
-    if(!result.error)return result;
-    lastError=result.error;
-    const msg=String(result.error.message||'').toLowerCase();
-    const retryable=msg.includes('invalid')||msg.includes('expired')||msg.includes('token has');
-    if(!retryable)throw result.error;
+  const attempts=[
+    ()=>verifyOtpDirect(email,code,'email'),
+    ()=>verifyOtpViaSdk(email,code,'email'),
+    ()=>verifyOtpDirect(email,code,'signup'),
+    ()=>verifyOtpViaSdk(email,code,'signup'),
+    ()=>verifyOtpDirect(email,code,'magiclink')
+  ];
+  for(const run of attempts){
+    try{
+      const result=await run();
+      if(result?.data?.session||result?.data?.user)return result;
+    }catch(e){
+      lastError=e;
+      if(!isRetryableOtpIssue(e))throw e;
+    }
   }
   throw lastError||new Error('Не удалось подтвердить код');
 }
@@ -791,8 +862,8 @@ async function sendOTP(){
   try{
     clearOTP();
     const {error}=await withTimeout(
-      sb.auth.signInWithOtp({email,options:{shouldCreateUser:true}}),
-      15000,
+      sb.auth.signInWithOtp(buildOtpSendOptions(email)),
+      20000,
       'Сервис авторизации слишком долго отвечает'
     );
     if(error) throw error;
@@ -826,7 +897,7 @@ async function verifyOTP(){
     if(!email)throw new Error('Email потерян — введите его заново');
     const result=await verifyOtpVariants(email,code);
     if(requestNonce!==otpRequestNonce)throw new Error('Был запрошен новый код. Введите последний код из письма');
-    const session=result.data?.session||await waitForSession(6000);
+    const session=result.data?.session||await waitForSession(12000);
     if(!session)throw new Error('Не удалось завершить вход — запросите новый код');
     await applySignedInState(session);
   }catch(e){
@@ -842,8 +913,8 @@ async function resendOTP(){
   try{
     clearOTP();
     await withTimeout(
-      sb.auth.signInWithOtp({email:curEmail,options:{shouldCreateUser:true}}),
-      15000,
+      sb.auth.signInWithOtp(buildOtpSendOptions(curEmail)),
+      20000,
       'Повторная отправка кода заняла слишком много времени'
     );
     if(requestNonce!==otpRequestNonce)return;
@@ -1084,10 +1155,10 @@ function setText(id,value){
 }
 function refreshModelUI(){
   const shortModel=curModel==='lite'?'lite':'pro';
-  const mobileModel=curModel==='lite'?'MusMind Lite':'MusMind Pro';
+  const mobileModel=curModel==='lite'?'MusMind lite':'MusMind pro';
   const fullModel=curModel==='lite'?'MusMind Lite':'MusMind Pro';
   const modeLabel=curMode==='low'?'Low':'Max';
-  const modeTiny=curMode==='low'?'low':'max';
+  const modeTiny=curMode==='low'?'· low':'· max';
   setText('pillName',isDesktop()?'MusMind':mobileModel);
   setText('pillMode',isDesktop()?shortModel:modeTiny);
   setText('modeLabel',modeLabel);
