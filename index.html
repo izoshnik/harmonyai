@@ -6,23 +6,25 @@
 <title>HarmonyAI</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/abcjs@6.2.3/dist/abcjs-basic-min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 html,body{height:100%;overflow:hidden;}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;height:100vh;}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;}
 
-/* ======= МОБИЛЬ — ТЁМНАЯ ======= */
+/* ===================== МОБИЛЬНАЯ — ТЁМНАЯ (по умолчанию) ===================== */
 :root{
-  --bg:#0b0b0e;
-  --bg2:#141417;
+  --bg:#0a0a0c;
+  --bg2:#121214;
   --bg3:rgba(255,255,255,0.06);
   --text:#ffffff;
-  --text2:#a0a0a8;
+  --text2:#888892;
+  --text-ai:#e8e8ec;
   --border:rgba(255,255,255,0.10);
   --border2:rgba(255,255,255,0.06);
   --send-bg:#ffffff;
-  --send-txt:#000000;
+  --send-txt:#0a0a0c;
   --user-bg:#1e1e24;
   --user-txt:#ffffff;
   --input-bg:rgba(255,255,255,0.06);
@@ -33,19 +35,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
   --check:#22c55e;
   --font-base:15px;
 }
-/* ======= ДЕСКТОП — СВЕТЛАЯ ======= */
+/* ===================== ДЕСКТОП — СВЕТЛАЯ ===================== */
 @media(min-width:769px){
   :root{
-    --bg:#ffffff;
-    --bg2:#f7f7f8;
+    --bg:#fafaf9;
+    --bg2:#f0efea;
     --bg3:rgba(0,0,0,0.03);
-    --text:#000000;
-    --text2:#666666;
+    --text:#1a1a1a;
+    --text2:#6b6b6b;
+    --text-ai:#1a1a1a;
     --border:rgba(0,0,0,0.10);
     --border2:rgba(0,0,0,0.06);
-    --send-bg:#000000;
+    --send-bg:#1a1a1a;
     --send-txt:#ffffff;
-    --user-bg:#000000;
+    --user-bg:#1a1a1a;
     --user-txt:#ffffff;
     --input-bg:rgba(0,0,0,0.03);
     --hover:rgba(0,0,0,0.04);
@@ -56,24 +59,37 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
   }
 }
 
-/* ======= AUTH ======= */
-.auth-wrap{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px;}
+body{background:var(--bg);color:var(--text);}
+
+/* ===================== GLOSSY MOBILE BACKGROUND ===================== */
+.mobile-glossy{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
+.mobile-glossy .bubble{position:absolute;border-radius:50%;filter:blur(60px);opacity:0.35;animation:floatBubble 12s ease-in-out infinite;}
+.mobile-glossy .b1{width:280px;height:280px;background:radial-gradient(circle,#4f46e5 0%,transparent 70%);top:10%;left:-10%;animation-delay:0s;}
+.mobile-glossy .b2{width:240px;height:240px;background:radial-gradient(circle,#7c3aed 0%,transparent 70%);top:35%;right:-15%;animation-delay:-4s;}
+.mobile-glossy .b3{width:200px;height:200px;background:radial-gradient(circle,#2563eb 0%,transparent 70%);top:60%;left:20%;animation-delay:-8s;}
+.mobile-glossy .b4{width:180px;height:180px;background:radial-gradient(circle,#0891b2 0%,transparent 70%);bottom:20%;right:10%;animation-delay:-2s;}
+@keyframes floatBubble{0%,100%{transform:translate(0,0) scale(1);}33%{transform:translate(20px,-15px) scale(1.05);}66%{transform:translate(-15px,10px) scale(0.95);}}
+@media(min-width:769px){.mobile-glossy{display:none;}}
+
+/* ===================== AUTH ===================== */
+.auth-wrap{position:fixed;inset:0;z-index:1000;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px;}
 .auth-wrap.gone{display:none;}
 .auth-card{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:36px 28px;max-width:380px;width:100%;display:flex;flex-direction:column;gap:0;}
 .auth-screen{display:none;flex-direction:column;gap:0;}
 .auth-screen.active{display:flex;}
-.auth-logo{font-size:14px;font-weight:700;color:var(--text);margin-bottom:28px;opacity:.6;}
-.auth-h1{font-size:28px;font-weight:800;color:var(--text);line-height:1.2;margin-bottom:8px;letter-spacing:-0.5px;}
-.auth-sub{font-size:14px;color:var(--text2);margin-bottom:28px;line-height:1.5;}
+.auth-logo{font-size:15px;font-weight:800;color:var(--text);margin-bottom:32px;opacity:.5;letter-spacing:-0.3px;}
+.auth-h1{font-size:30px;font-weight:800;color:var(--text);line-height:1.15;margin-bottom:8px;letter-spacing:-0.5px;}
+.auth-sub{font-size:15px;color:var(--text2);margin-bottom:32px;line-height:1.5;}
 .auth-input{width:100%;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--input-bg);font-size:15px;color:var(--text);font-family:inherit;outline:none;margin-bottom:10px;transition:border-color .15s;}
 .auth-input:focus{border-color:var(--text);}
 .auth-input::placeholder{color:var(--text2);}
 .auth-btn-primary{width:100%;padding:14px;border-radius:12px;background:var(--send-bg);color:var(--send-txt);font-size:15px;font-weight:700;border:none;cursor:pointer;margin-bottom:10px;font-family:inherit;transition:opacity .15s;}
 .auth-btn-primary:hover{opacity:.85;}
+.auth-btn-primary:disabled{opacity:.5;cursor:default;}
 .auth-btn-secondary{width:100%;padding:12px;border-radius:12px;background:transparent;color:var(--text2);font-size:14px;font-weight:500;border:1px solid var(--border);cursor:pointer;font-family:inherit;transition:background .15s;}
 .auth-btn-secondary:hover{background:var(--hover);}
 .auth-tos{font-size:12px;color:var(--text2);text-align:center;line-height:1.6;margin-top:12px;}
-.auth-beta{font-size:12px;color:var(--text2);text-align:center;margin-top:24px;}
+.auth-beta{font-size:12px;color:var(--text2);text-align:center;margin-top:24px;opacity:.5;}
 .auth-error{font-size:13px;color:#ef4444;text-align:center;display:none;margin-bottom:8px;}
 .otp-row{display:flex;gap:8px;justify-content:center;margin-bottom:10px;}
 .otp-box{width:46px;height:54px;border:1px solid var(--border);border-radius:12px;background:var(--input-bg);font-size:22px;font-weight:800;color:var(--text);text-align:center;font-family:inherit;outline:none;transition:border-color .15s;}
@@ -82,182 +98,200 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
 .auth-resend:hover{color:var(--text);}
 .auth-resend.disabled{opacity:.4;cursor:default;pointer-events:none;}
 
-/* ======= ОСНОВНОЙ LAYOUT ======= */
-.app{display:none;height:100vh;overflow:hidden;}
+/* ===================== APP LAYOUT ===================== */
+.app{display:none;height:100vh;overflow:hidden;position:relative;}
 .app.show{display:flex;}
-
-/* ======= МОБИЛЬ: СТЕК ======= */
 @media(max-width:768px){
-  .app{flex-direction:column;position:relative;}
-  .sidebar{position:fixed;top:0;left:0;bottom:0;width:80%;max-width:300px;z-index:50;background:var(--bg2);border-right:1px solid var(--border);transform:translateX(-100%);transition:transform .28s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;padding:24px 14px 20px;}
+  .app{flex-direction:column;}
+  .sidebar{position:fixed;top:0;left:0;bottom:0;width:80%;max-width:300px;z-index:50;background:var(--bg2);border-right:1px solid var(--border);transform:translateX(-100%);transition:transform .28s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;padding:20px 14px 16px;}
   .sidebar.open{transform:translateX(0);}
   .overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:40;opacity:0;visibility:hidden;transition:opacity .25s;}
   .overlay.show{opacity:1;visibility:visible;}
-  .main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
-  .topbar{display:flex;align-items:center;padding:12px 16px;gap:10px;}
-  .topbar-logo{font-size:15px;font-weight:800;color:var(--text);flex:1;}
+  .main{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative;z-index:1;}
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;gap:10px;position:relative;z-index:2;}
+  .topbar-logo{font-size:16px;font-weight:800;color:var(--text);position:absolute;left:50%;transform:translateX(-50%);}
 }
-/* ======= ДЕСКТОП: БОКОВАЯ ПАНЕЛЬ ======= */
 @media(min-width:769px){
   .app{flex-direction:row;}
   .overlay{display:none;}
-  .sidebar{width:56px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:16px 0;gap:4px;transition:width .25s cubic-bezier(.4,0,.2,1);}
-  .sidebar.expanded{width:240px;align-items:stretch;padding:16px 10px;}
+  .sidebar{width:52px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:16px 0;gap:4px;transition:width .25s cubic-bezier(.4,0,.2,1);overflow:hidden;}
+  .sidebar.expanded{width:220px;align-items:stretch;padding:16px 10px;}
   .main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);}
   .topbar{display:none;}
 }
 
-/* ===== SIDEBAR CONTENTS ===== */
-.sb-icon-btn{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);transition:background .12s,color .12s;flex-shrink:0;}
+/* Sidebar contents */
+.sb-icon-btn{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);transition:background .12s,color .12s;flex-shrink:0;}
 .sb-icon-btn:hover{background:var(--hover);color:var(--text);}
 @media(min-width:769px){
-  .sb-icon-btn{width:36px;height:36px;}
-  .sidebar.expanded .sb-icon-btn{width:100%;border-radius:9px;justify-content:flex-start;padding:0 10px;gap:10px;}
+  .sb-icon-btn{width:36px;height:36px;margin:0 auto;}
+  .sidebar.expanded .sb-icon-btn{width:100%;border-radius:9px;justify-content:flex-start;padding:0 10px;gap:10px;margin:0;}
   .sb-icon-label{display:none;font-size:13px;font-weight:500;color:var(--text);}
   .sidebar.expanded .sb-icon-label{display:inline;}
 }
 .sb-top{display:flex;flex-direction:column;gap:4px;}
-.sb-chat-list{flex:1;overflow-y:auto;margin-top:8px;}
+@media(max-width:768px){.sb-top{margin-bottom:8px;}}
+.sb-chat-list{flex:1;overflow-y:auto;margin-top:8px;display:none;}
 .sb-chat-list::-webkit-scrollbar{width:3px;}
 .sb-chat-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
-.sb-chat-item{padding:8px 10px;border-radius:8px;font-size:13px;color:var(--text);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.75;transition:background .12s;}
+.sb-chat-item{padding:8px 10px;border-radius:8px;font-size:13px;color:var(--text);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.75;transition:background .12s;margin-bottom:2px;}
 .sb-chat-item:hover,.sb-chat-item.active{background:var(--active);opacity:1;}
-@media(max-width:768px){
-  .sb-chat-list{display:block;}
-}
+@media(max-width:768px){.sb-chat-list{display:block!important;}}
 @media(min-width:769px){
   .sb-chat-list{display:none;}
-  .sidebar.expanded .sb-chat-list{display:block;}
+  .sidebar.expanded .sb-chat-list{display:block!important;}
 }
 .sb-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);padding:10px 10px 4px;display:none;}
 .sidebar.expanded .sb-label{display:block;}
-.sb-footer{margin-top:auto;}
-.sb-avatar{width:30px;height:30px;border-radius:50%;background:var(--text);color:var(--bg);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;}
+@media(max-width:768px){.sb-label{display:block;}}
+.sb-footer{margin-top:auto;padding-top:8px;}
+.sb-avatar{width:32px;height:32px;border-radius:50%;background:var(--text);color:var(--bg);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;}
 .sb-user-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:9px;cursor:pointer;transition:background .12s;}
 .sb-user-row:hover{background:var(--hover);}
 .sb-username{font-size:13px;font-weight:600;color:var(--text);display:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .sidebar.expanded .sb-username{display:block;}
+@media(max-width:768px){.sb-username{display:block;}}
 
-/* ======= ТОПБАР (мобиль) ======= */
-.topbar-btn{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);transition:background .12s;}
-.topbar-btn:hover{background:var(--hover);}
+/* Topbar buttons */
+.topbar-btn{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);transition:background .12s;background:transparent;border:none;}
+.topbar-btn:hover{background:var(--hover);color:var(--text);}
 
-/* ======= ЧАТ ОБЛАСТЬ ======= */
-.chat-area{flex:1;overflow-y:auto;display:flex;flex-direction:column;scroll-behavior:smooth;}
-.chat-area::-webkit-scrollbar{width:6px;}
+/* ===================== CHAT AREA ===================== */
+.chat-area{flex:1;overflow-y:auto;display:flex;flex-direction:column;scroll-behavior:smooth;position:relative;z-index:1;}
+.chat-area::-webkit-scrollbar{width:5px;}
 .chat-area::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
-.chat-inner{width:100%;max-width:720px;margin:0 auto;padding:24px 20px;display:flex;flex-direction:column;gap:20px;flex:1;}
-@media(max-width:768px){.chat-inner{padding:16px 14px;max-width:100%;}}
+.chat-inner{width:100%;max-width:720px;margin:0 auto;padding:20px;display:flex;flex-direction:column;gap:18px;flex:1;}
+@media(max-width:768px){.chat-inner{padding:14px;max-width:100%;}}
 
-/* Приветствие */
+/* Greeting */
 .greeting-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 0;}
-@media(min-width:769px){.greeting-wrap{min-height:60vh;}}
-.greeting-title{font-size:36px;font-weight:800;color:var(--text);letter-spacing:-1px;margin-bottom:10px;}
+.greeting-title{font-size:34px;font-weight:800;color:var(--text);letter-spacing:-1px;margin-bottom:10px;line-height:1.2;}
 @media(max-width:768px){.greeting-title{font-size:26px;}}
-.greeting-sub{font-size:16px;color:var(--text2);transition:opacity .3s;}
-@media(max-width:768px){.greeting-sub{font-size:14px;}}
+.greeting-sub{font-size:15px;color:var(--text2);transition:opacity .3s;line-height:1.5;max-width:400px;}
 
-/* Сообщения */
-.msg-user{align-self:flex-end;max-width:80%;background:var(--user-bg);color:var(--user-txt);border-radius:18px 18px 4px 18px;padding:12px 16px;font-size:var(--font-base);line-height:1.55;word-break:break-word;white-space:pre-wrap;}
-.msg-ai-wrap{display:flex;flex-direction:column;gap:8px;}
-.msg-ai{font-size:var(--font-base);line-height:1.7;color:var(--text);word-break:break-word;}
-.msg-ai h1,.msg-ai h2,.msg-ai h3{font-weight:700;margin:14px 0 6px;}
+/* ===================== MESSAGES ===================== */
+/* USER — bubble */
+.msg-user{align-self:flex-end;max-width:78%;background:var(--user-bg);color:var(--user-txt);border-radius:18px 18px 4px 18px;padding:11px 16px;font-size:var(--font-base);line-height:1.55;word-break:break-word;white-space:pre-wrap;}
+@media(max-width:768px){.msg-user{border-radius:20px 20px 4px 20px;padding:12px 16px;max-width:85%;}}
+
+/* AI — NO BUBBLE, text flows on background */
+.msg-ai-wrap{align-self:stretch;display:flex;flex-direction:column;gap:6px;}
+.msg-ai{font-size:var(--font-base);line-height:1.7;color:var(--text-ai);word-break:break-word;}
+/* Force AI text visible - dark on mobile, dark on desktop */
+@media(max-width:768px){.msg-ai{color:#e2e2e6;}}
+@media(min-width:769px){.msg-ai{color:#1a1a1a;}}
+
+/* Markdown in AI */
+.msg-ai h1,.msg-ai h2,.msg-ai h3{font-weight:700;margin:14px 0 6px;color:inherit;}
 .msg-ai h1{font-size:1.3em;}.msg-ai h2{font-size:1.15em;}.msg-ai h3{font-size:1.05em;}
-.msg-ai p{margin:6px 0;}.msg-ai p:first-child{margin-top:0;}
-.msg-ai ul,.msg-ai ol{padding-left:20px;margin:6px 0;}.msg-ai li{margin:3px 0;}
-.msg-ai code{background:var(--hover);padding:1px 5px;border-radius:4px;font-size:.9em;font-family:monospace;}
-.msg-ai pre{background:var(--hover);padding:12px;border-radius:10px;overflow-x:auto;margin:10px 0;}
+.msg-ai p{margin:7px 0;}.msg-ai p:first-child{margin-top:0;}
+.msg-ai ul,.msg-ai ol{padding-left:20px;margin:7px 0;}.msg-ai li{margin:3px 0;}
+.msg-ai code{background:var(--bg3);padding:1px 5px;border-radius:4px;font-size:.9em;font-family:'SF Mono',monospace;}
+.msg-ai pre{background:var(--bg3);padding:12px;border-radius:10px;overflow-x:auto;margin:10px 0;}
 .msg-ai pre code{background:none;padding:0;}
 .msg-ai strong{font-weight:700;}
-.msg-ai blockquote{border-left:3px solid var(--border);padding-left:12px;color:var(--text2);margin:6px 0;}
-/* Actions */
-.msg-actions{display:flex;align-items:center;gap:4px;position:relative;}
-.mac-btn{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--text2);cursor:pointer;transition:background .12s,color .12s;}
+.msg-ai blockquote{border-left:3px solid var(--border);padding-left:12px;color:var(--text2);margin:7px 0;}
+.msg-ai hr{border:none;border-top:1px solid var(--border);margin:12px 0;}
+.msg-ai a{color:#3b82f6;text-decoration:underline;}
+
+/* ABC Notation block */
+.abc-block{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;margin:10px 0;overflow-x:auto;}
+.abc-label{font-size:11px;font-weight:700;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;}
+
+/* AI message actions */
+.msg-actions{display:flex;align-items:center;gap:3px;margin-top:2px;padding-left:2px;}
+.mac-btn{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--text2);cursor:pointer;transition:background .12s,color .12s;background:transparent;border:none;}
 .mac-btn:hover{background:var(--hover);color:var(--text);}
 .mac-btn.liked{color:#22c55e;}.mac-btn.disliked{color:#ef4444;}
-.more-menu{position:absolute;bottom:34px;left:0;background:var(--drop-bg);border:1px solid var(--border);border-radius:12px;padding:5px;display:none;z-index:30;box-shadow:var(--drop-shadow);min-width:140px;}
+.more-menu{position:absolute;bottom:36px;left:0;background:var(--drop-bg);border:1px solid var(--border);border-radius:12px;padding:5px;display:none;z-index:30;box-shadow:var(--drop-shadow);min-width:150px;}
 .more-menu.open{display:block;}
-.more-item{padding:8px 14px;font-size:13px;font-weight:500;color:var(--text);border-radius:8px;cursor:pointer;}
+.more-item{padding:8px 14px;font-size:13px;font-weight:500;color:var(--text);border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:8px;}
 .more-item:hover{background:var(--hover);}
-/* Думает */
-.thinking{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text2);padding:2px 0;}
+
+/* Thinking */
+.thinking{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text2);padding:4px 0;}
 .think-dots{display:flex;gap:4px;}
 .think-dots span{width:5px;height:5px;border-radius:50%;background:var(--text2);animation:bop 1.2s infinite;}
-.think-dots span:nth-child(2){animation-delay:.2s;}.think-dots span:nth-child(3){animation-delay:.4s;}
+.think-dots span:nth-child(2){animation-delay:.2s;}
+.think-dots span:nth-child(3){animation-delay:.4s;}
 @keyframes bop{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
 
-/* ======= INPUT BAR ======= */
-.input-wrap{padding:12px 20px 20px;display:flex;justify-content:center;background:var(--bg);}
-@media(max-width:768px){.input-wrap{padding:10px 12px 20px;}}
-.input-box{width:100%;max-width:720px;background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:14px 14px 10px;box-shadow:0 2px 12px rgba(0,0,0,0.06);transition:border-color .15s;}
+/* ===================== INPUT BAR ===================== */
+.input-wrap{padding:10px 20px 20px;display:flex;justify-content:center;position:relative;z-index:2;}
+@media(max-width:768px){.input-wrap{padding:8px 12px 16px;}}
+.input-box{width:100%;max-width:720px;background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:12px 14px 10px;box-shadow:0 2px 12px rgba(0,0,0,0.06);transition:border-color .15s;}
 .input-box:focus-within{border-color:var(--text);}
-@media(max-width:768px){.input-box{border-radius:14px;}}
+@media(max-width:768px){.input-box{border-radius:20px;padding:10px 12px 8px;background:rgba(255,255,255,0.04);backdrop-filter:blur(12px);border-color:rgba(255,255,255,0.08);}}
 .input-box textarea{width:100%;border:none;outline:none;resize:none;font-size:var(--font-base);color:var(--text);font-family:inherit;background:transparent;line-height:1.55;max-height:160px;min-height:22px;overflow-y:auto;}
 .input-box textarea::placeholder{color:var(--text2);}
 .input-bar-row{display:flex;align-items:center;justify-content:space-between;margin-top:8px;}
 .bar-left{display:flex;align-items:center;gap:4px;}
-.bar-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);border:none;background:transparent;transition:background .12s,color .12s;}
+.bar-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);border:none;background:transparent;transition:background .12s,color .12s;}
 .bar-icon:hover{background:var(--hover);color:var(--text);}
-.bar-right{display:flex;align-items:center;gap:8px;}
+.bar-right{display:flex;align-items:center;gap:6px;}
+
 /* Model pill */
 .model-pill{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:9px;background:var(--bg);border:1px solid var(--border);font-size:13px;font-weight:600;color:var(--text);cursor:pointer;position:relative;user-select:none;transition:background .12s;}
 .model-pill:hover{background:var(--hover);}
-.pill-name{font-weight:700;}.pill-mode{font-weight:400;color:var(--text2);margin-left:1px;}
+.pill-name{font-weight:700;}.pill-mode{font-weight:400;color:var(--text2);margin-left:1px;font-size:12px;}
+@media(max-width:768px){.model-pill{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.12);}}
+
 /* Send */
 .send-btn{width:34px;height:34px;border-radius:9px;background:var(--send-bg);color:var(--send-txt);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:opacity .15s;flex-shrink:0;}
 .send-btn:hover{opacity:.8;}
-/* AI disclaimer */
-.disclaimer{font-size:11px;color:var(--text2);text-align:center;padding:4px 0 0;opacity:.6;}
 
-/* ======= MODEL DROPDOWN ======= */
-.model-drop{position:absolute;bottom:calc(100% + 8px);right:0;background:var(--drop-bg);border:1px solid var(--border);border-radius:14px;padding:6px;box-shadow:var(--drop-shadow);display:none;z-index:200;min-width:220px;}
+/* Disclaimer */
+.disclaimer{font-size:11px;color:var(--text2);text-align:center;padding:4px 0 0;opacity:.5;}
+
+/* ===================== MODEL DROPDOWN ===================== */
+.model-drop{position:absolute;bottom:calc(100% + 8px);right:0;background:var(--drop-bg);border:1px solid var(--border);border-radius:14px;padding:6px;box-shadow:var(--drop-shadow);display:none;z-index:200;min-width:230px;}
 .model-drop.open{display:block;}
-.md-option{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;cursor:pointer;transition:background .12s;}
+.md-option{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;transition:background .12s;}
 .md-option:hover{background:var(--hover);}
-.md-opt-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.md-opt-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .md-opt-icon.lite{background:linear-gradient(135deg,#34d399,#0ea5a5);}
 .md-opt-icon.pro{background:linear-gradient(135deg,#a855f7,#6366f1);}
 .md-opt-name{font-size:13px;font-weight:700;color:var(--text);}
 .md-opt-desc{font-size:11px;color:var(--text2);}
 .md-check{font-size:14px;color:var(--check);margin-left:auto;}
 .md-divider{height:1px;background:var(--border);margin:4px 0;}
-/* Mode row */
-.md-mode-row{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:9px;cursor:pointer;transition:background .12s;}
+.md-mode-row{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:10px;cursor:pointer;transition:background .12s;}
 .md-mode-row:hover{background:var(--hover);}
 .md-mode-label{font-size:13px;font-weight:600;color:var(--text);}
 .md-mode-badge{font-size:11px;color:var(--text2);}
-/* Sub dropdown */
-.mode-sub{position:absolute;bottom:calc(100% + 8px);left:0;background:var(--drop-bg);border:1px solid var(--border);border-radius:12px;padding:5px;box-shadow:var(--drop-shadow);display:none;z-index:201;min-width:170px;}
-.mode-sub.open{display:block;}
-.ms-option{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:8px;cursor:pointer;transition:background .12s;}
-.ms-option:hover{background:var(--hover);}
-.ms-label{font-size:13px;font-weight:700;color:var(--text);}
-.ms-desc{font-size:11px;color:var(--text2);margin-top:1px;}
-.ms-check{color:var(--check);font-size:14px;}
-/* Think toggle */
-.md-think-row{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:9px;}
+.md-think-row{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:10px;}
 .md-think-label{font-size:13px;font-weight:600;color:var(--text);}
 .md-think-sub{font-size:11px;color:var(--text2);}
 .sw{width:38px;height:22px;border-radius:11px;background:var(--border);cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;}
 .sw.on{background:var(--text);}
 .sw::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.25);}
 .sw.on::after{transform:translateX(16px);}
-@media(min-width:769px){.sw.on::after{background:#fff;}}
 
-/* ======= НАСТРОЙКИ (мобиль — полноэкранная; десктоп — попап) ======= */
-.settings-overlay{position:fixed;inset:0;z-index:300;background:var(--bg);}
+/* Mode sub-dropdown */
+.mode-sub{position:absolute;bottom:calc(100% + 8px);left:0;background:var(--drop-bg);border:1px solid var(--border);border-radius:12px;padding:5px;box-shadow:var(--drop-shadow);display:none;z-index:201;min-width:170px;}
+.mode-sub.open{display:block;}
+.ms-option{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:9px;cursor:pointer;transition:background .12s;}
+.ms-option:hover{background:var(--hover);}
+.ms-label{font-size:13px;font-weight:700;color:var(--text);}
+.ms-desc{font-size:11px;color:var(--text2);margin-top:1px;}
+.ms-check{color:var(--check);font-size:14px;}
+
+/* ===================== SETTINGS ===================== */
+.settings-overlay{position:fixed;inset:0;z-index:300;background:var(--bg);display:none;flex-direction:column;}
+.settings-overlay.open{display:flex;}
 @media(min-width:769px){
-  .settings-overlay{background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;}
-  .settings-box{background:var(--bg2);border:1px solid var(--border);border-radius:20px;width:440px;max-height:85vh;overflow-y:auto;padding:24px;box-shadow:var(--drop-shadow);}
+  .settings-overlay{background:rgba(0,0,0,.4);align-items:center;justify-content:center;}
+  .settings-box{background:var(--bg2);border:1px solid var(--border);border-radius:20px;width:440px;max-height:85vh;overflow-y:auto;padding:24px;box-shadow:var(--drop-shadow);display:none;}
+  .settings-overlay.open .settings-box{display:block;}
 }
-.settings-overlay.hidden{display:none;}
-.settings-box{background:var(--bg);}
 @media(max-width:768px){
-  .settings-box{height:100%;overflow-y:auto;padding:20px 16px;}
+  .settings-box{flex:1;overflow-y:auto;padding:20px 16px 40px;}
 }
-.sth{display:flex;align-items:center;gap:10px;margin-bottom:20px;}
-.sth-back{width:34px;height:34px;border-radius:50%;border:1px solid var(--border);background:var(--bg2);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text);}
-.sth-title{font-size:16px;font-weight:800;color:var(--text);flex:1;}
+.sth{display:flex;align-items:center;gap:10px;margin-bottom:24px;}
+.sth-back{width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text);flex-shrink:0;}
+.sth-back:hover{background:var(--hover);}
+.sth-title{font-size:17px;font-weight:700;color:var(--text);flex:1;}
+
 /* Settings sections */
 .s-sect{margin-bottom:20px;}
 .s-sect-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);margin-bottom:8px;padding:0 2px;}
@@ -270,60 +304,95 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
 .s-row-val{font-size:12px;color:var(--text2);}
 .s-row-val.soon{font-size:10px;text-transform:uppercase;letter-spacing:.5px;background:var(--hover);padding:3px 8px;border-radius:6px;}
 .s-chev{color:var(--text2);}
+
 /* Profile */
-.prof-top{display:flex;align-items:center;gap:14px;margin-bottom:20px;}
+.prof-top{display:flex;align-items:center;gap:14px;margin-bottom:24px;}
 .prof-ava{width:52px;height:52px;border-radius:50%;background:var(--text);color:var(--bg);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;}
 .prof-name{font-size:16px;font-weight:700;color:var(--text);}
 .prof-email{font-size:13px;color:var(--text2);margin-top:2px;}
-.logout-btn{padding:8px 16px;border-radius:10px;border:1px solid #ef4444;color:#ef4444;font-size:13px;font-weight:600;cursor:pointer;background:transparent;font-family:inherit;margin-left:auto;}
+.logout-btn{padding:8px 16px;border-radius:10px;border:1px solid #ef4444;color:#ef4444;font-size:13px;font-weight:600;cursor:pointer;background:transparent;font-family:inherit;margin-left:auto;transition:background .15s;}
 .logout-btn:hover{background:rgba(239,68,68,.08);}
-/* Memory toggles */
+
+/* Memory */
 .mem-rows{background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
 .mem-row{display:flex;align-items:center;gap:14px;padding:14px 16px;}
 .mem-row+.mem-row{border-top:1px solid var(--border2);}
 .mem-info{flex:1;}
 .mem-title{font-size:14px;font-weight:600;color:var(--text);}
 .mem-desc{font-size:12px;color:var(--text2);margin-top:2px;line-height:1.4;}
-/* Персонализация */
-.pers-section{background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:16px;}
-.pers-row{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;transition:background .12s;position:relative;}
-.pers-row+.pers-row{border-top:1px solid var(--border2);}
-.pers-row:hover{background:var(--hover);}
+
+/* ===================== ПЕРСОНАЛИЗАЦИЯ ===================== */
+.pers-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:16px;}
+.pers-header{padding:16px 16px 12px;}
+.pers-h-label{font-size:13px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;}
+.pers-selector{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:10px;background:var(--bg3);cursor:pointer;transition:background .12s;border:1px solid transparent;}
+.pers-selector:hover{background:var(--hover);}
+.pers-sel-text{font-size:14px;font-weight:500;color:var(--text);}
+.pers-sel-chev{font-size:12px;color:var(--text2);margin-left:6px;}
+/* Dropdown overlay for pers */
+.pers-drop-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:400;display:none;align-items:flex-end;justify-content:center;}
+.pers-drop-overlay.open{display:flex;}
+.pers-drop-sheet{background:var(--bg2);border-radius:20px 20px 0 0;padding:16px 16px 30px;width:100%;max-height:70vh;overflow-y:auto;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);}
+.pers-drop-overlay.open .pers-drop-sheet{transform:translateY(0);}
+.pds-title{font-size:16px;font-weight:700;color:var(--text);margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border);}
+.pds-opt{padding:14px 12px;border-radius:12px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:background .12s;border-bottom:1px solid var(--border2);}
+.pds-opt:last-child{border-bottom:none;}
+.pds-opt:hover{background:var(--hover);}
+.pds-opt.selected{background:var(--active);}
+.pds-opt-title{font-size:15px;font-weight:600;color:var(--text);flex:1;}
+.pds-opt-desc{font-size:12px;color:var(--text2);margin-top:2px;}
+.pds-check{font-size:16px;color:var(--check);}
+
+/* Inline pers rows */
+.pers-row-inline{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-top:1px solid var(--border2);cursor:pointer;transition:background .12s;}
+.pers-row-inline:hover{background:var(--hover);}
 .pers-row-label{font-size:14px;font-weight:500;color:var(--text);}
 .pers-row-val{font-size:13px;color:var(--text2);display:flex;align-items:center;gap:4px;}
-.pers-drop{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--drop-bg);border:1px solid var(--border);border-radius:12px;padding:5px;box-shadow:var(--drop-shadow);z-index:50;display:none;}
-.pers-drop.open{display:block;}
-.pers-opt{padding:10px 14px;border-radius:8px;cursor:pointer;transition:background .12s;}
-.pers-opt:hover{background:var(--hover);}
-.pers-opt-title{font-size:14px;font-weight:600;color:var(--text);}
-.pers-opt-desc{font-size:12px;color:var(--text2);margin-top:1px;}
-.pers-opt.selected::before{content:'✓ ';color:var(--check);}
-/* Quick replies toggle & instructions */
-.pers-toggle-row{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px;}
+
+/* Toggle row */
+.pers-toggle-row{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:16px;display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:16px;}
 .pers-toggle-info{flex:1;}
-.pers-toggle-label{font-size:14px;font-weight:600;color:var(--text);}
-.pers-toggle-desc{font-size:12px;color:var(--text2);margin-top:4px;line-height:1.5;}
-.custom-instr-area{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px 16px;font-size:14px;color:var(--text);font-family:inherit;resize:none;outline:none;height:100px;transition:border-color .15s;}
+.pers-toggle-label{font-size:15px;font-weight:600;color:var(--text);}
+.pers-toggle-desc{font-size:12px;color:var(--text2);margin-top:6px;line-height:1.5;}
+
+/* Custom instructions */
+.custom-instr-label{font-size:13px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;}
+.custom-instr-area{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:16px;font-size:15px;color:var(--text);font-family:inherit;resize:none;outline:none;height:120px;transition:border-color .15s;line-height:1.5;}
 .custom-instr-area:focus{border-color:var(--text);}
 .custom-instr-area::placeholder{color:var(--text2);}
-.save-btn{width:100%;padding:13px;border-radius:12px;background:var(--send-bg);color:var(--send-txt);font-size:15px;font-weight:700;border:none;cursor:pointer;font-family:inherit;margin-top:8px;}
+.save-btn{width:100%;padding:14px;border-radius:14px;background:var(--send-bg);color:var(--send-txt);font-size:15px;font-weight:700;border:none;cursor:pointer;font-family:inherit;margin-top:12px;transition:opacity .15s;}
+.save-btn:hover{opacity:.85;}
+
+/* Desktop: hide personalization menu items */
+@media(min-width:769px){
+  .mobile-only-setting{display:none;}
+}
 </style>
+<base target="_blank">
 </head>
 <body>
 
-<!-- ======= AUTH ======= -->
+<!-- GLOSSY MOBILE BACKGROUND -->
+<div class="mobile-glossy">
+  <div class="bubble b1"></div>
+  <div class="bubble b2"></div>
+  <div class="bubble b3"></div>
+  <div class="bubble b4"></div>
+</div>
+
+<!-- ===================== AUTH ===================== -->
 <div class="auth-wrap" id="authWrap">
-  <!-- Экран 1 -->
   <div class="auth-card">
+    <!-- Экран 1: Приветствие -->
     <div class="auth-screen active" id="authS1">
       <div class="auth-logo">HarmonyAI</div>
       <div class="auth-h1">Думает быстро,<br>результат быстрее</div>
-      <div class="auth-sub">Помощник для музыкантов</div>
+      <div class="auth-sub">ИИ для учеников музыкальной школы. Подходит не только для музыки — он умеет всё!</div>
       <button class="auth-btn-primary" onclick="goToEmail()">Продолжить с Email</button>
-      <div class="auth-tos">Продолжая, вы соглашаетесь с Политикой конфиденциальности и соглашаетесь на отправку сообщений на ваш email.</div>
+      <div class="auth-tos">Продолжая, вы соглашаетесь с Политикой конфиденциальности.</div>
       <div class="auth-beta">beta version 1.0</div>
     </div>
-    <!-- Экран 2 -->
+    <!-- Экран 2: Email -->
     <div class="auth-screen" id="authS2">
       <div class="auth-logo">HarmonyAI</div>
       <div class="auth-h1">Введите ваш<br>Email адрес</div>
@@ -333,12 +402,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
       <button class="auth-btn-secondary" onclick="showAuthS(1)">← Назад</button>
       <div class="auth-beta">beta version 1.0</div>
     </div>
-    <!-- Экран 3 -->
+    <!-- Экран 3: OTP -->
     <div class="auth-screen" id="authS3">
       <div class="auth-logo">HarmonyAI</div>
       <div class="auth-h1">Введите 6-ти<br>значный код</div>
       <div class="otp-row" id="otpRow">
-        <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
+        <input class="otp-box" maxlength="1" type="text" inputmode="numeric" autocomplete="one-time-code">
         <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
         <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
         <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
@@ -354,24 +423,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
   </div>
 </div>
 
-<!-- ======= APP ======= -->
+<!-- ===================== APP ===================== -->
 <div class="app" id="app">
   <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
 
-  <!-- САЙДБАР -->
+  <!-- SIDEBAR -->
   <div class="sidebar" id="sidebar">
     <div class="sb-top">
-      <div class="sb-icon-btn" onclick="toggleSidebar()" title="Боковая панель">
+      <div class="sb-icon-btn" onclick="toggleSidebarDesktop()" title="Боковая панель">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="2" rx="1" fill="currentColor"/><rect x="3" y="11" width="18" height="2" rx="1" fill="currentColor"/><rect x="3" y="17" width="18" height="2" rx="1" fill="currentColor"/></svg>
         <span class="sb-icon-label">Свернуть</span>
       </div>
       <div class="sb-icon-btn" onclick="newChat()" title="Новый чат">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         <span class="sb-icon-label">Новый чат</span>
-      </div>
-      <div class="sb-icon-btn" id="sbChatsBtn" onclick="toggleChatList()" title="Список чатов">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <span class="sb-icon-label">Чаты</span>
       </div>
     </div>
     <div class="sb-label">Недавние</div>
@@ -384,19 +449,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
     </div>
   </div>
 
-  <!-- ОСНОВНАЯ ОБЛАСТЬ -->
+  <!-- MAIN -->
   <div class="main" id="main">
-    <!-- Мобильный топбар -->
+    <!-- Mobile topbar -->
     <div class="topbar">
-      <div class="topbar-btn" onclick="toggleSidebar()">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="2" rx="1" fill="currentColor"/><rect x="3" y="11" width="18" height="2" rx="1" fill="currentColor"/><rect x="3" y="17" width="18" height="2" rx="1" fill="currentColor"/></svg>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button class="topbar-btn" onclick="toggleSidebar()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="2" rx="1" fill="currentColor"/><rect x="3" y="11" width="18" height="2" rx="1" fill="currentColor"/><rect x="3" y="17" width="18" height="2" rx="1" fill="currentColor"/></svg>
+        </button>
       </div>
       <div class="topbar-logo">HarmonyAI</div>
-      <div class="topbar-btn" onclick="newChat()">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      </div>
-      <div class="topbar-btn" onclick="openSettings()">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" stroke-width="2"/></svg>
+      <div style="display:flex;align-items:center;gap:4px;">
+        <button class="topbar-btn" onclick="newChat()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+        <button class="topbar-btn" onclick="openSettings()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" stroke-width="2"/></svg>
+        </button>
       </div>
     </div>
 
@@ -411,41 +480,34 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
 
     <div class="input-wrap">
       <div class="input-box" id="inputBox">
-        <textarea id="msgTa" placeholder="Введите сообщение .." rows="1"
+        <textarea id="msgTa" placeholder="Введите сообщение.." rows="1"
           oninput="taResize(this)"
           onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg();}"></textarea>
         <div class="input-bar-row">
           <div class="bar-left">
-            <button class="bar-icon" onclick="document.getElementById('fileInp').click()" title="Добавить фото/файл">
+            <button class="bar-icon" onclick="document.getElementById('fileInp').click()" title="Добавить фото">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
             </button>
             <input type="file" id="fileInp" accept="image/*" style="display:none" onchange="handleFile(this)">
           </div>
           <div class="bar-right">
-            <!-- Иконка лоадера Anthropic -->
-            <div id="loadingIcon" style="display:none;width:22px;height:22px;">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="animation:spin 1s linear infinite;width:22px;height:22px;">
-                <path d="M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12" stroke="var(--text)" stroke-width="2" stroke-linecap="round"/>
-              </svg>
-              <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
-            </div>
             <!-- Model pill -->
             <div class="model-pill" id="modelPill" onclick="toggleModelDrop(event)">
-              <span class="pill-name">MusMind</span>
-              <span class="pill-mode" id="pillMode"> lite</span>
-              <span style="font-size:10px;color:var(--text2);margin-left:2px;">▾</span>
+              <span class="pill-name" id="pillName">MusMind</span>
+              <span class="pill-mode" id="pillMode">lite · low</span>
+              <span style="font-size:10px;color:var(--text2);margin-left:1px;">▾</span>
               <!-- Dropdown -->
               <div class="model-drop" id="modelDrop" onclick="event.stopPropagation()">
                 <!-- Lite -->
                 <div class="md-option" onclick="selectModel('lite')">
                   <div class="md-opt-icon lite">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M5 14C5 8 9 4 19 4C19 14 15 19 9 19C7 19 5 17 5 14Z" stroke="white" stroke-width="2"/><path d="M5 19L11 13" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 14C5 8 9 4 19 4C19 14 15 19 9 19C7 19 5 17 5 14Z" stroke="white" stroke-width="2"/><path d="M5 19L11 13" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
                   </div>
                   <div><div class="md-opt-name">MusMind Lite</div><div class="md-opt-desc">Быстро и легко</div></div>
                   <div class="md-check" id="ck-lite">✓</div>
                 </div>
-                <!-- Mode -->
-                <div class="md-mode-row" id="modeRow" onclick="toggleModeSub(event)">
+                <!-- Mode row -->
+                <div class="md-mode-row" id="modeRowLite" onclick="openModeSub(event)">
                   <div><div class="md-mode-label">Режим</div></div>
                   <div style="display:flex;align-items:center;gap:6px;">
                     <span class="md-mode-badge" id="modeLabel">Low</span>
@@ -456,7 +518,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
                 <!-- Pro -->
                 <div class="md-option" onclick="selectModel('pro')">
                   <div class="md-opt-icon pro">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" stroke="white" stroke-width="1.5" stroke-linejoin="round" fill="white" fill-opacity="0.2"/></svg>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" stroke="white" stroke-width="1.5" stroke-linejoin="round" fill="white" fill-opacity="0.2"/></svg>
                   </div>
                   <div><div class="md-opt-name">MusMind Pro</div><div class="md-opt-desc">Максимум возможностей</div></div>
                   <div class="md-check" id="ck-pro" style="opacity:0">✓</div>
@@ -468,20 +530,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
                   <div class="sw" id="thinkSw" onclick="toggleThink(event)"></div>
                 </div>
               </div>
-              <!-- Mode sub -->
+              <!-- Mode sub-dropdown -->
               <div class="mode-sub" id="modeSub" onclick="event.stopPropagation()">
                 <div class="ms-option" onclick="selectMode('low')">
-                  <div><div class="ms-label">Low</div><div class="ms-desc">Обычный</div></div>
+                  <div><div class="ms-label">Low</div><div class="ms-desc">Краткий ответ</div></div>
                   <span class="ms-check" id="ck-low">✓</span>
                 </div>
                 <div class="ms-option" onclick="selectMode('max')">
-                  <div><div class="ms-label">Max</div></div>
+                  <div><div class="ms-label">Max</div><div class="ms-desc">Подробный ответ</div></div>
                   <span class="ms-check" id="ck-max" style="opacity:0">✓</span>
                 </div>
               </div>
             </div>
-            <button class="send-btn" onclick="sendMsg()">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <button class="send-btn" onclick="sendMsg()" title="Отправить">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
           </div>
         </div>
@@ -491,23 +553,32 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
   </div>
 </div>
 
-<!-- ======= SETTINGS OVERLAY ======= -->
-<div class="settings-overlay hidden" id="settingsOverlay" onclick="if(event.target===this)closeSettings()">
-  <div class="settings-box">
+<!-- ===================== SETTINGS ===================== -->
+<div class="settings-overlay" id="settingsOverlay" onclick="if(event.target===this)closeSettings()">
+  <div class="settings-box" id="settingsBox">
     <div id="settingsContent"></div>
   </div>
 </div>
 
+<!-- ===================== PERSONALIZATION DROPDOWN OVERLAY ===================== -->
+<div class="pers-drop-overlay" id="persDropOverlay" onclick="closePersDrop()">
+  <div class="pers-drop-sheet" id="persDropSheet" onclick="event.stopPropagation()">
+    <div id="persDropContent"></div>
+  </div>
+</div>
+
 <script>
+/* ===== Supabase ===== */
 const SB_URL='https://cqthnymltqpcxtpiryka.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNxdGhueW1sdHFwY3h0cGlyeWthIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MjY3NzYsImV4cCI6MjA5NzAwMjc3Nn0.b-6lSdjT7XwWkt607ORwGfKYSn3CLZJB3mcs4QQUSoE';
-const sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
+const sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 
 let curUser=null,curEmail='',resendTimer=null,resendLeft=0;
-let sidebarExpanded=false,chatListOpen=false;
+let sidebarExpanded=false;
 let curModel='lite',curMode='low',thinkOn=false,dropOpen=false,modeSubOpen=false;
 let chatHistory=[],pendingImg=null,curChatId=null;
 let chats=[];
+let abcCounter=0;
 
 /* marked setup */
 if(typeof marked!=='undefined') marked.setOptions({breaks:true,gfm:true});
@@ -524,7 +595,7 @@ const GREETS=[
 ];
 let greetIdx=0;
 setInterval(()=>{
-  const el=document.getElementById('greetSub'); if(!el)return;
+  const el=document.getElementById('greetSub');if(!el)return;
   greetIdx=(greetIdx+1)%GREETS.length;
   el.style.opacity='0';
   setTimeout(()=>{el.textContent=GREETS[greetIdx];el.style.opacity='1';},300);
@@ -546,10 +617,11 @@ function tErr(msg){
   if(!msg)return 'Что-то пошло не так';
   if(msg.includes('rate limit'))return 'Слишком много попыток — подождите';
   if(msg.includes('invalid email'))return 'Введите корректный email';
-  if(msg.includes('expired'))return 'Код устарел — запросите новый';
-  if(msg.includes('Invalid OTP')||msg.includes('Token has'))return 'Неверный код';
+  if(msg.includes('expired')||msg.includes('Token has'))return 'Код устарел — запросите новый';
+  if(msg.includes('Invalid OTP')||msg.includes('Invalid token'))return 'Неверный код';
   return msg;
 }
+
 async function sendOTP(){
   const email=document.getElementById('emailInp').value.trim();
   const err=document.getElementById('emailErr');
@@ -557,18 +629,24 @@ async function sendOTP(){
   if(!isEmail(email)){err.textContent='Введите корректный email';err.style.display='block';return;}
   const btn=document.getElementById('btnSend');
   btn.textContent='Отправляем...';btn.disabled=true;
-  const {error}=await sb.auth.signInWithOtp({email,options:{shouldCreateUser:true}});
-  btn.textContent='Продолжить';btn.disabled=false;
-  if(error){err.textContent=tErr(error.message);err.style.display='block';return;}
-  curEmail=email;
-  clearOTP();
-  document.getElementById('codeErr').style.display='none';
-  showAuthS(3);
-  setTimeout(()=>{const b=document.querySelectorAll('.otp-box')[0];if(b)b.focus();},100);
-  startResend();
+  try{
+    const {error}=await sb.auth.signInWithOtp({email,options:{shouldCreateUser:true}});
+    if(error) throw error;
+    curEmail=email;
+    clearOTP();
+    document.getElementById('codeErr').style.display='none';
+    showAuthS(3);
+    setTimeout(()=>{const b=document.querySelectorAll('.otp-box')[0];if(b)b.focus();},100);
+    startResend();
+  }catch(e){
+    err.textContent=tErr(e.message);err.style.display='block';
+  }finally{
+    btn.textContent='Продолжить';btn.disabled=false;
+  }
 }
 function clearOTP(){document.querySelectorAll('.otp-box').forEach(b=>b.value='');}
 function getOTP(){return Array.from(document.querySelectorAll('.otp-box')).map(b=>b.value).join('');}
+
 async function verifyOTP(){
   const code=getOTP();
   const err=document.getElementById('codeErr');
@@ -576,15 +654,19 @@ async function verifyOTP(){
   if(!/^\d{6}$/.test(code)){err.textContent='Введите 6-значный код';err.style.display='block';return;}
   const btn=document.getElementById('btnVerify');
   btn.textContent='Проверяем...';btn.disabled=true;
-  const {error}=await sb.auth.verifyOtp({email:curEmail,token:code,type:'email'});
-  btn.textContent='Подтвердить';btn.disabled=false;
-  if(error){err.textContent=tErr(error.message);err.style.display='block';return;}
-  await initSession();
+  try{
+    const {error}=await sb.auth.verifyOtp({email:curEmail,token:code,type:'email'});
+    if(error) throw error;
+    await initSession();
+  }catch(e){
+    err.textContent=tErr(e.message);err.style.display='block';
+  }finally{
+    btn.textContent='Подтвердить';btn.disabled=false;
+  }
 }
 async function resendOTP(){
   if(resendLeft>0)return;
-  await sb.auth.signInWithOtp({email:curEmail});
-  startResend();
+  try{await sb.auth.signInWithOtp({email:curEmail});startResend();}catch(e){}
 }
 function startResend(){
   resendLeft=60;
@@ -600,7 +682,7 @@ function startResend(){
 }
 
 /* OTP boxes */
-function setupOTPBoxes(){
+(function setupOTP(){
   const boxes=document.querySelectorAll('.otp-box');
   boxes.forEach((b,i)=>{
     b.addEventListener('input',()=>{
@@ -619,8 +701,7 @@ function setupOTPBoxes(){
       if(boxes[last])boxes[last].focus();
     });
   });
-}
-setupOTPBoxes();
+})();
 
 /* ===== SESSION ===== */
 async function initSession(){
@@ -635,6 +716,7 @@ async function initSession(){
   }else{
     document.getElementById('authWrap').classList.remove('gone');
     document.getElementById('app').classList.remove('show');
+    showAuthS(1);
   }
 }
 sb.auth.onAuthStateChange(async(event,session)=>{
@@ -668,44 +750,41 @@ async function logOut(){
   document.getElementById('authWrap').classList.remove('gone');
   document.getElementById('app').classList.remove('show');
   closeSettings();
+  closePersDrop();
   showAuthS(1);
 }
 
 /* ===== SIDEBAR ===== */
 function toggleSidebar(){
-  const sb=document.getElementById('sidebar');
   if(window.innerWidth<769){
-    const open=sb.classList.toggle('open');
+    const sb=document.getElementById('sidebar');
+    const open=!sb.classList.contains('open');
+    sb.classList.toggle('open',open);
     document.getElementById('overlay').classList.toggle('show',open);
-  }else{
+  }
+}
+function toggleSidebarDesktop(){
+  if(window.innerWidth>=769){
     sidebarExpanded=!sidebarExpanded;
-    sb.classList.toggle('expanded',sidebarExpanded);
-    if(sidebarExpanded){
-      const cl=document.getElementById('sbChatList');
-      if(cl)cl.style.display='block';
-    }
+    document.getElementById('sidebar').classList.toggle('expanded',sidebarExpanded);
+  }else{
+    toggleSidebar();
   }
 }
 function closeSidebar(){
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('overlay').classList.remove('show');
 }
-function toggleChatList(){
-  const cl=document.getElementById('sbChatList');
-  if(!cl)return;
-  chatListOpen=!chatListOpen;
-  cl.style.display=chatListOpen?'block':'none';
-}
 
 /* ===== CHATS ===== */
 async function loadChats(){
   if(!curUser)return;
-  const {data}=await sb.from('chats').select('id,title,updated_at').order('updated_at',{ascending:false}).limit(30);
+  const {data}=await sb.from('chats').select('id,title,updated_at').eq('user_id',curUser.id).order('updated_at',{ascending:false}).limit(30);
   if(data)chats=data;
   renderChatList();
 }
 function renderChatList(){
-  const el=document.getElementById('sbChatList'); if(!el)return;
+  const el=document.getElementById('sbChatList');if(!el)return;
   el.innerHTML='';
   chats.forEach(c=>{
     const d=document.createElement('div');
@@ -717,11 +796,11 @@ function renderChatList(){
 }
 async function openChat(id){
   closeSidebar();
-  const {data}=await sb.from('chats').select('history').eq('id',id).single();
+  const {data}=await sb.from('chats').select('history').eq('id',id).eq('user_id',curUser.id).single();
   if(!data)return;
   curChatId=id;
   chatHistory=data.history||[];
-  const inner=document.getElementById('chatInner'); inner.innerHTML='';
+  const inner=document.getElementById('chatInner');inner.innerHTML='';
   chatHistory.forEach(m=>{
     const txt=typeof m.content==='string'?m.content:(Array.isArray(m.content)?m.content.find(c=>c.type==='text')?.text:'[фото]');
     if(m.role==='user')addUserBubble(txt);
@@ -743,8 +822,9 @@ async function saveChat(title){
   if(!curUser||chatHistory.length===0)return;
   if(!curChatId){
     curChatId='chat_'+Date.now();
-    const {error}=await sb.from('chats').insert({id:curChatId,user_id:curUser.id,title:title||'Новый чат',history:chatHistory,updated_at:new Date().toISOString()});
-    if(!error){chats.unshift({id:curChatId,title:title||'Новый чат'});renderChatList();}
+    const t=title||'Новый чат';
+    const {error}=await sb.from('chats').insert({id:curChatId,user_id:curUser.id,title:t,history:chatHistory,updated_at:new Date().toISOString()});
+    if(!error){chats.unshift({id:curChatId,title:t});renderChatList();}
   }else{
     await sb.from('chats').update({history:chatHistory,updated_at:new Date().toISOString()}).eq('id',curChatId);
   }
@@ -761,12 +841,13 @@ function selectModel(m){
   curModel=m;
   document.getElementById('ck-lite').style.opacity=m==='lite'?'1':'0';
   document.getElementById('ck-pro').style.opacity=m==='pro'?'1':'0';
+  document.getElementById('pillName').textContent='MusMind';
   updatePill();
   document.getElementById('modelDrop').classList.remove('open');
   document.getElementById('modeSub').classList.remove('open');
   dropOpen=false;modeSubOpen=false;
 }
-function toggleModeSub(e){
+function openModeSub(e){
   e.stopPropagation();
   modeSubOpen=!modeSubOpen;
   document.getElementById('modeSub').classList.toggle('open',modeSubOpen);
@@ -781,7 +862,10 @@ function selectMode(m){
   modeSubOpen=false;
 }
 function toggleThink(e){e.stopPropagation();thinkOn=!thinkOn;document.getElementById('thinkSw').classList.toggle('on',thinkOn);}
-function updatePill(){document.getElementById('pillMode').textContent=' '+curModel+(curMode==='max'?' · max':'');}
+function updatePill(){
+  document.getElementById('pillMode').textContent=curModel+' · '+curMode;
+}
+updatePill();
 
 document.addEventListener('click',e=>{
   if(dropOpen&&!e.target.closest('#modelPill')){
@@ -790,231 +874,20 @@ document.addEventListener('click',e=>{
     document.getElementById('modeSub').classList.remove('open');
   }
   if(!e.target.closest('.mac-btn'))
-    document.querySelectorAll('.more-menu.open').forEach(m=>m.classList.remove('open'));
+    document.querySelectorAll('.more-menu.open').forEach(x=>x.classList.remove('open'));
 });
-
-/* ===== SETTINGS ===== */
-function openSettings(){
-  closeSidebar();
-  renderSettings();
-  document.getElementById('settingsOverlay').classList.remove('hidden');
-}
-function closeSettings(){document.getElementById('settingsOverlay').classList.add('hidden');}
-
-const STYLES={default:'По умолчанию',professional:'Профессиональный',friendly:'Дружелюбный',frank:'Откровенный',whimsical:'Причудливый',efficient:'Эффективный',cynical:'Циничный'};
-const STYLE_DESCS={default:'Предпочитаемый стиль и тон',professional:'Тактичный и точный',friendly:'Тёплый и разговорчивый',frank:'Прямой и мотивирующий',whimsical:'Весёлый и творческий',efficient:'Немногословный и чёткий',cynical:'Критикующий и саркастичный'};
-const OPTS={default:'По умолчанию',low:'Низкая',medium:'Средняя',high:'Высокая',reserved:'Сдержанный',moderate:'Умеренный',off:'Выкл',on:'Вкл',none:'Нет',some:'Немного',many:'Много'};
-let persDropOpen=null;
-function getSettings(){return curUser?.settings||{};}
-function renderSettings(screen){
-  const s=getSettings();
-  const el=document.getElementById('settingsContent');
-  if(!screen||screen==='main'){
-    const ch=(curUser?.nickname||curUser?.email||'?').charAt(0).toUpperCase();
-    el.innerHTML=`
-      <div class="sth">
-        <div class="sth-title">Настройки</div>
-        <button class="sth-back" onclick="closeSettings()" style="margin-left:auto;border-radius:9px;font-size:14px;padding:0 14px;height:34px;font-weight:600;">✕</button>
-      </div>
-      <div class="prof-top">
-        <div class="prof-ava">${ch}</div>
-        <div class="prof-info">
-          <div class="prof-name">${curUser?.nickname||curUser?.email?.split('@')[0]||'Пользователь'}</div>
-          <div class="prof-email">${curUser?.email||''}</div>
-        </div>
-        <button class="logout-btn" onclick="logOut()">Выйти</button>
-      </div>
-      <div class="s-sect">
-        <div class="s-sect-label">Настроить HarmonyAI</div>
-        <div class="s-rows">
-          <div class="s-row" onclick="renderSettings('personalization')">
-            <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="M20 21a8 8 0 10-16 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-            <div class="s-row-text">Персонализация</div>
-            <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-          </div>
-          <div class="s-row" onclick="renderSettings('memory')">
-            <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26C17.81 13.47 19 11.38 19 9c0-3.87-3.13-7-7-7z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 21h6M10 17v-4M14 17v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-            <div class="s-row-text">Память</div>
-            <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-          </div>
-        </div>
-      </div>
-      <div class="s-sect">
-        <div class="s-sect-label">Учётная запись</div>
-        <div class="s-rows">
-          <div class="s-row">
-            <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" stroke-width="2"/><path d="M3 7l9 7 9-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-            <div class="s-row-text">Электронная почта</div>
-            <div class="s-row-val" style="font-size:12px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${curUser?.email||''}</div>
-          </div>
-          <div class="s-row">
-            <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7l3-7z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></div>
-            <div class="s-row-text">Подписка</div>
-            <div class="s-row-val">MusMind Lite</div>
-          </div>
-          <div class="s-row">
-            <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z" stroke="currentColor" stroke-width="2"/><path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-            <div class="s-row-text">Перейти на MusMind Pro</div>
-            <div class="s-row-val soon">Скоро</div>
-          </div>
-        </div>
-      </div>`;
-  }else if(screen==='memory'){
-    const memSave=(s.memSave!==false);
-    const memRecall=(s.memRecall!==false);
-    el.innerHTML=`
-      <div class="sth">
-        <div class="sth-back" onclick="renderSettings('main')">
-          <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </div>
-        <div class="sth-title">Память</div>
-      </div>
-      <div class="mem-rows">
-        <div class="mem-row">
-          <div class="mem-info"><div class="mem-title">Сохранять память</div><div class="mem-desc">HarmonyAI запоминает детали из разговоров</div></div>
-          <div class="sw ${memSave?'on':''}" id="swSave" onclick="this.classList.toggle('on');saveSettingField('memSave',this.classList.contains('on'))"></div>
-        </div>
-        <div class="mem-row">
-          <div class="mem-info"><div class="mem-title">Ссылаться на память</div><div class="mem-desc">Использует память при ответах</div></div>
-          <div class="sw ${memRecall?'on':''}" id="swRecall" onclick="this.classList.toggle('on');saveSettingField('memRecall',this.classList.contains('on'))"></div>
-        </div>
-      </div>`;
-  }else if(screen==='personalization'){
-    const st=s.style||'default';
-    const fr=s.friendliness||'default';
-    const en=s.enthusiasm||'default';
-    const hd=s.headings||'default';
-    const em=s.emojis||'default';
-    const qr=(s.quickReplies!==false);
-    const ci=s.customInstructions||'';
-    el.innerHTML=`
-      <div class="sth">
-        <div class="sth-back" onclick="renderSettings('main')">
-          <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </div>
-        <div class="sth-title">Персонализация</div>
-        <button style="margin-left:auto;padding:7px 16px;border-radius:10px;background:var(--bg2);border:1px solid var(--border);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;" onclick="savePers()">Сохранить</button>
-      </div>
-      <div class="s-sect-label" style="margin-bottom:8px">Базовый стиль и тон</div>
-      ${persDropRow('style',st,'styleVal',Object.keys(STYLES).map(k=>({val:k,label:STYLES[k],desc:STYLE_DESCS[k]})))}
-      <div class="pers-section" style="margin-bottom:16px">
-        <div class="pers-row">
-          <div class="pers-row-label">Доброжелательность</div>
-          ${persDropRow('friendliness',fr,'frVal',[{val:'default',label:'По умолчанию'},{val:'low',label:'Низкая'},{val:'medium',label:'Средняя'},{val:'high',label:'Высокая'}],true)}
-        </div>
-        <div class="pers-row" style="border-top:1px solid var(--border2)">
-          <div class="pers-row-label">Энтузиазм</div>
-          ${persDropRow('enthusiasm',en,'enVal',[{val:'default',label:'По умолчанию'},{val:'reserved',label:'Сдержанный'},{val:'moderate',label:'Умеренный'},{val:'high',label:'Высокий'}],true)}
-        </div>
-        <div class="pers-row" style="border-top:1px solid var(--border2)">
-          <div class="pers-row-label">Заголовки и списки</div>
-          ${persDropRow('headings',hd,'hdVal',[{val:'default',label:'По умолчанию'},{val:'off',label:'Выкл'},{val:'on',label:'Вкл'}],true)}
-        </div>
-        <div class="pers-row" style="border-top:1px solid var(--border2)">
-          <div class="pers-row-label">Эмодзи</div>
-          ${persDropRow('emojis',em,'emVal',[{val:'default',label:'По умолчанию'},{val:'none',label:'Нет'},{val:'some',label:'Немного'},{val:'many',label:'Много'}],true)}
-        </div>
-      </div>
-      <div class="pers-toggle-row">
-        <div class="pers-toggle-info">
-          <div class="pers-toggle-label">Быстрые ответы</div>
-          <div class="pers-toggle-desc">Иногда HarmonyAi может использовать свои общие знания для быстрых ответов. Такие ответы не персонализированы.</div>
-        </div>
-        <div class="sw ${qr?'on':''}" id="swQR" onclick="this.classList.toggle('on')"></div>
-      </div>
-      <div class="s-sect-label" style="margin-bottom:8px">Пользовательские инструкции</div>
-      <textarea class="custom-instr-area" id="custInstr" placeholder="Поделитесь чем-нибудь ещё, что вы хотели бы включить для рассмотрения в ответе Harmony Ai.">${ci}</textarea>
-      <button class="save-btn" onclick="savePers()">Сохранить</button>`;
-    setupPersDropdowns();
-  }
-}
-function persDropRow(field,cur,valId,opts,inline){
-  const label=opts.find(o=>o.val===cur)?.label||'По умолчанию';
-  return inline?`
-    <div class="pers-row-val" onclick="openPersDropInline(event,'${field}','${valId}')">
-      <span id="${valId}">${label}</span>
-      <span style="font-size:12px;opacity:.6">⌃</span>
-    </div>
-  `:`
-    <div class="pers-section" style="margin-bottom:16px">
-      <div class="pers-row" onclick="openPersDropInline(event,'${field}','${valId}')">
-        <div class="pers-row-val" style="flex:1">
-          <span id="${valId}">${label}</span>
-          <span style="font-size:12px;opacity:.6;margin-left:4px">⌃</span>
-        </div>
-      </div>
-    </div>
-  `;
-}
-const PERS_OPTS={
-  style:Object.keys(STYLES).map(k=>({val:k,label:STYLES[k],desc:STYLE_DESCS[k]})),
-  friendliness:[{val:'default',label:'По умолчанию'},{val:'low',label:'Низкая'},{val:'medium',label:'Средняя'},{val:'high',label:'Высокая'}],
-  enthusiasm:[{val:'default',label:'По умолчанию'},{val:'reserved',label:'Сдержанный'},{val:'moderate',label:'Умеренный'},{val:'high',label:'Высокий'}],
-  headings:[{val:'default',label:'По умолчанию'},{val:'off',label:'Выкл'},{val:'on',label:'Вкл'}],
-  emojis:[{val:'default',label:'По умолчанию'},{val:'none',label:'Нет'},{val:'some',label:'Немного'},{val:'many',label:'Много'}],
-};
-let curPersDropEl=null;
-function openPersDropInline(e,field,valId){
-  e.stopPropagation();
-  const existing=document.getElementById('inlineDrop');
-  if(existing&&existing.dataset.field===field){existing.remove();curPersDropEl=null;return;}
-  if(existing)existing.remove();
-  const target=e.currentTarget;
-  const drop=document.createElement('div');
-  drop.id='inlineDrop';drop.dataset.field=field;
-  drop.style.cssText='position:absolute;left:0;right:0;background:var(--drop-bg);border:1px solid var(--border);border-radius:12px;padding:5px;z-index:100;box-shadow:var(--drop-shadow);margin-top:4px;';
-  const opts=PERS_OPTS[field]||[];
-  const cur=getSettings()[field]||'default';
-  opts.forEach(opt=>{
-    const d=document.createElement('div');
-    d.className='pers-opt'+(opt.val===cur?' selected':'');
-    d.innerHTML=`<div class="pers-opt-title">${opt.label}</div>${opt.desc?`<div class="pers-opt-desc">${opt.desc}</div>`:''}`;
-    d.onclick=(ev)=>{
-      ev.stopPropagation();
-      document.getElementById(valId).textContent=opt.label;
-      drop.remove();curPersDropEl=null;
-      if(!curUser)return;
-      if(!curUser.settings)curUser.settings={};
-      curUser.settings[field]=opt.val;
-    };
-    drop.appendChild(d);
-  });
-  target.style.position='relative';
-  target.appendChild(drop);
-  curPersDropEl=drop;
-}
-function setupPersDropdowns(){
-  document.addEventListener('click',hidePersDrops,{once:false});
-}
-function hidePersDrops(e){
-  if(curPersDropEl&&!curPersDropEl.contains(e.target)){
-    curPersDropEl.remove();curPersDropEl=null;
-  }
-}
-async function savePers(){
-  const qr=document.getElementById('swQR')?.classList.contains('on');
-  const ci=document.getElementById('custInstr')?.value||'';
-  if(!curUser)return;
-  if(!curUser.settings)curUser.settings={};
-  curUser.settings.quickReplies=qr;
-  curUser.settings.customInstructions=ci;
-  await sb.from('profiles').upsert({id:curUser.id,settings:curUser.settings},{onConflict:'id'});
-  renderSettings('main');
-}
-async function saveSettingField(key,val){
-  if(!curUser)return;
-  if(!curUser.settings)curUser.settings={};
-  curUser.settings[key]=val;
-  await sb.from('profiles').upsert({id:curUser.id,settings:curUser.settings},{onConflict:'id'});
-}
 
 /* ===== SYSTEM PROMPT ===== */
 const BASE_SYSTEM=`Ты HarmonyAI — музыкальный ИИ-помощник для учеников музыкальной школы. Ты мужского пола — говори о себе в мужском роде. Отвечай на русском языке. Будь дружелюбным и понятным.
-Ты знаешь: сольфеджио, нотную грамоту, интервалы, аккорды, лады, ритм, музыкальные термины. Помогаешь и с другими предметами.
-ФОРМАТИРОВАНИЕ: используй Markdown — **жирный**, # заголовки, списки.
-ФОТО: если присылают фото с нотами — разбери каждую ноту и аккорд.`;
+Ты знаешь: сольфеджио, нотную грамоту, интервалы, аккорды (T53, S64, D7, VII7, II7 и др.), лады, ритм, размеры, музыкальные термины. Помогаешь и с другими предметами.
+ФОРМАТИРОВАНИЕ: Всегда используй Markdown — **жирный**, # заголовки, списки, > цитаты, \`код\`.
+РАСПОЗНАВАНИЕ ФОТО: если присылают фото с нотами — разбери каждую ноту, аккорд, ритм.
+ГЕНЕРАЦИЯ НОТНЫХ СТАНОВ — ВСЕГДА используй формат \`\`\`abc...\`\`\`:
+X:1 T:Название M:4/4 L:1/4 K:C | C D E F |
+Правила ABC: нижняя октава C D E F G A B, верхняя c d e f g a b, C4=целая, C2=половинная, C=четверть, z=пауза, ^C=диез, _E=бемоль, [CEG]=аккорд.`;
+
 function buildSystem(){
-  const s=getSettings();
+  const s=curUser?.settings||{};
   let sys=BASE_SYSTEM;
   const styleMap={professional:'Отвечай профессионально и точно.',friendly:'Отвечай тепло и разговорчиво.',frank:'Отвечай прямо и мотивируя.',whimsical:'Отвечай весело и творчески.',efficient:'Отвечай коротко и по делу.',cynical:'Можешь быть немного саркастичным.'};
   if(s.style&&styleMap[s.style])sys+='\nСТИЛЬ: '+styleMap[s.style];
@@ -1053,32 +926,55 @@ function addUserBubble(text){
   const d=document.createElement('div');d.className='msg-user';d.textContent=text;
   inner.appendChild(d);scrollChat();
 }
-function addAiBubble(text,stream=true){
+function addAiBubble(text,stream){
   const inner=getChatInner();
   const wrap=document.createElement('div');wrap.className='msg-ai-wrap';
   const msg=document.createElement('div');msg.className='msg-ai';wrap.appendChild(msg);
   const actions=document.createElement('div');actions.className='msg-actions';
   actions.innerHTML=
-    `<div class="mac-btn" onclick="cpMsg(this)" title="Копировать">${IC_COPY}</div>`+
-    `<div class="mac-btn" onclick="likeMsg(this,'like')" title="Нравится">${IC_LIKE}</div>`+
-    `<div class="mac-btn" onclick="likeMsg(this,'dislike')" title="Не нравится">${IC_DISLIKE}</div>`+
-    `<div class="mac-btn" onclick="toggleMore(this)" title="Ещё">${IC_MORE}</div>`+
+    `<button class="mac-btn" onclick="cpMsg(this)" title="Копировать">${IC_COPY}</button>`+
+    `<button class="mac-btn" onclick="likeMsg(this,'like')" title="Нравится">${IC_LIKE}</button>`+
+    `<button class="mac-btn" onclick="likeMsg(this,'dislike')" title="Не нравится">${IC_DISLIKE}</button>`+
+    `<button class="mac-btn" onclick="toggleMore(this)" title="Ещё">${IC_MORE}</button>`+
     `<div class="more-menu"><div class="more-item" onclick="regenMsg(this)">${IC_REGEN} Повторить</div></div>`;
   wrap.appendChild(actions);
   inner.appendChild(wrap);scrollChat();
-  if(stream)return streamText(msg,text);
-  renderMd(msg,text);return Promise.resolve();
+  if(stream===false){renderMd(msg,text);return Promise.resolve();}
+  return streamText(msg,text);
 }
+
+/* Render Markdown + ABC */
 function renderMd(el,text){
-  if(typeof marked!=='undefined')el.innerHTML=marked.parse(text);
-  else{el.textContent=text;}
   el.dataset.raw=text;
+  /* Split by ABC blocks */
+  const parts=text.split(/(```abc[\s\S]*?```)/g);
+  el.innerHTML='';
+  parts.forEach(part=>{
+    const abcMatch=part.match(/```abc\n?([\s\S]*?)```/);
+    if(abcMatch){
+      const abcSrc=abcMatch[1].trim();
+      const id='abc-'+(++abcCounter);
+      const wrap=document.createElement('div');wrap.className='abc-block';
+      const lbl=document.createElement('div');lbl.className='abc-label';lbl.textContent='♩ Нотный стан';
+      wrap.appendChild(lbl);
+      const cvs=document.createElement('div');cvs.id=id;wrap.appendChild(cvs);
+      el.appendChild(wrap);
+      setTimeout(()=>{
+        try{window.ABCJS.renderAbc(id,abcSrc,{responsive:'resize',add_classes:true,paddingright:0,paddingleft:0});}
+        catch(e){cvs.textContent=abcSrc;}
+      },60);
+    }else if(part.trim()){
+      const div=document.createElement('div');
+      div.innerHTML=typeof marked!=='undefined'?marked.parse(part):part;
+      el.appendChild(div);
+    }
+  });
 }
 function streamText(el,text){
   return new Promise(resolve=>{
     let i=0;el.style.whiteSpace='pre-wrap';
     function step(){
-      i+=3;
+      i+=4;
       el.textContent=text.slice(0,Math.min(i,text.length))+(i<text.length?'▍':'');
       scrollChat();
       if(i<text.length)setTimeout(step,5);
@@ -1110,25 +1006,24 @@ async function regenMsg(item){
   const msgEl=wrap.querySelector('.msg-ai');
   if(chatHistory.length&&chatHistory[chatHistory.length-1].role==='assistant')chatHistory.pop();
   msgEl.innerHTML='';msgEl.style.whiteSpace='pre-wrap';
-  showLoading(true);
+  showTyping();
   try{
     const res=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'system',content:buildSystem()},...chatHistory]})});
     const data=await res.json();
     const reply=data.choices?.[0]?.message?.content||'Нет ответа';
-    showLoading(false);
+    hideTyping();
     await streamText(msgEl,reply);
     chatHistory.push({role:'assistant',content:reply});
     await saveChat();
-  }catch(e){showLoading(false);renderMd(msgEl,'Ошибка: '+e.message);}
+  }catch(e){hideTyping();renderMd(msgEl,'Ошибка: '+e.message);}
 }
 function showTyping(){
   const inner=getChatInner();
   const d=document.createElement('div');d.className='thinking';d.id='typEl';
-  d.innerHTML='<div class="think-dots"><span></span><span></span><span></span></div><span>Думаю...</span>';
+  d.innerHTML='<div class="think-dots"><span></span><span></span><span></span></div><span style="font-size:14px;color:var(--text2)">Думаю...</span>';
   inner.appendChild(d);scrollChat();
 }
 function hideTyping(){const t=document.getElementById('typEl');if(t)t.remove();}
-function showLoading(v){document.getElementById('loadingIcon').style.display=v?'flex':'none';}
 
 /* ===== SEND ===== */
 async function sendMsg(){
@@ -1142,25 +1037,264 @@ async function sendMsg(){
     userContent=[];
     if(text)userContent.push({type:'text',text});
     userContent.push({type:'image_url',image_url:{url:'data:image/jpeg;base64,'+pendingImg}});
-    pendingImg=null;ta.placeholder='Введите сообщение ..';
+    pendingImg=null;ta.placeholder='Введите сообщение..';
   }else{userContent=text;}
 
   addUserBubble(displayText);
   chatHistory.push({role:'user',content:userContent});
   if(chatHistory.length===1)await saveChat(displayText.slice(0,40));
   else await saveChat();
-  showLoading(true);showTyping();
+  showTyping();
 
   try{
     const res=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'system',content:buildSystem()},...chatHistory]})});
     const data=await res.json();
-    if(data.error){hideTyping();showLoading(false);await addAiBubble('**Ошибка:** '+(data.error.message||JSON.stringify(data.error)),false);return;}
+    if(data.error){hideTyping();await addAiBubble('**Ошибка:** '+(data.error.message||JSON.stringify(data.error)),false);return;}
     const reply=data.choices?.[0]?.message?.content||'Нет ответа';
-    hideTyping();showLoading(false);
+    hideTyping();
     await addAiBubble(reply,true);
     chatHistory.push({role:'assistant',content:reply});
     await saveChat();
-  }catch(e){hideTyping();showLoading(false);await addAiBubble('Ошибка соединения: '+e.message,false);}
+  }catch(e){hideTyping();await addAiBubble('Ошибка соединения: '+e.message,false);}
+}
+
+/* ===== SETTINGS ===== */
+function openSettings(){
+  closeSidebar();
+  renderSettingsMain();
+  document.getElementById('settingsOverlay').classList.add('open');
+}
+function closeSettings(){
+  document.getElementById('settingsOverlay').classList.remove('open');
+}
+
+function getSettings(){return curUser?.settings||{};}
+
+function renderSettingsMain(){
+  const el=document.getElementById('settingsContent');
+  const ch=(curUser?.nickname||curUser?.email||'?').charAt(0).toUpperCase();
+  el.innerHTML=`
+    <div class="sth">
+      <button class="sth-back" onclick="closeSettings()">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+      <div class="sth-title">Настройки</div>
+    </div>
+    <div class="prof-top">
+      <div class="prof-ava">${ch}</div>
+      <div style="flex:1;">
+        <div class="prof-name">${curUser?.nickname||curUser?.email?.split('@')[0]||'Пользователь'}</div>
+        <div class="prof-email">${curUser?.email||''}</div>
+      </div>
+      <button class="logout-btn" onclick="logOut()">Выйти</button>
+    </div>
+    <div class="s-sect">
+      <div class="s-sect-label">Настроить HarmonyAI</div>
+      <div class="s-rows">
+        <div class="s-row mobile-only-setting" onclick="renderSettingsPers()">
+          <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="M20 21a8 8 0 10-16 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+          <div class="s-row-text">Персонализация</div>
+          <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+        </div>
+        <div class="s-row" onclick="renderSettingsMemory()">
+          <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26C17.81 13.47 19 11.38 19 9c0-3.87-3.13-7-7-7z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 21h6M10 17v-4M14 17v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+          <div class="s-row-text">Память</div>
+          <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+        </div>
+      </div>
+    </div>
+    <div class="s-sect">
+      <div class="s-sect-label">Учётная запись</div>
+      <div class="s-rows">
+        <div class="s-row">
+          <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" stroke-width="2"/><path d="M3 7l9 7 9-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+          <div class="s-row-text">Электронная почта</div>
+          <div class="s-row-val" style="font-size:12px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${curUser?.email||''}</div>
+        </div>
+        <div class="s-row">
+          <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7l3-7z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></div>
+          <div class="s-row-text">Подписка</div>
+          <div class="s-row-val">MusMind Lite</div>
+        </div>
+        <div class="s-row">
+          <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z" stroke="currentColor" stroke-width="2"/><path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+          <div class="s-row-text">Перейти на MusMind Pro</div>
+          <div class="s-row-val soon">Скоро</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderSettingsMemory(){
+  const el=document.getElementById('settingsContent');
+  const s=getSettings();
+  const memSave=(s.memSave!==false);
+  const memRecall=(s.memRecall!==false);
+  el.innerHTML=`
+    <div class="sth">
+      <div class="sth-back" onclick="renderSettingsMain()">
+        <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="sth-title">Память</div>
+    </div>
+    <div class="mem-rows">
+      <div class="mem-row">
+        <div class="mem-info"><div class="mem-title">Сохранять память</div><div class="mem-desc">HarmonyAI запоминает детали из разговоров</div></div>
+        <div class="sw ${memSave?'on':''}" onclick="this.classList.toggle('on');saveSetting('memSave',this.classList.contains('on'))"></div>
+      </div>
+      <div class="mem-row">
+        <div class="mem-info"><div class="mem-title">Ссылаться на память</div><div class="mem-desc">Использует память при ответах</div></div>
+        <div class="sw ${memRecall?'on':''}" onclick="this.classList.toggle('on');saveSetting('memRecall',this.classList.contains('on'))"></div>
+      </div>
+    </div>`;
+}
+
+/* ===== PERSONALIZATION (mobile only) ===== */
+const STYLES={default:'По умолчанию',professional:'Профессиональный',friendly:'Дружелюбный',frank:'Откровенный',whimsical:'Причудливый',efficient:'Эффективный',cynical:'Циничный'};
+const STYLE_DESCS={default:'Предпочитаемый стиль и тон',professional:'Тактичный и точный',friendly:'Тёплый и разговорчивый',frank:'Прямой и мотивирующий',whimsical:'Весёлый и творческий',efficient:'Немногословный и чёткий',cynical:'Критикующий и саркастичный'};
+
+function renderSettingsPers(){
+  const el=document.getElementById('settingsContent');
+  const s=getSettings();
+  const st=s.style||'default';
+  const fr=s.friendliness||'default';
+  const en=s.enthusiasm||'default';
+  const hd=s.headings||'default';
+  const em=s.emojis||'default';
+  const qr=(s.quickReplies!==false);
+  const ci=s.customInstructions||'';
+  el.innerHTML=`
+    <div class="sth">
+      <div class="sth-back" onclick="renderSettingsMain()">
+        <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="sth-title">Персонализация</div>
+      <button style="margin-left:auto;padding:7px 16px;border-radius:10px;background:var(--send-bg);color:var(--send-txt);border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;" onclick="savePers()">Сохранить</button>
+    </div>
+    <!-- Style card -->
+    <div class="pers-card">
+      <div class="pers-header">
+        <div class="pers-h-label">Базовый стиль и тон</div>
+        <div class="pers-selector" onclick="openPersDrop('style')">
+          <span class="pers-sel-text" id="ps-style">${STYLES[st]}</span>
+          <span class="pers-sel-chev">⌃</span>
+        </div>
+      </div>
+    </div>
+    <!-- Other options card -->
+    <div class="pers-card" style="margin-bottom:16px">
+      <div class="pers-row-inline" onclick="openPersDrop('friendliness')">
+        <div class="pers-row-label">Доброжелательность</div>
+        <div class="pers-row-val"><span id="ps-friendliness">${friendlinessLabel(fr)}</span><span style="font-size:10px;opacity:.5">⌃</span></div>
+      </div>
+      <div class="pers-row-inline" onclick="openPersDrop('enthusiasm')">
+        <div class="pers-row-label">Энтузиазм</div>
+        <div class="pers-row-val"><span id="ps-enthusiasm">${enthusiasmLabel(en)}</span><span style="font-size:10px;opacity:.5">⌃</span></div>
+      </div>
+      <div class="pers-row-inline" onclick="openPersDrop('headings')">
+        <div class="pers-row-label">Заголовки и списки</div>
+        <div class="pers-row-val"><span id="ps-headings">${headingsLabel(hd)}</span><span style="font-size:10px;opacity:.5">⌃</span></div>
+      </div>
+      <div class="pers-row-inline" onclick="openPersDrop('emojis')">
+        <div class="pers-row-label">Эмодзи</div>
+        <div class="pers-row-val"><span id="ps-emojis">${emojisLabel(em)}</span><span style="font-size:10px;opacity:.5">⌃</span></div>
+      </div>
+    </div>
+    <!-- Quick replies toggle -->
+    <div class="pers-toggle-row">
+      <div class="pers-toggle-info">
+        <div class="pers-toggle-label">Быстрые ответы</div>
+        <div class="pers-toggle-desc">Иногда HarmonyAI может использовать свои общие знания для быстрых ответов. Такие ответы не персонализированы.</div>
+      </div>
+      <div class="sw ${qr?'on':''}" id="swQR" onclick="this.classList.toggle('on')"></div>
+    </div>
+    <!-- Custom instructions -->
+    <div class="custom-instr-label">Пользовательские инструкции</div>
+    <textarea class="custom-instr-area" id="custInstr" placeholder="Поделитесь чем-нибудь ещё, что вы хотели бы включить для рассмотрения в ответе Harmony Ai.">${escapeHtml(ci)}</textarea>
+    <button class="save-btn" onclick="savePers()">Сохранить</button>`;
+}
+function friendlinessLabel(v){
+  const map={default:'По умолчанию',low:'Низкая',medium:'Средняя',high:'Высокая'};
+  return map[v]||'По умолчанию';
+}
+function enthusiasmLabel(v){
+  const map={default:'По умолчанию',reserved:'Сдержанный',moderate:'Умеренный',high:'Высокий'};
+  return map[v]||'По умолчанию';
+}
+function headingsLabel(v){
+  const map={default:'По умолчанию',off:'Выкл',on:'Вкл'};
+  return map[v]||'По умолчанию';
+}
+function emojisLabel(v){
+  const map={default:'По умолчанию',none:'Нет',some:'Немного',many:'Много'};
+  return map[v]||'По умолчанию';
+}
+function escapeHtml(t){
+  const d=document.createElement('div');d.textContent=t;return d.innerHTML;
+}
+
+/* Pers dropdown overlay */
+const PERS_OPT_DATA={
+  style:Object.keys(STYLES).map(k=>({val:k,label:STYLES[k],desc:STYLE_DESCS[k]})),
+  friendliness:[{val:'default',label:'По умолчанию'},{val:'low',label:'Низкая'},{val:'medium',label:'Средняя'},{val:'high',label:'Высокая'}],
+  enthusiasm:[{val:'default',label:'По умолчанию'},{val:'reserved',label:'Сдержанный'},{val:'moderate',label:'Умеренный'},{val:'high',label:'Высокий'}],
+  headings:[{val:'default',label:'По умолчанию'},{val:'off',label:'Выкл'},{val:'on',label:'Вкл'}],
+  emojis:[{val:'default',label:'По умолчанию'},{val:'none',label:'Нет'},{val:'some',label:'Немного'},{val:'many',label:'Много'}],
+};
+let activePersField=null;
+
+function openPersDrop(field){
+  activePersField=field;
+  const opts=PERS_OPT_DATA[field]||[];
+  const s=getSettings();
+  const cur=s[field]||'default';
+  const overlay=document.getElementById('persDropOverlay');
+  const content=document.getElementById('persDropContent');
+  let html='<div class="pds-title">'+fieldTitle(field)+'</div>';
+  opts.forEach(opt=>{
+    const sel=opt.val===cur?'selected':'';
+    html+=`<div class="pds-opt ${sel}" onclick="selectPersOpt('${field}','${opt.val}','${opt.label}')">`;
+    html+=`<div style="flex:1"><div class="pds-opt-title">${opt.label}</div>${opt.desc?`<div class="pds-opt-desc">${opt.desc}</div>`:''}</div>`;
+    if(sel)html+=`<div class="pds-check">✓</div>`;
+    html+=`</div>`;
+  });
+  content.innerHTML=html;
+  overlay.classList.add('open');
+}
+function closePersDrop(){
+  document.getElementById('persDropOverlay').classList.remove('open');
+  activePersField=null;
+}
+function selectPersOpt(field,val,label){
+  if(!curUser.settings)curUser.settings={};
+  curUser.settings[field]=val;
+  const spanId='ps-'+field;
+  const span=document.getElementById(spanId);
+  if(span)span.textContent=label;
+  const styleSpan=document.getElementById('ps-style');
+  if(field==='style'&&styleSpan)styleSpan.textContent=STYLES[val]||label;
+  closePersDrop();
+}
+function fieldTitle(f){
+  const map={style:'Базовый стиль и тон',friendliness:'Доброжелательность',enthusiasm:'Энтузиазм',headings:'Заголовки и списки',emojis:'Эмодзи'};
+  return map[f]||f;
+}
+
+async function savePers(){
+  const qr=document.getElementById('swQR')?.classList.contains('on');
+  const ci=document.getElementById('custInstr')?.value||'';
+  if(!curUser)return;
+  if(!curUser.settings)curUser.settings={};
+  curUser.settings.quickReplies=qr;
+  curUser.settings.customInstructions=ci;
+  await sb.from('profiles').upsert({id:curUser.id,settings:curUser.settings},{onConflict:'id'});
+  renderSettingsMain();
+}
+async function saveSetting(key,val){
+  if(!curUser)return;
+  if(!curUser.settings)curUser.settings={};
+  curUser.settings[key]=val;
+  await sb.from('profiles').upsert({id:curUser.id,settings:curUser.settings},{onConflict:'id'});
 }
 </script>
 </body>
