@@ -11,19 +11,20 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 html,body{height:100%;overflow:hidden;}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;height:100vh;}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;}
 
-/* ======= МОБИЛЬ — ТЁМНАЯ ======= */
+/* ===================== МОБИЛЬНАЯ — ТЁМНАЯ (по умолчанию) ===================== */
 :root{
-  --bg:#0b0b0e;
-  --bg2:#141417;
+  --bg:#0a0a0c;
+  --bg2:#121214;
   --bg3:rgba(255,255,255,0.06);
   --text:#ffffff;
-  --text2:#a0a0a8;
+  --text2:#888892;
+  --text-ai:#e8e8ec;
   --border:rgba(255,255,255,0.10);
   --border2:rgba(255,255,255,0.06);
   --send-bg:#ffffff;
-  --send-txt:#000000;
+  --send-txt:#0a0a0c;
   --user-bg:#1e1e24;
   --user-txt:#ffffff;
   --input-bg:rgba(255,255,255,0.06);
@@ -34,19 +35,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
   --check:#22c55e;
   --font-base:15px;
 }
-/* ======= ДЕСКТОП — СВЕТЛАЯ ======= */
+/* ===================== ДЕСКТОП — СВЕТЛАЯ ===================== */
 @media(min-width:769px){
   :root{
-    --bg:#ffffff;
-    --bg2:#f7f7f8;
+    --bg:#fafaf9;
+    --bg2:#f0efea;
     --bg3:rgba(0,0,0,0.03);
-    --text:#000000;
-    --text2:#666666;
+    --text:#1a1a1a;
+    --text2:#6b6b6b;
+    --text-ai:#1a1a1a;
     --border:rgba(0,0,0,0.10);
     --border2:rgba(0,0,0,0.06);
-    --send-bg:#000000;
+    --send-bg:#1a1a1a;
     --send-txt:#ffffff;
-    --user-bg:#000000;
+    --user-bg:#1a1a1a;
     --user-txt:#ffffff;
     --input-bg:rgba(0,0,0,0.03);
     --hover:rgba(0,0,0,0.04);
@@ -57,24 +59,37 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
   }
 }
 
-/* ======= AUTH ======= */
-.auth-wrap{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px;}
+body{background:var(--bg);color:var(--text);}
+
+/* ===================== GLOSSY MOBILE BACKGROUND ===================== */
+.mobile-glossy{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
+.mobile-glossy .bubble{position:absolute;border-radius:50%;filter:blur(60px);opacity:0.35;animation:floatBubble 12s ease-in-out infinite;}
+.mobile-glossy .b1{width:280px;height:280px;background:radial-gradient(circle,#4f46e5 0%,transparent 70%);top:10%;left:-10%;animation-delay:0s;}
+.mobile-glossy .b2{width:240px;height:240px;background:radial-gradient(circle,#7c3aed 0%,transparent 70%);top:35%;right:-15%;animation-delay:-4s;}
+.mobile-glossy .b3{width:200px;height:200px;background:radial-gradient(circle,#2563eb 0%,transparent 70%);top:60%;left:20%;animation-delay:-8s;}
+.mobile-glossy .b4{width:180px;height:180px;background:radial-gradient(circle,#0891b2 0%,transparent 70%);bottom:20%;right:10%;animation-delay:-2s;}
+@keyframes floatBubble{0%,100%{transform:translate(0,0) scale(1);}33%{transform:translate(20px,-15px) scale(1.05);}66%{transform:translate(-15px,10px) scale(0.95);}}
+@media(min-width:769px){.mobile-glossy{display:none;}}
+
+/* ===================== AUTH ===================== */
+.auth-wrap{position:fixed;inset:0;z-index:1000;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px;}
 .auth-wrap.gone{display:none;}
 .auth-card{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:36px 28px;max-width:380px;width:100%;display:flex;flex-direction:column;gap:0;}
 .auth-screen{display:none;flex-direction:column;gap:0;}
 .auth-screen.active{display:flex;}
-.auth-logo{font-size:14px;font-weight:700;color:var(--text);margin-bottom:28px;opacity:.6;}
-.auth-h1{font-size:28px;font-weight:800;color:var(--text);line-height:1.2;margin-bottom:8px;letter-spacing:-0.5px;}
-.auth-sub{font-size:14px;color:var(--text2);margin-bottom:28px;line-height:1.5;}
+.auth-logo{font-size:15px;font-weight:800;color:var(--text);margin-bottom:32px;opacity:.5;letter-spacing:-0.3px;}
+.auth-h1{font-size:30px;font-weight:800;color:var(--text);line-height:1.15;margin-bottom:8px;letter-spacing:-0.5px;}
+.auth-sub{font-size:15px;color:var(--text2);margin-bottom:32px;line-height:1.5;}
 .auth-input{width:100%;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--input-bg);font-size:15px;color:var(--text);font-family:inherit;outline:none;margin-bottom:10px;transition:border-color .15s;}
 .auth-input:focus{border-color:var(--text);}
 .auth-input::placeholder{color:var(--text2);}
 .auth-btn-primary{width:100%;padding:14px;border-radius:12px;background:var(--send-bg);color:var(--send-txt);font-size:15px;font-weight:700;border:none;cursor:pointer;margin-bottom:10px;font-family:inherit;transition:opacity .15s;}
 .auth-btn-primary:hover{opacity:.85;}
+.auth-btn-primary:disabled{opacity:.5;cursor:default;}
 .auth-btn-secondary{width:100%;padding:12px;border-radius:12px;background:transparent;color:var(--text2);font-size:14px;font-weight:500;border:1px solid var(--border);cursor:pointer;font-family:inherit;transition:background .15s;}
 .auth-btn-secondary:hover{background:var(--hover);}
 .auth-tos{font-size:12px;color:var(--text2);text-align:center;line-height:1.6;margin-top:12px;}
-.auth-beta{font-size:12px;color:var(--text2);text-align:center;margin-top:24px;}
+.auth-beta{font-size:12px;color:var(--text2);text-align:center;margin-top:24px;opacity:.5;}
 .auth-error{font-size:13px;color:#ef4444;text-align:center;display:none;margin-bottom:8px;}
 .otp-row{display:flex;gap:8px;justify-content:center;margin-bottom:10px;}
 .otp-box{width:46px;height:54px;border:1px solid var(--border);border-radius:12px;background:var(--input-bg);font-size:22px;font-weight:800;color:var(--text);text-align:center;font-family:inherit;outline:none;transition:border-color .15s;}
@@ -83,224 +98,276 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
 .auth-resend:hover{color:var(--text);}
 .auth-resend.disabled{opacity:.4;cursor:default;pointer-events:none;}
 
-/* ======= ОСНОВНОЙ LAYOUT ======= */
-.app{display:none;height:100vh;overflow:hidden;}
+/* ===================== APP LAYOUT ===================== */
+.app{display:none;height:100vh;overflow:hidden;position:relative;}
 .app.show{display:flex;}
-
-/* ======= МОБИЛЬ: СТЕК ======= */
 @media(max-width:768px){
-  .app{flex-direction:column;position:relative;}
-  .sidebar{position:fixed;top:0;left:0;bottom:0;width:80%;max-width:300px;z-index:50;background:var(--bg2);border-right:1px solid var(--border);transform:translateX(-100%);transition:transform .28s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;padding:24px 14px 20px;}
+  .app{flex-direction:column;}
+  .sidebar{position:fixed;top:0;left:0;bottom:0;width:min(78vw,286px);z-index:50;background:rgba(18,18,22,.96);backdrop-filter:blur(18px);border-right:1px solid rgba(255,255,255,.08);box-shadow:18px 0 48px rgba(0,0,0,.34);transform:translateX(-100%);transition:transform .28s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;padding:18px 12px calc(16px + env(safe-area-inset-bottom,0px));overflow:hidden;}
   .sidebar.open{transform:translateX(0);}
-  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:40;opacity:0;visibility:hidden;transition:opacity .25s;}
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.42);backdrop-filter:blur(2px);z-index:40;opacity:0;visibility:hidden;transition:opacity .25s;}
   .overlay.show{opacity:1;visibility:visible;}
-  .main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
-  .topbar{display:flex;align-items:center;padding:12px 16px;gap:10px;}
-  .topbar-logo{font-size:15px;font-weight:800;color:var(--text);flex:1;}
+  .main{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative;z-index:1;}
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;gap:10px;position:relative;z-index:2;}
+  .topbar-logo{font-size:16px;font-weight:800;color:var(--text);position:absolute;left:50%;transform:translateX(-50%);}
 }
-/* ======= ДЕСКТОП: БОКОВАЯ ПАНЕЛЬ ======= */
 @media(min-width:769px){
   .app{flex-direction:row;}
   .overlay{display:none;}
-  .sidebar{width:56px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:16px 0;gap:4px;transition:width .25s cubic-bezier(.4,0,.2,1);}
-  .sidebar.expanded{width:240px;align-items:stretch;padding:16px 10px;}
+  .sidebar{width:52px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:16px 0;gap:4px;transition:width .25s cubic-bezier(.4,0,.2,1);overflow:hidden;}
+  .sidebar.expanded{width:220px;align-items:stretch;padding:16px 10px;}
   .main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);}
   .topbar{display:none;}
 }
 
-/* ===== SIDEBAR CONTENTS ===== */
-.sb-icon-btn{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);transition:background .12s,color .12s;flex-shrink:0;}
+/* Sidebar contents */
+.sb-icon-btn{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);transition:background .12s,color .12s;flex-shrink:0;}
 .sb-icon-btn:hover{background:var(--hover);color:var(--text);}
 @media(min-width:769px){
-  .sb-icon-btn{width:36px;height:36px;}
-  .sidebar.expanded .sb-icon-btn{width:100%;border-radius:9px;justify-content:flex-start;padding:0 10px;gap:10px;}
+  .sb-icon-btn{width:36px;height:36px;margin:0 auto;}
+  .sidebar.expanded .sb-icon-btn{width:100%;border-radius:9px;justify-content:flex-start;padding:0 10px;gap:10px;margin:0;}
   .sb-icon-label{display:none;font-size:13px;font-weight:500;color:var(--text);}
   .sidebar.expanded .sb-icon-label{display:inline;}
 }
 .sb-top{display:flex;flex-direction:column;gap:4px;}
-.sb-chat-list{flex:1;overflow-y:auto;margin-top:8px;}
+@media(max-width:768px){.sb-top{margin-bottom:8px;}}
+.sb-chat-list{flex:1;overflow-y:auto;margin-top:8px;display:none;}
 .sb-chat-list::-webkit-scrollbar{width:3px;}
 .sb-chat-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
-.sb-chat-item{padding:8px 10px;border-radius:8px;font-size:13px;color:var(--text);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.75;transition:background .12s;}
+.sb-chat-item{padding:8px 10px;border-radius:8px;font-size:13px;color:var(--text);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.75;transition:background .12s;margin-bottom:2px;}
 .sb-chat-item:hover,.sb-chat-item.active{background:var(--active);opacity:1;}
-@media(max-width:768px){
-  .sb-chat-list{display:block;}
-}
+@media(max-width:768px){.sb-chat-list{display:block!important;}}
 @media(min-width:769px){
   .sb-chat-list{display:none;}
-  .sidebar.expanded .sb-chat-list{display:block;}
+  .sidebar.expanded .sb-chat-list{display:block!important;}
 }
 .sb-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);padding:10px 10px 4px;display:none;}
 .sidebar.expanded .sb-label{display:block;}
-.sb-footer{margin-top:auto;}
-.sb-avatar{width:30px;height:30px;border-radius:50%;background:var(--text);color:var(--bg);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;}
+@media(max-width:768px){.sb-label{display:block;}}
+.sb-footer{margin-top:auto;padding-top:8px;}
+.sb-avatar{width:32px;height:32px;border-radius:50%;background:var(--text);color:var(--bg);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;}
 .sb-user-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:9px;cursor:pointer;transition:background .12s;}
 .sb-user-row:hover{background:var(--hover);}
 .sb-username{font-size:13px;font-weight:600;color:var(--text);display:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .sidebar.expanded .sb-username{display:block;}
-
-/* ======= ТОПБАР (мобиль) ======= */
-.topbar-btn{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);transition:background .12s;}
-.topbar-btn:hover{background:var(--hover);}
-
-/* ======= ЧАТ ОБЛАСТЬ ======= */
-.chat-area{flex:1;overflow-y:auto;display:flex;flex-direction:column;scroll-behavior:smooth;}
-.chat-area::-webkit-scrollbar{width:6px;}
-.chat-area::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
-.chat-inner{width:100%;max-width:720px;margin:0 auto;padding:24px 20px;display:flex;flex-direction:column;gap:20px;flex:1;}
-@media(max-width:768px){.chat-inner{padding:16px 14px;max-width:100%;}}
-
-/* Приветствие */
-.greeting-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 0;}
-@media(min-width:769px){.greeting-wrap{min-height:60vh;}}
-.greeting-title{font-size:36px;font-weight:800;color:var(--text);letter-spacing:-1px;margin-bottom:10px;}
-@media(max-width:768px){.greeting-title{font-size:26px;}}
-.greeting-sub{font-size:16px;color:var(--text2);transition:opacity .3s;}
-@media(max-width:768px){.greeting-sub{font-size:14px;}}
-
-/* Сообщения */
-.msg-user{align-self:flex-end;max-width:80%;background:var(--user-bg);color:var(--user-txt);border-radius:18px 18px 4px 18px;padding:12px 16px;font-size:var(--font-base);line-height:1.55;word-break:break-word;white-space:pre-wrap;}
-.msg-ai-wrap{display:flex;flex-direction:column;gap:8px;}
-/* Десктоп: обычный текст */
-.msg-ai{font-size:var(--font-base);line-height:1.7;color:var(--text);word-break:break-word;}
-/* Мобиль: текст прямо на фоне, без рамок */
-@media(max-width:768px){
-  .msg-ai{color:#ffffff !important;font-size:16px;font-weight:500;line-height:1.65;}
-  .msg-ai h1,.msg-ai h2,.msg-ai h3{color:#ffffff !important;}
-  .msg-ai strong{color:#ffffff !important;font-weight:700;}
-  .msg-ai em{color:rgba(255,255,255,0.85) !important;}
-  .msg-ai p,.msg-ai li{color:#ffffff !important;}
-  .msg-ai code{background:rgba(255,255,255,0.12);color:#ffffff;}
-  .msg-ai pre{background:rgba(255,255,255,0.08);}
-  .msg-ai blockquote{border-left:2px solid rgba(255,255,255,0.3);color:rgba(255,255,255,0.7);}
-  .msg-user{background:rgba(255,255,255,0.15);color:#ffffff;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.2);}
+@media(max-width:768px){.sb-username{display:block;}}
+@media(min-width:769px){
+  .sb-footer{width:100%;padding:8px 8px 0;}
+  .sidebar:not(.expanded) .sb-user-row{width:40px;height:40px;padding:0;justify-content:center;margin:0 auto;}
 }
-.msg-ai h1,.msg-ai h2,.msg-ai h3{font-weight:700;margin:14px 0 6px;}
+@media(max-width:768px){
+  .sb-top{gap:6px;}
+  .sb-icon-btn,.sb-chat-item,.sb-user-row{width:100%;box-sizing:border-box;}
+  .sb-icon-btn{height:44px;justify-content:flex-start;padding:0 12px;gap:12px;border-radius:12px;}
+  .sb-icon-btn svg{flex-shrink:0;}
+  .sb-icon-label{display:inline;font-size:15px;font-weight:500;color:var(--text);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .sb-label{padding:14px 10px 8px;font-size:11px;letter-spacing:.8px;}
+  .sb-chat-list{margin-top:0;padding-right:2px;display:flex!important;flex-direction:column;gap:4px;min-height:0;}
+  .sb-chat-item{padding:10px 12px;border-radius:10px;font-size:14px;line-height:1.35;}
+  .sb-footer{padding:14px 2px 0;border-top:1px solid rgba(255,255,255,.06);background:linear-gradient(180deg,rgba(18,18,22,0),rgba(18,18,22,.92) 18%,rgba(18,18,22,.98));}
+  .sb-user-row{padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.03);}
+  .sb-avatar{width:34px;height:34px;font-size:14px;}
+  .sb-username{min-width:0;}
+}
+
+/* Topbar buttons */
+.topbar-btn{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);transition:background .12s;background:transparent;border:none;}
+.topbar-btn:hover{background:var(--hover);color:var(--text);}
+
+/* ===================== CHAT AREA ===================== */
+.chat-area{flex:1;overflow-y:auto;display:flex;flex-direction:column;scroll-behavior:smooth;position:relative;z-index:1;}
+.chat-area::-webkit-scrollbar{width:5px;}
+.chat-area::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+.chat-inner{width:100%;max-width:720px;margin:0 auto;padding:20px;display:flex;flex-direction:column;gap:18px;flex:1;}
+@media(max-width:768px){.chat-inner{padding:14px;max-width:100%;}}
+
+/* Greeting */
+.greeting-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 0;}
+.greeting-title{font-size:34px;font-weight:800;color:var(--text);letter-spacing:-1px;margin-bottom:10px;line-height:1.2;}
+@media(max-width:768px){.greeting-title{font-size:26px;}}
+.greeting-sub{font-size:15px;color:var(--text2);transition:opacity .3s;line-height:1.5;max-width:400px;}
+
+/* ===================== MESSAGES ===================== */
+/* USER — bubble */
+.msg-user{align-self:flex-end;max-width:78%;background:var(--user-bg);color:var(--user-txt);border-radius:18px 18px 4px 18px;padding:11px 16px;font-size:var(--font-base);line-height:1.55;word-break:break-word;white-space:pre-wrap;}
+@media(max-width:768px){.msg-user{border-radius:20px 20px 4px 20px;padding:12px 16px;max-width:85%;}}
+
+/* AI — NO BUBBLE, text flows on background */
+.msg-ai-wrap{align-self:stretch;display:flex;flex-direction:column;gap:6px;}
+.msg-ai{font-size:var(--font-base);line-height:1.7;color:var(--text-ai);word-break:break-word;}
+/* Force AI text visible - dark on mobile, dark on desktop */
+@media(max-width:768px){.msg-ai{color:#e2e2e6;}}
+@media(min-width:769px){.msg-ai{color:#1a1a1a;}}
+
+/* Markdown in AI */
+.msg-ai h1,.msg-ai h2,.msg-ai h3{font-weight:700;margin:14px 0 6px;color:inherit;}
 .msg-ai h1{font-size:1.3em;}.msg-ai h2{font-size:1.15em;}.msg-ai h3{font-size:1.05em;}
-.msg-ai p{margin:6px 0;}.msg-ai p:first-child{margin-top:0;}
-.msg-ai ul,.msg-ai ol{padding-left:20px;margin:6px 0;}.msg-ai li{margin:3px 0;}
-.msg-ai code{background:var(--hover);padding:1px 5px;border-radius:4px;font-size:.9em;font-family:monospace;}
-.msg-ai pre{background:var(--hover);padding:12px;border-radius:10px;overflow-x:auto;margin:10px 0;}
+.msg-ai p{margin:7px 0;}.msg-ai p:first-child{margin-top:0;}
+.msg-ai ul,.msg-ai ol{padding-left:20px;margin:7px 0;}.msg-ai li{margin:3px 0;}
+.msg-ai code{background:var(--bg3);padding:1px 5px;border-radius:4px;font-size:.9em;font-family:'SF Mono',monospace;}
+.msg-ai pre{background:var(--bg3);padding:12px;border-radius:10px;overflow-x:auto;margin:10px 0;}
 .msg-ai pre code{background:none;padding:0;}
 .msg-ai strong{font-weight:700;}
-.msg-ai blockquote{border-left:3px solid var(--border);padding-left:12px;color:var(--text2);margin:6px 0;}
-/* ABC нотный стан */
-.abc-block{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:16px;margin:10px 0;overflow-x:auto;}
-@media(max-width:768px){.abc-block{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.15);border-radius:14px;}}
+.msg-ai blockquote{border-left:3px solid var(--border);padding-left:12px;color:var(--text2);margin:7px 0;}
+.msg-ai hr{border:none;border-top:1px solid var(--border);margin:12px 0;}
+.msg-ai a{color:#3b82f6;text-decoration:underline;}
+
+/* ABC Notation block */
+.abc-block{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;margin:10px 0;overflow:hidden;}
 .abc-label{font-size:11px;font-weight:700;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;}
-/* Actions */
-.msg-actions{display:flex;align-items:center;gap:4px;position:relative;}
-.mac-btn{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--text2);cursor:pointer;transition:background .12s,color .12s;}
+.abc-surface{width:100%;overflow-x:auto;overflow-y:hidden;}
+@media(max-width:768px){
+  .abc-block{padding:14px 12px;}
+}
+
+/* AI message actions */
+.msg-actions{display:flex;align-items:center;gap:3px;margin-top:2px;padding-left:2px;}
+.mac-btn{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--text2);cursor:pointer;transition:background .12s,color .12s;background:transparent;border:none;}
 .mac-btn:hover{background:var(--hover);color:var(--text);}
 .mac-btn.liked{color:#22c55e;}.mac-btn.disliked{color:#ef4444;}
-.more-menu{position:absolute;bottom:34px;left:0;background:var(--drop-bg);border:1px solid var(--border);border-radius:12px;padding:5px;display:none;z-index:30;box-shadow:var(--drop-shadow);min-width:140px;}
+.more-menu{position:absolute;bottom:36px;left:0;background:var(--drop-bg);border:1px solid var(--border);border-radius:12px;padding:5px;display:none;z-index:30;box-shadow:var(--drop-shadow);min-width:150px;}
 .more-menu.open{display:block;}
-.more-item{padding:8px 14px;font-size:13px;font-weight:500;color:var(--text);border-radius:8px;cursor:pointer;}
+.more-item{padding:8px 14px;font-size:13px;font-weight:500;color:var(--text);border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:8px;}
 .more-item:hover{background:var(--hover);}
-/* Думает */
-.thinking{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text2);padding:2px 0;}
+
+/* Thinking */
+.thinking{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text2);padding:4px 0;}
 .think-dots{display:flex;gap:4px;}
 .think-dots span{width:5px;height:5px;border-radius:50%;background:var(--text2);animation:bop 1.2s infinite;}
-.think-dots span:nth-child(2){animation-delay:.2s;}.think-dots span:nth-child(3){animation-delay:.4s;}
+.think-dots span:nth-child(2){animation-delay:.2s;}
+.think-dots span:nth-child(3){animation-delay:.4s;}
 @keyframes bop{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
 
-/* ======= INPUT BAR ======= */
-.input-wrap{padding:12px 20px 20px;display:flex;justify-content:center;background:var(--bg);}
-@media(max-width:768px){
-  .input-wrap{padding:0;background:transparent;}
-  .input-box{border-radius:0;border:none;border-top:1px solid rgba(255,255,255,0.08);background:rgba(20,20,24,0.85);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);padding:12px 14px 24px;}
-  .input-box textarea{color:#ffffff;}
-  .input-box textarea::placeholder{color:rgba(255,255,255,0.4);}
-}
-/* Mobile pill row shown ABOVE input */
-.mobile-pill-row{display:none;}
-@media(max-width:768px){
-  .mobile-pill-row{display:flex;align-items:center;padding:6px 14px 4px;background:transparent;position:relative;}
-  .desktop-pill{display:none;}
-}
-@media(min-width:769px){
-  .desktop-pill{display:flex;}
-}
-.input-box{width:100%;max-width:720px;background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:14px 14px 10px;box-shadow:0 2px 12px rgba(0,0,0,0.06);transition:border-color .15s;}
+/* ===================== INPUT BAR ===================== */
+.input-wrap{padding:10px 20px 20px;display:flex;justify-content:center;position:relative;z-index:2;}
+@media(max-width:768px){.input-wrap{padding:8px 12px 16px;}}
+.input-box{width:100%;max-width:720px;background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:12px 14px 10px;box-shadow:0 2px 12px rgba(0,0,0,0.06);transition:border-color .15s;}
 .input-box:focus-within{border-color:var(--text);}
-@media(max-width:768px){.input-box{border-radius:14px;}}
+@media(max-width:768px){.input-box{border-radius:20px;padding:10px 12px 8px;background:rgba(255,255,255,0.04);backdrop-filter:blur(12px);border-color:rgba(255,255,255,0.08);}}
 .input-box textarea{width:100%;border:none;outline:none;resize:none;font-size:var(--font-base);color:var(--text);font-family:inherit;background:transparent;line-height:1.55;max-height:160px;min-height:22px;overflow-y:auto;}
 .input-box textarea::placeholder{color:var(--text2);}
 .input-bar-row{display:flex;align-items:center;justify-content:space-between;margin-top:8px;}
 .bar-left{display:flex;align-items:center;gap:4px;}
-.bar-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);border:none;background:transparent;transition:background .12s,color .12s;}
+.bar-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);border:none;background:transparent;transition:background .12s,color .12s;}
 .bar-icon:hover{background:var(--hover);color:var(--text);}
-.bar-right{display:flex;align-items:center;gap:8px;}
+.bar-right{display:flex;align-items:center;gap:6px;}
+.mobile-only{display:block;}
+.desktop-only{display:none;}
+@media(min-width:769px){.mobile-only{display:none!important;}.desktop-only{display:block;}}
+
 /* Model pill */
 .model-pill{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:9px;background:var(--bg);border:1px solid var(--border);font-size:13px;font-weight:600;color:var(--text);cursor:pointer;position:relative;user-select:none;transition:background .12s;}
 .model-pill:hover{background:var(--hover);}
-.pill-name{font-weight:700;}.pill-mode{font-weight:400;color:var(--text2);margin-left:1px;}
+.pill-name{font-weight:700;}.pill-mode{font-weight:400;color:var(--text2);margin-left:1px;font-size:12px;}
+@media(max-width:768px){.model-pill{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.12);}}
+@media(min-width:769px){
+  .model-pill{padding:6px 12px;border-radius:12px;background:#fff;box-shadow:0 4px 14px rgba(0,0,0,.04);}
+}
+
 /* Send */
 .send-btn{width:34px;height:34px;border-radius:9px;background:var(--send-bg);color:var(--send-txt);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:opacity .15s;flex-shrink:0;}
 .send-btn:hover{opacity:.8;}
-/* AI disclaimer */
-.disclaimer{font-size:11px;color:var(--text2);text-align:center;padding:4px 0 0;opacity:.6;}
 
-/* ======= MODEL DROPDOWN ======= */
-.model-drop{position:absolute;bottom:calc(100% + 8px);right:0;background:var(--drop-bg);border:1px solid var(--border);border-radius:14px;padding:6px;box-shadow:var(--drop-shadow);display:none;z-index:200;min-width:220px;}
+/* Disclaimer */
+.disclaimer{font-size:11px;color:var(--text2);text-align:center;padding:4px 0 0;opacity:.5;}
+
+/* ===================== MODEL DROPDOWN ===================== */
+.model-drop{position:absolute;bottom:calc(100% + 8px);right:0;background:var(--drop-bg);border:1px solid var(--border);border-radius:14px;padding:6px;box-shadow:var(--drop-shadow);display:none;z-index:200;min-width:230px;}
 .model-drop.open{display:block;}
-.md-option{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;cursor:pointer;transition:background .12s;}
+.md-option{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;transition:background .12s;}
 .md-option:hover{background:var(--hover);}
-.md-opt-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.md-opt-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .md-opt-icon.lite{background:linear-gradient(135deg,#34d399,#0ea5a5);}
 .md-opt-icon.pro{background:linear-gradient(135deg,#a855f7,#6366f1);}
 .md-opt-name{font-size:13px;font-weight:700;color:var(--text);}
 .md-opt-desc{font-size:11px;color:var(--text2);}
 .md-check{font-size:14px;color:var(--check);margin-left:auto;}
 .md-divider{height:1px;background:var(--border);margin:4px 0;}
-/* Mode row */
-.md-mode-row{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:9px;cursor:pointer;transition:background .12s;}
+.md-mode-row{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:10px;cursor:pointer;transition:background .12s;}
 .md-mode-row:hover{background:var(--hover);}
 .md-mode-label{font-size:13px;font-weight:600;color:var(--text);}
 .md-mode-badge{font-size:11px;color:var(--text2);}
-/* Sub dropdown */
-.mode-sub{position:absolute;bottom:calc(100% + 8px);left:0;background:var(--drop-bg);border:1px solid var(--border);border-radius:12px;padding:5px;box-shadow:var(--drop-shadow);display:none;z-index:201;min-width:170px;}
-.mode-sub.open{display:block;}
-.ms-option{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:8px;cursor:pointer;transition:background .12s;}
-.ms-option:hover{background:var(--hover);}
-.ms-label{font-size:13px;font-weight:700;color:var(--text);}
-.ms-desc{font-size:11px;color:var(--text2);margin-top:1px;}
-.ms-check{color:var(--check);font-size:14px;}
-/* Think toggle */
-.md-think-row{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:9px;}
+.md-think-row{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:10px;}
 .md-think-label{font-size:13px;font-weight:600;color:var(--text);}
 .md-think-sub{font-size:11px;color:var(--text2);}
 .sw{width:38px;height:22px;border-radius:11px;background:var(--border);cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;}
 .sw.on{background:var(--text);}
 .sw::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.25);}
 .sw.on::after{transform:translateX(16px);}
-@media(min-width:769px){.sw.on::after{background:#fff;}}
 
-/* Мобиль — анимированный фон */
+/* Mode sub-dropdown */
+.mode-sub{position:absolute;bottom:calc(100% + 8px);left:0;background:var(--drop-bg);border:1px solid var(--border);border-radius:12px;padding:5px;box-shadow:var(--drop-shadow);display:none;z-index:201;min-width:170px;}
+.mode-sub.open{display:block;}
+.ms-option{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:9px;cursor:pointer;transition:background .12s;}
+.ms-option:hover{background:var(--hover);}
+.ms-label{font-size:13px;font-weight:700;color:var(--text);}
+.ms-desc{font-size:11px;color:var(--text2);margin-top:1px;}
+.ms-check{color:var(--check);font-size:14px;}
 @media(max-width:768px){
-  #mobileBg{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;}
-  .main{position:relative;z-index:1;}
-  .topbar{position:relative;z-index:2;background:transparent;}
-  .chat-area{position:relative;z-index:2;}
-  .input-wrap{position:relative;z-index:2;}
-  .chat-inner{padding:16px 18px;}
+  .input-box{position:relative;overflow:visible;border-radius:24px;padding:12px 12px 10px;background:rgba(255,255,255,0.04);backdrop-filter:blur(14px);border-color:rgba(255,255,255,0.08);}
+  .bar-right{position:relative;display:flex;align-items:center;gap:8px;flex-shrink:0;min-width:0;}
+  .model-pill{max-width:198px;padding:8px 12px;border-radius:14px;gap:8px;background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.12);}
+  .pill-name{max-width:114px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .pill-mode{font-size:11px;text-transform:lowercase;}
+  .mobile-model-drop.compact-mobile-picker{right:0;left:auto;bottom:calc(100% + 10px);width:min(266px, calc(100vw - 44px));min-width:0;max-height:min(62vh,420px);overflow-y:auto;padding:12px;border-radius:22px;background:rgba(20,20,27,.97);border:1px solid rgba(255,255,255,.09);backdrop-filter:blur(22px);box-shadow:0 24px 48px rgba(0,0,0,.35);transform-origin:bottom right;}
+  .mobile-mode-sub{display:none!important;}
+  .mmp-title{font-size:13px;font-weight:700;color:var(--text);padding:2px 4px 10px;}
+  .mmp-section{display:flex;flex-direction:column;gap:6px;}
+  .mmp-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text2);padding:2px 4px;}
+  .mmp-opt{width:100%;border:none;background:transparent;color:var(--text);display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:8px;padding:10px 12px;border-radius:12px;font-family:inherit;font-size:14px;cursor:pointer;text-align:left;}
+  .mmp-opt:hover{background:rgba(255,255,255,.06);}
+  .mmp-opt.on{background:rgba(255,255,255,.07);}
+  .mmp-opt span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;}
+  .mmp-sub{font-size:11px;color:var(--text2);white-space:nowrap;max-width:92px;overflow:hidden;text-overflow:ellipsis;}
+  .mmp-check{color:var(--check);opacity:0;}
+  .mmp-opt.on .mmp-check{opacity:1;}
+  .mmp-divider{height:1px;background:rgba(255,255,255,.08);margin:8px 0;}
+  .mmp-think{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 4px 6px;}
+  .mmp-think-copy{display:flex;flex-direction:column;gap:2px;}
+  .mmp-think-title{font-size:14px;font-weight:700;color:var(--text);}
+  .mmp-think-sub{font-size:11px;color:var(--text2);line-height:1.35;}
 }
 @media(min-width:769px){
-  #mobileBg{display:none;}
+  .mobile-model-drop,.mobile-mode-sub{display:none!important;}
+  .desktop-model-wrap{position:absolute;right:0;bottom:calc(100% + 10px);display:none;z-index:220;}
+  .desktop-model-wrap.open{display:block;}
+  .desktop-model-drop,.desktop-sub-drop{background:var(--drop-bg);border:1px solid var(--border);border-radius:16px;box-shadow:0 18px 40px rgba(0,0,0,.12);}
+  .desktop-model-drop{min-width:274px;padding:8px;}
+  .desktop-row,.desktop-option{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 14px;border-radius:12px;cursor:pointer;transition:background .12s;}
+  .desktop-row:hover,.desktop-option:hover{background:var(--hover);}
+  .desktop-model-current{font-size:13px;font-weight:700;color:var(--text);}
+  .desktop-row-title{font-size:13px;font-weight:700;color:var(--text);}
+  .desktop-mini{display:flex;align-items:center;gap:8px;color:var(--text2);font-size:12px;}
+  .desktop-sub-drop{position:absolute;top:56px;left:calc(100% + 12px);display:none;min-width:252px;padding:8px;}
+  .desktop-sub-drop.open{display:block;}
+  .desktop-sub-drop.models{top:110px;}
+  .desktop-copy{display:flex;flex-direction:column;gap:2px;}
+  .desktop-copy strong{font-size:13px;font-weight:700;color:var(--text);}
+  .desktop-copy span{font-size:12px;color:var(--text2);}
+  .desktop-check{color:var(--check);font-size:15px;opacity:0;}
+  .desktop-check.on{opacity:1;}
+  .desktop-think{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 14px;border-top:1px solid var(--border);}
+  .desktop-think-copy{display:flex;flex-direction:column;gap:2px;}
+  .desktop-think-copy b{font-size:13px;color:var(--text);}
+  .desktop-think-copy span{font-size:12px;color:var(--text2);}
 }
-.settings-overlay{position:fixed;inset:0;z-index:300;background:var(--bg);}
+
+/* ===================== SETTINGS ===================== */
+.settings-overlay{position:fixed;inset:0;z-index:300;background:var(--bg);display:none;flex-direction:column;}
+.settings-overlay.open{display:flex;}
 @media(min-width:769px){
-  .settings-overlay{background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;}
-  .settings-box{background:var(--bg2);border:1px solid var(--border);border-radius:20px;width:440px;max-height:85vh;overflow-y:auto;padding:24px;box-shadow:var(--drop-shadow);}
+  .settings-overlay{background:rgba(0,0,0,.4);align-items:center;justify-content:center;}
+  .settings-box{background:var(--bg2);border:1px solid var(--border);border-radius:20px;width:440px;max-height:85vh;overflow-y:auto;padding:24px;box-shadow:var(--drop-shadow);display:none;}
+  .settings-overlay.open .settings-box{display:block;}
 }
-.settings-overlay.hidden{display:none;}
-.settings-box{background:var(--bg);}
 @media(max-width:768px){
-  .settings-box{height:100%;overflow-y:auto;padding:20px 16px;}
+  .settings-box{flex:1;overflow-y:auto;padding:20px 16px 40px;}
 }
-.sth{display:flex;align-items:center;gap:10px;margin-bottom:20px;}
-.sth-back{width:34px;height:34px;border-radius:50%;border:1px solid var(--border);background:var(--bg2);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text);}
-.sth-title{font-size:16px;font-weight:800;color:var(--text);flex:1;}
+.sth{display:flex;align-items:center;gap:10px;margin-bottom:24px;}
+.sth-back{width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text);flex-shrink:0;}
+.sth-back:hover{background:var(--hover);}
+.sth-title{font-size:17px;font-weight:700;color:var(--text);flex:1;}
+
 /* Settings sections */
 .s-sect{margin-bottom:20px;}
 .s-sect-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);margin-bottom:8px;padding:0 2px;}
@@ -313,60 +380,94 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
 .s-row-val{font-size:12px;color:var(--text2);}
 .s-row-val.soon{font-size:10px;text-transform:uppercase;letter-spacing:.5px;background:var(--hover);padding:3px 8px;border-radius:6px;}
 .s-chev{color:var(--text2);}
+
 /* Profile */
-.prof-top{display:flex;align-items:center;gap:14px;margin-bottom:20px;}
+.prof-top{display:flex;align-items:center;gap:14px;margin-bottom:24px;}
 .prof-ava{width:52px;height:52px;border-radius:50%;background:var(--text);color:var(--bg);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;}
 .prof-name{font-size:16px;font-weight:700;color:var(--text);}
 .prof-email{font-size:13px;color:var(--text2);margin-top:2px;}
-.logout-btn{padding:8px 16px;border-radius:10px;border:1px solid #ef4444;color:#ef4444;font-size:13px;font-weight:600;cursor:pointer;background:transparent;font-family:inherit;margin-left:auto;}
+.logout-btn{padding:8px 16px;border-radius:10px;border:1px solid #ef4444;color:#ef4444;font-size:13px;font-weight:600;cursor:pointer;background:transparent;font-family:inherit;margin-left:auto;transition:background .15s;}
 .logout-btn:hover{background:rgba(239,68,68,.08);}
-/* Memory toggles */
+
+/* Memory */
 .mem-rows{background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
 .mem-row{display:flex;align-items:center;gap:14px;padding:14px 16px;}
 .mem-row+.mem-row{border-top:1px solid var(--border2);}
 .mem-info{flex:1;}
 .mem-title{font-size:14px;font-weight:600;color:var(--text);}
 .mem-desc{font-size:12px;color:var(--text2);margin-top:2px;line-height:1.4;}
-/* Персонализация */
-.pers-section{background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:16px;}
-.pers-row{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;transition:background .12s;position:relative;}
-.pers-row+.pers-row{border-top:1px solid var(--border2);}
-.pers-row:hover{background:var(--hover);}
+
+/* ===================== ПЕРСОНАЛИЗАЦИЯ ===================== */
+.pers-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:16px;}
+.pers-header{padding:16px 16px 12px;}
+.pers-h-label{font-size:13px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;}
+.pers-selector{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:10px;background:var(--bg3);cursor:pointer;transition:background .12s;border:1px solid transparent;}
+.pers-selector:hover{background:var(--hover);}
+.pers-sel-text{font-size:14px;font-weight:500;color:var(--text);}
+.pers-sel-chev{font-size:12px;color:var(--text2);margin-left:6px;}
+/* Dropdown overlay for pers */
+.pers-drop-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:400;display:none;align-items:flex-end;justify-content:center;}
+.pers-drop-overlay.open{display:flex;}
+.pers-drop-sheet{background:var(--bg2);border-radius:20px 20px 0 0;padding:16px 16px 30px;width:100%;max-height:70vh;overflow-y:auto;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);}
+.pers-drop-overlay.open .pers-drop-sheet{transform:translateY(0);}
+.pds-title{font-size:16px;font-weight:700;color:var(--text);margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border);}
+.pds-opt{padding:14px 12px;border-radius:12px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:background .12s;border-bottom:1px solid var(--border2);}
+.pds-opt:last-child{border-bottom:none;}
+.pds-opt:hover{background:var(--hover);}
+.pds-opt.selected{background:var(--active);}
+.pds-opt-title{font-size:15px;font-weight:600;color:var(--text);flex:1;}
+.pds-opt-desc{font-size:12px;color:var(--text2);margin-top:2px;}
+.pds-check{font-size:16px;color:var(--check);}
+
+/* Inline pers rows */
+.pers-row-inline{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-top:1px solid var(--border2);cursor:pointer;transition:background .12s;}
+.pers-row-inline:hover{background:var(--hover);}
 .pers-row-label{font-size:14px;font-weight:500;color:var(--text);}
 .pers-row-val{font-size:13px;color:var(--text2);display:flex;align-items:center;gap:4px;}
-.pers-drop{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--drop-bg);border:1px solid var(--border);border-radius:12px;padding:5px;box-shadow:var(--drop-shadow);z-index:50;display:none;}
-.pers-drop.open{display:block;}
-.pers-opt{padding:10px 14px;border-radius:8px;cursor:pointer;transition:background .12s;}
-.pers-opt:hover{background:var(--hover);}
-.pers-opt-title{font-size:14px;font-weight:600;color:var(--text);}
-.pers-opt-desc{font-size:12px;color:var(--text2);margin-top:1px;}
-.pers-opt.selected::before{content:'✓ ';color:var(--check);}
-/* Quick replies toggle & instructions */
-.pers-toggle-row{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px;}
+
+/* Toggle row */
+.pers-toggle-row{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:16px;display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:16px;}
 .pers-toggle-info{flex:1;}
-.pers-toggle-label{font-size:14px;font-weight:600;color:var(--text);}
-.pers-toggle-desc{font-size:12px;color:var(--text2);margin-top:4px;line-height:1.5;}
-.custom-instr-area{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px 16px;font-size:14px;color:var(--text);font-family:inherit;resize:none;outline:none;height:100px;transition:border-color .15s;}
+.pers-toggle-label{font-size:15px;font-weight:600;color:var(--text);}
+.pers-toggle-desc{font-size:12px;color:var(--text2);margin-top:6px;line-height:1.5;}
+
+/* Custom instructions */
+.custom-instr-label{font-size:13px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;}
+.custom-instr-area{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:16px;font-size:15px;color:var(--text);font-family:inherit;resize:none;outline:none;height:120px;transition:border-color .15s;line-height:1.5;}
 .custom-instr-area:focus{border-color:var(--text);}
 .custom-instr-area::placeholder{color:var(--text2);}
-.save-btn{width:100%;padding:13px;border-radius:12px;background:var(--send-bg);color:var(--send-txt);font-size:15px;font-weight:700;border:none;cursor:pointer;font-family:inherit;margin-top:8px;}
+.save-btn{width:100%;padding:14px;border-radius:14px;background:var(--send-bg);color:var(--send-txt);font-size:15px;font-weight:700;border:none;cursor:pointer;font-family:inherit;margin-top:12px;transition:opacity .15s;}
+.save-btn:hover{opacity:.85;}
+
+/* Desktop: hide personalization menu items */
+@media(min-width:769px){
+  .mobile-only-setting{display:none;}
+}
 </style>
 </head>
 <body>
 
-<!-- ======= AUTH ======= -->
+<!-- GLOSSY MOBILE BACKGROUND -->
+<div class="mobile-glossy">
+  <div class="bubble b1"></div>
+  <div class="bubble b2"></div>
+  <div class="bubble b3"></div>
+  <div class="bubble b4"></div>
+</div>
+
+<!-- ===================== AUTH ===================== -->
 <div class="auth-wrap" id="authWrap">
-  <!-- Экран 1 -->
   <div class="auth-card">
+    <!-- Экран 1: Приветствие -->
     <div class="auth-screen active" id="authS1">
       <div class="auth-logo">HarmonyAI</div>
       <div class="auth-h1">Думает быстро,<br>результат быстрее</div>
-      <div class="auth-sub">Помощник для музыкантов</div>
+      <div class="auth-sub">ИИ для учеников музыкальной школы. Подходит не только для музыки — он умеет всё!</div>
       <button class="auth-btn-primary" onclick="goToEmail()">Продолжить с Email</button>
-      <div class="auth-tos">Продолжая, вы соглашаетесь с Политикой конфиденциальности и соглашаетесь на отправку сообщений на ваш email.</div>
+      <div class="auth-tos">Продолжая, вы соглашаетесь с Политикой конфиденциальности.</div>
       <div class="auth-beta">beta version 1.0</div>
     </div>
-    <!-- Экран 2 -->
+    <!-- Экран 2: Email -->
     <div class="auth-screen" id="authS2">
       <div class="auth-logo">HarmonyAI</div>
       <div class="auth-h1">Введите ваш<br>Email адрес</div>
@@ -376,12 +477,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
       <button class="auth-btn-secondary" onclick="showAuthS(1)">← Назад</button>
       <div class="auth-beta">beta version 1.0</div>
     </div>
-    <!-- Экран 3 -->
+    <!-- Экран 3: OTP -->
     <div class="auth-screen" id="authS3">
       <div class="auth-logo">HarmonyAI</div>
       <div class="auth-h1">Введите 6-ти<br>значный код</div>
       <div class="otp-row" id="otpRow">
-        <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
+        <input class="otp-box" maxlength="1" type="text" inputmode="numeric" autocomplete="one-time-code">
         <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
         <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
         <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
@@ -397,26 +498,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
   </div>
 </div>
 
-<!-- ======= APP ======= -->
+<!-- ===================== APP ===================== -->
 <div class="app" id="app">
-  <!-- Мобильный анимированный фон -->
-  <canvas id="mobileBg"></canvas>
   <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
 
-  <!-- САЙДБАР -->
+  <!-- SIDEBAR -->
   <div class="sidebar" id="sidebar">
     <div class="sb-top">
-      <div class="sb-icon-btn" onclick="toggleSidebar()" title="Боковая панель">
+      <div class="sb-icon-btn" onclick="toggleSidebarDesktop()" title="Боковая панель">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="2" rx="1" fill="currentColor"/><rect x="3" y="11" width="18" height="2" rx="1" fill="currentColor"/><rect x="3" y="17" width="18" height="2" rx="1" fill="currentColor"/></svg>
         <span class="sb-icon-label">Свернуть</span>
       </div>
       <div class="sb-icon-btn" onclick="newChat()" title="Новый чат">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         <span class="sb-icon-label">Новый чат</span>
-      </div>
-      <div class="sb-icon-btn" id="sbChatsBtn" onclick="toggleChatList()" title="Список чатов">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <span class="sb-icon-label">Чаты</span>
       </div>
     </div>
     <div class="sb-label">Недавние</div>
@@ -429,20 +524,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
     </div>
   </div>
 
-  <!-- ОСНОВНАЯ ОБЛАСТЬ -->
+  <!-- MAIN -->
   <div class="main" id="main">
-    <!-- Мобильный топбар -->
-    <div class="topbar" style="justify-content:space-between;">
-      <div class="topbar-btn" onclick="toggleSidebar()">
-        <svg width="18" height="14" viewBox="0 0 18 14" fill="none"><rect width="18" height="2" rx="1" fill="currentColor"/><rect y="6" width="18" height="2" rx="1" fill="currentColor"/><rect y="12" width="18" height="2" rx="1" fill="currentColor"/></svg>
+    <!-- Mobile topbar -->
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button class="topbar-btn" onclick="toggleSidebar()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="2" rx="1" fill="currentColor"/><rect x="3" y="11" width="18" height="2" rx="1" fill="currentColor"/><rect x="3" y="17" width="18" height="2" rx="1" fill="currentColor"/></svg>
+        </button>
       </div>
-      <div style="display:flex;gap:4px;">
-        <div class="topbar-btn" onclick="newChat()">
+      <div class="topbar-logo">HarmonyAI</div>
+      <div style="display:flex;align-items:center;gap:4px;">
+        <button class="topbar-btn" onclick="newChat()">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        </div>
-        <div class="topbar-btn" onclick="openSettings()">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" stroke-width="1.8"/></svg>
-        </div>
+        </button>
       </div>
     </div>
 
@@ -456,86 +551,106 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
     </div>
 
     <div class="input-wrap">
-      <!-- Мобиль: пилюля над строкой ввода -->
-      <div class="mobile-pill-row">
-        <div class="model-pill" id="modelPillMobile" onclick="toggleModelDrop(event)" style="background:rgba(30,30,36,0.7);backdrop-filter:blur(10px);border-color:rgba(255,255,255,0.2);">
-          <span style="width:6px;height:6px;border-radius:50%;background:#22c55e;flex-shrink:0;"></span>
-          <span class="pill-name" id="pillNameM">MusMind Lite</span>
-          <span style="font-size:10px;opacity:.5">▾</span>
-        </div>
-      </div>
       <div class="input-box" id="inputBox">
-        <textarea id="msgTa" placeholder="Введите сообщение .." rows="1"
+        <textarea id="msgTa" placeholder="Введите сообщение.." rows="1"
           oninput="taResize(this)"
           onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg();}"></textarea>
         <div class="input-bar-row">
           <div class="bar-left">
-            <button class="bar-icon" onclick="document.getElementById('fileInp').click()" title="Добавить фото/файл">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <button class="bar-icon" onclick="document.getElementById('fileInp').click()" title="Добавить фото">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M16.5 6.5L9 14a3.5 3.5 0 105 5l8-8a5.5 5.5 0 00-7.78-7.78l-8.7 8.7a7.5 7.5 0 1010.6 10.6l7.4-7.4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
             <input type="file" id="fileInp" accept="image/*" style="display:none" onchange="handleFile(this)">
           </div>
           <div class="bar-right">
-            <!-- Иконка лоадера Anthropic -->
-            <div id="loadingIcon" style="display:none;width:22px;height:22px;">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="animation:spin 1s linear infinite;width:22px;height:22px;">
-                <path d="M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12" stroke="var(--text)" stroke-width="2" stroke-linecap="round"/>
-              </svg>
-              <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
-            </div>
-            <!-- Model pill (desktop only) -->
-            <div class="model-pill desktop-pill" id="modelPill" onclick="toggleModelDrop(event)">
-              <span class="pill-name">MusMind</span>
-              <span class="pill-mode" id="pillMode"> lite</span>
-              <span style="font-size:10px;color:var(--text2);margin-left:2px;">▾</span>
+            <!-- Model pill -->
+            <div class="model-pill" id="modelPill" onclick="toggleModelDrop(event)">
+              <span class="pill-name" id="pillName">MusMind</span>
+              <span class="pill-mode" id="pillMode">lite · low</span>
+              <span style="font-size:10px;color:var(--text2);margin-left:1px;">▾</span>
               <!-- Dropdown -->
-              <div class="model-drop" id="modelDrop" onclick="event.stopPropagation()">
-                <!-- Lite -->
-                <div class="md-option" onclick="selectModel('lite')">
-                  <div class="md-opt-icon lite">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M5 14C5 8 9 4 19 4C19 14 15 19 9 19C7 19 5 17 5 14Z" stroke="white" stroke-width="2"/><path d="M5 19L11 13" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
-                  </div>
-                  <div><div class="md-opt-name">MusMind Lite</div><div class="md-opt-desc">Быстро и легко</div></div>
-                  <div class="md-check" id="ck-lite">✓</div>
+              <div class="model-drop mobile-model-drop compact-mobile-picker" id="modelDrop" onclick="event.stopPropagation()">
+                <div class="mmp-title">Параметры</div>
+                <div class="mmp-section">
+                  <div class="mmp-label">Модель</div>
+                  <button class="mmp-opt" id="mobModelLite" onclick="selectModel('lite')">
+                    <span>MusMind Lite</span>
+                    <span class="mmp-check">✓</span>
+                  </button>
+                  <button class="mmp-opt" id="mobModelPro" onclick="selectModel('pro')">
+                    <span>MusMind Pro</span>
+                    <span class="mmp-check">✓</span>
+                  </button>
                 </div>
-                <!-- Mode -->
-                <div class="md-mode-row" id="modeRow" onclick="toggleModeSub(event)">
-                  <div><div class="md-mode-label">Режим</div></div>
-                  <div style="display:flex;align-items:center;gap:6px;">
-                    <span class="md-mode-badge" id="modeLabel">Low</span>
-                    <span style="font-size:11px;color:var(--text2);">›</span>
-                  </div>
+                <div class="mmp-divider"></div>
+                <div class="mmp-section">
+                  <div class="mmp-label">Режим</div>
+                  <button class="mmp-opt" id="mobModeLow" onclick="selectMode('low')">
+                    <span>Low</span>
+                    <span class="mmp-sub">Обычный</span>
+                    <span class="mmp-check">✓</span>
+                  </button>
+                  <button class="mmp-opt" id="mobModeMax" onclick="selectMode('max')">
+                    <span>Max</span>
+                    <span class="mmp-sub">Для сложных задач</span>
+                    <span class="mmp-check">✓</span>
+                  </button>
                 </div>
-                <div class="md-divider"></div>
-                <!-- Pro -->
-                <div class="md-option" onclick="selectModel('pro')">
-                  <div class="md-opt-icon pro">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" stroke="white" stroke-width="1.5" stroke-linejoin="round" fill="white" fill-opacity="0.2"/></svg>
+                <div class="mmp-divider"></div>
+                <div class="mmp-think">
+                  <div class="mmp-think-copy">
+                    <div class="mmp-think-title">Думать</div>
+                    <div class="mmp-think-sub">Для решения сложных задач</div>
                   </div>
-                  <div><div class="md-opt-name">MusMind Pro</div><div class="md-opt-desc">Максимум возможностей</div></div>
-                  <div class="md-check" id="ck-pro" style="opacity:0">✓</div>
-                </div>
-                <div class="md-divider"></div>
-                <!-- Think -->
-                <div class="md-think-row">
-                  <div><div class="md-think-label">Думать</div><div class="md-think-sub">Для решения сложных задач</div></div>
-                  <div class="sw" id="thinkSw" onclick="toggleThink(event)"></div>
+                  <div class="sw" id="mobThinkSw" onclick="toggleThink(event)"></div>
                 </div>
               </div>
-              <!-- Mode sub -->
-              <div class="mode-sub" id="modeSub" onclick="event.stopPropagation()">
-                <div class="ms-option" onclick="selectMode('low')">
-                  <div><div class="ms-label">Low</div><div class="ms-desc">Обычный</div></div>
-                  <span class="ms-check" id="ck-low">✓</span>
+              <div class="mode-sub mobile-mode-sub" id="modeSub" onclick="event.stopPropagation()"></div>
+              <div class="desktop-model-wrap" id="desktopModelWrap" onclick="event.stopPropagation()">
+                <div class="desktop-model-drop" id="desktopModelDrop">
+                  <div class="desktop-row" onclick="closeDesktopSubs()">
+                    <div class="desktop-model-current" id="desktopModelCurrent">MusMind Lite</div>
+                    <div class="md-check" id="desktopCurrentCheck">✓</div>
+                  </div>
+                  <div class="md-divider"></div>
+                  <div class="desktop-row" onclick="openModeSub(event)">
+                    <div class="desktop-row-title">Режим</div>
+                    <div class="desktop-mini"><span id="desktopModeLabel">Low</span><span>›</span></div>
+                  </div>
+                  <div class="desktop-row" onclick="openModelsSub(event)">
+                    <div class="desktop-row-title">Больше моделей</div>
+                    <div class="desktop-mini"><span>›</span></div>
+                  </div>
                 </div>
-                <div class="ms-option" onclick="selectMode('max')">
-                  <div><div class="ms-label">Max</div></div>
-                  <span class="ms-check" id="ck-max" style="opacity:0">✓</span>
+                <div class="desktop-sub-drop" id="desktopModeSub">
+                  <div class="desktop-option" onclick="selectMode('low')">
+                    <div class="desktop-copy"><strong>Low</strong><span>Обычный</span></div>
+                    <span class="desktop-check on" id="desktopCkLow">✓</span>
+                  </div>
+                  <div class="desktop-option" onclick="selectMode('max')">
+                    <div class="desktop-copy"><strong>Max</strong><span>Для сложных задач</span></div>
+                    <span class="desktop-check" id="desktopCkMax">✓</span>
+                  </div>
+                  <div class="md-divider"></div>
+                  <div class="desktop-think">
+                    <div class="desktop-think-copy"><b>Думать</b><span>Для решения сложных задач</span></div>
+                    <div class="sw" id="desktopThinkSw" onclick="toggleThink(event)"></div>
+                  </div>
+                </div>
+                <div class="desktop-sub-drop models" id="desktopModelsSub">
+                  <div class="desktop-option" onclick="selectModel('lite')">
+                    <div class="desktop-copy"><strong>MusMind Lite</strong><span>Быстро и легко</span></div>
+                    <span class="desktop-check on" id="desktopCkLite">✓</span>
+                  </div>
+                  <div class="desktop-option" onclick="selectModel('pro')">
+                    <div class="desktop-copy"><strong>MusMind Pro</strong><span>Максимум возможностей</span></div>
+                    <span class="desktop-check" id="desktopCkPro">✓</span>
+                  </div>
                 </div>
               </div>
             </div>
-            <button class="send-btn" onclick="sendMsg()">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <button class="send-btn" onclick="sendMsg()" title="Отправить">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
           </div>
         </div>
@@ -545,57 +660,45 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
   </div>
 </div>
 
-<!-- ======= SETTINGS OVERLAY ======= -->
-<div class="settings-overlay hidden" id="settingsOverlay" onclick="if(event.target===this)closeSettings()">
-  <div class="settings-box">
+<!-- ===================== SETTINGS ===================== -->
+<div class="settings-overlay" id="settingsOverlay" onclick="if(event.target===this)closeSettings()">
+  <div class="settings-box" id="settingsBox">
     <div id="settingsContent"></div>
   </div>
 </div>
 
+<!-- ===================== PERSONALIZATION DROPDOWN OVERLAY ===================== -->
+<div class="pers-drop-overlay" id="persDropOverlay" onclick="closePersDrop()">
+  <div class="pers-drop-sheet" id="persDropSheet" onclick="event.stopPropagation()">
+    <div id="persDropContent"></div>
+  </div>
+</div>
+
 <script>
+/* ===== Supabase ===== */
 const SB_URL='https://cqthnymltqpcxtpiryka.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNxdGhueW1sdHFwY3h0cGlyeWthIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MjY3NzYsImV4cCI6MjA5NzAwMjc3Nn0.b-6lSdjT7XwWkt607ORwGfKYSn3CLZJB3mcs4QQUSoE';
-const sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
+const sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 
 let curUser=null,curEmail='',resendTimer=null,resendLeft=0;
-let sidebarExpanded=false,chatListOpen=false;
-let curModel='lite',curMode='low',thinkOn=false,dropOpen=false,modeSubOpen=false;
+let sidebarExpanded=false;
+let curModel='lite',curMode='low',thinkOn=false,dropOpen=false,modeSubOpen=false,modelsSubOpen=false;
 let chatHistory=[],pendingImg=null,curChatId=null;
 let chats=[];
+let abcCounter=0;
+const CHAT_TIMEOUT_MS=60000;
+const FALLBACK_API_ORIGIN='https://harmonyai.qd.je';
 
 /* marked setup */
 if(typeof marked!=='undefined') marked.setOptions({breaks:true,gfm:true});
-
-/* ===== MOBILE CANVAS BG ===== */
-(function(){
-  const canvas=document.getElementById('mobileBg');
-  if(!canvas)return;
-  const ctx=canvas.getContext('2d');
-  function resize(){canvas.width=window.innerWidth;canvas.height=window.innerHeight;}
-  resize();window.addEventListener('resize',resize);
-  const blobs=[
-    {x:.25,y:.2,r:.35,c:[100,80,220],vx:.0006,vy:.0005},
-    {x:.75,y:.3,r:.38,c:[40,100,200],vx:-.0005,vy:.0008},
-    {x:.5,y:.65,r:.42,c:[180,60,120],vx:.0004,vy:-.0006},
-    {x:.2,y:.75,r:.3,c:[220,140,40],vx:.0008,vy:-.0004},
-    {x:.8,y:.7,r:.28,c:[40,180,140],vx:-.0007,vy:.0005},
-  ];
-  function draw(){
-    ctx.fillStyle='#0b0b0e';ctx.fillRect(0,0,canvas.width,canvas.height);
-    blobs.forEach(b=>{
-      const x=b.x*canvas.width,y=b.y*canvas.height,r=b.r*Math.min(canvas.width,canvas.height);
-      const g=ctx.createRadialGradient(x,y,0,x,y,r);
-      g.addColorStop(0,`rgba(${b.c[0]},${b.c[1]},${b.c[2]},0.5)`);
-      g.addColorStop(1,`rgba(${b.c[0]},${b.c[1]},${b.c[2]},0)`);
-      ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle=g;ctx.fill();
-      b.x+=b.vx;b.y+=b.vy;
-      if(b.x<0||b.x>1)b.vx*=-1;if(b.y<0||b.y>1)b.vy*=-1;
-    });
-    if(window.innerWidth<=768)requestAnimationFrame(draw);
-  }
-  if(window.innerWidth<=768)draw();
-  window.addEventListener('resize',()=>{if(window.innerWidth<=768)draw();});
-})();
+function isDesktop(){return window.innerWidth>=769;}
+function withTimeout(promise,ms,message){
+  let timer;
+  return Promise.race([
+    promise,
+    new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(message)),ms);})
+  ]).finally(()=>clearTimeout(timer));
+}
 
 /* ===== GREETINGS ===== */
 const GREETS=[
@@ -609,13 +712,16 @@ const GREETS=[
 ];
 let greetIdx=0;
 setInterval(()=>{
-  const el=document.getElementById('greetSub'); if(!el)return;
+  const el=document.getElementById('greetSub');if(!el)return;
   greetIdx=(greetIdx+1)%GREETS.length;
   el.style.opacity='0';
   setTimeout(()=>{el.textContent=GREETS[greetIdx];el.style.opacity='1';},300);
 },4000);
 
 /* ===== AUTH ===== */
+let otpRequestNonce=0;
+let otpVerifyBusy=false;
+
 function showAuthS(n){
   [1,2,3].forEach(i=>{
     const el=document.getElementById('authS'+i);
@@ -628,13 +734,52 @@ function goToEmail(){
 }
 function isEmail(e){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);}
 function tErr(msg){
-  if(!msg)return 'Что-то пошло не так';
-  if(msg.includes('rate limit'))return 'Слишком много попыток — подождите';
-  if(msg.includes('invalid email'))return 'Введите корректный email';
-  if(msg.includes('expired'))return 'Код устарел — запросите новый';
-  if(msg.includes('Invalid OTP')||msg.includes('Token has'))return 'Неверный код';
-  return msg;
+  const text=String(msg||'');
+  const low=text.toLowerCase();
+  if(!text)return 'Что-то пошло не так';
+  if(low.includes('rate limit'))return 'Слишком много попыток — подождите';
+  if(low.includes('invalid email'))return 'Введите корректный email';
+  if(low.includes('expired')||low.includes('token has'))return 'Код устарел — запросите новый';
+  if(low.includes('invalid otp')||low.includes('invalid token'))return 'Неверный код';
+  if(low.includes('session'))return 'Не удалось завершить вход — запросите новый код';
+  return text;
 }
+async function waitForSession(timeoutMs=6000){
+  const started=Date.now();
+  while(Date.now()-started<timeoutMs){
+    const {data:{session}}=await sb.auth.getSession();
+    if(session)return session;
+    await new Promise(resolve=>setTimeout(resolve,250));
+  }
+  return null;
+}
+async function applySignedInState(session){
+  if(!session?.user)throw new Error('Сессия не создалась после подтверждения кода');
+  await loadProfile(session.user.id,session.user.email);
+  await loadChats();
+  document.getElementById('authWrap').classList.add('gone');
+  document.getElementById('app').classList.add('show');
+  updateUserUI();
+  if(!curChatId&&chatHistory.length===0)newChat();
+}
+async function verifyOtpVariants(email,code){
+  const variants=['email','magiclink'];
+  let lastError=null;
+  for(const type of variants){
+    const result=await withTimeout(
+      sb.auth.verifyOtp({email,token:code,type}),
+      15000,
+      'Проверка кода заняла слишком много времени'
+    );
+    if(!result.error)return result;
+    lastError=result.error;
+    const msg=String(result.error.message||'').toLowerCase();
+    const retryable=msg.includes('invalid')||msg.includes('expired')||msg.includes('token has');
+    if(!retryable)throw result.error;
+  }
+  throw lastError||new Error('Не удалось подтвердить код');
+}
+
 async function sendOTP(){
   const email=document.getElementById('emailInp').value.trim();
   const err=document.getElementById('emailErr');
@@ -642,34 +787,72 @@ async function sendOTP(){
   if(!isEmail(email)){err.textContent='Введите корректный email';err.style.display='block';return;}
   const btn=document.getElementById('btnSend');
   btn.textContent='Отправляем...';btn.disabled=true;
-  const {error}=await sb.auth.signInWithOtp({email,options:{shouldCreateUser:true}});
-  btn.textContent='Продолжить';btn.disabled=false;
-  if(error){err.textContent=tErr(error.message);err.style.display='block';return;}
-  curEmail=email;
-  clearOTP();
-  document.getElementById('codeErr').style.display='none';
-  showAuthS(3);
-  setTimeout(()=>{const b=document.querySelectorAll('.otp-box')[0];if(b)b.focus();},100);
-  startResend();
+  const requestNonce=++otpRequestNonce;
+  try{
+    clearOTP();
+    const {error}=await withTimeout(
+      sb.auth.signInWithOtp({email,options:{shouldCreateUser:true}}),
+      15000,
+      'Сервис авторизации слишком долго отвечает'
+    );
+    if(error) throw error;
+    if(requestNonce!==otpRequestNonce)return;
+    curEmail=email;
+    document.getElementById('codeErr').style.display='none';
+    showAuthS(3);
+    setTimeout(()=>{const b=document.querySelectorAll('.otp-box')[0];if(b)b.focus();},100);
+    startResend();
+  }catch(e){
+    err.textContent=tErr(e.message);err.style.display='block';
+  }finally{
+    btn.textContent='Продолжить';btn.disabled=false;
+  }
 }
 function clearOTP(){document.querySelectorAll('.otp-box').forEach(b=>b.value='');}
 function getOTP(){return Array.from(document.querySelectorAll('.otp-box')).map(b=>b.value).join('');}
+
 async function verifyOTP(){
+  if(otpVerifyBusy)return;
   const code=getOTP();
   const err=document.getElementById('codeErr');
   err.style.display='none';
   if(!/^\d{6}$/.test(code)){err.textContent='Введите 6-значный код';err.style.display='block';return;}
   const btn=document.getElementById('btnVerify');
   btn.textContent='Проверяем...';btn.disabled=true;
-  const {error}=await sb.auth.verifyOtp({email:curEmail,token:code,type:'email'});
-  btn.textContent='Подтвердить';btn.disabled=false;
-  if(error){err.textContent=tErr(error.message);err.style.display='block';return;}
-  await initSession();
+  otpVerifyBusy=true;
+  const requestNonce=otpRequestNonce;
+  try{
+    const email=curEmail||document.getElementById('emailInp').value.trim();
+    if(!email)throw new Error('Email потерян — введите его заново');
+    const result=await verifyOtpVariants(email,code);
+    if(requestNonce!==otpRequestNonce)throw new Error('Был запрошен новый код. Введите последний код из письма');
+    const session=result.data?.session||await waitForSession(6000);
+    if(!session)throw new Error('Не удалось завершить вход — запросите новый код');
+    await applySignedInState(session);
+  }catch(e){
+    err.textContent=tErr(e.message);err.style.display='block';
+  }finally{
+    otpVerifyBusy=false;
+    btn.textContent='Подтвердить';btn.disabled=false;
+  }
 }
 async function resendOTP(){
-  if(resendLeft>0)return;
-  await sb.auth.signInWithOtp({email:curEmail});
-  startResend();
+  if(resendLeft>0||!curEmail)return;
+  const requestNonce=++otpRequestNonce;
+  try{
+    clearOTP();
+    await withTimeout(
+      sb.auth.signInWithOtp({email:curEmail,options:{shouldCreateUser:true}}),
+      15000,
+      'Повторная отправка кода заняла слишком много времени'
+    );
+    if(requestNonce!==otpRequestNonce)return;
+    startResend();
+    document.getElementById('codeErr').style.display='none';
+  }catch(e){
+    const err=document.getElementById('codeErr');
+    err.textContent=tErr(e.message);err.style.display='block';
+  }
 }
 function startResend(){
   resendLeft=60;
@@ -685,7 +868,7 @@ function startResend(){
 }
 
 /* OTP boxes */
-function setupOTPBoxes(){
+(function setupOTP(){
   const boxes=document.querySelectorAll('.otp-box');
   boxes.forEach((b,i)=>{
     b.addEventListener('input',()=>{
@@ -704,44 +887,39 @@ function setupOTPBoxes(){
       if(boxes[last])boxes[last].focus();
     });
   });
-}
-setupOTPBoxes();
+})();
 
 /* ===== SESSION ===== */
 async function initSession(){
   const {data:{session}}=await sb.auth.getSession();
   if(session){
-    await loadProfile(session.user.id,session.user.email);
-    await loadChats();
-    document.getElementById('authWrap').classList.add('gone');
-    document.getElementById('app').classList.add('show');
-    updateUserUI();
-    newChat();
-  }else{
-    document.getElementById('authWrap').classList.remove('gone');
-    document.getElementById('app').classList.remove('show');
+    await applySignedInState(session);
+    return;
   }
+  document.getElementById('authWrap').classList.remove('gone');
+  document.getElementById('app').classList.remove('show');
+  showAuthS(1);
 }
 sb.auth.onAuthStateChange(async(event,session)=>{
-  if(event==='SIGNED_IN'&&session){
-    if(!curUser){
-      await loadProfile(session.user.id,session.user.email);
-      await loadChats();
-      document.getElementById('authWrap').classList.add('gone');
-      document.getElementById('app').classList.add('show');
-      updateUserUI();
-    }
+  if(event==='SIGNED_IN'&&session?.user){
+    await applySignedInState(session);
+  }
+  if(event==='SIGNED_OUT'){
+    curUser=null;chatHistory=[];curChatId=null;chats=[];
+    document.getElementById('authWrap').classList.remove('gone');
+    document.getElementById('app').classList.remove('show');
+    showAuthS(1);
   }
 });
 initSession();
 
 async function loadProfile(uid,email){
-  const {data}=await sb.from('profiles').select('*').eq('id',uid).single();
+  const {data}=await sb.from('profiles').select('*').eq('id',uid).maybeSingle();
   curUser={id:uid,email,nickname:data?.nickname||email.split('@')[0],role:data?.role||'user',settings:data?.settings||{}};
 }
 function updateUserUI(){
   if(!curUser)return;
-  const ch=(curUser.nickname||curUser.email).charAt(0).toUpperCase();
+  const ch=(curUser.email||'?').charAt(0).toUpperCase();
   const av=document.getElementById('sbAvatar');
   const un=document.getElementById('sbUsername');
   if(av)av.textContent=ch;
@@ -753,44 +931,41 @@ async function logOut(){
   document.getElementById('authWrap').classList.remove('gone');
   document.getElementById('app').classList.remove('show');
   closeSettings();
+  closePersDrop();
   showAuthS(1);
 }
 
 /* ===== SIDEBAR ===== */
 function toggleSidebar(){
-  const sb=document.getElementById('sidebar');
   if(window.innerWidth<769){
-    const open=sb.classList.toggle('open');
+    const sb=document.getElementById('sidebar');
+    const open=!sb.classList.contains('open');
+    sb.classList.toggle('open',open);
     document.getElementById('overlay').classList.toggle('show',open);
-  }else{
+  }
+}
+function toggleSidebarDesktop(){
+  if(window.innerWidth>=769){
     sidebarExpanded=!sidebarExpanded;
-    sb.classList.toggle('expanded',sidebarExpanded);
-    if(sidebarExpanded){
-      const cl=document.getElementById('sbChatList');
-      if(cl)cl.style.display='block';
-    }
+    document.getElementById('sidebar').classList.toggle('expanded',sidebarExpanded);
+  }else{
+    toggleSidebar();
   }
 }
 function closeSidebar(){
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('overlay').classList.remove('show');
 }
-function toggleChatList(){
-  const cl=document.getElementById('sbChatList');
-  if(!cl)return;
-  chatListOpen=!chatListOpen;
-  cl.style.display=chatListOpen?'block':'none';
-}
 
 /* ===== CHATS ===== */
 async function loadChats(){
   if(!curUser)return;
-  const {data}=await sb.from('chats').select('id,title,updated_at').order('updated_at',{ascending:false}).limit(30);
+  const {data}=await sb.from('chats').select('id,title,updated_at').eq('user_id',curUser.id).order('updated_at',{ascending:false}).limit(30);
   if(data)chats=data;
   renderChatList();
 }
 function renderChatList(){
-  const el=document.getElementById('sbChatList'); if(!el)return;
+  const el=document.getElementById('sbChatList');if(!el)return;
   el.innerHTML='';
   chats.forEach(c=>{
     const d=document.createElement('div');
@@ -802,11 +977,11 @@ function renderChatList(){
 }
 async function openChat(id){
   closeSidebar();
-  const {data}=await sb.from('chats').select('history').eq('id',id).single();
+  const {data}=await sb.from('chats').select('history').eq('id',id).eq('user_id',curUser.id).single();
   if(!data)return;
   curChatId=id;
   chatHistory=data.history||[];
-  const inner=document.getElementById('chatInner'); inner.innerHTML='';
+  const inner=document.getElementById('chatInner');inner.innerHTML='';
   chatHistory.forEach(m=>{
     const txt=typeof m.content==='string'?m.content:(Array.isArray(m.content)?m.content.find(c=>c.type==='text')?.text:'[фото]');
     if(m.role==='user')addUserBubble(txt);
@@ -828,286 +1003,189 @@ async function saveChat(title){
   if(!curUser||chatHistory.length===0)return;
   if(!curChatId){
     curChatId='chat_'+Date.now();
-    const {error}=await sb.from('chats').insert({id:curChatId,user_id:curUser.id,title:title||'Новый чат',history:chatHistory,updated_at:new Date().toISOString()});
-    if(!error){chats.unshift({id:curChatId,title:title||'Новый чат'});renderChatList();}
+    const t=title||'Новый чат';
+    const {error}=await sb.from('chats').insert({id:curChatId,user_id:curUser.id,title:t,history:chatHistory,updated_at:new Date().toISOString()});
+    if(!error){chats.unshift({id:curChatId,title:t});renderChatList();}
   }else{
     await sb.from('chats').update({history:chatHistory,updated_at:new Date().toISOString()}).eq('id',curChatId);
   }
 }
 
 /* ===== MODEL PICKER ===== */
+function closeDesktopSubs(){
+  modeSubOpen=false;modelsSubOpen=false;
+  document.getElementById('desktopModeSub')?.classList.remove('open');
+  document.getElementById('desktopModelsSub')?.classList.remove('open');
+}
+function closeModelMenus(){
+  dropOpen=false;modeSubOpen=false;modelsSubOpen=false;
+  document.getElementById('modelDrop')?.classList.remove('open');
+  document.getElementById('modeSub')?.classList.remove('open');
+  document.getElementById('desktopModelWrap')?.classList.remove('open');
+  document.getElementById('desktopModeSub')?.classList.remove('open');
+  document.getElementById('desktopModelsSub')?.classList.remove('open');
+}
 function toggleModelDrop(e){
   e.stopPropagation();
+  if(isDesktop()){
+    dropOpen=!dropOpen;
+    document.getElementById('desktopModelWrap')?.classList.toggle('open',dropOpen);
+    if(!dropOpen)closeDesktopSubs();
+    return;
+  }
   dropOpen=!dropOpen;
-  document.getElementById('modelDrop').classList.toggle('open',dropOpen);
-  if(!dropOpen){document.getElementById('modeSub').classList.remove('open');modeSubOpen=false;}
+  document.getElementById('modelDrop')?.classList.toggle('open',dropOpen);
 }
 function selectModel(m){
   curModel=m;
-  document.getElementById('ck-lite').style.opacity=m==='lite'?'1':'0';
-  document.getElementById('ck-pro').style.opacity=m==='pro'?'1':'0';
-  updatePill();
-  document.getElementById('modelDrop').classList.remove('open');
-  document.getElementById('modeSub').classList.remove('open');
-  dropOpen=false;modeSubOpen=false;
+  refreshModelUI();
+  closeModelMenus();
 }
-function toggleModeSub(e){
+function openModeSub(e){
   e.stopPropagation();
-  modeSubOpen=!modeSubOpen;
-  document.getElementById('modeSub').classList.toggle('open',modeSubOpen);
+  if(!isDesktop())return;
+  if(isDesktop()){
+    modeSubOpen=!modeSubOpen;
+    modelsSubOpen=false;
+    document.getElementById('desktopModeSub')?.classList.toggle('open',modeSubOpen);
+    document.getElementById('desktopModelsSub')?.classList.remove('open');
+    return;
+  }
+}
+function openModelsSub(e){
+  e.stopPropagation();
+  if(!isDesktop())return;
+  modelsSubOpen=!modelsSubOpen;
+  modeSubOpen=false;
+  document.getElementById('desktopModelsSub')?.classList.toggle('open',modelsSubOpen);
+  document.getElementById('desktopModeSub')?.classList.remove('open');
 }
 function selectMode(m){
   curMode=m;
-  document.getElementById('ck-low').style.opacity=m==='low'?'1':'0';
-  document.getElementById('ck-max').style.opacity=m==='max'?'1':'0';
-  document.getElementById('modeLabel').textContent=m==='low'?'Low':'Max';
-  updatePill();
-  document.getElementById('modeSub').classList.remove('open');
-  modeSubOpen=false;
+  refreshModelUI();
+  closeModelMenus();
 }
-function toggleThink(e){e.stopPropagation();thinkOn=!thinkOn;document.getElementById('thinkSw').classList.toggle('on',thinkOn);}
-function updatePill(){
-  const modeStr=curMode==='max'?' · max':'';
-  const el=document.getElementById('pillMode');
-  if(el)el.textContent=' '+curModel+modeStr;
-  const mM=document.getElementById('pillNameM');
-  if(mM)mM.textContent=(curModel==='lite'?'MusMind Lite':'MusMind Pro')+(modeStr?' · MAX':'');
+function toggleThink(e){
+  e.stopPropagation();
+  thinkOn=!thinkOn;
+  refreshModelUI();
 }
+function toggleClass(id,className,value){
+  const el=document.getElementById(id);
+  if(el)el.classList.toggle(className,value);
+}
+function setOpacity(id,value){
+  const el=document.getElementById(id);
+  if(el)el.style.opacity=value;
+}
+function setText(id,value){
+  const el=document.getElementById(id);
+  if(el)el.textContent=value;
+}
+function refreshModelUI(){
+  const shortModel=curModel==='lite'?'lite':'pro';
+  const mobileModel=curModel==='lite'?'MusMind Lite':'MusMind Pro';
+  const fullModel=curModel==='lite'?'MusMind Lite':'MusMind Pro';
+  const modeLabel=curMode==='low'?'Low':'Max';
+  const modeTiny=curMode==='low'?'low':'max';
+  setText('pillName',isDesktop()?'MusMind':mobileModel);
+  setText('pillMode',isDesktop()?shortModel:modeTiny);
+  setText('modeLabel',modeLabel);
+  setText('desktopModelCurrent',fullModel);
+  setText('desktopModeLabel',modeLabel);
+  setOpacity('ck-lite',curModel==='lite'?'1':'0');
+  setOpacity('ck-pro',curModel==='pro'?'1':'0');
+  setOpacity('ck-low',curMode==='low'?'1':'0');
+  setOpacity('ck-max',curMode==='max'?'1':'0');
+  toggleClass('thinkSw','on',thinkOn);
+  toggleClass('desktopThinkSw','on',thinkOn);
+  toggleClass('mobThinkSw','on',thinkOn);
+  toggleClass('desktopCkLite','on',curModel==='lite');
+  toggleClass('desktopCkPro','on',curModel==='pro');
+  toggleClass('desktopCkLow','on',curMode==='low');
+  toggleClass('desktopCkMax','on',curMode==='max');
+  toggleClass('mobModelLite','on',curModel==='lite');
+  toggleClass('mobModelPro','on',curModel==='pro');
+  toggleClass('mobModeLow','on',curMode==='low');
+  toggleClass('mobModeMax','on',curMode==='max');
+}
+refreshModelUI();
+window.addEventListener('resize',()=>{closeModelMenus();refreshModelUI();});
 
 document.addEventListener('click',e=>{
-  if(dropOpen&&!e.target.closest('#modelPill')&&!e.target.closest('#modelPillMobile')){
-    dropOpen=false;modeSubOpen=false;
-    document.getElementById('modelDrop').classList.remove('open');
-    document.getElementById('modeSub').classList.remove('open');
+  if(dropOpen&&!e.target.closest('#modelPill')){
+    closeModelMenus();
   }
   if(!e.target.closest('.mac-btn'))
-    document.querySelectorAll('.more-menu.open').forEach(m=>m.classList.remove('open'));
+    document.querySelectorAll('.more-menu.open').forEach(x=>x.classList.remove('open'));
 });
-
-/* ===== SETTINGS ===== */
-function openSettings(){
-  closeSidebar();
-  renderSettings();
-  document.getElementById('settingsOverlay').classList.remove('hidden');
-}
-function closeSettings(){document.getElementById('settingsOverlay').classList.add('hidden');}
-
-const STYLES={default:'По умолчанию',professional:'Профессиональный',friendly:'Дружелюбный',frank:'Откровенный',whimsical:'Причудливый',efficient:'Эффективный',cynical:'Циничный'};
-const STYLE_DESCS={default:'Предпочитаемый стиль и тон',professional:'Тактичный и точный',friendly:'Тёплый и разговорчивый',frank:'Прямой и мотивирующий',whimsical:'Весёлый и творческий',efficient:'Немногословный и чёткий',cynical:'Критикующий и саркастичный'};
-const OPTS={default:'По умолчанию',low:'Низкая',medium:'Средняя',high:'Высокая',reserved:'Сдержанный',moderate:'Умеренный',off:'Выкл',on:'Вкл',none:'Нет',some:'Немного',many:'Много'};
-let persDropOpen=null;
-function getSettings(){return curUser?.settings||{};}
-function renderSettings(screen){
-  const s=getSettings();
-  const el=document.getElementById('settingsContent');
-  if(!screen||screen==='main'){
-    const ch=(curUser?.nickname||curUser?.email||'?').charAt(0).toUpperCase();
-    el.innerHTML=`
-      <div class="sth">
-        <div class="sth-title">Настройки</div>
-        <button class="sth-back" onclick="closeSettings()" style="margin-left:auto;border-radius:9px;font-size:14px;padding:0 14px;height:34px;font-weight:600;">✕</button>
-      </div>
-      <div class="prof-top">
-        <div class="prof-ava">${ch}</div>
-        <div class="prof-info">
-          <div class="prof-name">${curUser?.nickname||curUser?.email?.split('@')[0]||'Пользователь'}</div>
-          <div class="prof-email">${curUser?.email||''}</div>
-        </div>
-        <button class="logout-btn" onclick="logOut()">Выйти</button>
-      </div>
-      <div class="s-sect">
-        <div class="s-sect-label">Настроить HarmonyAI</div>
-        <div class="s-rows">
-          <div class="s-row" onclick="renderSettings('personalization')">
-            <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="M20 21a8 8 0 10-16 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-            <div class="s-row-text">Персонализация</div>
-            <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-          </div>
-          <div class="s-row" onclick="renderSettings('memory')">
-            <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26C17.81 13.47 19 11.38 19 9c0-3.87-3.13-7-7-7z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 21h6M10 17v-4M14 17v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-            <div class="s-row-text">Память</div>
-            <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-          </div>
-        </div>
-      </div>
-      <div class="s-sect">
-        <div class="s-sect-label">Учётная запись</div>
-        <div class="s-rows">
-          <div class="s-row">
-            <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" stroke-width="2"/><path d="M3 7l9 7 9-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-            <div class="s-row-text">Электронная почта</div>
-            <div class="s-row-val" style="font-size:12px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${curUser?.email||''}</div>
-          </div>
-          <div class="s-row">
-            <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7l3-7z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></div>
-            <div class="s-row-text">Подписка</div>
-            <div class="s-row-val">MusMind Lite</div>
-          </div>
-          <div class="s-row">
-            <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z" stroke="currentColor" stroke-width="2"/><path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-            <div class="s-row-text">Перейти на MusMind Pro</div>
-            <div class="s-row-val soon">Скоро</div>
-          </div>
-        </div>
-      </div>`;
-  }else if(screen==='memory'){
-    const memSave=(s.memSave!==false);
-    const memRecall=(s.memRecall!==false);
-    el.innerHTML=`
-      <div class="sth">
-        <div class="sth-back" onclick="renderSettings('main')">
-          <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </div>
-        <div class="sth-title">Память</div>
-      </div>
-      <div class="mem-rows">
-        <div class="mem-row">
-          <div class="mem-info"><div class="mem-title">Сохранять память</div><div class="mem-desc">HarmonyAI запоминает детали из разговоров</div></div>
-          <div class="sw ${memSave?'on':''}" id="swSave" onclick="this.classList.toggle('on');saveSettingField('memSave',this.classList.contains('on'))"></div>
-        </div>
-        <div class="mem-row">
-          <div class="mem-info"><div class="mem-title">Ссылаться на память</div><div class="mem-desc">Использует память при ответах</div></div>
-          <div class="sw ${memRecall?'on':''}" id="swRecall" onclick="this.classList.toggle('on');saveSettingField('memRecall',this.classList.contains('on'))"></div>
-        </div>
-      </div>`;
-  }else if(screen==='personalization'){
-    const st=s.style||'default';
-    const fr=s.friendliness||'default';
-    const en=s.enthusiasm||'default';
-    const hd=s.headings||'default';
-    const em=s.emojis||'default';
-    const qr=(s.quickReplies!==false);
-    const ci=s.customInstructions||'';
-    function pRow(field,cur,label,opts){
-      const curLabel=opts.find(o=>o.val===cur)?.label||'По умолчанию';
-      return `<div class="pers-row" onclick="openPersDropInline(event,'${field}','pv-${field}')">
-        <div class="pers-row-label">${label}</div>
-        <div class="pers-row-val" style="position:relative;">
-          <span id="pv-${field}">${curLabel}</span>
-          <span style="font-size:11px;margin-left:4px;opacity:.5">›</span>
-        </div>
-      </div>`;
-    }
-    el.innerHTML=`
-      <div class="sth">
-        <div class="sth-back" onclick="renderSettings('main')">
-          <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </div>
-        <div class="sth-title">Персонализация</div>
-        <button style="margin-left:auto;padding:7px 16px;border-radius:10px;background:var(--bg2);border:1px solid var(--border);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;" onclick="savePers()">Сохранить</button>
-      </div>
-      <div class="pers-section">
-        ${pRow('style',st,'Базовый стиль и тон',Object.keys(STYLES).map(k=>({val:k,label:STYLES[k]})))}
-        ${pRow('friendliness',fr,'Доброжелательность',[{val:'default',label:'По умолчанию'},{val:'low',label:'Низкая'},{val:'medium',label:'Средняя'},{val:'high',label:'Высокая'}])}
-        ${pRow('enthusiasm',en,'Энтузиазм',[{val:'default',label:'По умолчанию'},{val:'reserved',label:'Сдержанный'},{val:'moderate',label:'Умеренный'},{val:'high',label:'Высокий'}])}
-        ${pRow('headings',hd,'Заголовки и списки',[{val:'default',label:'По умолчанию'},{val:'off',label:'Выкл'},{val:'on',label:'Вкл'}])}
-        ${pRow('emojis',em,'Эмодзи',[{val:'default',label:'По умолчанию'},{val:'none',label:'Нет'},{val:'some',label:'Немного'},{val:'many',label:'Много'}])}
-      </div>
-      <div class="pers-toggle-row">
-        <div class="pers-toggle-info">
-          <div class="pers-toggle-label">Быстрые ответы</div>
-          <div class="pers-toggle-desc">Иногда HarmonyAi может использовать свои общие знания для быстрых ответов. Такие ответы не персонализированы.</div>
-        </div>
-        <div class="sw ${qr?'on':''}" id="swQR" onclick="this.classList.toggle('on')"></div>
-      </div>
-      <div class="s-sect-label" style="margin-bottom:8px">Пользовательские инструкции</div>
-      <textarea class="custom-instr-area" id="custInstr" placeholder="Поделитесь чем-нибудь ещё, что вы хотели бы включить для рассмотрения в ответе Harmony Ai.">${ci}</textarea>
-      <button class="save-btn" onclick="savePers()">Сохранить</button>`;
-    setupPersDropdowns();
-  }
-}
-function persDropRow(field,cur,valId,opts,inline){
-  const label=opts.find(o=>o.val===cur)?.label||'По умолчанию';
-  return inline?`
-    <div class="pers-row-val" onclick="openPersDropInline(event,'${field}','${valId}')">
-      <span id="${valId}">${label}</span>
-      <span style="font-size:12px;opacity:.6">⌃</span>
-    </div>
-  `:`
-    <div class="pers-section" style="margin-bottom:16px">
-      <div class="pers-row" onclick="openPersDropInline(event,'${field}','${valId}')">
-        <div class="pers-row-val" style="flex:1">
-          <span id="${valId}">${label}</span>
-          <span style="font-size:12px;opacity:.6;margin-left:4px">⌃</span>
-        </div>
-      </div>
-    </div>
-  `;
-}
-const PERS_OPTS={
-  style:Object.keys(STYLES).map(k=>({val:k,label:STYLES[k],desc:STYLE_DESCS[k]})),
-  friendliness:[{val:'default',label:'По умолчанию'},{val:'low',label:'Низкая'},{val:'medium',label:'Средняя'},{val:'high',label:'Высокая'}],
-  enthusiasm:[{val:'default',label:'По умолчанию'},{val:'reserved',label:'Сдержанный'},{val:'moderate',label:'Умеренный'},{val:'high',label:'Высокий'}],
-  headings:[{val:'default',label:'По умолчанию'},{val:'off',label:'Выкл'},{val:'on',label:'Вкл'}],
-  emojis:[{val:'default',label:'По умолчанию'},{val:'none',label:'Нет'},{val:'some',label:'Немного'},{val:'many',label:'Много'}],
-};
-let curPersDropEl=null;
-function openPersDropInline(e,field,valId){
-  e.stopPropagation();
-  const existing=document.getElementById('inlineDrop');
-  if(existing&&existing.dataset.field===field){existing.remove();curPersDropEl=null;return;}
-  if(existing)existing.remove();
-  // Find the clicked row element
-  const row=e.currentTarget;
-  const drop=document.createElement('div');
-  drop.id='inlineDrop';drop.dataset.field=field;
-  drop.style.cssText='position:absolute;right:0;top:calc(100% + 4px);min-width:200px;background:var(--drop-bg);border:1px solid var(--border);border-radius:12px;padding:5px;z-index:100;box-shadow:var(--drop-shadow);';
-  const opts=PERS_OPTS[field]||[];
-  const cur=getSettings()[field]||'default';
-  opts.forEach(opt=>{
-    const d=document.createElement('div');
-    d.className='pers-opt'+(opt.val===cur?' selected':'');
-    d.innerHTML=`<div class="pers-opt-title">${(opt.val===cur?'✓ ':'')}${opt.label}</div>${opt.desc?`<div class="pers-opt-desc">${opt.desc}</div>`:''}`;
-    d.onclick=(ev)=>{
-      ev.stopPropagation();
-      const lbl=document.getElementById(valId);
-      if(lbl)lbl.textContent=opt.label;
-      drop.remove();curPersDropEl=null;
-      if(!curUser)return;
-      if(!curUser.settings)curUser.settings={};
-      curUser.settings[field]=opt.val;
-    };
-    drop.appendChild(d);
-  });
-  // Find relative parent
-  const valDiv=row.querySelector('.pers-row-val');
-  if(valDiv){valDiv.style.position='relative';valDiv.appendChild(drop);}
-  else{row.style.position='relative';row.appendChild(drop);}
-  curPersDropEl=drop;
-}
-function setupPersDropdowns(){
-  document.addEventListener('click',hidePersDrops,{once:false});
-}
-function hidePersDrops(e){
-  if(curPersDropEl&&!curPersDropEl.contains(e.target)){
-    curPersDropEl.remove();curPersDropEl=null;
-  }
-}
-async function savePers(){
-  const qr=document.getElementById('swQR')?.classList.contains('on');
-  const ci=document.getElementById('custInstr')?.value||'';
-  if(!curUser)return;
-  if(!curUser.settings)curUser.settings={};
-  curUser.settings.quickReplies=qr;
-  curUser.settings.customInstructions=ci;
-  await sb.from('profiles').upsert({id:curUser.id,settings:curUser.settings},{onConflict:'id'});
-  renderSettings('main');
-}
-async function saveSettingField(key,val){
-  if(!curUser)return;
-  if(!curUser.settings)curUser.settings={};
-  curUser.settings[key]=val;
-  await sb.from('profiles').upsert({id:curUser.id,settings:curUser.settings},{onConflict:'id'});
-}
 
 /* ===== SYSTEM PROMPT ===== */
 const BASE_SYSTEM=`Ты HarmonyAI — музыкальный ИИ-помощник для учеников музыкальной школы. Ты мужского пола — говори о себе в мужском роде. Отвечай на русском языке. Будь дружелюбным и понятным.
-Ты знаешь: сольфеджио, нотную грамоту, интервалы, аккорды, лады, ритм, музыкальные термины. Помогаешь и с другими предметами.
-ФОРМАТИРОВАНИЕ: используй Markdown — **жирный**, # заголовки, списки.
-ФОТО: если присылают фото с нотами — разбери каждую ноту и аккорд.`;
+Ты знаешь: сольфеджио, нотную грамоту, интервалы, аккорды (T53, S64, D7, VII7, II7 и др.), лады, ритм, размеры, музыкальные термины. Помогаешь и с другими предметами.
+ФОРМАТИРОВАНИЕ: Всегда используй Markdown — **жирный**, # заголовки, списки, > цитаты, \`код\`.
+РАСПОЗНАВАНИЕ ФОТО: если присылают фото с нотами — разбери каждую ноту, аккорд, ритм.
+ГЕНЕРАЦИЯ НОТНЫХ СТАНОВ:
+1. Для нотного вывода всегда используй один или несколько блоков \`\`\`abc ... \`\`\`.
+2. В одном ответе можно использовать сколько угодно ABC-блоков. Не ограничивай количество станов, если материал длинный.
+3. Для длинных гамм, произведений и сложных примеров разбивай материал на несколько подряд идущих ABC-блоков по разделам, чтобы стан не ломался.
+4. Разрешены: гаммы в несколько октав, аккорды, арпеджио, интервалы, гармонические последовательности, короткие пьесы, многотактовые фрагменты, многоголосие, фортепианные фактуры.
+5. Используй корректные обозначения октав ABC:
+   - C D E F G A B — ноты от до первой октавы вверх до си первой октавы
+   - c d e f g a b — следующая октава выше
+   - C, D, E, ... — октава ниже
+   - c' d' e' ... — ещё выше
+6. Никогда не используй внутри ABC научную запись вида C4, G5, F#4, Bb3. Внутри \`\`\`abc\`\`\` используй только стандартные ABC-октавы: C, c, C,, c' и т.д.
+7. Используй: z для пауз, ^ для диеза, _ для бемоля, = для бекара, [CEG] для аккорда.
+8. Для гамм в две и больше октав обязательно строй последовательность по октавам корректно, без смешивания регистра и без обрыва после первой октавы.
+9. Для фортепианных или многоголосных фрагментов можно использовать V:1 / V:2 и %%score.
+10. Если пользователь просит сложный материал для фортепиано или несколько станов, лучше делать несколько отдельных ABC-блоков вместо одного перегруженного.
+11. Если пример длинный, лучше вернуть несколько корректных нотных станов подряд, чем один сломанный.
+Пример гаммы в две октавы:
+\`\`\`abc
+X:1
+T:G major - two octaves
+M:4/4
+L:1/8
+K:G
+G A B c | d e f g | a b c' d' | e' f' g'4 |
+f' e' d' c' | b a g f | e d c B | A G4 ||
+\`\`\`
+Пример аккордов:
+\`\`\`abc
+X:2
+T:Chord progression
+M:4/4
+L:1/4
+K:C
+[CEG] z [DFA] z | [EGB] z [FAC] z ||
+\`\`\``;
+
+function getLastUserText(){
+  for(let i=chatHistory.length-1;i>=0;i--){
+    const item=chatHistory[i];
+    if(item.role!=='user')continue;
+    if(typeof item.content==='string')return item.content;
+    if(Array.isArray(item.content))return item.content.filter(part=>part.type==='text').map(part=>part.text||'').join(' ').trim();
+  }
+  return '';
+}
+function isNotationRequest(text){
+  const low=String(text||'').toLowerCase();
+  return /(abc|нот|стан|гамм|аккорд|арпеджи|интервал|октав|тональ|лад|пьес|мелоди|сольфеджи|фортепиан|полифони|голос)/.test(low);
+}
+
 function buildSystem(){
-  const s=getSettings();
+  const s=curUser?.settings||{};
   let sys=BASE_SYSTEM;
+  if(isNotationRequest(getLastUserText())){
+    sys+=`\nСПЕЦИАЛЬНО ДЛЯ ТЕКУЩЕГО НОТНОГО ЗАПРОСА:
+- если нужен длинный пример, дели его на столько ABC-блоков, сколько нужно;
+- не сокращай материал до одной октавы, если пользователь просит две и больше;
+- для нескольких рук или голосов используй V:1 / V:2 и %%score;
+- не пиши внутри ABC ноты в формате C4, D#5, Bb3;
+- если нужна тональность, учитывай ключ и не дублируй случайные знаки без причины.`;
+  }
   const styleMap={professional:'Отвечай профессионально и точно.',friendly:'Отвечай тепло и разговорчиво.',frank:'Отвечай прямо и мотивируя.',whimsical:'Отвечай весело и творчески.',efficient:'Отвечай коротко и по делу.',cynical:'Можешь быть немного саркастичным.'};
   if(s.style&&styleMap[s.style])sys+='\nСТИЛЬ: '+styleMap[s.style];
   if(curMode==='low')sys+='\nРЕЖИМ Low: отвечай кратко, максимум 3-4 предложения.';
@@ -1145,58 +1223,131 @@ function addUserBubble(text){
   const d=document.createElement('div');d.className='msg-user';d.textContent=text;
   inner.appendChild(d);scrollChat();
 }
-function addAiBubble(text,stream=true){
+function addAiBubble(text,stream){
   const inner=getChatInner();
   const wrap=document.createElement('div');wrap.className='msg-ai-wrap';
   const msg=document.createElement('div');msg.className='msg-ai';wrap.appendChild(msg);
   const actions=document.createElement('div');actions.className='msg-actions';
   actions.innerHTML=
-    `<div class="mac-btn" onclick="cpMsg(this)" title="Копировать">${IC_COPY}</div>`+
-    `<div class="mac-btn" onclick="likeMsg(this,'like')" title="Нравится">${IC_LIKE}</div>`+
-    `<div class="mac-btn" onclick="likeMsg(this,'dislike')" title="Не нравится">${IC_DISLIKE}</div>`+
-    `<div class="mac-btn" onclick="toggleMore(this)" title="Ещё">${IC_MORE}</div>`+
+    `<button class="mac-btn" onclick="cpMsg(this)" title="Копировать">${IC_COPY}</button>`+
+    `<button class="mac-btn" onclick="likeMsg(this,'like')" title="Нравится">${IC_LIKE}</button>`+
+    `<button class="mac-btn" onclick="likeMsg(this,'dislike')" title="Не нравится">${IC_DISLIKE}</button>`+
+    `<button class="mac-btn" onclick="toggleMore(this)" title="Ещё">${IC_MORE}</button>`+
     `<div class="more-menu"><div class="more-item" onclick="regenMsg(this)">${IC_REGEN} Повторить</div></div>`;
   wrap.appendChild(actions);
   inner.appendChild(wrap);scrollChat();
-  if(stream)return streamText(msg,text);
-  renderMd(msg,text);return Promise.resolve();
+  if(stream===false){renderMd(msg,text);return Promise.resolve();}
+  return streamText(msg,text);
 }
-let abcCount=0;
-function renderMd(el,text){
-  // Handle ABC notation blocks
-  const parts=text.split(/(```abc[\s\S]*?```)/g);
-  if(parts.length>1){
-    el.innerHTML='';el.dataset.raw=text;el.style.whiteSpace='normal';
-    parts.forEach(part=>{
-      const m=part.match(/```abc\n?([\s\S]*?)```/);
-      if(m){
-        const abcSrc=m[1].trim();
-        const wrap=document.createElement('div');wrap.className='abc-block';
-        const lbl=document.createElement('div');lbl.className='abc-label';lbl.textContent='♩ Нотный стан';wrap.appendChild(lbl);
-        const id='abc-'+(++abcCount);
-        const div=document.createElement('div');div.id=id;wrap.appendChild(div);
-        el.appendChild(wrap);
-        setTimeout(()=>{
-          try{ABCJS.renderAbc(id,abcSrc,{responsive:'resize',add_classes:true,paddingright:0,paddingleft:0});}
-          catch(e){div.textContent=abcSrc;}
-        },80);
-      }else if(part.trim()){
-        const d=document.createElement('div');
-        d.innerHTML=typeof marked!=='undefined'?marked.parse(part):part;
-        el.appendChild(d);
-      }
-    });
-  }else{
-    if(typeof marked!=='undefined')el.innerHTML=marked.parse(text);
-    else el.textContent=text;
-    el.dataset.raw=text;
+
+/* Render Markdown + ABC */
+function abcAccidentalPrefix(acc){
+  return String(acc||'')
+    .replace(/♯/g,'#')
+    .replace(/♭/g,'b')
+    .split('')
+    .map(ch=>ch==='#'?'^':ch==='b'?'_':'')
+    .join('');
+}
+function scientificPitchToAbc(letter,accidental,octave){
+  const oct=Number(octave);
+  if(Number.isNaN(oct))return letter;
+  const base=oct>=5?letter.toLowerCase():letter.toUpperCase();
+  const suffix=oct<=3?', '.repeat(Math.max(0,4-oct)).replace(/ /g,''):oct>=6?"'".repeat(oct-5):'';
+  return abcAccidentalPrefix(accidental)+base+suffix;
+}
+function normalizeAbcMusicLine(line){
+  let next=line
+    .replace(/\u00A0/g,' ')
+    .replace(/[–—]/g,'-')
+    .replace(/[│¦]/g,'|')
+    .replace(/♮/g,'=')
+    .replace(/[“”]/g,'"')
+    .replace(/[‘’]/g,"'");
+  const scientific=[...next.matchAll(/([A-Ga-g])([#b♯♭]{0,2})([0-8])(?!\d)/g)];
+  const distinctOct=[...new Set(scientific.map(m=>m[3]))];
+  const shouldConvertScientific=scientific.length>=3&&(distinctOct.length>=2||distinctOct.some(v=>Number(v)<=3||Number(v)>=5));
+  if(shouldConvertScientific){
+    next=next.replace(/([A-Ga-g])([#b♯♭]{0,2})([0-8])(?!\d)/g,(_,note,acc,oct)=>scientificPitchToAbc(note,acc,oct));
   }
+  next=next.replace(/(^|[^_^=])([A-Ga-g])([#b♯♭]{1,2})(?=[,']?(?:\d+\/\d+|\d+|\/\d+)?(?:\s|[|\]\[]|$))/g,(_,lead,note,acc)=>lead+abcAccidentalPrefix(acc)+note);
+  next=next.replace(/([([])\s+/g,'$1').replace(/\s+([)\]])/g,'$1');
+  next=next.replace(/\s*\|\s*/g,' | ').replace(/\s{2,}/g,' ').trim();
+  return next;
+}
+function normalizeAbcBlock(src,index){
+  const rawLines=String(src||'').replace(/\r/g,'').split('\n');
+  const cleaned=rawLines.map(line=>line.trimEnd()).filter((line,idx,arr)=>line.trim()!==''||!(idx===0||idx===arr.length-1));
+  const normalized=cleaned.map(line=>{
+    if(/^%%/.test(line)||/^[A-Za-z]:/.test(line))return line.trim();
+    return normalizeAbcMusicLine(line);
+  }).filter(Boolean);
+  const text=normalized.join('\n').trim();
+  if(!text)return '';
+  const prefix=[];
+  if(!/^X:/m.test(text))prefix.push(`X:${index}`);
+  if(!/^T:/m.test(text))prefix.push(`T:HarmonyAI Example ${index}`);
+  if(!/^M:/m.test(text))prefix.push('M:4/4');
+  if(!/^L:/m.test(text))prefix.push('L:1/8');
+  if(!/^K:/m.test(text))prefix.push('K:C');
+  return [...prefix,text].join('\n').trim();
+}
+function normalizeReplyNotation(text){
+  let blockIndex=0;
+  return String(text||'').replace(/```\s*abc[\r\n]+([\s\S]*?)```/gi,(_,abcBody)=>{
+    blockIndex++;
+    const fixed=normalizeAbcBlock(abcBody,blockIndex);
+    return fixed?'```abc\n'+fixed+'\n```':'';
+  }).trim();
+}
+function getAbcRenderOptions(hostEl){
+  const mobile=window.innerWidth<769;
+  const width=Math.max(260,Math.min((hostEl?.clientWidth||680)-8,mobile?520:760));
+  return {
+    responsive:'resize',
+    add_classes:true,
+    paddingright:0,
+    paddingleft:0,
+    staffwidth:width,
+    wrap:{
+      preferredMeasuresPerLine:mobile?3:4,
+      minSpacing:1.3,
+      maxSpacing:2.4
+    }
+  };
+}
+function renderMd(el,text){
+  el.dataset.raw=text;
+  const parts=text.split(/(```\s*abc[\r\n]+[\s\S]*?```)/gi);
+  el.innerHTML='';
+  parts.forEach(part=>{
+    const abcMatch=part.match(/```\s*abc[\r\n]+([\s\S]*?)```/i);
+    if(abcMatch){
+      const abcSrc=abcMatch[1].trim();
+      const id='abc-'+(++abcCounter);
+      const wrap=document.createElement('div');wrap.className='abc-block';
+      const lbl=document.createElement('div');lbl.className='abc-label';lbl.textContent='♩ Нотный стан';
+      wrap.appendChild(lbl);
+      const surface=document.createElement('div');surface.className='abc-surface';
+      const cvs=document.createElement('div');cvs.id=id;surface.appendChild(cvs);
+      wrap.appendChild(surface);
+      el.appendChild(wrap);
+      setTimeout(()=>{
+        try{window.ABCJS?.renderAbc(id,abcSrc,getAbcRenderOptions(surface));}
+        catch(e){cvs.textContent=abcSrc;}
+      },60);
+    }else if(part.trim()){
+      const div=document.createElement('div');
+      div.innerHTML=typeof marked!=='undefined'?marked.parse(part):part;
+      el.appendChild(div);
+    }
+  });
 }
 function streamText(el,text){
   return new Promise(resolve=>{
     let i=0;el.style.whiteSpace='pre-wrap';
     function step(){
-      i+=3;
+      i+=4;
       el.textContent=text.slice(0,Math.min(i,text.length))+(i<text.length?'▍':'');
       scrollChat();
       if(i<text.length)setTimeout(step,5);
@@ -1228,25 +1379,70 @@ async function regenMsg(item){
   const msgEl=wrap.querySelector('.msg-ai');
   if(chatHistory.length&&chatHistory[chatHistory.length-1].role==='assistant')chatHistory.pop();
   msgEl.innerHTML='';msgEl.style.whiteSpace='pre-wrap';
-  showLoading(true);
+  showTyping();
   try{
-    const res=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'system',content:buildSystem()},...chatHistory]})});
-    const data=await res.json();
-    const reply=data.choices?.[0]?.message?.content||'Нет ответа';
-    showLoading(false);
+    const reply=await requestChatReply();
+    hideTyping();
     await streamText(msgEl,reply);
     chatHistory.push({role:'assistant',content:reply});
     await saveChat();
-  }catch(e){showLoading(false);renderMd(msgEl,'Ошибка: '+e.message);}
+  }catch(e){hideTyping();renderMd(msgEl,'Ошибка: '+e.message);}
 }
 function showTyping(){
   const inner=getChatInner();
   const d=document.createElement('div');d.className='thinking';d.id='typEl';
-  d.innerHTML='<div class="think-dots"><span></span><span></span><span></span></div><span>Думаю...</span>';
+  d.innerHTML='<div class="think-dots"><span></span><span></span><span></span></div><span style="font-size:14px;color:var(--text2)">Думаю...</span>';
   inner.appendChild(d);scrollChat();
 }
 function hideTyping(){const t=document.getElementById('typEl');if(t)t.remove();}
-function showLoading(v){document.getElementById('loadingIcon').style.display=v?'flex':'none';}
+function tChatErr(msg){
+  const text=String(msg||'');
+  const low=text.toLowerCase();
+  if(low.includes('high demand')||low.includes('overloaded')||low.includes('resource exhausted')||low.includes('try again later')){
+    return 'Модель временно перегружена. Я уже попробовал резервный вариант, но сервис всё ещё занят. Повторите через минуту.';
+  }
+  if(low.includes('fetch')||low.includes('network')){
+    return 'Сервер временно недоступен. Попробуйте ещё раз.';
+  }
+  return text||'Что-то пошло не так при запросе к модели';
+}
+function buildApiCandidates(){
+  const endpoints=[];
+  if(window.location.protocol!=='file:')endpoints.push('/api/chat');
+  endpoints.push(`${FALLBACK_API_ORIGIN}/api/chat`);
+  return [...new Set(endpoints)];
+}
+async function requestChatReply(){
+  const payload={
+    messages:[{role:'system',content:buildSystem()},...chatHistory],
+    model:curModel,
+    effort:curMode,
+    think:thinkOn
+  };
+  let lastError=null;
+  for(const endpoint of buildApiCandidates()){
+    try{
+      const res=await withTimeout(
+        fetch(endpoint,{method:'POST',mode:'cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),
+        CHAT_TIMEOUT_MS,
+        'Сервер слишком долго отвечает'
+      );
+      let data=null;
+      try{data=await res.json();}catch(e){data=null;}
+      if(!res.ok||data?.error)throw new Error(tChatErr(data?.error?.message||`Ошибка сервера (${res.status})`));
+      const reply=data?.choices?.[0]?.message?.content?.trim();
+      if(!reply)throw new Error('Модель вернула пустой ответ');
+      return normalizeReplyNotation(reply);
+    }catch(e){
+      lastError=e;
+      if(String(e?.message||'').toLowerCase().includes('failed to fetch'))continue;
+    }
+  }
+  if(window.location.protocol==='file:'){
+    throw new Error('Локальный HTML не смог подключиться к серверу чата. На домене всё должно работать, а для локального просмотра нужен доступный backend.');
+  }
+  throw lastError||new Error('Не удалось получить ответ от сервера');
+}
 
 /* ===== SEND ===== */
 async function sendMsg(){
@@ -1260,25 +1456,261 @@ async function sendMsg(){
     userContent=[];
     if(text)userContent.push({type:'text',text});
     userContent.push({type:'image_url',image_url:{url:'data:image/jpeg;base64,'+pendingImg}});
-    pendingImg=null;ta.placeholder='Введите сообщение ..';
+    pendingImg=null;ta.placeholder='Введите сообщение..';
   }else{userContent=text;}
 
   addUserBubble(displayText);
   chatHistory.push({role:'user',content:userContent});
   if(chatHistory.length===1)await saveChat(displayText.slice(0,40));
   else await saveChat();
-  showLoading(true);showTyping();
+  showTyping();
 
   try{
-    const res=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'system',content:buildSystem()},...chatHistory]})});
-    const data=await res.json();
-    if(data.error){hideTyping();showLoading(false);await addAiBubble('**Ошибка:** '+(data.error.message||JSON.stringify(data.error)),false);return;}
-    const reply=data.choices?.[0]?.message?.content||'Нет ответа';
-    hideTyping();showLoading(false);
+    const reply=await requestChatReply();
+    hideTyping();
     await addAiBubble(reply,true);
     chatHistory.push({role:'assistant',content:reply});
     await saveChat();
-  }catch(e){hideTyping();showLoading(false);await addAiBubble('Ошибка соединения: '+e.message,false);}
+  }catch(e){hideTyping();await addAiBubble('Ошибка: '+e.message,false);}
+}
+
+/* ===== SETTINGS ===== */
+function openSettings(){
+  closeSidebar();
+  renderSettingsMain();
+  document.getElementById('settingsOverlay').classList.add('open');
+}
+function closeSettings(){
+  document.getElementById('settingsOverlay').classList.remove('open');
+}
+
+function getSettings(){return curUser?.settings||{};}
+
+function renderSettingsMain(){
+  const el=document.getElementById('settingsContent');
+  const ch=(curUser?.email||'?').charAt(0).toUpperCase();
+  el.innerHTML=`
+    <div class="sth">
+      <button class="sth-back" onclick="closeSettings()">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+      <div class="sth-title">Настройки</div>
+    </div>
+    <div class="prof-top">
+      <div class="prof-ava">${ch}</div>
+      <div style="flex:1;">
+        <div class="prof-name">${curUser?.nickname||curUser?.email?.split('@')[0]||'Пользователь'}</div>
+        <div class="prof-email">${curUser?.email||''}</div>
+      </div>
+      <button class="logout-btn" onclick="logOut()">Выйти</button>
+    </div>
+    <div class="s-sect">
+      <div class="s-sect-label">Настроить HarmonyAI</div>
+      <div class="s-rows">
+        <div class="s-row mobile-only-setting" onclick="renderSettingsPers()">
+          <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="M20 21a8 8 0 10-16 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+          <div class="s-row-text">Персонализация</div>
+          <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+        </div>
+        <div class="s-row" onclick="renderSettingsMemory()">
+          <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26C17.81 13.47 19 11.38 19 9c0-3.87-3.13-7-7-7z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 21h6M10 17v-4M14 17v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+          <div class="s-row-text">Память</div>
+          <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+        </div>
+      </div>
+    </div>
+    <div class="s-sect">
+      <div class="s-sect-label">Учётная запись</div>
+      <div class="s-rows">
+        <div class="s-row">
+          <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" stroke-width="2"/><path d="M3 7l9 7 9-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+          <div class="s-row-text">Электронная почта</div>
+          <div class="s-row-val" style="font-size:12px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${curUser?.email||''}</div>
+        </div>
+        <div class="s-row">
+          <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7l3-7z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></div>
+          <div class="s-row-text">Подписка</div>
+          <div class="s-row-val">MusMind Lite</div>
+        </div>
+        <div class="s-row">
+          <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z" stroke="currentColor" stroke-width="2"/><path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+          <div class="s-row-text">Перейти на MusMind Pro</div>
+          <div class="s-row-val soon">Скоро</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderSettingsMemory(){
+  const el=document.getElementById('settingsContent');
+  const s=getSettings();
+  const memSave=(s.memSave!==false);
+  const memRecall=(s.memRecall!==false);
+  el.innerHTML=`
+    <div class="sth">
+      <div class="sth-back" onclick="renderSettingsMain()">
+        <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="sth-title">Память</div>
+    </div>
+    <div class="mem-rows">
+      <div class="mem-row">
+        <div class="mem-info"><div class="mem-title">Сохранять память</div><div class="mem-desc">HarmonyAI запоминает детали из разговоров</div></div>
+        <div class="sw ${memSave?'on':''}" onclick="this.classList.toggle('on');saveSetting('memSave',this.classList.contains('on'))"></div>
+      </div>
+      <div class="mem-row">
+        <div class="mem-info"><div class="mem-title">Ссылаться на память</div><div class="mem-desc">Использует память при ответах</div></div>
+        <div class="sw ${memRecall?'on':''}" onclick="this.classList.toggle('on');saveSetting('memRecall',this.classList.contains('on'))"></div>
+      </div>
+    </div>`;
+}
+
+/* ===== PERSONALIZATION (mobile only) ===== */
+const STYLES={default:'По умолчанию',professional:'Профессиональный',friendly:'Дружелюбный',frank:'Откровенный',whimsical:'Причудливый',efficient:'Эффективный',cynical:'Циничный'};
+const STYLE_DESCS={default:'Предпочитаемый стиль и тон',professional:'Тактичный и точный',friendly:'Тёплый и разговорчивый',frank:'Прямой и мотивирующий',whimsical:'Весёлый и творческий',efficient:'Немногословный и чёткий',cynical:'Критикующий и саркастичный'};
+
+function renderSettingsPers(){
+  const el=document.getElementById('settingsContent');
+  const s=getSettings();
+  const st=s.style||'default';
+  const fr=s.friendliness||'default';
+  const en=s.enthusiasm||'default';
+  const hd=s.headings||'default';
+  const em=s.emojis||'default';
+  const qr=(s.quickReplies!==false);
+  const ci=s.customInstructions||'';
+  el.innerHTML=`
+    <div class="sth">
+      <div class="sth-back" onclick="renderSettingsMain()">
+        <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="sth-title">Персонализация</div>
+      <button style="margin-left:auto;padding:7px 16px;border-radius:10px;background:var(--send-bg);color:var(--send-txt);border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;" onclick="savePers()">Сохранить</button>
+    </div>
+    <!-- Style card -->
+    <div class="pers-card">
+      <div class="pers-header">
+        <div class="pers-h-label">Базовый стиль и тон</div>
+        <div class="pers-selector" onclick="openPersDrop('style')">
+          <span class="pers-sel-text" id="ps-style">${STYLES[st]}</span>
+          <span class="pers-sel-chev">⌃</span>
+        </div>
+      </div>
+    </div>
+    <!-- Other options card -->
+    <div class="pers-card" style="margin-bottom:16px">
+      <div class="pers-row-inline" onclick="openPersDrop('friendliness')">
+        <div class="pers-row-label">Доброжелательность</div>
+        <div class="pers-row-val"><span id="ps-friendliness">${friendlinessLabel(fr)}</span><span style="font-size:10px;opacity:.5">⌃</span></div>
+      </div>
+      <div class="pers-row-inline" onclick="openPersDrop('enthusiasm')">
+        <div class="pers-row-label">Энтузиазм</div>
+        <div class="pers-row-val"><span id="ps-enthusiasm">${enthusiasmLabel(en)}</span><span style="font-size:10px;opacity:.5">⌃</span></div>
+      </div>
+      <div class="pers-row-inline" onclick="openPersDrop('headings')">
+        <div class="pers-row-label">Заголовки и списки</div>
+        <div class="pers-row-val"><span id="ps-headings">${headingsLabel(hd)}</span><span style="font-size:10px;opacity:.5">⌃</span></div>
+      </div>
+      <div class="pers-row-inline" onclick="openPersDrop('emojis')">
+        <div class="pers-row-label">Эмодзи</div>
+        <div class="pers-row-val"><span id="ps-emojis">${emojisLabel(em)}</span><span style="font-size:10px;opacity:.5">⌃</span></div>
+      </div>
+    </div>
+    <!-- Quick replies toggle -->
+    <div class="pers-toggle-row">
+      <div class="pers-toggle-info">
+        <div class="pers-toggle-label">Быстрые ответы</div>
+        <div class="pers-toggle-desc">Иногда HarmonyAI может использовать свои общие знания для быстрых ответов. Такие ответы не персонализированы.</div>
+      </div>
+      <div class="sw ${qr?'on':''}" id="swQR" onclick="this.classList.toggle('on')"></div>
+    </div>
+    <!-- Custom instructions -->
+    <div class="custom-instr-label">Пользовательские инструкции</div>
+    <textarea class="custom-instr-area" id="custInstr" placeholder="Поделитесь чем-нибудь ещё, что вы хотели бы включить для рассмотрения в ответе Harmony Ai.">${escapeHtml(ci)}</textarea>
+    <button class="save-btn" onclick="savePers()">Сохранить</button>`;
+}
+function friendlinessLabel(v){
+  const map={default:'По умолчанию',low:'Низкая',medium:'Средняя',high:'Высокая'};
+  return map[v]||'По умолчанию';
+}
+function enthusiasmLabel(v){
+  const map={default:'По умолчанию',reserved:'Сдержанный',moderate:'Умеренный',high:'Высокий'};
+  return map[v]||'По умолчанию';
+}
+function headingsLabel(v){
+  const map={default:'По умолчанию',off:'Выкл',on:'Вкл'};
+  return map[v]||'По умолчанию';
+}
+function emojisLabel(v){
+  const map={default:'По умолчанию',none:'Нет',some:'Немного',many:'Много'};
+  return map[v]||'По умолчанию';
+}
+function escapeHtml(t){
+  const d=document.createElement('div');d.textContent=t;return d.innerHTML;
+}
+
+/* Pers dropdown overlay */
+const PERS_OPT_DATA={
+  style:Object.keys(STYLES).map(k=>({val:k,label:STYLES[k],desc:STYLE_DESCS[k]})),
+  friendliness:[{val:'default',label:'По умолчанию'},{val:'low',label:'Низкая'},{val:'medium',label:'Средняя'},{val:'high',label:'Высокая'}],
+  enthusiasm:[{val:'default',label:'По умолчанию'},{val:'reserved',label:'Сдержанный'},{val:'moderate',label:'Умеренный'},{val:'high',label:'Высокий'}],
+  headings:[{val:'default',label:'По умолчанию'},{val:'off',label:'Выкл'},{val:'on',label:'Вкл'}],
+  emojis:[{val:'default',label:'По умолчанию'},{val:'none',label:'Нет'},{val:'some',label:'Немного'},{val:'many',label:'Много'}],
+};
+let activePersField=null;
+
+function openPersDrop(field){
+  activePersField=field;
+  const opts=PERS_OPT_DATA[field]||[];
+  const s=getSettings();
+  const cur=s[field]||'default';
+  const overlay=document.getElementById('persDropOverlay');
+  const content=document.getElementById('persDropContent');
+  let html='<div class="pds-title">'+fieldTitle(field)+'</div>';
+  opts.forEach(opt=>{
+    const sel=opt.val===cur?'selected':'';
+    html+=`<div class="pds-opt ${sel}" onclick="selectPersOpt('${field}','${opt.val}','${opt.label}')">`;
+    html+=`<div style="flex:1"><div class="pds-opt-title">${opt.label}</div>${opt.desc?`<div class="pds-opt-desc">${opt.desc}</div>`:''}</div>`;
+    if(sel)html+=`<div class="pds-check">✓</div>`;
+    html+=`</div>`;
+  });
+  content.innerHTML=html;
+  overlay.classList.add('open');
+}
+function closePersDrop(){
+  document.getElementById('persDropOverlay').classList.remove('open');
+  activePersField=null;
+}
+function selectPersOpt(field,val,label){
+  if(!curUser.settings)curUser.settings={};
+  curUser.settings[field]=val;
+  const spanId='ps-'+field;
+  const span=document.getElementById(spanId);
+  if(span)span.textContent=label;
+  const styleSpan=document.getElementById('ps-style');
+  if(field==='style'&&styleSpan)styleSpan.textContent=STYLES[val]||label;
+  closePersDrop();
+}
+function fieldTitle(f){
+  const map={style:'Базовый стиль и тон',friendliness:'Доброжелательность',enthusiasm:'Энтузиазм',headings:'Заголовки и списки',emojis:'Эмодзи'};
+  return map[f]||f;
+}
+
+async function savePers(){
+  const qr=document.getElementById('swQR')?.classList.contains('on');
+  const ci=document.getElementById('custInstr')?.value||'';
+  if(!curUser)return;
+  if(!curUser.settings)curUser.settings={};
+  curUser.settings.quickReplies=qr;
+  curUser.settings.customInstructions=ci;
+  await sb.from('profiles').upsert({id:curUser.id,settings:curUser.settings},{onConflict:'id'});
+  renderSettingsMain();
+}
+async function saveSetting(key,val){
+  if(!curUser)return;
+  if(!curUser.settings)curUser.settings={};
+  curUser.settings[key]=val;
+  await sb.from('profiles').upsert({id:curUser.id,settings:curUser.settings},{onConflict:'id'});
 }
 </script>
 </body>
