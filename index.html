@@ -1640,6 +1640,22 @@ function addAiBubble(text,stream){
   if(stream===false){renderMd(msg,text);return Promise.resolve();}
   return streamText(msg,text);
 }
+// Создаёт пустой пузырь ИИ и возвращает элемент msg-ai для потокового заполнения
+function addAiBubbleEmpty(){
+  const inner=getChatInner();
+  const wrap=document.createElement('div');wrap.className='msg-ai-wrap';
+  const msg=document.createElement('div');msg.className='msg-ai';wrap.appendChild(msg);
+  const actions=document.createElement('div');actions.className='msg-actions';
+  actions.innerHTML=
+    `<button class="mac-btn" onclick="cpMsg(this)" title="Копировать">${IC_COPY}</button>`+
+    `<button class="mac-btn" onclick="likeMsg(this,'like')" title="Нравится">${IC_LIKE}</button>`+
+    `<button class="mac-btn" onclick="likeMsg(this,'dislike')" title="Не нравится">${IC_DISLIKE}</button>`+
+    `<button class="mac-btn" onclick="toggleMore(this)" title="Ещё">${IC_MORE}</button>`+
+    `<div class="more-menu"><div class="more-item" onclick="regenMsg(this)">${IC_REGEN} Повторить</div></div>`;
+  wrap.appendChild(actions);
+  inner.appendChild(wrap);scrollChat();
+  return msg;
+}
 
 /* Render Markdown + ABC */
 function abcAccidentalPrefix(acc){
@@ -1872,7 +1888,9 @@ function buildApiCandidates(){
   endpoints.push(`${liveBase}/api/chat`);
   return [...new Set(endpoints)];
 }
-async function requestChatReply(){
+// Streaming requestChatReply: возвращает полный текст (для совместимости),
+// но попутно вызывает onDelta(chunk) чтобы показывать текст сразу.
+async function requestChatReply(onDelta){
   activeAbortController=new AbortController();
   const payload={
     messages:[{role:'system',content:buildSystem()},...chatHistory],
@@ -1880,25 +1898,53 @@ async function requestChatReply(){
     effort:curMode,
     think:thinkOn,
     userId:curUser?.id||null,
-    userEmail:curUser?.email||null
+    userEmail:curUser?.email||null,
+    stream:!!onDelta
   };
   let lastError=null;
   const endpoints=buildApiCandidates();
   for(let i=0;i<endpoints.length;i++){
     const endpoint=endpoints[i];
     try{
-      const res=await withTimeout(
-        fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),cache:'no-store',credentials:'omit',signal:activeAbortController.signal}),
-        CHAT_TIMEOUT_MS,
-        'Сервер слишком долго отвечает'
-      );
+      const res=await fetch(endpoint,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(payload),
+        cache:'no-store',
+        credentials:'omit',
+        signal:activeAbortController.signal
+      });
+      // ── SSE streaming path ───────────────────────────────────────────
+      if(onDelta&&res.ok&&res.headers.get('content-type')?.includes('text/event-stream')){
+        const reader=res.body.getReader();
+        const decoder=new TextDecoder();
+        let fullText='';
+        let buffer='';
+        while(true){
+          const{done,value}=await reader.read();
+          if(done)break;
+          buffer+=decoder.decode(value,{stream:true});
+          const lines=buffer.split('\n');
+          buffer=lines.pop();
+          for(const line of lines){
+            if(!line.startsWith('data: '))continue;
+            const raw=line.slice(6).trim();
+            if(raw==='[DONE]')continue;
+            try{
+              const parsed=JSON.parse(raw);
+              if(parsed.delta){fullText+=parsed.delta;onDelta(parsed.delta);}
+            }catch{}
+          }
+        }
+        return normalizeReplyNotation(fullText)||'Нет ответа';
+      }
+      // ── Non-streaming fallback ────────────────────────────────────────
       let data=null;
       try{data=await res.json();}catch(e){data=null;}
       if(!res.ok||data?.error){
         const translated=tChatErr(data?.error?.message||`Ошибка сервера (${res.status})`);
         if((res.status===404||res.status===405)&&endpoint.includes('/api/harmony')&&i<endpoints.length-1){
-          lastError=new Error(translated);
-          continue;
+          lastError=new Error(translated);continue;
         }
         throw new Error(translated);
       }
@@ -1945,11 +1991,26 @@ async function sendMsg(){
   showTyping();
   setGeneratingState(true);
 
+  // Создаём пузырь сразу — пользователь видит его ещё до первого слова
+  const msgEl=addAiBubbleEmpty();
+  let fullText='';
+
   try{
-    const reply=await requestChatReply();
+    // onDelta вызывается с каждым новым кусочком текста от сервера
+    const reply=await requestChatReply((delta)=>{
+      hideTyping();
+      fullText+=delta;
+      msgEl.style.whiteSpace='pre-wrap';
+      msgEl.textContent=fullText+'▍';
+      msgEl.dataset.raw=fullText;
+      scrollChat();
+    });
     hideTyping();
-    const streamed=await addAiBubble(reply,true);
-    const finalText=streamed?.text||reply;
+    // Финальный рендер markdown (sanitize + ABC-нотация)
+    const finalText=reply||fullText;
+    renderMd(msgEl,finalText);
+    msgEl.dataset.raw=finalText;
+    scrollChat();
     if(finalText)chatHistory.push({role:'assistant',content:finalText});
     await saveChat();
     pendingImg=null;
@@ -1957,7 +2018,12 @@ async function sendMsg(){
     updateComposerPlaceholder();
   }catch(e){
     hideTyping();
-    if(e.message!=='Генерация остановлена')await addAiBubble('Ошибка: '+e.message,false);
+    if(e.message!=='Генерация остановлена'){
+      renderMd(msgEl,'Ошибка: '+e.message);
+    }else{
+      // Если остановили — сохраняем частичный текст
+      if(fullText){renderMd(msgEl,fullText);msgEl.dataset.raw=fullText;}
+    }
   }finally{
     activeAbortController=null;
     activeStreamStop=null;
