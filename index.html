@@ -232,11 +232,11 @@ body{background:var(--bg);color:var(--text);}
 }
 
 /* AI message actions */
-.msg-actions{display:flex;align-items:center;gap:3px;margin-top:2px;padding-left:2px;}
+.msg-actions{display:inline-flex;align-items:center;gap:3px;margin-top:2px;padding-left:2px;position:relative;width:max-content;max-width:100%;}
 .mac-btn{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--text2);cursor:pointer;transition:background .12s,color .12s;background:transparent;border:none;}
 .mac-btn:hover{background:var(--hover);color:var(--text);}
 .mac-btn.liked{color:#22c55e;}.mac-btn.disliked{color:#ef4444;}
-.more-menu{position:absolute;bottom:36px;left:0;background:var(--drop-bg);border:1px solid var(--border);border-radius:12px;padding:5px;display:none;z-index:30;box-shadow:var(--drop-shadow);min-width:150px;}
+.more-menu{position:absolute;bottom:34px;right:0;left:auto;background:var(--drop-bg);border:1px solid var(--border);border-radius:12px;padding:5px;display:none;z-index:30;box-shadow:var(--drop-shadow);min-width:150px;}
 .more-menu.open{display:block;}
 .more-item{padding:8px 14px;font-size:13px;font-weight:500;color:var(--text);border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:8px;}
 .more-item:hover{background:var(--hover);}
@@ -466,6 +466,13 @@ body{background:var(--bg);color:var(--text);}
 /* Desktop: hide personalization menu items */
 @media(min-width:769px){
   .mobile-only-setting{display:none;}
+}
+@media(max-width:768px){
+  .input-bar-row{right:18px!important;}
+  .send-btn{width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important;border-radius:15px!important;right:6px!important;box-shadow:0 10px 20px rgba(0,0,0,.22)!important;}
+  .send-btn svg{width:19px!important;height:19px!important;}
+  .model-pill{min-width:168px!important;max-width:206px!important;height:40px!important;padding:0 16px!important;}
+  .pill-name{max-width:112px!important;}
 }
 </style>
 </head>
@@ -1787,8 +1794,14 @@ function tChatErr(msg){
   return text||'Что-то пошло не так при запросе к модели';
 }
 function buildApiCandidates(){
-  const base=window.location.protocol==='file:' ? PRIMARY_API_ORIGIN : window.location.origin;
-  return [`${String(base).replace(/\/$/,'')}/api/chat`];
+  const liveBase=PRIMARY_API_ORIGIN.replace(/\/$/,'');
+  const isLiveHost=window.location.hostname==='harmonyai-zeta.vercel.app';
+  const endpoints=[];
+  if(window.location.protocol!=='file:'&&isLiveHost){
+    endpoints.push('/api/harmony','/api/chat');
+  }
+  endpoints.push(`${liveBase}/api/harmony`,`${liveBase}/api/chat`);
+  return [...new Set(endpoints)];
 }
 async function requestChatReply(){
   const payload={
@@ -1800,22 +1813,34 @@ async function requestChatReply(){
     userEmail:curUser?.email||null
   };
   let lastError=null;
-  for(const endpoint of buildApiCandidates()){
+  const endpoints=buildApiCandidates();
+  for(let i=0;i<endpoints.length;i++){
+    const endpoint=endpoints[i];
     try{
       const res=await withTimeout(
-        fetch(endpoint,{method:'POST',mode:'cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),
+        fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),cache:'no-store',credentials:'omit'}),
         CHAT_TIMEOUT_MS,
         'Сервер слишком долго отвечает'
       );
       let data=null;
       try{data=await res.json();}catch(e){data=null;}
-      if(!res.ok||data?.error)throw new Error(tChatErr(data?.error?.message||`Ошибка сервера (${res.status})`));
+      if(!res.ok||data?.error){
+        const translated=tChatErr(data?.error?.message||`Ошибка сервера (${res.status})`);
+        if((res.status===404||res.status===405)&&endpoint.includes('/api/harmony')&&i<endpoints.length-1){
+          lastError=new Error(translated);
+          continue;
+        }
+        throw new Error(translated);
+      }
       const reply=data?.choices?.[0]?.message?.content?.trim();
       if(!reply)throw new Error('Модель вернула пустой ответ');
       return normalizeReplyNotation(reply);
     }catch(e){
       lastError=e;
-      if(String(e?.message||'').toLowerCase().includes('failed to fetch'))continue;
+      const msg=String(e?.message||'').toLowerCase();
+      if(i<endpoints.length-1&&(msg.includes('failed to fetch')||msg.includes('load failed')||msg.includes('network'))){
+        continue;
+      }
     }
   }
   if(window.location.protocol==='file:'){
