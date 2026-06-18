@@ -105,7 +105,7 @@ async function supabaseRequest(path, init = {}) {
 async function fetchProfile(userId) {
   if (!userId) return null;
   const rows = await supabaseRequest(
-    `/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=id,email,nickname,role,plan,settings&limit=1`
+    `/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=id,nickname,role,plan,settings&limit=1`
   );
   return rows?.[0] || null;
 }
