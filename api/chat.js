@@ -212,9 +212,27 @@ function buildKnowledgeContext(documents, chunks, query) {
     .join('\n\n');
 }
 
+// ─── Блок 2: Иерархия памяти — биография исключается для академических запросов ─
+function isTechnicalQuery(query = '') {
+  const low = String(query || '').toLowerCase();
+  return /(нот|стан|гамм|аккорд|арпеджи|интервал|октав|тональ|лад|пьес|мелоди|сольфеджи|фортепиан|полифони|трезвучи|доминант|тоник|субдоминант|септ|терц|кварт|квинт|функци|ступен|диез|бемоль|размер|ритм|такт|abc)/.test(low) ||
+         /(история|физик|математик|химия|биолог|программирован|алгоритм|теори|определени|объясни|что такое|как работает|почему)/.test(low);
+}
+
+// Биографические маркеры — записи, которые описывают пользователя лично
+function isBiographicalMemory(text = '') {
+  const low = String(text || '').toLowerCase();
+  return /(меня зовут|мой возраст|я учусь|я живу|мой любимый|моя семья|я работаю|мне лет|мой день рождения|я из|моё хобби|я предпочитаю|мой уровень)/.test(low);
+}
+
 function buildMemoryContext(memories, query) {
   if (!memories.length) return '';
-  const picked = selectTopItems(memories, (item) => item.memory_text, query, 6, 4000);
+  const technical = isTechnicalQuery(query);
+  // Для технических запросов биографическую память не передаём
+  const filtered = technical
+    ? memories.filter(m => !isBiographicalMemory(m.memory_text))
+    : memories;
+  const picked = selectTopItems(filtered, (item) => item.memory_text, query, 6, 4000);
   if (!picked.length) return '';
   return '\nПАМЯТЬ О ПОЛЬЗОВАТЕЛЕ:\n' + picked
     .map((item, index) => `${index + 1}. ${item.memory_text}`)
