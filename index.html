@@ -1478,6 +1478,7 @@ document.addEventListener('click',e=>{
 const BASE_SYSTEM=`Ты HarmonyAI — музыкальный ИИ-помощник для учеников музыкальной школы. Ты мужского пола — говори о себе в мужском роде. Отвечай на русском языке. Будь дружелюбным и понятным.
 Ты знаешь: сольфеджио, нотную грамоту, интервалы, аккорды (T53, S64, D7, VII7, II7 и др.), лады, ритм, размеры, музыкальные термины. Помогаешь и с другими предметами.
 ФОРМАТИРОВАНИЕ: Всегда используй Markdown — **жирный**, # заголовки, списки, > цитаты, \`код\`.
+ОБОЗНАЧЕНИЯ АККОРДОВ И ФУНКЦИЙ: пиши их только обычным текстом, без LaTeX и без математической разметки. Верно: T53, T6, T64, S53, S6, S64, D53, D6, D64, D7, I53, IV53, V53, V6, V64. Неверно: $T_{53}$, \\(S_{64}\\), T_{53}, D_{6}.
 РАСПОЗНАВАНИЕ ФОТО: если присылают фото с нотами — разбери каждую ноту, аккорд, ритм.
 ГЕНЕРАЦИЯ НОТНЫХ СТАНОВ:
 1. Для нотного вывода всегда используй один или несколько блоков \`\`\`abc ... \`\`\`.
@@ -1539,7 +1540,9 @@ function buildSystem(){
 - не сокращай материал до одной октавы, если пользователь просит две и больше;
 - для нескольких рук или голосов используй V:1 / V:2 и %%score;
 - не пиши внутри ABC ноты в формате C4, D#5, Bb3;
-- если нужна тональность, учитывай ключ и не дублируй случайные знаки без причины.`;
+- если нужна тональность, учитывай ключ и не дублируй случайные знаки без причины;
+- обозначения функций и аккордов в тексте пиши только как T53, T6, T64, S53, S6, S64, D53, D6, D64, I53, IV53, V53, V6, V64;
+- никогда не используй в обычном тексте запись вида $T_{53}$, \\(D_{64}\\), T_{53}.`;
   }
   const styleMap={professional:'Отвечай профессионально и точно.',friendly:'Отвечай тепло и разговорчиво.',frank:'Отвечай прямо и мотивируя.',whimsical:'Отвечай весело и творчески.',efficient:'Отвечай коротко и по делу.',cynical:'Можешь быть немного саркастичным.'};
   if(s.style&&styleMap[s.style])sys+='\nСТИЛЬ: '+styleMap[s.style];
@@ -1692,11 +1695,28 @@ function normalizeAbcBlock(src,index){
 }
 function normalizeReplyNotation(text){
   let blockIndex=0;
-  return String(text||'').replace(/```\s*abc[\r\n]+([\s\S]*?)```/gi,(_,abcBody)=>{
-    blockIndex++;
-    const fixed=normalizeAbcBlock(abcBody,blockIndex);
-    return fixed?'```abc\n'+fixed+'\n```':'';
-  }).trim();
+  return String(text||'')
+    .split(/(```\s*abc[\r\n]+[\s\S]*?```)/gi)
+    .map(part=>{
+      const abcMatch=part.match(/```\s*abc[\r\n]+([\s\S]*?)```/i);
+      if(!abcMatch)return sanitizeTheoryText(part);
+      blockIndex++;
+      const fixed=normalizeAbcBlock(abcMatch[1],blockIndex);
+      return fixed?'```abc\n'+fixed+'\n```':'';
+    })
+    .join('')
+    .replace(/\n{3,}/g,'\n\n')
+    .trim();
+}
+function sanitizeTheoryText(text){
+  return String(text||'')
+    .replace(/\\\(/g,'(')
+    .replace(/\\\)/g,')')
+    .replace(/\(\s*\$+\s*([TSDIVXivx]+)\s*_\{?\s*(\d{1,3})\s*\}?\s*\$+\s*\)/g,'$1$2')
+    .replace(/\$+\s*([TSDIVXivx]+)\s*_\{?\s*(\d{1,3})\s*\}?\s*\$+/g,'$1$2')
+    .replace(/([TSDIVXivx]+)\s*_\{?\s*(\d{1,3})\s*\}?/g,'$1$2')
+    .replace(/\(\s*([A-Ga-g][,']?)\s*\)/g,'($1)')
+    .replace(/\s+([,.;:!?])/g,'$1');
 }
 function getAbcRenderOptions(hostEl){
   const mobile=window.innerWidth<769;
