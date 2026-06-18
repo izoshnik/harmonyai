@@ -229,6 +229,20 @@ function buildFeedbackContext(feedbackRows, query) {
     .join('\n\n');
 }
 
+function isSimpleQuery(query = '') {
+  const clean = normalizeText(query).toLowerCase();
+  if (!clean) return true;
+  if (clean.length <= 40 && /^(привет|здравствуй|здравствуйте|как дела|спасибо|ок|понял|поняла|да|нет|hi|hello|thanks|thank you)[\s!.?]*$/i.test(clean)) {
+    return true;
+  }
+  return false;
+}
+
+function isCreativeOrNotationRequest(query = '') {
+  const clean = normalizeText(query).toLowerCase();
+  return /(сгенерируй|создай|напиши|придумай|построй|сочини|гамм|аккорд|нот|стан|abc|мелоди|пьес|цепочк)/.test(clean);
+}
+
 async function maybeSaveDeveloperNote(profile, queryText) {
   if (!profile || profile.role !== 'developer') return;
   const clean = normalizeText(queryText);
