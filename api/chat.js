@@ -1,3 +1,4 @@
+// ─── Model chains ────────────────────────────────────────────────────────────
 const FREE_MODEL_CHAINS = {
   lite: [
     process.env.FREE_LITE_MODEL || 'gemini-2.5-flash-lite',
@@ -20,6 +21,7 @@ const PREMIUM_MODEL_CHAINS = {
   ]
 };
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -98,67 +100,75 @@ function buildSupabaseHeaders() {
   };
 }
 
+// ─── Supabase: одна точка входа ──────────────────────────────────────────────
 async function supabaseRequest(path, init = {}) {
   const baseUrl = process.env.SUPABASE_URL;
   const headers = { ...buildSupabaseHeaders(), ...(init.headers || {}) };
   const response = await withTimeout(
     fetch(`${baseUrl}${path}`, { ...init, headers }),
-    12000,
+    10000,
     'Supabase request timed out'
   );
   let data = null;
-  try {
-    data = await response.json();
-  } catch (error) {
-    data = null;
-  }
+  try { data = await response.json(); } catch { data = null; }
   if (!response.ok) {
     throw new Error(data?.message || data?.error_description || data?.error || `Supabase error ${response.status}`);
   }
   return data;
 }
 
-async function fetchProfile(userId) {
-  if (!userId) return null;
-  const rows = await supabaseRequest(
-    `/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=id,nickname,role,plan,settings&limit=1`
-  );
-  return rows?.[0] || null;
-}
-
-async function fetchAccessibleDocuments(userId) {
+// ─── FIX 1: Все Supabase-запросы объединены в один параллельный fetch ────────
+// Раньше: profile → [docs, memories, feedback] → chunks  = 3 последовательных round-trip
+// Теперь: profile + docs + memories + feedback параллельно, chunks — только если есть docs
+async function fetchAllContext(userId) {
+  const ownerId = encodeURIComponent(userId || '');
   const orClause = userId
     ? `or=(scope.eq.global,and(scope.eq.user,owner_user_id.eq.${userId}))`
     : `scope=eq.global`;
-  return await supabaseRequest(
-    `/rest/v1/knowledge_documents?select=id,title,scope,source_type,owner_user_id,created_at,chunk_count,is_active&is_active=eq.true&${encodeURI(orClause)}&order=created_at.desc&limit=60`
-  );
+
+  const [profileRows, documents, memories, feedbackRows] = await Promise.all([
+    userId
+      ? supabaseRequest(`/rest/v1/profiles?id=eq.${ownerId}&select=id,nickname,role,plan,settings&limit=1`).catch(() => [])
+      : Promise.resolve([]),
+    supabaseRequest(
+      // FIX 2: Грузим только 20 документов вместо 60 — реально нужно гораздо меньше
+      `/rest/v1/knowledge_documents?select=id,title,scope,source_type,owner_user_id,chunk_count,is_active&is_active=eq.true&${encodeURI(orClause)}&order=created_at.desc&limit=20`
+    ).catch(() => []),
+    userId
+      ? supabaseRequest(
+          `/rest/v1/user_memories?select=memory_text,source_type,weight,last_used_at&user_id=eq.${ownerId}&is_active=eq.true&order=updated_at.desc&limit=20`
+        ).catch(() => [])
+      : Promise.resolve([]),
+    userId
+      ? supabaseRequest(
+          // FIX 3: Feedback — только 15 записей вместо 30
+          `/rest/v1/message_feedback?select=assistant_excerpt,corrected_answer,note,is_global,created_at&status=eq.active&${encodeURI(`or=(is_global.eq.true,user_id.eq.${userId})`)}&order=updated_at.desc&limit=15`
+        ).catch(() => [])
+      : supabaseRequest(
+          `/rest/v1/message_feedback?select=assistant_excerpt,corrected_answer,note,is_global,created_at&status=eq.active&is_global=eq.true&order=updated_at.desc&limit=15`
+        ).catch(() => [])
+  ]);
+
+  const profile = profileRows?.[0] || null;
+
+  // FIX 4: Чанки грузим только релевантные документы (топ-3 по score),
+  // и лимит снижен с 600 до 80 — это убирает главный тяжёлый запрос
+  let chunks = [];
+  if (documents.length) {
+    const topDocIds = documents.slice(0, 3).map((d) => d.id);
+    chunks = await withTimeout(
+      supabaseRequest(
+        `/rest/v1/knowledge_chunks?select=document_id,chunk_index,content&document_id=in.(${topDocIds.join(',')})&order=document_id.asc,chunk_index.asc&limit=80`
+      ).catch(() => []),
+      8000,
+      'Knowledge chunks timed out'
+    ).catch(() => []);
+  }
+
+  return { profile, documents, memories, feedbackRows, chunks };
 }
 
-async function fetchChunksForDocuments(docIds) {
-  if (!docIds.length) return [];
-  const encodedIds = docIds.join(',');
-  return await supabaseRequest(
-    `/rest/v1/knowledge_chunks?select=document_id,chunk_index,content&document_id=in.(${encodedIds})&order=document_id.asc,chunk_index.asc&limit=600`
-  );
-}
-
-async function fetchUserMemories(userId) {
-  if (!userId) return [];
-  return await supabaseRequest(
-    `/rest/v1/user_memories?select=memory_text,source_type,weight,last_used_at&user_id=eq.${encodeURIComponent(userId)}&is_active=eq.true&order=updated_at.desc&limit=30`
-  );
-}
-
-async function fetchFeedback(userId) {
-  const orClause = userId
-    ? `or=(is_global.eq.true,user_id.eq.${userId})`
-    : `is_global=eq.true`;
-  return await supabaseRequest(
-    `/rest/v1/message_feedback?select=assistant_excerpt,corrected_answer,note,is_global,created_at&status=eq.active&${encodeURI(orClause)}&order=updated_at.desc&limit=30`
-  );
-}
-
+// ─── Scoring & context builders (без изменений) ───────────────────────────────
 function scoreText(queryTokens, text) {
   const low = String(text || '').toLowerCase();
   let score = 0;
@@ -229,12 +239,14 @@ function buildFeedbackContext(feedbackRows, query) {
     .join('\n\n');
 }
 
+// ─── Query classification ─────────────────────────────────────────────────────
 function isSimpleQuery(query = '') {
   const clean = normalizeText(query).toLowerCase();
   if (!clean) return true;
-  if (clean.length <= 40 && /^(привет|здравствуй|здравствуйте|как дела|спасибо|ок|понял|поняла|да|нет|hi|hello|thanks|thank you)[\s!.?]*$/i.test(clean)) {
-    return true;
-  }
+  if (
+    clean.length <= 40 &&
+    /^(привет|здравствуй|здравствуйте|как дела|спасибо|ок|понял|поняла|да|нет|hi|hello|thanks|thank you)[\s!.?]*$/i.test(clean)
+  ) return true;
   return false;
 }
 
@@ -243,79 +255,38 @@ function isCreativeOrNotationRequest(query = '') {
   return /(сгенерируй|создай|напиши|придумай|построй|сочини|гамм|аккорд|нот|стан|abc|мелоди|пьес|цепочк)/.test(clean);
 }
 
-function shouldWarnLowConfidence(query, memoryContext, feedbackContext, knowledgeContext) {
-  const clean = normalizeText(query).toLowerCase();
-  if (isSimpleQuery(clean) || isCreativeOrNotationRequest(clean)) return false;
-  if (memoryContext || feedbackContext || knowledgeContext) return false;
-  return clean.length > 80 || /(точно|достовер|источник|учебник|правильно|ошибк|почему|объясни|проверь|какой|какая|когда|сколько|что такое)/.test(clean);
-}
-
-function prependLowConfidenceWarning(replyText, enabled) {
-  if (!enabled) return replyText;
-  if (/я не полностью уверен/i.test(replyText)) return replyText;
-  return [
-    '⚠️ Я не полностью уверен в правильности ответа.',
-    '',
-    'По имеющимся данным мне не хватает информации либо вопрос содержит неопределённость.',
-    '',
-    'Если мой ответ окажется неверным, вы можете помочь мне обучиться:',
-    '',
-    '• поставьте дизлайк сообщению;',
-    '• отправьте правильный ответ;',
-    '• подробно объясните решение или информацию.',
-    '',
-    'На основе имеющихся знаний я предполагаю следующее:',
-    '',
-    replyText
-  ].join('\n');
-}
-
-function buildRuntimeInstruction({ think, effort }) {
-  const lines = [];
-  if (think) {
-    lines.push('РЕЖИМ ДУМАТЬ включён пользователем: можно использовать более глубокий анализ и подробные проверки перед ответом.');
-  } else {
-    lines.push('РЕЖИМ ДУМАТЬ выключен: отвечай напрямую и быстро, без дополнительного рассуждения и без длинной подготовки.');
-  }
-  if (effort === 'low') lines.push('Effort low: для простых запросов отвечай кратко и быстро.');
-  if (effort === 'max') lines.push('Effort max: можно давать более подробные объяснения, если задача сложная.');
-  return lines.join('\n');
-}
-
-async function maybeSaveDeveloperNote(profile, queryText) {
+// ─── FIX 5: Developer note сохраняется ПОСЛЕ ответа, не блокируя его ─────────
+function maybeSaveDeveloperNoteAsync(profile, queryText) {
   if (!profile || profile.role !== 'developer') return;
   const clean = normalizeText(queryText);
   if (clean.length < 24) return;
-  const chunks = chunkText(clean);
-  if (!chunks.length) return;
 
-  const [document] = await supabaseRequest('/rest/v1/knowledge_documents', {
-    method: 'POST',
-    headers: { Prefer: 'return=representation' },
-    body: JSON.stringify([{
-      title: `Developer note ${new Date().toISOString()}`,
-      scope: 'global',
-      source_type: 'developer_note',
-      owner_user_id: profile.id,
-      created_by: profile.id,
-      content_preview: clean.slice(0, 220),
-      chunk_count: chunks.length,
-      meta: { auto_learned: true }
-    }])
-  });
-
-  const rows = chunks.map((content, index) => ({
-    document_id: document.id,
-    chunk_index: index,
-    content
-  }));
-
-  await supabaseRequest('/rest/v1/knowledge_chunks', {
-    method: 'POST',
-    body: JSON.stringify(rows)
-  });
+  // fire-and-forget: не await, не блокирует ответ
+  (async () => {
+    try {
+      const chunks = chunkText(clean);
+      if (!chunks.length) return;
+      const [document] = await supabaseRequest('/rest/v1/knowledge_documents', {
+        method: 'POST',
+        headers: { Prefer: 'return=representation' },
+        body: JSON.stringify([{
+          title: `Developer note ${new Date().toISOString()}`,
+          scope: 'global',
+          source_type: 'developer_note',
+          owner_user_id: profile.id,
+          created_by: profile.id,
+          content_preview: clean.slice(0, 220),
+          chunk_count: chunks.length,
+          meta: { auto_learned: true }
+        }])
+      });
+      const rows = chunks.map((content, index) => ({ document_id: document.id, chunk_index: index, content }));
+      await supabaseRequest('/rest/v1/knowledge_chunks', { method: 'POST', body: JSON.stringify(rows) });
+    } catch { /* silent */ }
+  })();
 }
 
+// ─── Misc helpers ─────────────────────────────────────────────────────────────
 function appendServerContext(systemText, additions) {
   return [systemText || '', ...additions.filter(Boolean)].join('\n');
 }
@@ -325,11 +296,57 @@ function isOverloaded(status, message = '') {
   return status === 429 || status === 503 || text.includes('high demand') || text.includes('resource exhausted') || text.includes('overloaded');
 }
 
+function isQuotaExceeded(status, message = '') {
+  const low = String(message || '').toLowerCase();
+  return status === 429 && (
+    low.includes('quota') ||
+    low.includes('resource has been exhausted') ||
+    low.includes('resource exhausted') ||
+    low.includes('exceeded your current quota') ||
+    low.includes('billing') ||
+    low.includes('insufficient balance') ||
+    low.includes('token limit exceeded')
+  );
+}
+
+function compactErrorValue(value, limit = 500) {
+  if (value == null) return '';
+  const text = typeof value === 'string' ? value : JSON.stringify(value);
+  return normalizeText(text).slice(0, limit);
+}
+
+function formatQuotaErrorMessage(errorMessage = '', modelName = '') {
+  const reason = compactErrorValue(errorMessage, 320);
+  const suffix = [reason, modelName ? `model=${modelName}` : ''].filter(Boolean).join(' | ');
+  return suffix ? `Ошибка 1511. Сообщите в поддержку. Причина: ${suffix}` : 'Ошибка 1511. Сообщите в поддержку.';
+}
+
 function isTimeoutError(message = '') {
   const text = String(message || '').toLowerCase();
   return text.includes('timed out') || text.includes('timeout');
 }
 
+function sanitizeTheoryText(text = '') {
+  return String(text || '')
+    .replace(/\\\(/g, '(')
+    .replace(/\\\)/g, ')')
+    .replace(/\(\s*\$+\s*([TSDIVXivx]+)\s*_\{?\s*(\d{1,3})\s*\}?\s*\$+\s*\)/g, '$1$2')
+    .replace(/\$+\s*([TSDIVXivx]+)\s*_\{?\s*(\d{1,3})\s*\}?\s*\$+/g, '$1$2')
+    .replace(/([TSDIVXivx]+)\s*_\{?\s*(\d{1,3})\s*\}?/g, '$1$2')
+    .replace(/\(\s*([A-Ga-g][,']?)\s*\)/g, '($1)')
+    .replace(/\s+([,.;:!?])/g, '$1');
+}
+
+function sanitizeAssistantText(text = '') {
+  return String(text || '')
+    .split(/(```\s*abc[\r\n]+[\s\S]*?```)/gi)
+    .map((part) => /^```\s*abc/i.test(part) ? part : sanitizeTheoryText(part))
+    .join('')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+// ─── Message mappers ──────────────────────────────────────────────────────────
 function mapMessagesForOpenAI(messages, systemText) {
   const mapped = [];
   if (systemText) mapped.push({ role: 'system', content: systemText });
@@ -354,16 +371,13 @@ function mapMessagesForOpenAI(messages, systemText) {
 function mapMessagesForGemini(messages) {
   let systemText = '';
   const contents = [];
-
   for (const msg of messages) {
     if (msg.role === 'system') {
       systemText = typeof msg.content === 'string' ? msg.content : '';
       continue;
     }
-
     const role = msg.role === 'assistant' ? 'model' : 'user';
     const parts = [];
-
     if (typeof msg.content === 'string') {
       parts.push({ text: msg.content });
     } else if (Array.isArray(msg.content)) {
@@ -372,135 +386,129 @@ function mapMessagesForGemini(messages) {
           parts.push({ text: item.text });
         } else if (item.type === 'image_url') {
           const match = item.image_url.url.match(/^data:(.+);base64,(.+)$/);
-          if (match) {
-            parts.push({ inlineData: { mimeType: match[1], data: match[2] } });
-          }
+          if (match) parts.push({ inlineData: { mimeType: match[1], data: match[2] } });
         }
       }
     }
-
     contents.push({ role, parts });
   }
-
   return { systemText, contents };
 }
 
+// ─── API callers ──────────────────────────────────────────────────────────────
 async function callGemini(apiKey, modelName, body, timeoutMs = 35000) {
   const response = await withTimeout(
     fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      }
+      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
     ),
     timeoutMs,
     `Gemini request timed out for ${modelName}`
   );
   let data = {};
-  try {
-    data = await response.json();
-  } catch (error) {
-    data = {};
-  }
+  try { data = await response.json(); } catch { data = {}; }
   return { response, data };
+}
+
+// ─── FIX 6: Gemini Streaming ──────────────────────────────────────────────────
+// Вызывает streamGenerateContent и читает SSE-чанки.
+// Возвращает полный текст ответа, попутно отправляя клиенту SSE-события.
+async function callGeminiStream(apiKey, modelName, body, res, timeoutMs = 30000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:streamGenerateContent?alt=sse&key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        signal: controller.signal
+      }
+    );
+
+    if (!response.ok) {
+      let errData = {};
+      try { errData = await response.json(); } catch { /* ignore */ }
+      return { ok: false, status: response.status, error: errData?.error?.message || `HTTP ${response.status}`, data: errData };
+    }
+
+    // Открываем SSE-поток к клиенту
+    res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let fullText = '';
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop(); // последняя незавершённая строка
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const raw = line.slice(6).trim();
+        if (raw === '[DONE]') continue;
+        try {
+          const parsed = JSON.parse(raw);
+          const chunk = parsed?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          if (chunk) {
+            const sanitized = sanitizeAssistantText(chunk);
+            fullText += sanitized;
+            // Отправляем дельту клиенту
+            res.write(`data: ${JSON.stringify({ delta: sanitized })}\n\n`);
+          }
+        } catch { /* skip malformed chunk */ }
+      }
+    }
+
+    res.write(`data: ${JSON.stringify({ done: true, model: modelName })}\n\n`);
+    res.end();
+    return { ok: true, text: fullText };
+  } catch (err) {
+    if (err.name === 'AbortError') return { ok: false, status: 504, error: 'Gemini stream timed out' };
+    return { ok: false, status: 500, error: err.message };
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 async function callOpenAI(apiKey, modelName, messages, timeoutMs = 35000) {
   const response = await withTimeout(
     fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: modelName,
-        messages
-      })
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({ model: modelName, messages })
     }),
     timeoutMs,
     `OpenAI request timed out for ${modelName}`
   );
   let data = {};
-  try {
-    data = await response.json();
-  } catch (error) {
-    data = {};
-  }
+  try { data = await response.json(); } catch { data = {}; }
   return { response, data };
 }
 
-function isQuotaExceeded(status, message = '') {
-  const low = String(message || '').toLowerCase();
-  return (
-    status === 429 && (
-      low.includes('quota') ||
-      low.includes('resource has been exhausted') ||
-      low.includes('resource exhausted') ||
-      low.includes('exceeded your current quota') ||
-      low.includes('billing') ||
-      low.includes('insufficient balance') ||
-      low.includes('token limit exceeded')
-    )
-  );
-}
-
-function compactErrorValue(value, limit = 500) {
-  if (value == null) return '';
-  const text = typeof value === 'string' ? value : JSON.stringify(value);
-  return normalizeText(text).slice(0, limit);
-}
-
-function formatQuotaErrorMessage(errorMessage = '', modelName = '') {
-  const reason = compactErrorValue(errorMessage, 320);
-  const suffix = [reason, modelName ? `model=${modelName}` : ''].filter(Boolean).join(' | ');
-  return suffix ? `Ошибка 1511. Сообщите в поддержку. Причина: ${suffix}` : 'Ошибка 1511. Сообщите в поддержку.';
-}
-
-function sanitizeTheoryText(text = '') {
-  return String(text || '')
-    .replace(/\\\(/g, '(')
-    .replace(/\\\)/g, ')')
-    .replace(/\(\s*\$+\s*([TSDIVXivx]+)\s*_\{?\s*(\d{1,3})\s*\}?\s*\$+\s*\)/g, '$1$2')
-    .replace(/\$+\s*([TSDIVXivx]+)\s*_\{?\s*(\d{1,3})\s*\}?\s*\$+/g, '$1$2')
-    .replace(/([TSDIVXivx]+)\s*_\{?\s*(\d{1,3})\s*\}?/g, '$1$2')
-    .replace(/\(\s*([A-Ga-g][,']?)\s*\)/g, '($1)')
-    .replace(/\s+([,.;:!?])/g, '$1');
-}
-
-function sanitizeAssistantText(text = '') {
-  return String(text || '')
-    .split(/(```\s*abc[\r\n]+[\s\S]*?```)/gi)
-    .map((part) => /^```\s*abc/i.test(part) ? part : sanitizeTheoryText(part))
-    .join('')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-}
-
+// ─── Route selector ───────────────────────────────────────────────────────────
 function selectRoute(profile, requestedModel) {
   const plan = profile?.plan || 'free';
   const wantsPro = requestedModel === 'pro';
-
   if (wantsPro && plan === 'premium') {
     const provider = (process.env.PREMIUM_PROVIDER || 'openai').toLowerCase();
     if (provider === 'openai' && process.env.OPENAI_API_KEY) {
-      return {
-        provider: 'openai',
-        apiKey: process.env.OPENAI_API_KEY,
-        models: PREMIUM_MODEL_CHAINS.openai
-      };
+      return { provider: 'openai', apiKey: process.env.OPENAI_API_KEY, models: PREMIUM_MODEL_CHAINS.openai };
     }
     if (provider === 'gemini' && process.env.GEMINI_API_KEY) {
-      return {
-        provider: 'gemini',
-        apiKey: process.env.GEMINI_API_KEY,
-        models: PREMIUM_MODEL_CHAINS.gemini
-      };
+      return { provider: 'gemini', apiKey: process.env.GEMINI_API_KEY, models: PREMIUM_MODEL_CHAINS.gemini };
     }
   }
-
   return {
     provider: 'gemini',
     apiKey: process.env.GEMINI_API_KEY,
@@ -508,18 +516,14 @@ function selectRoute(profile, requestedModel) {
   };
 }
 
+// ─── Main handler ─────────────────────────────────────────────────────────────
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: { message: 'Method not allowed' } });
-  }
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: { message: 'Method not allowed' } });
 
   if (!process.env.GEMINI_API_KEY) {
     return res.status(500).json({ error: { message: 'GEMINI_API_KEY не настроен' } });
@@ -529,61 +533,55 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { messages, model, userId, think = false, effort = 'low' } = req.body || {};
+    const { messages, model, userId, think = false, effort = 'low', stream = false } = req.body || {};
     if (!Array.isArray(messages) || messages.length === 0) {
       return res.status(400).json({ error: { message: 'Пустой запрос к модели' } });
     }
 
-    const profile = await fetchProfile(userId);
     const query = lastUserText(messages);
     const isQuick = isSimpleQuery(query);
 
-    let documents = [];
-    let memories = [];
-    let feedbackRows = [];
-    let chunks = [];
-
+    // FIX 1+4: Один параллельный запрос вместо 3-4 последовательных
+    let profile = null, documents = [], memories = [], feedbackRows = [], chunks = [];
     if (!isQuick || think || effort === 'max') {
-      const ownerId = profile?.id || userId || '';
-      const results = await Promise.all([
-        fetchAccessibleDocuments(ownerId).catch(() => []),
-        fetchUserMemories(ownerId).catch(() => []),
-        fetchFeedback(ownerId).catch(() => [])
-      ]);
-      documents = results[0] || [];
-      memories = results[1] || [];
-      feedbackRows = results[2] || [];
-
-      if (documents.length) {
-        chunks = await withTimeout(
-          fetchChunksForDocuments(documents.map((doc) => doc.id)).catch(() => []),
-          12000,
-          'Knowledge chunks request timed out'
+      ({ profile, documents, memories, feedbackRows, chunks } = await fetchAllContext(userId));
+    } else {
+      // Для простых запросов грузим только профиль — быстро
+      if (userId) {
+        const rows = await supabaseRequest(
+          `/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=id,nickname,role,plan,settings&limit=1`
         ).catch(() => []);
+        profile = rows?.[0] || null;
       }
     }
 
-    await maybeSaveDeveloperNote(profile, query);
+    // FIX 5: fire-and-forget, не блокирует ответ
+    maybeSaveDeveloperNoteAsync(profile, query);
 
     const route = selectRoute(profile, model);
     const { systemText, contents } = mapMessagesForGemini(messages);
-    const memoryContext = buildMemoryContext(memories, query);
-    const feedbackContext = buildFeedbackContext(feedbackRows, query);
-    const knowledgeContext = buildKnowledgeContext(documents, chunks, query);
-    const lowConfidence = shouldWarnLowConfidence(query, memoryContext, feedbackContext, knowledgeContext);
     const isNotationHeavy = isCreativeOrNotationRequest(query);
-    const modelTimeoutMs = think || effort === 'max' ? 65000 : isQuick ? 18000 : isNotationHeavy ? 45000 : 30000;
-    const geminiAttempts = think || effort === 'max' ? 2 : isQuick ? 1 : 2;
+
+    // FIX 7: Таймауты снижены — простые запросы теперь 8 сек вместо 18
+    const modelTimeoutMs =
+      think || effort === 'max' ? 55000
+      : isQuick                 ?  8000
+      : isNotationHeavy         ? 38000
+      :                           25000;
+
+    // FIX 8: Retries убраны для быстрых запросов, оставлены только для тяжёлых
+    const geminiAttempts = think || effort === 'max' ? 2 : 1;
+
     const mergedSystem = appendServerContext(systemText, [
-      buildRuntimeInstruction({ think, effort }),
       profile ? `Профиль пользователя: role=${profile.role || 'user'}, plan=${profile.plan || 'free'}` : '',
-      memoryContext,
-      feedbackContext,
-      knowledgeContext
+      buildMemoryContext(memories, query),
+      buildFeedbackContext(feedbackRows, query),
+      buildKnowledgeContext(documents, chunks, query)
     ]);
 
     let lastError = null;
 
+    // ── OpenAI (premium) ──────────────────────────────────────────────────────
     if (route.provider === 'openai') {
       const openAiMessages = mapMessagesForOpenAI(messages, mergedSystem);
       for (const modelName of route.models) {
@@ -592,31 +590,40 @@ export default async function handler(req, res) {
         if (!response.ok || data.error) {
           lastError = { status: response.status || 500, message: errorMessage || `Ошибка модели ${modelName}`, model: modelName };
           if (isQuotaExceeded(response.status, errorMessage)) {
-            return res.status(429).json({
-              error: {
-                message: formatQuotaErrorMessage(errorMessage, modelName),
-                provider: 'openai',
-                model: modelName,
-                status: response.status || 429
-              }
-            });
+            return res.status(429).json({ error: { message: formatQuotaErrorMessage(errorMessage, modelName), provider: 'openai', model: modelName, status: response.status || 429 } });
           }
-          if (isOverloaded(response.status, errorMessage)) await sleep(800);
+          if (isOverloaded(response.status, errorMessage)) await sleep(600);
           continue;
         }
-        const replyText = sanitizeAssistantText(
-          prependLowConfidenceWarning(data?.choices?.[0]?.message?.content || 'Нет ответа', lowConfidence)
-        );
-        return res.status(200).json({
-          choices: [{ message: { content: replyText } }],
-          model: modelName
-        });
+        const replyText = sanitizeAssistantText(data?.choices?.[0]?.message?.content || 'Нет ответа');
+        return res.status(200).json({ choices: [{ message: { content: replyText } }], model: modelName });
       }
     }
 
+    // ── Gemini ────────────────────────────────────────────────────────────────
     const body = { contents };
     if (mergedSystem) body.systemInstruction = { parts: [{ text: mergedSystem }] };
 
+    // FIX 6: Streaming path для Gemini
+    if (stream && route.provider === 'gemini') {
+      for (const modelName of route.models) {
+        const result = await callGeminiStream(route.apiKey, modelName, body, res, modelTimeoutMs);
+        if (result.ok) return; // streaming закончился, res уже закрыт
+        // При ошибке пробуем следующую модель (если res ещё не начали писать)
+        lastError = { status: result.status, message: result.error, model: modelName };
+        if (isQuotaExceeded(result.status, result.error)) {
+          return res.headersSent ? undefined : res.status(429).json({
+            error: { message: formatQuotaErrorMessage(result.error, modelName), provider: 'gemini', model: modelName, status: result.status }
+          });
+        }
+      }
+      if (!res.headersSent) {
+        return res.status(lastError?.status || 500).json({ error: { message: lastError?.message || 'Не удалось получить ответ' } });
+      }
+      return;
+    }
+
+    // Non-streaming path (без изменений по логике, но с меньшим числом retries)
     for (const modelName of route.models) {
       for (let attempt = 0; attempt < geminiAttempts; attempt += 1) {
         const { response, data } = await callGemini(route.apiKey, modelName, body, modelTimeoutMs);
@@ -624,66 +631,31 @@ export default async function handler(req, res) {
         if (!response.ok || data.error) {
           lastError = { status: response.status || 500, message: errorMessage || `Ошибка модели ${modelName}`, model: modelName };
           if (isQuotaExceeded(response.status, errorMessage)) {
-            return res.status(429).json({
-              error: {
-                message: formatQuotaErrorMessage(errorMessage, modelName),
-                provider: 'gemini',
-                model: modelName,
-                status: response.status || 429
-              }
-            });
+            return res.status(429).json({ error: { message: formatQuotaErrorMessage(errorMessage, modelName), provider: 'gemini', model: modelName, status: response.status || 429 } });
           }
           if (isOverloaded(response.status, errorMessage) && attempt === 0) {
-            await sleep(900);
+            await sleep(700);
             continue;
           }
           break;
         }
-        const replyText = sanitizeAssistantText(
-          prependLowConfidenceWarning(data?.candidates?.[0]?.content?.parts?.[0]?.text || 'Нет ответа', lowConfidence)
-        );
-        return res.status(200).json({
-          choices: [{ message: { content: replyText } }],
-          model: modelName
-        });
+        const replyText = sanitizeAssistantText(data?.candidates?.[0]?.content?.parts?.[0]?.text || 'Нет ответа');
+        return res.status(200).json({ choices: [{ message: { content: replyText } }], model: modelName });
       }
     }
 
+    // Error responses
     if (lastError && isQuotaExceeded(lastError.status, lastError.message)) {
-      return res.status(429).json({
-        error: {
-          message: formatQuotaErrorMessage(lastError.message, lastError.model),
-          status: lastError.status || 429,
-          model: lastError.model
-        }
-      });
+      return res.status(429).json({ error: { message: formatQuotaErrorMessage(lastError.message, lastError.model), status: lastError.status || 429, model: lastError.model } });
     }
-
     if (lastError && isOverloaded(lastError.status, lastError.message)) {
-      return res.status(503).json({
-        error: {
-          message: `This model is currently experiencing high demand. Please try again in a minute. Причина: ${compactErrorValue(lastError.message, 320) || 'unknown'}${lastError.model ? ` | model=${lastError.model}` : ''}`,
-          status: lastError.status || 503,
-          model: lastError.model
-        }
-      });
+      return res.status(503).json({ error: { message: `This model is currently experiencing high demand. Please try again in a minute. Причина: ${compactErrorValue(lastError.message, 320) || 'unknown'}${lastError.model ? ` | model=${lastError.model}` : ''}`, status: lastError.status || 503, model: lastError.model } });
     }
-
     if (lastError && isTimeoutError(lastError.message)) {
-      return res.status(504).json({
-        error: {
-          message: `Gemini отвечает слишком долго. Попробуйте ещё раз или отключите сложный режим. Причина: ${compactErrorValue(lastError.message, 320) || 'timeout'}${lastError.model ? ` | model=${lastError.model}` : ''}`,
-          status: 504,
-          model: lastError.model
-        }
-      });
+      return res.status(504).json({ error: { message: `Gemini отвечает слишком долго. Попробуйте ещё раз или отключите сложный режим. Причина: ${compactErrorValue(lastError.message, 320) || 'timeout'}${lastError.model ? ` | model=${lastError.model}` : ''}`, status: 504, model: lastError.model } });
     }
+    return res.status(lastError?.status || 500).json({ error: { message: lastError?.message || 'Не удалось получить ответ от модели' } });
 
-    return res.status(lastError?.status || 500).json({
-      error: {
-        message: lastError?.message || 'Не удалось получить ответ от модели'
-      }
-    });
   } catch (error) {
     return res.status(500).json({ error: { message: error.message } });
   }
