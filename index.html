@@ -1867,9 +1867,9 @@ function buildApiCandidates(){
   const isLiveHost=window.location.hostname==='harmonyai-zeta.vercel.app';
   const endpoints=[];
   if(window.location.protocol!=='file:'&&isLiveHost){
-    endpoints.push('/api/harmony','/api/chat');
+    endpoints.push('/api/chat');
   }
-  endpoints.push(`${liveBase}/api/harmony`,`${liveBase}/api/chat`);
+  endpoints.push(`${liveBase}/api/chat`);
   return [...new Set(endpoints)];
 }
 async function requestChatReply(){
