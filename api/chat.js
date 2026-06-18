@@ -213,6 +213,59 @@ function buildFeedbackContext(feedbackRows, query) {
     .join('\n\n');
 }
 
+function isSimpleQuery(query = '') {
+  const clean = normalizeText(query).toLowerCase();
+  if (!clean) return true;
+  if (clean.length <= 40 && /^(привет|здравствуй|здравствуйте|как дела|спасибо|ок|понял|поняла|да|нет|hi|hello|thanks|thank you)[\s!.?]*$/i.test(clean)) {
+    return true;
+  }
+  return false;
+}
+
+function isCreativeOrNotationRequest(query = '') {
+  const clean = normalizeText(query).toLowerCase();
+  return /(сгенерируй|создай|напиши|придумай|построй|сочини|гамм|аккорд|нот|стан|abc|мелоди|пьес|цепочк)/.test(clean);
+}
+
+function shouldWarnLowConfidence(query, memoryContext, feedbackContext, knowledgeContext) {
+  const clean = normalizeText(query).toLowerCase();
+  if (isSimpleQuery(clean) || isCreativeOrNotationRequest(clean)) return false;
+  if (memoryContext || feedbackContext || knowledgeContext) return false;
+  return clean.length > 80 || /(точно|достовер|источник|учебник|правильно|ошибк|почему|объясни|проверь|какой|какая|когда|сколько|что такое)/.test(clean);
+}
+
+function prependLowConfidenceWarning(replyText, enabled) {
+  if (!enabled) return replyText;
+  if (/я не полностью уверен/i.test(replyText)) return replyText;
+  return [
+    '⚠️ Я не полностью уверен в правильности ответа.',
+    '',
+    'По имеющимся данным мне не хватает информации либо вопрос содержит неопределённость.',
+    '',
+    'Если мой ответ окажется неверным, вы можете помочь мне обучиться:',
+    '',
+    '• поставьте дизлайк сообщению;',
+    '• отправьте правильный ответ;',
+    '• подробно объясните решение или информацию.',
+    '',
+    'На основе имеющихся знаний я предполагаю следующее:',
+    '',
+    replyText
+  ].join('\n');
+}
+
+function buildRuntimeInstruction({ think, effort }) {
+  const lines = [];
+  if (think) {
+    lines.push('РЕЖИМ ДУМАТЬ включён пользователем: можно использовать более глубокий анализ и подробные проверки перед ответом.');
+  } else {
+    lines.push('РЕЖИМ ДУМАТЬ выключен: отвечай напрямую и быстро, без дополнительного рассуждения и без длинной подготовки.');
+  }
+  if (effort === 'low') lines.push('Effort low: для простых запросов отвечай кратко и быстро.');
+  if (effort === 'max') lines.push('Effort max: можно давать более подробные объяснения, если задача сложная.');
+  return lines.join('\n');
+}
+
 async function maybeSaveDeveloperNote(profile, queryText) {
   if (!profile || profile.role !== 'developer') return;
   const clean = normalizeText(queryText);
@@ -415,7 +468,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { messages, model, userId } = req.body || {};
+    const { messages, model, userId, think = false, effort = 'low' } = req.body || {};
     if (!Array.isArray(messages) || messages.length === 0) {
       return res.status(400).json({ error: { message: 'Пустой запрос к модели' } });
     }
@@ -434,11 +487,16 @@ export default async function handler(req, res) {
 
     const route = selectRoute(profile, model);
     const { systemText, contents } = mapMessagesForGemini(messages);
+    const memoryContext = buildMemoryContext(memories, query);
+    const feedbackContext = buildFeedbackContext(feedbackRows, query);
+    const knowledgeContext = buildKnowledgeContext(documents, chunks, query);
+    const lowConfidence = shouldWarnLowConfidence(query, memoryContext, feedbackContext, knowledgeContext);
     const mergedSystem = appendServerContext(systemText, [
+      buildRuntimeInstruction({ think, effort }),
       profile ? `Профиль пользователя: role=${profile.role || 'user'}, plan=${profile.plan || 'free'}` : '',
-      buildMemoryContext(memories, query),
-      buildFeedbackContext(feedbackRows, query),
-      buildKnowledgeContext(documents, chunks, query)
+      memoryContext,
+      feedbackContext,
+      knowledgeContext
     ]);
 
     let lastError = null;
@@ -458,7 +516,7 @@ export default async function handler(req, res) {
           if (isOverloaded(response.status, errorMessage)) await sleep(800);
           continue;
         }
-        const replyText = data?.choices?.[0]?.message?.content || 'Нет ответа';
+        const replyText = prependLowConfidenceWarning(data?.choices?.[0]?.message?.content || 'Нет ответа', lowConfidence);
         return res.status(200).json({
           choices: [{ message: { content: replyText } }],
           model: modelName
@@ -486,7 +544,7 @@ export default async function handler(req, res) {
           }
           break;
         }
-        const replyText = data?.candidates?.[0]?.content?.parts?.[0]?.text || 'Нет ответа';
+        const replyText = prependLowConfidenceWarning(data?.candidates?.[0]?.content?.parts?.[0]?.text || 'Нет ответа', lowConfidence);
         return res.status(200).json({
           choices: [{ message: { content: replyText } }],
           model: modelName
