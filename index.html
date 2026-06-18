@@ -479,6 +479,80 @@ body{background:var(--bg);color:var(--text);}
   .model-pill{min-width:148px!important;max-width:176px!important;height:32px!important;padding:0 13px!important;}
   .pill-name{max-width:76px!important;}
 }
+
+/* ─── Feedback Modal (Блок 3) ─────────────────────────────────────────────── */
+#feedbackModal{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;}
+.fb-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(3px);}
+.fb-modal{
+  position:relative;z-index:1;width:min(480px,92vw);
+  background:rgba(28,28,35,.92);
+  border:1px solid rgba(255,255,255,.13);
+  border-radius:16px;
+  box-shadow:0 8px 40px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.05) inset;
+  backdrop-filter:blur(24px) saturate(1.4);
+  color:#e8e8ef;
+  font-family:inherit;
+  overflow:hidden;
+}
+.fb-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 18px 12px;
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+.fb-title{font-size:14px;font-weight:600;letter-spacing:.01em;}
+.fb-close{
+  background:none;border:none;color:rgba(255,255,255,.4);font-size:16px;
+  cursor:pointer;line-height:1;padding:2px 4px;border-radius:6px;transition:color .15s,background .15s;
+}
+.fb-close:hover{color:#fff;background:rgba(255,255,255,.1);}
+.fb-body{padding:14px 18px;}
+.fb-hint{margin:0 0 10px;font-size:12px;color:rgba(255,255,255,.45);}
+.fb-tabs{display:flex;gap:6px;margin-bottom:12px;}
+.fb-tab{
+  flex:1;padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.12);
+  background:transparent;color:rgba(255,255,255,.5);font-size:12px;cursor:pointer;transition:all .15s;
+}
+.fb-tab.active{background:rgba(139,92,246,.25);border-color:rgba(139,92,246,.5);color:#c4b5fd;}
+.fb-tab:hover:not(.active){background:rgba(255,255,255,.06);color:rgba(255,255,255,.75);}
+.fb-tab-content{display:flex;flex-direction:column;gap:8px;}
+.fb-textarea{
+  width:100%;min-height:90px;resize:vertical;
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+  border-radius:10px;color:#e8e8ef;font-size:13px;padding:10px 12px;
+  font-family:inherit;line-height:1.5;outline:none;transition:border-color .15s;box-sizing:border-box;
+}
+.fb-textarea:focus{border-color:rgba(139,92,246,.5);}
+.fb-input{
+  width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+  border-radius:10px;color:#e8e8ef;font-size:13px;padding:9px 12px;
+  font-family:inherit;outline:none;transition:border-color .15s;box-sizing:border-box;
+}
+.fb-input:focus{border-color:rgba(139,92,246,.5);}
+.fb-sep{align-self:center;font-size:18px;color:rgba(255,255,255,.3);padding:0 4px;}
+.fb-excerpt{
+  margin-top:12px;padding:10px 12px;
+  background:rgba(255,255,255,.04);border-radius:10px;
+  border-left:3px solid rgba(139,92,246,.4);
+}
+.fb-excerpt-label{display:block;font-size:10px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
+.fb-excerpt-text{font-size:12px;color:rgba(255,255,255,.55);line-height:1.45;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+.fb-footer{
+  display:flex;gap:8px;padding:12px 18px 16px;
+  border-top:1px solid rgba(255,255,255,.08);
+}
+.fb-btn-cancel{
+  padding:8px 16px;border-radius:10px;border:1px solid rgba(255,255,255,.12);
+  background:transparent;color:rgba(255,255,255,.5);font-size:13px;cursor:pointer;transition:all .15s;
+}
+.fb-btn-cancel:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.8);}
+.fb-btn-submit{
+  flex:1;padding:8px 16px;border-radius:10px;border:none;
+  background:linear-gradient(135deg,#7c3aed,#4f46e5);
+  color:#fff;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s,transform .1s;
+}
+.fb-btn-submit:hover{opacity:.9;}
+.fb-btn-submit:active{transform:scale(.98);}
+.fb-btn-submit:disabled{opacity:.5;cursor:default;}
 </style>
 </head>
 <body>
@@ -1530,10 +1604,28 @@ function isNotationRequest(text){
   return /(abc|нот|стан|гамм|аккорд|арпеджи|интервал|октав|тональ|лад|пьес|мелоди|сольфеджи|фортепиан|полифони|голос)/.test(low);
 }
 
+// ─── Определение типа запроса для управления контекстом ─────────────────────
+function isTechnicalOrAcademicQuery(text){
+  const low=String(text||'').toLowerCase();
+  return /(нот|стан|гамм|аккорд|арпеджи|интервал|октав|тональ|лад|пьес|мелоди|сольфеджи|фортепиан|полифони|голос|abc|трезвучи|доминант|тоник|субдоминант|септ|терц|кварт|квинт|функци|ступен|диез|бемоль|размер|ритм|такт)/.test(low)||
+         /(история|физик|математик|химия|биолог|программирован|алгоритм|теори|определени|объясни|что такое|как работает|почему)/.test(low);
+}
+
 function buildSystem(){
   const s=curUser?.settings||{};
   let sys=BASE_SYSTEM;
   const currentQuery=getLastUserText();
+  const isTechnical=isTechnicalOrAcademicQuery(currentQuery);
+
+  // Блок 2: Иерархия контекста — для академических запросов
+  if(isTechnical){
+    sys+='\n\n[ИЕРАРХИЯ ЗНАНИЙ ДЛЯ ЭТОГО ЗАПРОСА]\n'+
+         '1. Используй прежде всего свои фундаментальные академические знания.\n'+
+         '2. Исправления и уточнения из раздела «ИСПРАВЛЕНИЯ И ОШИБКИ» ниже имеют НАИВЫСШИЙ приоритет — они перекрывают базовые знания.\n'+
+         '3. Загруженные материалы — используй как дополнительный источник.\n'+
+         '[ИСКЛЮЧЕНИЕ] Личная биографическая информация о пользователе НЕ должна влиять на академические ответы.';
+  }
+
   if(isNotationRequest(currentQuery)){
     sys+=`\nСПЕЦИАЛЬНО ДЛЯ ТЕКУЩЕГО НОТНОГО ЗАПРОСА:
 - если нужен длинный пример, дели его на столько ABC-блоков, сколько нужно;
@@ -1544,6 +1636,7 @@ function buildSystem(){
 - обозначения функций и аккордов в тексте пиши только как T53, T6, T64, S53, S6, S64, D53, D6, D64, I53, IV53, V53, V6, V64;
 - никогда не используй в обычном тексте запись вида $T_{53}$, \\(D_{64}\\), T_{53}.`;
   }
+
   const styleMap={professional:'Отвечай профессионально и точно.',friendly:'Отвечай тепло и разговорчиво.',frank:'Отвечай прямо и мотивируя.',whimsical:'Отвечай весело и творчески.',efficient:'Отвечай коротко и по делу.',cynical:'Можешь быть немного саркастичным.'};
   if(s.style&&styleMap[s.style])sys+='\nСТИЛЬ: '+styleMap[s.style];
   if(curMode==='low')sys+='\nРЕЖИМ Low: отвечай кратко, максимум 3-4 предложения.';
@@ -1808,6 +1901,92 @@ function cpMsg(btn){
   navigator.clipboard.writeText(txt).catch(()=>{});
   btn.classList.add('liked');setTimeout(()=>btn.classList.remove('liked'),800);
 }
+// ─── Блок 3: Feedback Modal ────────────────────────────────────────────────
+function openFeedbackModal(dislikeBtn,raw){
+  // Удаляем предыдущее модальное окно, если есть
+  document.getElementById('feedbackModal')?.remove();
+
+  const modal=document.createElement('div');
+  modal.id='feedbackModal';
+  modal.innerHTML=`
+    <div class="fb-backdrop" id="fbBackdrop"></div>
+    <div class="fb-modal" role="dialog" aria-modal="true" aria-label="Исправление ответа">
+      <div class="fb-header">
+        <span class="fb-title">✏️ Исправить ответ</span>
+        <button class="fb-close" id="fbClose" title="Закрыть">✕</button>
+      </div>
+      <div class="fb-body">
+        <p class="fb-hint">Выбери формат ввода:</p>
+        <div class="fb-tabs">
+          <button class="fb-tab active" data-tab="free">Свободное описание</button>
+          <button class="fb-tab" data-tab="qa">Вопрос : Ответ</button>
+        </div>
+        <div class="fb-tab-content" id="fbTabFree">
+          <textarea class="fb-textarea" id="fbTextFree" placeholder="Опишите, что именно было неверно и как правильно..."></textarea>
+        </div>
+        <div class="fb-tab-content" style="display:none" id="fbTabQa">
+          <input class="fb-input" id="fbQaQ" placeholder="Понятие или вопрос (например: Доминанта)">
+          <span class="fb-sep">:</span>
+          <input class="fb-input" id="fbQaA" placeholder="Правильный ответ (например: V ступень гаммы)">
+        </div>
+        <div class="fb-excerpt">
+          <span class="fb-excerpt-label">Ответ ИИ:</span>
+          <span class="fb-excerpt-text">${(raw||'').slice(0,180)}${raw&&raw.length>180?'…':''}</span>
+        </div>
+      </div>
+      <div class="fb-footer">
+        <button class="fb-btn-cancel" id="fbCancel">Отмена</button>
+        <button class="fb-btn-submit" id="fbSubmit">Отправить и обучить 🎓</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+
+  // Переключение вкладок
+  modal.querySelectorAll('.fb-tab').forEach(tab=>{
+    tab.addEventListener('click',()=>{
+      modal.querySelectorAll('.fb-tab').forEach(t=>t.classList.remove('active'));
+      tab.classList.add('active');
+      const which=tab.dataset.tab;
+      document.getElementById('fbTabFree').style.display=which==='free'?'':'none';
+      document.getElementById('fbTabQa').style.display=which==='qa'?'':'none';
+    });
+  });
+
+  const closeModal=()=>modal.remove();
+  document.getElementById('fbClose').addEventListener('click',closeModal);
+  document.getElementById('fbCancel').addEventListener('click',closeModal);
+  document.getElementById('fbBackdrop').addEventListener('click',closeModal);
+
+  document.getElementById('fbSubmit').addEventListener('click',async()=>{
+    const activeTab=modal.querySelector('.fb-tab.active')?.dataset?.tab||'free';
+    let correction='',note='';
+    if(activeTab==='qa'){
+      const q=document.getElementById('fbQaQ').value.trim();
+      const a=document.getElementById('fbQaA').value.trim();
+      if(!q||!a){alert('Заполните оба поля «Понятие» и «Ответ».');return;}
+      correction=`${q} : ${a}`;
+      note='Паттерн Q:A — прямое обучение модели';
+    }else{
+      correction=document.getElementById('fbTextFree').value.trim();
+      note='Свободное описание ошибки';
+    }
+    if(!correction){alert('Введите исправление.');return;}
+    const btn=document.getElementById('fbSubmit');
+    btn.disabled=true;btn.textContent='Сохраняем...';
+    try{
+      await recordFeedbackToSupabase(raw,correction,note);
+      btn.textContent='✅ Сохранено!';
+      setTimeout(closeModal,1000);
+    }catch(e){
+      btn.disabled=false;btn.textContent='Отправить и обучить 🎓';
+      alert('Не удалось сохранить: '+e.message);
+    }
+  });
+
+  // Фокус на первое поле
+  setTimeout(()=>document.getElementById('fbTextFree')?.focus(),80);
+}
+
 async function likeMsg(btn,t){
   const g=btn.parentElement;
   const lb=g.children[1],db=g.children[2];
@@ -1819,14 +1998,7 @@ async function likeMsg(btn,t){
     if(becameActive){
       const wrap=btn.closest('.msg-ai-wrap');
       const raw=wrap?.querySelector('.msg-ai')?.dataset?.raw||wrap?.querySelector('.msg-ai')?.textContent||'';
-      const correction=prompt('Что здесь было неверно? Напишите правильный вариант. Это сохранится как исправление для ИИ.');
-      if(correction&&correction.trim()){
-        try{
-          await recordFeedbackToSupabase(raw,correction,'Пользователь указал на ошибку через dislike');
-        }catch(e){
-          alert('Не удалось сохранить исправление: '+e.message);
-        }
-      }
+      openFeedbackModal(btn,raw);
     }
   }
 }
