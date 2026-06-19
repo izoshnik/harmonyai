@@ -587,8 +587,8 @@ export default async function handler(req, res) {
       : isNotationHeavy         ? 38000
       :                           25000;
 
-    // FIX 8: Retries убраны для быстрых запросов, оставлены только для тяжёлых
-    const geminiAttempts = think || effort === 'max' ? 2 : 1;
+    // FIX 8: Retries — 3 попытки при overload с прогрессивными задержками
+    const geminiAttempts = think || effort === 'max' ? 3 : isQuick ? 1 : 2;
 
     const mergedSystem = appendServerContext(systemText, [
       profile ? `Профиль пользователя: role=${profile.role || 'user'}, plan=${profile.plan || 'free'}` : '',
@@ -622,21 +622,32 @@ export default async function handler(req, res) {
     const body = { contents };
     if (mergedSystem) body.systemInstruction = { parts: [{ text: mergedSystem }] };
 
-    // FIX 6: Streaming path для Gemini
+    // FIX 6: Streaming path для Gemini с retry при overload
     if (stream && route.provider === 'gemini') {
       for (const modelName of route.models) {
-        const result = await callGeminiStream(route.apiKey, modelName, body, res, modelTimeoutMs);
-        if (result.ok) return; // streaming закончился, res уже закрыт
-        // При ошибке пробуем следующую модель (если res ещё не начали писать)
-        lastError = { status: result.status, message: result.error, model: modelName };
-        if (isQuotaExceeded(result.status, result.error)) {
-          return res.headersSent ? undefined : res.status(429).json({
-            error: { message: formatQuotaErrorMessage(result.error, modelName), provider: 'gemini', model: modelName, status: result.status }
-          });
+        let streamOk = false;
+        for (let sAttempt = 0; sAttempt < 3; sAttempt++) {
+          const result = await callGeminiStream(route.apiKey, modelName, body, res, modelTimeoutMs);
+          if (result.ok) return; // streaming закончился, res уже закрыт
+          lastError = { status: result.status, message: result.error, model: modelName };
+          if (isQuotaExceeded(result.status, result.error)) {
+            return res.headersSent ? undefined : res.status(429).json({
+              error: { message: formatQuotaErrorMessage(result.error, modelName), provider: 'gemini', model: modelName, status: result.status }
+            });
+          }
+          if (isOverloaded(result.status, result.error) && sAttempt < 2 && !res.headersSent) {
+            const delays = [1500, 3000];
+            await sleep(delays[sAttempt] || 1500);
+            continue;
+          }
+          break;
         }
       }
       if (!res.headersSent) {
-        return res.status(lastError?.status || 500).json({ error: { message: lastError?.message || 'Не удалось получить ответ' } });
+        const errMsg = lastError && isOverloaded(lastError.status, lastError.message)
+          ? 'Модель временно перегружена. Я уже попробовал резервный вариант, но сервис всё ещё занят. Повторите через минуту.'
+          : (lastError?.message || 'Не удалось получить ответ');
+        return res.status(lastError?.status || 500).json({ error: { message: errMsg } });
       }
       return;
     }
@@ -651,8 +662,10 @@ export default async function handler(req, res) {
           if (isQuotaExceeded(response.status, errorMessage)) {
             return res.status(429).json({ error: { message: formatQuotaErrorMessage(errorMessage, modelName), provider: 'gemini', model: modelName, status: response.status || 429 } });
           }
-          if (isOverloaded(response.status, errorMessage) && attempt === 0) {
-            await sleep(700);
+          if (isOverloaded(response.status, errorMessage) && attempt < geminiAttempts - 1) {
+            // Прогрессивная задержка: 1.5с → 3с → 5с
+            const delays = [1500, 3000, 5000];
+            await sleep(delays[attempt] || 3000);
             continue;
           }
           break;
@@ -667,7 +680,7 @@ export default async function handler(req, res) {
       return res.status(429).json({ error: { message: formatQuotaErrorMessage(lastError.message, lastError.model), status: lastError.status || 429, model: lastError.model } });
     }
     if (lastError && isOverloaded(lastError.status, lastError.message)) {
-      return res.status(503).json({ error: { message: `This model is currently experiencing high demand. Please try again in a minute. Причина: ${compactErrorValue(lastError.message, 320) || 'unknown'}${lastError.model ? ` | model=${lastError.model}` : ''}`, status: lastError.status || 503, model: lastError.model } });
+      return res.status(503).json({ error: { message: `Модель временно перегружена. Я уже попробовал резервный вариант, но сервис всё ещё занят. Повторите через минуту.`, status: lastError.status || 503, model: lastError.model } });
     }
     if (lastError && isTimeoutError(lastError.message)) {
       return res.status(504).json({ error: { message: `Gemini отвечает слишком долго. Попробуйте ещё раз или отключите сложный режим. Причина: ${compactErrorValue(lastError.message, 320) || 'timeout'}${lastError.model ? ` | model=${lastError.model}` : ''}`, status: 504, model: lastError.model } });
