@@ -483,6 +483,7 @@ body{background:var(--bg);color:var(--text);}
 /* ─── Feedback Modal (Блок 3) ─────────────────────────────────────────────── */
 #feedbackModal{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;}
 .fb-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(3px);}
+/* Mobile (dark) styles — базовые */
 .fb-modal{
   position:relative;z-index:1;width:min(480px,92vw);
   background:rgba(28,28,35,.92);
@@ -553,6 +554,52 @@ body{background:var(--bg);color:var(--text);}
 .fb-btn-submit:hover{opacity:.9;}
 .fb-btn-submit:active{transform:scale(.98);}
 .fb-btn-submit:disabled{opacity:.5;cursor:default;}
+/* Desktop (light) overrides */
+@media(min-width:769px){
+  .fb-backdrop{background:rgba(0,0,0,.25);backdrop-filter:blur(4px);}
+  .fb-modal{
+    background:#ffffff;
+    border:1px solid rgba(0,0,0,.09);
+    box-shadow:0 12px 48px rgba(0,0,0,.12),0 2px 8px rgba(0,0,0,.06);
+    backdrop-filter:none;
+    color:#1a1a1a;
+  }
+  .fb-header{border-bottom:1px solid rgba(0,0,0,.07);}
+  .fb-close{color:rgba(0,0,0,.35);}
+  .fb-close:hover{color:#1a1a1a;background:rgba(0,0,0,.06);}
+  .fb-hint{color:rgba(0,0,0,.4);}
+  .fb-tab{
+    border-color:rgba(0,0,0,.10);
+    color:rgba(0,0,0,.45);
+  }
+  .fb-tab.active{background:rgba(99,66,232,.08);border-color:rgba(99,66,232,.35);color:#5b35c5;}
+  .fb-tab:hover:not(.active){background:rgba(0,0,0,.04);color:rgba(0,0,0,.75);}
+  .fb-textarea{
+    background:rgba(0,0,0,.03);border:1px solid rgba(0,0,0,.10);
+    color:#1a1a1a;
+  }
+  .fb-textarea::placeholder{color:rgba(0,0,0,.35);}
+  .fb-textarea:focus{border-color:rgba(99,66,232,.45);}
+  .fb-input{
+    background:rgba(0,0,0,.03);border:1px solid rgba(0,0,0,.10);
+    color:#1a1a1a;
+  }
+  .fb-input::placeholder{color:rgba(0,0,0,.35);}
+  .fb-input:focus{border-color:rgba(99,66,232,.45);}
+  .fb-sep{color:rgba(0,0,0,.25);}
+  .fb-excerpt{
+    background:rgba(0,0,0,.03);
+    border-left:3px solid rgba(99,66,232,.3);
+  }
+  .fb-excerpt-label{color:rgba(0,0,0,.35);}
+  .fb-excerpt-text{color:rgba(0,0,0,.5);}
+  .fb-footer{border-top:1px solid rgba(0,0,0,.07);}
+  .fb-btn-cancel{
+    border-color:rgba(0,0,0,.10);
+    color:rgba(0,0,0,.5);
+  }
+  .fb-btn-cancel:hover{background:rgba(0,0,0,.05);color:rgba(0,0,0,.8);}
+}
 </style>
 </head>
 <body>
