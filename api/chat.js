@@ -10,21 +10,21 @@ const CODEX_API_BASE = process.env.CODEX_API_BASE || 'https://api.codex-api.onli
 
 const FREE_MODEL_CHAINS = {
   lite: [
-    process.env.FREE_LITE_MODEL || 'gpt-5.4-mini',
+    process.env.FREE_LITE_MODEL || 'GPT-5.4-Mini',
   ],
   pro: [
-    process.env.FREE_PRO_MODEL  || 'gpt-5.4-mini',
+    process.env.FREE_PRO_MODEL || 'GPT-5.4',
   ]
 };
 
 const PREMIUM_MODEL_CHAINS = {
   codex: [
-    process.env.PREMIUM_MODEL          || 'gpt-5.4',
-    process.env.PREMIUM_FALLBACK_MODEL || 'gpt-5.4-mini',
+    process.env.PREMIUM_MODEL          || 'GPT-5.4',
+    process.env.PREMIUM_FALLBACK_MODEL || 'GPT-5.4-Mini',
   ]
 };
 
-const THINK_MODEL = process.env.THINK_MODEL || 'gpt-5.3-codex';
+const THINK_MODEL = process.env.THINK_MODEL || 'GPT-5.3-Codex';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function sleep(ms) {
