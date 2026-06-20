@@ -2092,7 +2092,13 @@ function tChatErr(msg){
   if(low.includes('high demand')||low.includes('overloaded')||low.includes('resource exhausted')||low.includes('try again later')){
     return 'Модель временно перегружена. Я уже попробовал резервный вариант, но сервис всё ещё занят. Повторите через минуту.';
   }
-  if(low.includes('failed to fetch')||low.includes('load failed')||low.includes('fetch')||low.includes('network')){
+  if(low.includes('timed out')||low.includes('timeout')||low.includes('504')){
+    return 'Запрос занял слишком много времени. Попробуйте ещё раз — нотные задачи иногда требуют пары попыток.';
+  }
+  if(low.includes('failed to fetch')||low.includes('load failed')||low.includes('networkerror')){
+    return 'Соединение прервалось. Попробуйте ещё раз — возможно, запрос был слишком долгим.';
+  }
+  if(low.includes('fetch')||low.includes('network')){
     return 'Сервер чата недоступен. Проверьте деплой Vercel и файл api/chat.js, потом попробуйте ещё раз.';
   }
   return text||'Что-то пошло не так при запросе к модели';
@@ -2118,7 +2124,7 @@ async function requestChatReply(onDelta){
     think:thinkOn,
     userId:curUser?.id||null,
     userEmail:curUser?.email||null,
-    stream:!!onDelta
+    stream:true  // всегда стрим — сервер сам решает, форсируем для нотных запросов
   };
   let lastError=null;
   const endpoints=buildApiCandidates();
