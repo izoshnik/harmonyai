@@ -2,28 +2,29 @@
 // Поднимаем лимит до 60с (Hobby plan max) чтобы нотные запросы не падали
 export const config = { maxDuration: 60 };
 
-// ─── Model chains ────────────────────────────────────────────────────────────
+// ─── Model chains (Codex API) ─────────────────────────────────────────────────
+// FREE tier: MusMind Lite → gpt-5.4-mini
+// PREMIUM tier: MusMind Pro → gpt-5.4
+// THINK mode → gpt-5.3-codex (любой тариф)
+const CODEX_API_BASE = process.env.CODEX_API_BASE || 'https://api.codex-api.online/v1';
+
 const FREE_MODEL_CHAINS = {
   lite: [
-    process.env.FREE_LITE_MODEL || 'gemini-2.5-flash-lite',
-    process.env.FREE_LITE_FALLBACK_MODEL || 'gemini-2.5-flash'
+    process.env.FREE_LITE_MODEL || 'gpt-5.4-mini',
   ],
   pro: [
-    process.env.FREE_PRO_MODEL || 'gemini-2.5-flash',
-    process.env.FREE_PRO_FALLBACK_MODEL || 'gemini-2.5-flash-lite'
+    process.env.FREE_PRO_MODEL  || 'gpt-5.4-mini',
   ]
 };
 
 const PREMIUM_MODEL_CHAINS = {
-  openai: [
-    process.env.PREMIUM_MODEL || 'gpt-5.5',
-    process.env.PREMIUM_FALLBACK_MODEL || 'gpt-5'
-  ],
-  gemini: [
-    process.env.PREMIUM_MODEL || 'gemini-2.5-pro',
-    process.env.PREMIUM_FALLBACK_MODEL || 'gemini-2.5-flash'
+  codex: [
+    process.env.PREMIUM_MODEL          || 'gpt-5.4',
+    process.env.PREMIUM_FALLBACK_MODEL || 'gpt-5.4-mini',
   ]
 };
+
+const THINK_MODEL = process.env.THINK_MODEL || 'gpt-5.3-codex';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function sleep(ms) {
@@ -518,24 +519,97 @@ async function callOpenAI(apiKey, modelName, messages, timeoutMs = 35000) {
   return { response, data };
 }
 
+// ─── Codex streaming call ─────────────────────────────────────────────────────
+// Совместим с OpenAI API, но использует другой base URL и endpoint
+async function callCodexStream(apiKey, modelName, messages, res, timeoutMs = 25000, extraParams = {}) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(`${CODEX_API_BASE}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: modelName,
+        messages,
+        stream: true,
+        ...extraParams
+      }),
+      signal: controller.signal
+    });
+
+    if (!response.ok) {
+      let errData = {};
+      try { errData = await response.json(); } catch { /* ignore */ }
+      return { ok: false, status: response.status, error: errData?.error?.message || `HTTP ${response.status}` };
+    }
+
+    res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let fullText = '';
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const raw = line.slice(6).trim();
+        if (raw === '[DONE]') continue;
+        try {
+          const parsed = JSON.parse(raw);
+          const chunk = parsed?.choices?.[0]?.delta?.content || '';
+          if (chunk) {
+            const sanitized = sanitizeAssistantText(chunk);
+            fullText += sanitized;
+            res.write(`data: ${JSON.stringify({ delta: sanitized })}\n\n`);
+          }
+        } catch { /* skip malformed chunk */ }
+      }
+    }
+
+    res.write(`data: ${JSON.stringify({ done: true, model: modelName })}\n\n`);
+    res.end();
+    return { ok: true, text: fullText };
+  } catch (err) {
+    if (err.name === 'AbortError') return { ok: false, status: 504, error: 'Codex stream timed out' };
+    return { ok: false, status: 500, error: err.message };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // ─── Route selector ───────────────────────────────────────────────────────────
-function selectRoute(profile, requestedModel) {
+function selectRoute(profile, requestedModel, think = false) {
   const plan = profile?.plan || 'free';
   const wantsPro = requestedModel === 'pro';
-  if (wantsPro && plan === 'premium') {
-    const provider = (process.env.PREMIUM_PROVIDER || 'openai').toLowerCase();
-    if (provider === 'openai' && process.env.OPENAI_API_KEY) {
-      return { provider: 'openai', apiKey: process.env.OPENAI_API_KEY, models: PREMIUM_MODEL_CHAINS.openai };
-    }
-    if (provider === 'gemini' && process.env.GEMINI_API_KEY) {
-      return { provider: 'gemini', apiKey: process.env.GEMINI_API_KEY, models: PREMIUM_MODEL_CHAINS.gemini };
-    }
+  const apiKey = process.env.CODEX_API_KEY;
+
+  // Режим "Думать" — всегда gpt-5.3-codex независимо от тарифа
+  if (think) {
+    return { provider: 'codex', apiKey, models: [THINK_MODEL] };
   }
-  return {
-    provider: 'gemini',
-    apiKey: process.env.GEMINI_API_KEY,
-    models: wantsPro ? FREE_MODEL_CHAINS.pro : FREE_MODEL_CHAINS.lite
-  };
+  // Premium (MusMind Pro) → gpt-5.4
+  if (wantsPro && plan === 'premium') {
+    return { provider: 'codex', apiKey, models: PREMIUM_MODEL_CHAINS.codex };
+  }
+  // Free Lite → gpt-5.4-mini
+  if (!wantsPro) {
+    return { provider: 'codex', apiKey, models: FREE_MODEL_CHAINS.lite };
+  }
+  // Free Pro → gpt-5.4-mini (нет premium подписки)
+  return { provider: 'codex', apiKey, models: FREE_MODEL_CHAINS.pro };
 }
 
 // ─── Main handler ─────────────────────────────────────────────────────────────
@@ -547,8 +621,8 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: { message: 'Method not allowed' } });
 
-  if (!process.env.GEMINI_API_KEY) {
-    return res.status(500).json({ error: { message: 'GEMINI_API_KEY не настроен' } });
+  if (!process.env.CODEX_API_KEY) {
+    return res.status(500).json({ error: { message: 'CODEX_API_KEY не настроен' } });
   }
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return res.status(500).json({ error: { message: 'SUPABASE_URL или SUPABASE_SERVICE_ROLE_KEY не настроены' } });
@@ -582,123 +656,62 @@ export default async function handler(req, res) {
     // FIX 5: fire-and-forget, не блокирует ответ
     maybeSaveDeveloperNoteAsync(profile, query);
 
-    const route = selectRoute(profile, model);
-    const { systemText, contents } = mapMessagesForGemini(messages);
+    const route = selectRoute(profile, model, think);
     const isNotationHeavy = isCreativeOrNotationRequest(query);
 
-    // FIX 7: Таймауты — нотные через стрим, поэтому 20с достаточно
-    // (Vercel Hobby = 10с без стрима, 60с со стримом — всегда шлём стрим)
+    // Таймауты: think=55с, нотные=20с, быстрые=8с, обычные=20с
     const modelTimeoutMs =
-      think || effort === 'max' ? 55000
-      : isQuick                 ?  8000
-      : isNotationHeavy         ? 20000   // стрим, токены ограничены — 20с хватит
-      :                           22000;
+      think           ? 55000
+      : isQuick       ?  8000
+      : isNotationHeavy ? 20000
+      :                   20000;
 
-    // FIX 8: Retries — 3 попытки при overload с прогрессивными задержками
-    const geminiAttempts = think || effort === 'max' ? 3 : isQuick ? 1 : 2;
-
-    const mergedSystem = appendServerContext(systemText, [
+    // Строим OpenAI-формат сообщений для Codex
+    const openAiSystem = appendServerContext('', [
       profile ? `Профиль пользователя: role=${profile.role || 'user'}, plan=${profile.plan || 'free'}` : '',
       buildMemoryContext(memories, query),
       buildFeedbackContext(feedbackRows, query),
       buildKnowledgeContext(documents, chunks, query)
     ]);
+    const codexMessages = mapMessagesForOpenAI(messages, openAiSystem || undefined);
+
+    // Параметры генерации: low=краткий, max=детальный, think=без лимита
+    const maxTokens = think ? 4096 : effort === 'max' ? 2048 : isNotationHeavy ? 1800 : isQuick ? 400 : 1200;
+    const temperature = think ? 0.6 : isNotationHeavy ? 0.4 : effort === 'max' ? 0.8 : 0.7;
+    const extraParams = { max_tokens: maxTokens, temperature };
 
     let lastError = null;
 
-    // ── OpenAI (premium) ──────────────────────────────────────────────────────
-    if (route.provider === 'openai') {
-      const openAiMessages = mapMessagesForOpenAI(messages, mergedSystem);
-      for (const modelName of route.models) {
-        const { response, data } = await callOpenAI(route.apiKey, modelName, openAiMessages, modelTimeoutMs);
-        const errorMessage = data?.error?.message || '';
-        if (!response.ok || data.error) {
-          lastError = { status: response.status || 500, message: errorMessage || `Ошибка модели ${modelName}`, model: modelName };
-          if (isQuotaExceeded(response.status, errorMessage)) {
-            return res.status(429).json({ error: { message: formatQuotaErrorMessage(errorMessage, modelName), provider: 'openai', model: modelName, status: response.status || 429 } });
-          }
-          if (isOverloaded(response.status, errorMessage)) await sleep(600);
+    // ── Codex streaming (всегда стрим для скорости и Vercel совместимости) ──
+    for (const modelName of route.models) {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const result = await callCodexStream(route.apiKey, modelName, codexMessages, res, modelTimeoutMs, extraParams);
+        if (result.ok) return;
+        lastError = { status: result.status, message: result.error, model: modelName };
+        if (isQuotaExceeded(result.status, result.error)) {
+          return res.headersSent ? undefined : res.status(429).json({
+            error: { message: 'Лимит токенов исчерпан. Пополните баланс Codex API.', status: 429, model: modelName }
+          });
+        }
+        if (isOverloaded(result.status, result.error) && attempt === 0 && !res.headersSent) {
+          await sleep(1500);
           continue;
         }
-        const replyText = sanitizeAssistantText(data?.choices?.[0]?.message?.content || 'Нет ответа');
-        return res.status(200).json({ choices: [{ message: { content: replyText } }], model: modelName });
+        break;
       }
-    }
-
-    // ── Gemini ────────────────────────────────────────────────────────────────
-    const body = { contents };
-    if (mergedSystem) body.systemInstruction = { parts: [{ text: mergedSystem }] };
-    // Ограничиваем вывод токенов для скорости; нотным запросам даём чуть больше
-    body.generationConfig = {
-      maxOutputTokens: isNotationHeavy ? 2048 : (isQuick ? 512 : 1500),
-      temperature: isNotationHeavy ? 0.4 : 0.7,
-    };
-
-    // FIX 6: Streaming path для Gemini с retry при overload
-    // Нотные запросы всегда идут через стриминг — иначе Vercel убивает через 10с
-    if ((stream || isNotationHeavy) && route.provider === 'gemini') {
-      for (const modelName of route.models) {
-        let streamOk = false;
-        for (let sAttempt = 0; sAttempt < 3; sAttempt++) {
-          const result = await callGeminiStream(route.apiKey, modelName, body, res, modelTimeoutMs);
-          if (result.ok) return; // streaming закончился, res уже закрыт
-          lastError = { status: result.status, message: result.error, model: modelName };
-          if (isQuotaExceeded(result.status, result.error)) {
-            return res.headersSent ? undefined : res.status(429).json({
-              error: { message: formatQuotaErrorMessage(result.error, modelName), provider: 'gemini', model: modelName, status: result.status }
-            });
-          }
-          if (isOverloaded(result.status, result.error) && sAttempt < 2 && !res.headersSent) {
-            const delays = [1500, 3000];
-            await sleep(delays[sAttempt] || 1500);
-            continue;
-          }
-          break;
-        }
-      }
-      if (!res.headersSent) {
-        const errMsg = lastError && isOverloaded(lastError.status, lastError.message)
-          ? 'Модель временно перегружена. Я уже попробовал резервный вариант, но сервис всё ещё занят. Повторите через минуту.'
-          : (lastError?.message || 'Не удалось получить ответ');
-        return res.status(lastError?.status || 500).json({ error: { message: errMsg } });
-      }
-      return;
-    }
-
-    // Non-streaming path (без изменений по логике, но с меньшим числом retries)
-    for (const modelName of route.models) {
-      for (let attempt = 0; attempt < geminiAttempts; attempt += 1) {
-        const { response, data } = await callGemini(route.apiKey, modelName, body, modelTimeoutMs);
-        const errorMessage = data?.error?.message || '';
-        if (!response.ok || data.error) {
-          lastError = { status: response.status || 500, message: errorMessage || `Ошибка модели ${modelName}`, model: modelName };
-          if (isQuotaExceeded(response.status, errorMessage)) {
-            return res.status(429).json({ error: { message: formatQuotaErrorMessage(errorMessage, modelName), provider: 'gemini', model: modelName, status: response.status || 429 } });
-          }
-          if (isOverloaded(response.status, errorMessage) && attempt < geminiAttempts - 1) {
-            // Прогрессивная задержка: 1.5с → 3с → 5с
-            const delays = [1500, 3000, 5000];
-            await sleep(delays[attempt] || 3000);
-            continue;
-          }
-          break;
-        }
-        const replyText = sanitizeAssistantText(data?.candidates?.[0]?.content?.parts?.[0]?.text || 'Нет ответа');
-        return res.status(200).json({ choices: [{ message: { content: replyText } }], model: modelName });
-      }
+      // Если первая модель упала — пробуем следующую
     }
 
     // Error responses
-    if (lastError && isQuotaExceeded(lastError.status, lastError.message)) {
-      return res.status(429).json({ error: { message: formatQuotaErrorMessage(lastError.message, lastError.model), status: lastError.status || 429, model: lastError.model } });
+    if (!res.headersSent) {
+      if (lastError && isTimeoutError(lastError.message)) {
+        return res.status(504).json({ error: { message: 'ИИ отвечает слишком долго. Попробуйте ещё раз или упростите запрос.', status: 504 } });
+      }
+      if (lastError && isOverloaded(lastError.status, lastError.message)) {
+        return res.status(503).json({ error: { message: 'Модель временно перегружена. Повторите через минуту.', status: 503 } });
+      }
+      return res.status(lastError?.status || 500).json({ error: { message: lastError?.message || 'Не удалось получить ответ от модели' } });
     }
-    if (lastError && isOverloaded(lastError.status, lastError.message)) {
-      return res.status(503).json({ error: { message: `Модель временно перегружена. Я уже попробовал резервный вариант, но сервис всё ещё занят. Повторите через минуту.`, status: lastError.status || 503, model: lastError.model } });
-    }
-    if (lastError && isTimeoutError(lastError.message)) {
-      return res.status(504).json({ error: { message: `Gemini отвечает слишком долго. Попробуйте ещё раз или отключите сложный режим. Причина: ${compactErrorValue(lastError.message, 320) || 'timeout'}${lastError.model ? ` | model=${lastError.model}` : ''}`, status: 504, model: lastError.model } });
-    }
-    return res.status(lastError?.status || 500).json({ error: { message: lastError?.message || 'Не удалось получить ответ от модели' } });
 
   } catch (error) {
     return res.status(500).json({ error: { message: error.message } });
