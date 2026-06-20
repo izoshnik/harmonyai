@@ -1,3 +1,7 @@
+// ─── Vercel Function Config ──────────────────────────────────────────────────
+// Поднимаем лимит до 60с (Hobby plan max) чтобы нотные запросы не падали
+export const config = { maxDuration: 60 };
+
 // ─── Model chains ────────────────────────────────────────────────────────────
 const FREE_MODEL_CHAINS = {
   lite: [
@@ -558,13 +562,15 @@ export default async function handler(req, res) {
 
     const query = lastUserText(messages);
     const isQuick = isSimpleQuery(query);
+    const isNotationEarly = isCreativeOrNotationRequest(query); // ранняя детекция для routing
 
     // FIX 1+4: Один параллельный запрос вместо 3-4 последовательных
+    // Нотные запросы: только профиль (память и база знаний не нужны для ABC)
     let profile = null, documents = [], memories = [], feedbackRows = [], chunks = [];
-    if (!isQuick || think || effort === 'max') {
+    if (!isQuick && !isNotationEarly || think || effort === 'max') {
       ({ profile, documents, memories, feedbackRows, chunks } = await fetchAllContext(userId));
     } else {
-      // Для простых запросов грузим только профиль — быстро
+      // Для простых и нотных запросов — только профиль
       if (userId) {
         const rows = await supabaseRequest(
           `/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=id,nickname,role,plan,settings&limit=1`
@@ -580,12 +586,13 @@ export default async function handler(req, res) {
     const { systemText, contents } = mapMessagesForGemini(messages);
     const isNotationHeavy = isCreativeOrNotationRequest(query);
 
-    // FIX 7: Таймауты снижены — простые запросы теперь 8 сек вместо 18
+    // FIX 7: Таймауты — нотные через стрим, поэтому 20с достаточно
+    // (Vercel Hobby = 10с без стрима, 60с со стримом — всегда шлём стрим)
     const modelTimeoutMs =
       think || effort === 'max' ? 55000
       : isQuick                 ?  8000
-      : isNotationHeavy         ? 38000
-      :                           25000;
+      : isNotationHeavy         ? 20000   // стрим, токены ограничены — 20с хватит
+      :                           22000;
 
     // FIX 8: Retries — 3 попытки при overload с прогрессивными задержками
     const geminiAttempts = think || effort === 'max' ? 3 : isQuick ? 1 : 2;
@@ -621,9 +628,15 @@ export default async function handler(req, res) {
     // ── Gemini ────────────────────────────────────────────────────────────────
     const body = { contents };
     if (mergedSystem) body.systemInstruction = { parts: [{ text: mergedSystem }] };
+    // Ограничиваем вывод токенов для скорости; нотным запросам даём чуть больше
+    body.generationConfig = {
+      maxOutputTokens: isNotationHeavy ? 2048 : (isQuick ? 512 : 1500),
+      temperature: isNotationHeavy ? 0.4 : 0.7,
+    };
 
     // FIX 6: Streaming path для Gemini с retry при overload
-    if (stream && route.provider === 'gemini') {
+    // Нотные запросы всегда идут через стриминг — иначе Vercel убивает через 10с
+    if ((stream || isNotationHeavy) && route.provider === 'gemini') {
       for (const modelName of route.models) {
         let streamOk = false;
         for (let sAttempt = 0; sAttempt < 3; sAttempt++) {
