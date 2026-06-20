@@ -250,6 +250,7 @@ body{background:var(--bg);color:var(--text);}
 .think-dots span:nth-child(2){animation-delay:.2s;}
 .think-dots span:nth-child(3){animation-delay:.4s;}
 @keyframes bop{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+@keyframes wordIn{0%{opacity:0;transform:translateY(2px)}100%{opacity:1;transform:translateY(0)}}
 
 /* ===================== INPUT BAR ===================== */
 .input-wrap{padding:10px 20px 20px;display:flex;justify-content:center;position:relative;z-index:2;}
@@ -1921,23 +1922,35 @@ function renderMd(el,text){
 }
 function streamText(el,text){
   return new Promise(resolve=>{
-    let i=0,stopped=false;el.style.whiteSpace='pre-wrap';
+    let stopped=false;
     activeStreamStop=()=>{stopped=true;};
+    // Разбиваем на слова с разделителями для плавной анимации
+    const tokens=text.split(/(\s+)/);
+    let built='',idx=0;
+    el.style.whiteSpace='pre-wrap';
+    // Скорость: ~8мс между токенами → плавно и быстро
     function step(){
       if(stopped){
-        const partial=text.slice(0,Math.min(i,text.length));
-        el.textContent=partial;
-        el.dataset.raw=partial;
+        el.textContent=built;
+        el.dataset.raw=built;
         activeStreamStop=null;
         scrollChat();
-        resolve({stopped:true,text:partial});
+        resolve({stopped:true,text:built});
         return;
       }
-      i+=4;
-      el.textContent=text.slice(0,Math.min(i,text.length))+(i<text.length?'▍':'');
+      if(idx>=tokens.length){
+        activeStreamStop=null;
+        renderMd(el,text);
+        scrollChat();
+        resolve({stopped:false,text});
+        return;
+      }
+      // Добавляем по 1-2 токена за шаг для скорости
+      const batch=Math.min(2,tokens.length-idx);
+      for(let b=0;b<batch;b++){built+=tokens[idx++]||'';}
+      el.textContent=built+(idx<tokens.length?'▍':'');
       scrollChat();
-      if(i<text.length)setTimeout(step,5);
-      else{activeStreamStop=null;renderMd(el,text);scrollChat();resolve({stopped:false,text});}
+      setTimeout(step,idx<tokens.length?9:0);
     }
     step();
   });
@@ -2080,6 +2093,7 @@ async function regenMsg(item){
   }
 }
 function showTyping(){
+  if(!thinkOn) return; // показываем "Думаю..." только в режиме Думать
   const inner=getChatInner();
   const d=document.createElement('div');d.className='thinking';d.id='typEl';
   d.innerHTML='<div class="think-dots"><span></span><span></span><span></span></div><span style="font-size:14px;color:var(--text2)">Думаю...</span>';
@@ -2222,11 +2236,21 @@ async function sendMsg(){
 
   try{
     // onDelta вызывается с каждым новым кусочком текста от сервера
+    // Плавная анимация: каждый новый чанк появляется с микро-fade через CSS
     const reply=await requestChatReply((delta)=>{
       hideTyping();
       fullText+=delta;
       msgEl.style.whiteSpace='pre-wrap';
-      msgEl.textContent=fullText+'▍';
+      // Добавляем span с fade-in для каждого нового чанка
+      const span=document.createElement('span');
+      span.textContent=delta;
+      span.style.cssText='animation:wordIn 0.12s ease forwards;opacity:0;';
+      // Убираем курсор с предыдущего span
+      const prev=msgEl.querySelector('span.cursor');
+      if(prev){prev.classList.remove('cursor');prev.textContent=prev.textContent.replace('▍','');}
+      span.classList.add('cursor');
+      span.textContent=delta+'▍';
+      msgEl.appendChild(span);
       msgEl.dataset.raw=fullText;
       scrollChat();
     });
