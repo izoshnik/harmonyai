@@ -234,7 +234,8 @@ body{background:var(--bg);color:var(--text);}
 }
 
 /* AI message actions */
-.msg-actions{display:inline-flex;align-items:center;gap:3px;margin-top:2px;padding-left:2px;position:relative;width:max-content;max-width:100%;}
+.msg-actions{display:inline-flex;align-items:center;gap:3px;margin-top:2px;padding-left:2px;position:relative;width:max-content;max-width:100%;opacity:1;transform:translateY(0);transition:opacity .22s ease,transform .22s ease;}
+.msg-actions.is-hidden{opacity:0;transform:translateY(8px);pointer-events:none;}
 .mac-btn{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--text2);cursor:pointer;transition:background .12s,color .12s;background:transparent;border:none;}
 .mac-btn:hover{background:var(--hover);color:var(--text);}
 .mac-btn.liked{color:#22c55e;}.mac-btn.disliked{color:#ef4444;}
@@ -245,12 +246,12 @@ body{background:var(--bg);color:var(--text);}
 
 /* Thinking */
 .thinking{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text2);padding:4px 0;}
+.thinking.think-text{font-weight:600;letter-spacing:.01em;}
 .think-dots{display:flex;gap:4px;}
 .think-dots span{width:5px;height:5px;border-radius:50%;background:var(--text2);animation:bop 1.2s infinite;}
 .think-dots span:nth-child(2){animation-delay:.2s;}
 .think-dots span:nth-child(3){animation-delay:.4s;}
 @keyframes bop{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
-@keyframes wordIn{0%{opacity:0;transform:translateY(2px)}100%{opacity:1;transform:translateY(0)}}
 
 /* ===================== INPUT BAR ===================== */
 .input-wrap{padding:10px 20px 20px;display:flex;justify-content:center;position:relative;z-index:2;}
@@ -479,127 +480,6 @@ body{background:var(--bg);color:var(--text);}
   .send-btn svg{width:24px!important;height:24px!important;}
   .model-pill{min-width:148px!important;max-width:176px!important;height:32px!important;padding:0 13px!important;}
   .pill-name{max-width:76px!important;}
-}
-
-/* ─── Feedback Modal (Блок 3) ─────────────────────────────────────────────── */
-#feedbackModal{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;}
-.fb-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(3px);}
-/* Mobile (dark) styles — базовые */
-.fb-modal{
-  position:relative;z-index:1;width:min(480px,92vw);
-  background:rgba(28,28,35,.92);
-  border:1px solid rgba(255,255,255,.13);
-  border-radius:16px;
-  box-shadow:0 8px 40px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.05) inset;
-  backdrop-filter:blur(24px) saturate(1.4);
-  color:#e8e8ef;
-  font-family:inherit;
-  overflow:hidden;
-}
-.fb-header{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:14px 18px 12px;
-  border-bottom:1px solid rgba(255,255,255,.08);
-}
-.fb-title{font-size:14px;font-weight:600;letter-spacing:.01em;}
-.fb-close{
-  background:none;border:none;color:rgba(255,255,255,.4);font-size:16px;
-  cursor:pointer;line-height:1;padding:2px 4px;border-radius:6px;transition:color .15s,background .15s;
-}
-.fb-close:hover{color:#fff;background:rgba(255,255,255,.1);}
-.fb-body{padding:14px 18px;}
-.fb-hint{margin:0 0 10px;font-size:12px;color:rgba(255,255,255,.45);}
-.fb-tabs{display:flex;gap:6px;margin-bottom:12px;}
-.fb-tab{
-  flex:1;padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.12);
-  background:transparent;color:rgba(255,255,255,.5);font-size:12px;cursor:pointer;transition:all .15s;
-}
-.fb-tab.active{background:rgba(139,92,246,.25);border-color:rgba(139,92,246,.5);color:#c4b5fd;}
-.fb-tab:hover:not(.active){background:rgba(255,255,255,.06);color:rgba(255,255,255,.75);}
-.fb-tab-content{display:flex;flex-direction:column;gap:8px;}
-.fb-textarea{
-  width:100%;min-height:90px;resize:vertical;
-  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
-  border-radius:10px;color:#e8e8ef;font-size:13px;padding:10px 12px;
-  font-family:inherit;line-height:1.5;outline:none;transition:border-color .15s;box-sizing:border-box;
-}
-.fb-textarea:focus{border-color:rgba(139,92,246,.5);}
-.fb-input{
-  width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
-  border-radius:10px;color:#e8e8ef;font-size:13px;padding:9px 12px;
-  font-family:inherit;outline:none;transition:border-color .15s;box-sizing:border-box;
-}
-.fb-input:focus{border-color:rgba(139,92,246,.5);}
-.fb-sep{align-self:center;font-size:18px;color:rgba(255,255,255,.3);padding:0 4px;}
-.fb-excerpt{
-  margin-top:12px;padding:10px 12px;
-  background:rgba(255,255,255,.04);border-radius:10px;
-  border-left:3px solid rgba(139,92,246,.4);
-}
-.fb-excerpt-label{display:block;font-size:10px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
-.fb-excerpt-text{font-size:12px;color:rgba(255,255,255,.55);line-height:1.45;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
-.fb-footer{
-  display:flex;gap:8px;padding:12px 18px 16px;
-  border-top:1px solid rgba(255,255,255,.08);
-}
-.fb-btn-cancel{
-  padding:8px 16px;border-radius:10px;border:1px solid rgba(255,255,255,.12);
-  background:transparent;color:rgba(255,255,255,.5);font-size:13px;cursor:pointer;transition:all .15s;
-}
-.fb-btn-cancel:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.8);}
-.fb-btn-submit{
-  flex:1;padding:8px 16px;border-radius:10px;border:none;
-  background:linear-gradient(135deg,#7c3aed,#4f46e5);
-  color:#fff;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s,transform .1s;
-}
-.fb-btn-submit:hover{opacity:.9;}
-.fb-btn-submit:active{transform:scale(.98);}
-.fb-btn-submit:disabled{opacity:.5;cursor:default;}
-/* Desktop (light) overrides */
-@media(min-width:769px){
-  .fb-backdrop{background:rgba(0,0,0,.25);backdrop-filter:blur(4px);}
-  .fb-modal{
-    background:#ffffff;
-    border:1px solid rgba(0,0,0,.09);
-    box-shadow:0 12px 48px rgba(0,0,0,.12),0 2px 8px rgba(0,0,0,.06);
-    backdrop-filter:none;
-    color:#1a1a1a;
-  }
-  .fb-header{border-bottom:1px solid rgba(0,0,0,.07);}
-  .fb-close{color:rgba(0,0,0,.35);}
-  .fb-close:hover{color:#1a1a1a;background:rgba(0,0,0,.06);}
-  .fb-hint{color:rgba(0,0,0,.4);}
-  .fb-tab{
-    border-color:rgba(0,0,0,.10);
-    color:rgba(0,0,0,.45);
-  }
-  .fb-tab.active{background:rgba(99,66,232,.08);border-color:rgba(99,66,232,.35);color:#5b35c5;}
-  .fb-tab:hover:not(.active){background:rgba(0,0,0,.04);color:rgba(0,0,0,.75);}
-  .fb-textarea{
-    background:rgba(0,0,0,.03);border:1px solid rgba(0,0,0,.10);
-    color:#1a1a1a;
-  }
-  .fb-textarea::placeholder{color:rgba(0,0,0,.35);}
-  .fb-textarea:focus{border-color:rgba(99,66,232,.45);}
-  .fb-input{
-    background:rgba(0,0,0,.03);border:1px solid rgba(0,0,0,.10);
-    color:#1a1a1a;
-  }
-  .fb-input::placeholder{color:rgba(0,0,0,.35);}
-  .fb-input:focus{border-color:rgba(99,66,232,.45);}
-  .fb-sep{color:rgba(0,0,0,.25);}
-  .fb-excerpt{
-    background:rgba(0,0,0,.03);
-    border-left:3px solid rgba(99,66,232,.3);
-  }
-  .fb-excerpt-label{color:rgba(0,0,0,.35);}
-  .fb-excerpt-text{color:rgba(0,0,0,.5);}
-  .fb-footer{border-top:1px solid rgba(0,0,0,.07);}
-  .fb-btn-cancel{
-    border-color:rgba(0,0,0,.10);
-    color:rgba(0,0,0,.5);
-  }
-  .fb-btn-cancel:hover{background:rgba(0,0,0,.05);color:rgba(0,0,0,.8);}
 }
 </style>
 </head>
@@ -1604,6 +1484,8 @@ const BASE_SYSTEM=`Ты HarmonyAI — музыкальный ИИ-помощни
 РАСПОЗНАВАНИЕ ФОТО: если присылают фото с нотами — разбери каждую ноту, аккорд, ритм.
 ГЕНЕРАЦИЯ НОТНЫХ СТАНОВ:
 1. Для нотного вывода всегда используй один или несколько блоков \`\`\`abc ... \`\`\`.
+1.1. Никогда не заменяй нотный стан ASCII-графикой, псевдотаблицей, текстовым "рисунком", списком нот по линиям или описанием вместо \`\`\`abc\`\`\`.
+1.2. Если запрос музыкальный, ответ считается неполным без хотя бы одного корректного блока \`\`\`abc\`\`\`, который можно визуализировать в настоящий нотный стан.
 2. В одном ответе можно использовать сколько угодно ABC-блоков. Не ограничивай количество станов, если материал длинный.
 3. Для длинных гамм, произведений и сложных примеров разбивай материал на несколько подряд идущих ABC-блоков по разделам, чтобы стан не ломался.
 4. Разрешены: гаммы в несколько октав, аккорды, арпеджио, интервалы, гармонические последовательности, короткие пьесы, многотактовые фрагменты, многоголосие, фортепианные фактуры.
@@ -1652,28 +1534,10 @@ function isNotationRequest(text){
   return /(abc|нот|стан|гамм|аккорд|арпеджи|интервал|октав|тональ|лад|пьес|мелоди|сольфеджи|фортепиан|полифони|голос)/.test(low);
 }
 
-// ─── Определение типа запроса для управления контекстом ─────────────────────
-function isTechnicalOrAcademicQuery(text){
-  const low=String(text||'').toLowerCase();
-  return /(нот|стан|гамм|аккорд|арпеджи|интервал|октав|тональ|лад|пьес|мелоди|сольфеджи|фортепиан|полифони|голос|abc|трезвучи|доминант|тоник|субдоминант|септ|терц|кварт|квинт|функци|ступен|диез|бемоль|размер|ритм|такт)/.test(low)||
-         /(история|физик|математик|химия|биолог|программирован|алгоритм|теори|определени|объясни|что такое|как работает|почему)/.test(low);
-}
-
 function buildSystem(){
   const s=curUser?.settings||{};
   let sys=BASE_SYSTEM;
   const currentQuery=getLastUserText();
-  const isTechnical=isTechnicalOrAcademicQuery(currentQuery);
-
-  // Блок 2: Иерархия контекста — для академических запросов
-  if(isTechnical){
-    sys+='\n\n[ИЕРАРХИЯ ЗНАНИЙ ДЛЯ ЭТОГО ЗАПРОСА]\n'+
-         '1. Используй прежде всего свои фундаментальные академические знания.\n'+
-         '2. Исправления и уточнения из раздела «ИСПРАВЛЕНИЯ И ОШИБКИ» ниже имеют НАИВЫСШИЙ приоритет — они перекрывают базовые знания.\n'+
-         '3. Загруженные материалы — используй как дополнительный источник.\n'+
-         '[ИСКЛЮЧЕНИЕ] Личная биографическая информация о пользователе НЕ должна влиять на академические ответы.';
-  }
-
   if(isNotationRequest(currentQuery)){
     sys+=`\nСПЕЦИАЛЬНО ДЛЯ ТЕКУЩЕГО НОТНОГО ЗАПРОСА:
 - если нужен длинный пример, дели его на столько ABC-блоков, сколько нужно;
@@ -1684,7 +1548,6 @@ function buildSystem(){
 - обозначения функций и аккордов в тексте пиши только как T53, T6, T64, S53, S6, S64, D53, D6, D64, I53, IV53, V53, V6, V64;
 - никогда не используй в обычном тексте запись вида $T_{53}$, \\(D_{64}\\), T_{53}.`;
   }
-
   const styleMap={professional:'Отвечай профессионально и точно.',friendly:'Отвечай тепло и разговорчиво.',frank:'Отвечай прямо и мотивируя.',whimsical:'Отвечай весело и творчески.',efficient:'Отвечай коротко и по делу.',cynical:'Можешь быть немного саркастичным.'};
   if(s.style&&styleMap[s.style])sys+='\nСТИЛЬ: '+styleMap[s.style];
   if(curMode==='low')sys+='\nРЕЖИМ Low: отвечай кратко, максимум 3-4 предложения.';
@@ -1760,42 +1623,50 @@ function getChatInner(){
   const gr=document.getElementById('greetingWrap');if(gr)gr.remove();
   return inner;
 }
+function getMessageActionsMarkup(){
+  return `<button class="mac-btn" onclick="cpMsg(this)" title="Копировать">${IC_COPY}</button>`+
+    `<button class="mac-btn" onclick="likeMsg(this,'like')" title="Нравится">${IC_LIKE}</button>`+
+    `<button class="mac-btn" onclick="likeMsg(this,'dislike')" title="Не нравится">${IC_DISLIKE}</button>`+
+    `<button class="mac-btn" onclick="toggleMore(this)" title="Ещё">${IC_MORE}</button>`+
+    `<div class="more-menu"><div class="more-item" onclick="regenMsg(this)">${IC_REGEN} Повторить</div></div>`;
+}
+function setMessageActionsVisible(actionsEl,visible){
+  if(!actionsEl)return;
+  actionsEl.classList.toggle('is-hidden',!visible);
+}
+function createAiBubbleShell({showActions=true,hiddenActions=false}={}){
+  const inner=getChatInner();
+  const wrap=document.createElement('div');wrap.className='msg-ai-wrap';
+  const msg=document.createElement('div');msg.className='msg-ai';wrap.appendChild(msg);
+  let actions=null;
+  if(showActions){
+    actions=document.createElement('div');
+    actions.className='msg-actions'+(hiddenActions?' is-hidden':'');
+    actions.innerHTML=getMessageActionsMarkup();
+    wrap.appendChild(actions);
+  }
+  inner.appendChild(wrap);scrollChat();
+  return {wrap,msg,actions};
+}
 function addUserBubble(text){
   const inner=getChatInner();
   const d=document.createElement('div');d.className='msg-user';d.textContent=text;
   inner.appendChild(d);scrollChat();
 }
-function addAiBubble(text,stream){
-  const inner=getChatInner();
-  const wrap=document.createElement('div');wrap.className='msg-ai-wrap';
-  const msg=document.createElement('div');msg.className='msg-ai';wrap.appendChild(msg);
-  const actions=document.createElement('div');actions.className='msg-actions';
-  actions.innerHTML=
-    `<button class="mac-btn" onclick="cpMsg(this)" title="Копировать">${IC_COPY}</button>`+
-    `<button class="mac-btn" onclick="likeMsg(this,'like')" title="Нравится">${IC_LIKE}</button>`+
-    `<button class="mac-btn" onclick="likeMsg(this,'dislike')" title="Не нравится">${IC_DISLIKE}</button>`+
-    `<button class="mac-btn" onclick="toggleMore(this)" title="Ещё">${IC_MORE}</button>`+
-    `<div class="more-menu"><div class="more-item" onclick="regenMsg(this)">${IC_REGEN} Повторить</div></div>`;
-  wrap.appendChild(actions);
-  inner.appendChild(wrap);scrollChat();
-  if(stream===false){renderMd(msg,text);return Promise.resolve();}
-  return streamText(msg,text);
-}
-// Создаёт пустой пузырь ИИ и возвращает элемент msg-ai для потокового заполнения
-function addAiBubbleEmpty(){
-  const inner=getChatInner();
-  const wrap=document.createElement('div');wrap.className='msg-ai-wrap';
-  const msg=document.createElement('div');msg.className='msg-ai';wrap.appendChild(msg);
-  const actions=document.createElement('div');actions.className='msg-actions';
-  actions.innerHTML=
-    `<button class="mac-btn" onclick="cpMsg(this)" title="Копировать">${IC_COPY}</button>`+
-    `<button class="mac-btn" onclick="likeMsg(this,'like')" title="Нравится">${IC_LIKE}</button>`+
-    `<button class="mac-btn" onclick="likeMsg(this,'dislike')" title="Не нравится">${IC_DISLIKE}</button>`+
-    `<button class="mac-btn" onclick="toggleMore(this)" title="Ещё">${IC_MORE}</button>`+
-    `<div class="more-menu"><div class="more-item" onclick="regenMsg(this)">${IC_REGEN} Повторить</div></div>`;
-  wrap.appendChild(actions);
-  inner.appendChild(wrap);scrollChat();
-  return msg;
+function addAiBubble(text,stream,opts={}){
+  const shell=createAiBubbleShell({
+    showActions:opts.showActions!==false,
+    hiddenActions:Boolean(opts.hiddenActions)
+  });
+  if(stream===false){
+    renderMd(shell.msg,text);
+    if(shell.actions&&!opts.hiddenActions)requestAnimationFrame(()=>setMessageActionsVisible(shell.actions,true));
+    return Promise.resolve({text,...shell});
+  }
+  return streamText(shell.msg,text).then((result)=>{
+    if(shell.actions)requestAnimationFrame(()=>setMessageActionsVisible(shell.actions,true));
+    return {...result,...shell};
+  });
 }
 
 /* Render Markdown + ABC */
@@ -1922,38 +1793,85 @@ function renderMd(el,text){
 }
 function streamText(el,text){
   return new Promise(resolve=>{
-    let stopped=false;
+    let i=0,stopped=false;el.style.whiteSpace='pre-wrap';
     activeStreamStop=()=>{stopped=true;};
-    // Разбиваем на слова с разделителями для плавной анимации
-    const tokens=text.split(/(\s+)/);
-    let built='',idx=0;
-    el.style.whiteSpace='pre-wrap';
-    // Скорость: ~8мс между токенами → плавно и быстро
     function step(){
       if(stopped){
-        el.textContent=built;
-        el.dataset.raw=built;
+        const partial=text.slice(0,Math.min(i,text.length));
+        el.textContent=partial;
+        el.dataset.raw=partial;
         activeStreamStop=null;
         scrollChat();
-        resolve({stopped:true,text:built});
+        resolve({stopped:true,text:partial});
         return;
       }
-      if(idx>=tokens.length){
-        activeStreamStop=null;
-        renderMd(el,text);
-        scrollChat();
-        resolve({stopped:false,text});
-        return;
-      }
-      // Добавляем по 1-2 токена за шаг для скорости
-      const batch=Math.min(2,tokens.length-idx);
-      for(let b=0;b<batch;b++){built+=tokens[idx++]||'';}
-      el.textContent=built+(idx<tokens.length?'▍':'');
+      i+=4;
+      el.textContent=text.slice(0,Math.min(i,text.length))+(i<text.length?'▍':'');
       scrollChat();
-      setTimeout(step,idx<tokens.length?9:0);
+      if(i<text.length)setTimeout(step,5);
+      else{activeStreamStop=null;renderMd(el,text);scrollChat();resolve({stopped:false,text});}
     }
     step();
   });
+}
+function createLiveTypingController(el){
+  let pendingText='';
+  let shownLength=0;
+  let finalText=null;
+  let timer=null;
+  let stopped=false;
+  let resolveDone;
+  const done=new Promise(resolve=>{resolveDone=resolve;});
+  el.style.whiteSpace='pre-wrap';
+  activeStreamStop=()=>{
+    stopped=true;
+    if(timer)clearTimeout(timer);
+    const partial=pendingText.slice(0,shownLength);
+    el.textContent=partial;
+    el.dataset.raw=partial;
+    activeStreamStop=null;
+    resolveDone(partial);
+  };
+  function finishIfReady(){
+    if(stopped)return;
+    if(finalText===null)return;
+    if(shownLength<pendingText.length)return;
+    timer=null;
+    activeStreamStop=null;
+    renderMd(el,finalText);
+    el.dataset.raw=finalText;
+    scrollChat();
+    resolveDone(finalText);
+  }
+  function tick(){
+    if(stopped)return;
+    if(shownLength<pendingText.length){
+      const remain=pendingText.length-shownLength;
+      shownLength+=remain>12?3:remain>4?2:1;
+      const partial=pendingText.slice(0,shownLength);
+      el.textContent=partial+(shownLength<pendingText.length||finalText===null?'▍':'');
+      el.dataset.raw=partial;
+      scrollChat();
+      timer=setTimeout(tick,16);
+      return;
+    }
+    timer=null;
+    finishIfReady();
+  }
+  return {
+    push(chunk){
+      if(stopped||!chunk)return;
+      pendingText+=chunk;
+      if(!timer)tick();
+    },
+    complete(text){
+      if(typeof text==='string'&&text.length>pendingText.length)pendingText=text;
+      finalText=typeof text==='string'&&text?text:pendingText;
+      if(!timer)finishIfReady();
+      return done;
+    },
+    done
+  };
 }
 function scrollChat(){const a=document.getElementById('chatArea');if(a)a.scrollTop=a.scrollHeight;}
 function cpMsg(btn){
@@ -1961,92 +1879,6 @@ function cpMsg(btn){
   navigator.clipboard.writeText(txt).catch(()=>{});
   btn.classList.add('liked');setTimeout(()=>btn.classList.remove('liked'),800);
 }
-// ─── Блок 3: Feedback Modal ────────────────────────────────────────────────
-function openFeedbackModal(dislikeBtn,raw){
-  // Удаляем предыдущее модальное окно, если есть
-  document.getElementById('feedbackModal')?.remove();
-
-  const modal=document.createElement('div');
-  modal.id='feedbackModal';
-  modal.innerHTML=`
-    <div class="fb-backdrop" id="fbBackdrop"></div>
-    <div class="fb-modal" role="dialog" aria-modal="true" aria-label="Исправление ответа">
-      <div class="fb-header">
-        <span class="fb-title">✏️ Исправить ответ</span>
-        <button class="fb-close" id="fbClose" title="Закрыть">✕</button>
-      </div>
-      <div class="fb-body">
-        <p class="fb-hint">Выбери формат ввода:</p>
-        <div class="fb-tabs">
-          <button class="fb-tab active" data-tab="free">Свободное описание</button>
-          <button class="fb-tab" data-tab="qa">Вопрос : Ответ</button>
-        </div>
-        <div class="fb-tab-content" id="fbTabFree">
-          <textarea class="fb-textarea" id="fbTextFree" placeholder="Опишите, что именно было неверно и как правильно..."></textarea>
-        </div>
-        <div class="fb-tab-content" style="display:none" id="fbTabQa">
-          <input class="fb-input" id="fbQaQ" placeholder="Понятие или вопрос (например: Доминанта)">
-          <span class="fb-sep">:</span>
-          <input class="fb-input" id="fbQaA" placeholder="Правильный ответ (например: V ступень гаммы)">
-        </div>
-        <div class="fb-excerpt">
-          <span class="fb-excerpt-label">Ответ ИИ:</span>
-          <span class="fb-excerpt-text">${(raw||'').slice(0,180)}${raw&&raw.length>180?'…':''}</span>
-        </div>
-      </div>
-      <div class="fb-footer">
-        <button class="fb-btn-cancel" id="fbCancel">Отмена</button>
-        <button class="fb-btn-submit" id="fbSubmit">Отправить и обучить 🎓</button>
-      </div>
-    </div>`;
-  document.body.appendChild(modal);
-
-  // Переключение вкладок
-  modal.querySelectorAll('.fb-tab').forEach(tab=>{
-    tab.addEventListener('click',()=>{
-      modal.querySelectorAll('.fb-tab').forEach(t=>t.classList.remove('active'));
-      tab.classList.add('active');
-      const which=tab.dataset.tab;
-      document.getElementById('fbTabFree').style.display=which==='free'?'':'none';
-      document.getElementById('fbTabQa').style.display=which==='qa'?'':'none';
-    });
-  });
-
-  const closeModal=()=>modal.remove();
-  document.getElementById('fbClose').addEventListener('click',closeModal);
-  document.getElementById('fbCancel').addEventListener('click',closeModal);
-  document.getElementById('fbBackdrop').addEventListener('click',closeModal);
-
-  document.getElementById('fbSubmit').addEventListener('click',async()=>{
-    const activeTab=modal.querySelector('.fb-tab.active')?.dataset?.tab||'free';
-    let correction='',note='';
-    if(activeTab==='qa'){
-      const q=document.getElementById('fbQaQ').value.trim();
-      const a=document.getElementById('fbQaA').value.trim();
-      if(!q||!a){alert('Заполните оба поля «Понятие» и «Ответ».');return;}
-      correction=`${q} : ${a}`;
-      note='Паттерн Q:A — прямое обучение модели';
-    }else{
-      correction=document.getElementById('fbTextFree').value.trim();
-      note='Свободное описание ошибки';
-    }
-    if(!correction){alert('Введите исправление.');return;}
-    const btn=document.getElementById('fbSubmit');
-    btn.disabled=true;btn.textContent='Сохраняем...';
-    try{
-      await recordFeedbackToSupabase(raw,correction,note);
-      btn.textContent='✅ Сохранено!';
-      setTimeout(closeModal,1000);
-    }catch(e){
-      btn.disabled=false;btn.textContent='Отправить и обучить 🎓';
-      alert('Не удалось сохранить: '+e.message);
-    }
-  });
-
-  // Фокус на первое поле
-  setTimeout(()=>document.getElementById('fbTextFree')?.focus(),80);
-}
-
 async function likeMsg(btn,t){
   const g=btn.parentElement;
   const lb=g.children[1],db=g.children[2];
@@ -2058,7 +1890,14 @@ async function likeMsg(btn,t){
     if(becameActive){
       const wrap=btn.closest('.msg-ai-wrap');
       const raw=wrap?.querySelector('.msg-ai')?.dataset?.raw||wrap?.querySelector('.msg-ai')?.textContent||'';
-      openFeedbackModal(btn,raw);
+      const correction=prompt('Что здесь было неверно? Напишите правильный вариант. Это сохранится как исправление для ИИ.');
+      if(correction&&correction.trim()){
+        try{
+          await recordFeedbackToSupabase(raw,correction,'Пользователь указал на ошибку через dislike');
+        }catch(e){
+          alert('Не удалось сохранить исправление: '+e.message);
+        }
+      }
     }
   }
 }
@@ -2072,15 +1911,14 @@ async function regenMsg(item){
   item.parentElement.classList.remove('open');
   const wrap=item.closest('.msg-ai-wrap');
   const msgEl=wrap.querySelector('.msg-ai');
+  const actionsEl=wrap.querySelector('.msg-actions');
+  setMessageActionsVisible(actionsEl,false);
   if(chatHistory.length&&chatHistory[chatHistory.length-1].role==='assistant')chatHistory.pop();
   msgEl.innerHTML='';msgEl.style.whiteSpace='pre-wrap';
   showTyping();
   setGeneratingState(true);
   try{
-    const reply=await requestChatReply();
-    hideTyping();
-    const streamed=await streamText(msgEl,reply);
-    const finalText=streamed?.text||reply;
+    const finalText=await requestChatReplyLive(msgEl,actionsEl);
     if(finalText)chatHistory.push({role:'assistant',content:finalText});
     await saveChat();
   }catch(e){
@@ -2093,10 +1931,14 @@ async function regenMsg(item){
   }
 }
 function showTyping(){
-  if(!thinkOn) return; // показываем "Думаю..." только в режиме Думать
   const inner=getChatInner();
   const d=document.createElement('div');d.className='thinking';d.id='typEl';
-  d.innerHTML='<div class="think-dots"><span></span><span></span><span></span></div><span style="font-size:14px;color:var(--text2)">Думаю...</span>';
+  if(thinkOn){
+    d.classList.add('think-text');
+    d.textContent='Думать';
+  }else{
+    d.innerHTML='<div class="think-dots"><span></span><span></span><span></span></div><span style="font-size:14px;color:var(--text2)">Генерирую...</span>';
+  }
   inner.appendChild(d);scrollChat();
 }
 function hideTyping(){const t=document.getElementById('typEl');if(t)t.remove();}
@@ -2106,13 +1948,10 @@ function tChatErr(msg){
   if(low.includes('high demand')||low.includes('overloaded')||low.includes('resource exhausted')||low.includes('try again later')){
     return 'Модель временно перегружена. Я уже попробовал резервный вариант, но сервис всё ещё занят. Повторите через минуту.';
   }
-  if(low.includes('timed out')||low.includes('timeout')||low.includes('504')){
-    return 'Запрос занял слишком много времени. Попробуйте ещё раз — нотные задачи иногда требуют пары попыток.';
+  if(low.includes('timed out')||low.includes('timeout')||low.includes('слишком долго')){
+    return 'Модель отвечает слишком долго. Попробуйте еще раз или отключите сложный режим.';
   }
-  if(low.includes('failed to fetch')||low.includes('load failed')||low.includes('networkerror')){
-    return 'Соединение прервалось. Попробуйте ещё раз — возможно, запрос был слишком долгим.';
-  }
-  if(low.includes('fetch')||low.includes('network')){
+  if(low.includes('failed to fetch')||low.includes('load failed')||low.includes('fetch')||low.includes('network')){
     return 'Сервер чата недоступен. Проверьте деплой Vercel и файл api/chat.js, потом попробуйте ещё раз.';
   }
   return text||'Что-то пошло не так при запросе к модели';
@@ -2127,9 +1966,7 @@ function buildApiCandidates(){
   endpoints.push(`${liveBase}/api/chat`);
   return [...new Set(endpoints)];
 }
-// Streaming requestChatReply: возвращает полный текст (для совместимости),
-// но попутно вызывает onDelta(chunk) чтобы показывать текст сразу.
-async function requestChatReply(onDelta){
+async function requestChatReply(){
   activeAbortController=new AbortController();
   const payload={
     messages:[{role:'system',content:buildSystem()},...chatHistory],
@@ -2137,53 +1974,25 @@ async function requestChatReply(onDelta){
     effort:curMode,
     think:thinkOn,
     userId:curUser?.id||null,
-    userEmail:curUser?.email||null,
-    stream:true  // всегда стрим — сервер сам решает, форсируем для нотных запросов
+    userEmail:curUser?.email||null
   };
   let lastError=null;
   const endpoints=buildApiCandidates();
   for(let i=0;i<endpoints.length;i++){
     const endpoint=endpoints[i];
     try{
-      const res=await fetch(endpoint,{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify(payload),
-        cache:'no-store',
-        credentials:'omit',
-        signal:activeAbortController.signal
-      });
-      // ── SSE streaming path ───────────────────────────────────────────
-      if(onDelta&&res.ok&&res.headers.get('content-type')?.includes('text/event-stream')){
-        const reader=res.body.getReader();
-        const decoder=new TextDecoder();
-        let fullText='';
-        let buffer='';
-        while(true){
-          const{done,value}=await reader.read();
-          if(done)break;
-          buffer+=decoder.decode(value,{stream:true});
-          const lines=buffer.split('\n');
-          buffer=lines.pop();
-          for(const line of lines){
-            if(!line.startsWith('data: '))continue;
-            const raw=line.slice(6).trim();
-            if(raw==='[DONE]')continue;
-            try{
-              const parsed=JSON.parse(raw);
-              if(parsed.delta){fullText+=parsed.delta;onDelta(parsed.delta);}
-            }catch{}
-          }
-        }
-        return normalizeReplyNotation(fullText)||'Нет ответа';
-      }
-      // ── Non-streaming fallback ────────────────────────────────────────
+      const res=await withTimeout(
+        fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),cache:'no-store',credentials:'omit',signal:activeAbortController.signal}),
+        CHAT_TIMEOUT_MS,
+        'Сервер слишком долго отвечает'
+      );
       let data=null;
       try{data=await res.json();}catch(e){data=null;}
       if(!res.ok||data?.error){
         const translated=tChatErr(data?.error?.message||`Ошибка сервера (${res.status})`);
         if((res.status===404||res.status===405)&&endpoint.includes('/api/harmony')&&i<endpoints.length-1){
-          lastError=new Error(translated);continue;
+          lastError=new Error(translated);
+          continue;
         }
         throw new Error(translated);
       }
@@ -2201,6 +2010,89 @@ async function requestChatReply(onDelta){
   }
   if(window.location.protocol==='file:'){
     throw new Error('Локальный HTML не смог подключиться к серверу чата. На домене всё должно работать, а для локального просмотра нужен доступный backend.');
+  }
+  throw lastError||new Error('Не удалось получить ответ от сервера');
+}
+async function requestChatReplyLive(msgEl,actionsEl){
+  activeAbortController=new AbortController();
+  const payload={
+    messages:[{role:'system',content:buildSystem()},...chatHistory],
+    model:curModel,
+    effort:curMode,
+    think:thinkOn,
+    stream:true,
+    userId:curUser?.id||null,
+    userEmail:curUser?.email||null
+  };
+  const endpoints=buildApiCandidates();
+  let lastError=null;
+  for(let i=0;i<endpoints.length;i++){
+    const endpoint=endpoints[i];
+    try{
+      const res=await withTimeout(
+        fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),cache:'no-store',credentials:'omit',signal:activeAbortController.signal}),
+        CHAT_TIMEOUT_MS,
+        'Сервер слишком долго отвечает'
+      );
+      const type=(res.headers.get('content-type')||'').toLowerCase();
+      if(!res.ok){
+        let data=null;
+        try{data=await res.json();}catch(e){data=null;}
+        throw new Error(tChatErr(data?.error?.message||`Ошибка сервера (${res.status})`));
+      }
+      if(type.includes('text/event-stream')&&res.body){
+        const reader=res.body.getReader();
+        const decoder=new TextDecoder();
+        const typer=createLiveTypingController(msgEl);
+        let buffer='';
+        let gotDelta=false;
+        while(true){
+          const {done,value}=await reader.read();
+          if(done)break;
+          buffer+=decoder.decode(value,{stream:true});
+          const events=buffer.split('\n\n');
+          buffer=events.pop()||'';
+          for(const evt of events){
+            const dataLines=evt.split('\n').filter(line=>line.startsWith('data:'));
+            for(const line of dataLines){
+              const raw=line.slice(5).trim();
+              if(!raw)continue;
+              const payloadChunk=JSON.parse(raw);
+              if(payloadChunk.type==='delta'){
+                if(!gotDelta){hideTyping();gotDelta=true;}
+                typer.push(payloadChunk.text||'');
+              }else if(payloadChunk.type==='done'){
+                hideTyping();
+                const finalText=await typer.complete(normalizeReplyNotation(payloadChunk.text||''));
+                setMessageActionsVisible(actionsEl,true);
+                return finalText;
+              }else if(payloadChunk.type==='error'){
+                throw new Error(payloadChunk.message||'Ошибка потоковой генерации');
+              }
+            }
+          }
+        }
+        hideTyping();
+        const finalText=await typer.complete(normalizeReplyNotation(msgEl.dataset.raw||msgEl.textContent||''));
+        setMessageActionsVisible(actionsEl,true);
+        return finalText;
+      }
+      let data=null;
+      try{data=await res.json();}catch(e){data=null;}
+      const reply=data?.choices?.[0]?.message?.content?.trim();
+      if(!reply)throw new Error('Модель вернула пустой ответ');
+      hideTyping();
+      const streamed=await streamText(msgEl,normalizeReplyNotation(reply));
+      setMessageActionsVisible(actionsEl,true);
+      return streamed?.text||reply;
+    }catch(e){
+      if(e?.name==='AbortError')throw new Error('Генерация остановлена');
+      lastError=e;
+      const msg=String(e?.message||'').toLowerCase();
+      if(i<endpoints.length-1&&(msg.includes('failed to fetch')||msg.includes('load failed')||msg.includes('network'))){
+        continue;
+      }
+    }
   }
   throw lastError||new Error('Не удалось получить ответ от сервера');
 }
@@ -2229,37 +2121,10 @@ async function sendMsg(){
   else await saveChat();
   showTyping();
   setGeneratingState(true);
-
-  // Создаём пузырь сразу — пользователь видит его ещё до первого слова
-  const msgEl=addAiBubbleEmpty();
-  let fullText='';
+  const aiShell=createAiBubbleShell({showActions:true,hiddenActions:true});
 
   try{
-    // onDelta вызывается с каждым новым кусочком текста от сервера
-    // Плавная анимация: каждый новый чанк появляется с микро-fade через CSS
-    const reply=await requestChatReply((delta)=>{
-      hideTyping();
-      fullText+=delta;
-      msgEl.style.whiteSpace='pre-wrap';
-      // Добавляем span с fade-in для каждого нового чанка
-      const span=document.createElement('span');
-      span.textContent=delta;
-      span.style.cssText='animation:wordIn 0.12s ease forwards;opacity:0;';
-      // Убираем курсор с предыдущего span
-      const prev=msgEl.querySelector('span.cursor');
-      if(prev){prev.classList.remove('cursor');prev.textContent=prev.textContent.replace('▍','');}
-      span.classList.add('cursor');
-      span.textContent=delta+'▍';
-      msgEl.appendChild(span);
-      msgEl.dataset.raw=fullText;
-      scrollChat();
-    });
-    hideTyping();
-    // Финальный рендер markdown (sanitize + ABC-нотация)
-    const finalText=reply||fullText;
-    renderMd(msgEl,finalText);
-    msgEl.dataset.raw=finalText;
-    scrollChat();
+    const finalText=await requestChatReplyLive(aiShell.msg,aiShell.actions);
     if(finalText)chatHistory.push({role:'assistant',content:finalText});
     await saveChat();
     pendingImg=null;
@@ -2268,10 +2133,8 @@ async function sendMsg(){
   }catch(e){
     hideTyping();
     if(e.message!=='Генерация остановлена'){
-      renderMd(msgEl,'Ошибка: '+e.message);
-    }else{
-      // Если остановили — сохраняем частичный текст
-      if(fullText){renderMd(msgEl,fullText);msgEl.dataset.raw=fullText;}
+      renderMd(aiShell.msg,'Ошибка: '+e.message);
+      setMessageActionsVisible(aiShell.actions,false);
     }
   }finally{
     activeAbortController=null;
