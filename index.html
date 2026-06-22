@@ -270,6 +270,40 @@ body{background:var(--bg);color:var(--text);}
 .mac-btn{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--text2);cursor:pointer;transition:background .12s,color .12s;background:transparent;border:none;}
 .mac-btn:hover{background:var(--hover);color:var(--text);}
 .mac-btn.liked{color:#22c55e;}.mac-btn.disliked{color:#ef4444;}
+
+/* ===================== DISLIKE FEEDBACK MODAL ===================== */
+.fb-overlay{position:fixed;inset:0;z-index:600;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);opacity:0;visibility:hidden;transition:opacity .2s,visibility .2s;}
+.fb-overlay.show{opacity:1;visibility:visible;}
+.fb-modal{background:var(--drop-bg);border:1px solid var(--border);border-radius:20px;padding:24px;width:min(92vw,440px);box-shadow:var(--drop-shadow);display:flex;flex-direction:column;gap:14px;transform:translateY(10px) scale(.98);transition:transform .2s;}
+.fb-overlay.show .fb-modal{transform:none;}
+.fb-title{font-size:16px;font-weight:700;color:var(--text);letter-spacing:-.3px;}
+.fb-desc{font-size:13px;color:var(--text2);line-height:1.5;}
+.fb-tabs{display:flex;gap:6px;}
+.fb-tab{flex:1;padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:transparent;font-size:12.5px;font-weight:600;color:var(--text2);cursor:pointer;font-family:inherit;transition:background .12s,color .12s,border-color .12s;}
+.fb-tab.active{background:var(--send-bg);color:var(--send-txt);border-color:var(--send-bg);}
+.fb-pane{display:none;flex-direction:column;gap:10px;}
+.fb-pane.active{display:flex;}
+.fb-textarea{width:100%;min-height:100px;padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:var(--input-bg);font-size:14px;color:var(--text);font-family:inherit;resize:vertical;outline:none;transition:border-color .15s;line-height:1.5;}
+.fb-textarea:focus{border-color:var(--text);}
+.fb-textarea::placeholder{color:var(--text2);}
+.fb-qa-row{display:flex;flex-direction:column;gap:8px;}
+.fb-qa-label{font-size:12px;font-weight:600;color:var(--text2);letter-spacing:.3px;text-transform:uppercase;}
+.fb-qa-input{width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;background:var(--input-bg);font-size:14px;color:var(--text);font-family:inherit;outline:none;transition:border-color .15s;}
+.fb-qa-input:focus{border-color:var(--text);}
+.fb-qa-input::placeholder{color:var(--text2);}
+.fb-actions{display:flex;gap:8px;margin-top:2px;}
+.fb-btn-cancel{flex:1;padding:11px;border-radius:11px;border:1px solid var(--border);background:transparent;font-size:14px;font-weight:600;color:var(--text2);cursor:pointer;font-family:inherit;transition:background .12s;}
+.fb-btn-cancel:hover{background:var(--hover);}
+.fb-btn-send{flex:2;padding:11px;border-radius:11px;border:none;background:var(--send-bg);font-size:14px;font-weight:700;color:var(--send-txt);cursor:pointer;font-family:inherit;transition:opacity .15s;}
+.fb-btn-send:hover{opacity:.85;}
+.fb-btn-send:disabled{opacity:.5;cursor:default;}
+.fb-success{font-size:13px;color:var(--check);text-align:center;display:none;}
+/* Mobile: bottom sheet style */
+@media(max-width:768px){
+  .fb-overlay{align-items:flex-end;}
+  .fb-modal{width:100%;border-radius:20px 20px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom,0px));transform:translateY(40px);}
+  .fb-overlay.show .fb-modal{transform:none;}
+}
 .more-menu{position:absolute;bottom:34px;right:0;left:auto;background:var(--drop-bg);border:1px solid var(--border);border-radius:12px;padding:5px;display:none;z-index:30;box-shadow:var(--drop-shadow);min-width:150px;}
 .more-menu.open{display:block;}
 .more-item{padding:8px 14px;font-size:13px;font-weight:500;color:var(--text);border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:8px;}
@@ -538,35 +572,6 @@ body{background:var(--bg);color:var(--text);}
   .model-pill{min-width:148px!important;max-width:176px!important;height:32px!important;padding:0 13px!important;}
   .pill-name{max-width:76px!important;}
 }
-
-/* ===================== FEEDBACK MODAL ===================== */
-.feedback-overlay{position:fixed;inset:0;z-index:500;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);}
-.feedback-overlay.open{display:flex;}
-.feedback-box{width:100%;max-width:420px;background:var(--drop-bg);border:1px solid var(--border);border-radius:20px;padding:24px;display:flex;flex-direction:column;gap:14px;box-shadow:var(--drop-shadow);}
-.feedback-header{display:flex;align-items:center;justify-content:space-between;}
-.feedback-title{font-size:17px;font-weight:700;color:var(--text);}
-.feedback-close{width:32px;height:32px;border-radius:50%;border:none;background:transparent;color:var(--text2);cursor:pointer;font-size:22px;line-height:1;display:flex;align-items:center;justify-content:center;transition:background .12s;}
-.feedback-close:hover{background:var(--hover);}
-.feedback-sub{font-size:13px;color:var(--text2);line-height:1.5;}
-.feedback-sub b{color:var(--text);font-weight:600;}
-.feedback-textarea{width:100%;min-height:120px;padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:var(--input-bg);font-size:15px;color:var(--text);font-family:inherit;resize:vertical;outline:none;transition:border-color .15s;line-height:1.5;}
-.feedback-textarea:focus{border-color:var(--text);}
-.feedback-textarea::placeholder{color:var(--text2);}
-.feedback-actions{display:flex;gap:10px;justify-content:flex-end;}
-.feedback-btn-primary{padding:10px 18px;border-radius:10px;background:var(--send-bg);color:var(--send-txt);font-size:14px;font-weight:700;border:none;cursor:pointer;font-family:inherit;transition:opacity .15s;}
-.feedback-btn-primary:hover{opacity:.85;}
-.feedback-btn-primary:disabled{opacity:.5;cursor:default;}
-.feedback-btn-secondary{padding:10px 18px;border-radius:10px;background:transparent;color:var(--text2);font-size:14px;font-weight:600;border:1px solid var(--border);cursor:pointer;font-family:inherit;transition:background .15s;}
-.feedback-btn-secondary:hover{background:var(--hover);}
-@media(max-width:768px){
-  .feedback-overlay{padding:16px;align-items:flex-end;background:rgba(0,0,0,.55);}
-  .feedback-box{max-width:100%;border-radius:22px;padding:20px;gap:12px;background:linear-gradient(180deg,rgba(25,25,31,.96),rgba(15,15,20,.98));border-color:rgba(255,255,255,.10);}
-  .feedback-title{font-size:18px;}
-  .feedback-sub{font-size:14px;color:rgba(200,196,214,.72);}
-  .feedback-textarea{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.10);font-size:16px;}
-  .feedback-actions{justify-content:stretch;}
-  .feedback-actions button{flex:1;}
-}
 </style>
 </head>
 <body>
@@ -799,22 +804,6 @@ body{background:var(--bg);color:var(--text);}
   </div>
 </div>
 
-<!-- ===================== FEEDBACK MODAL ===================== -->
-<div class="feedback-overlay" id="feedbackOverlay" onclick="if(event.target===this)closeFeedbackModal()">
-  <div class="feedback-box" id="feedbackBox" onclick="event.stopPropagation()">
-    <div class="feedback-header">
-      <div class="feedback-title">Что здесь было неверно?</div>
-      <button class="feedback-close" onclick="closeFeedbackModal()" aria-label="Закрыть">×</button>
-    </div>
-    <div class="feedback-sub">Напишите правильный вариант или пожелание. Можно использовать формат: <b>Вопрос:Ответ</b> — для обучения нейронки (ответы проходят проверку достоверности).</div>
-    <textarea class="feedback-textarea" id="feedbackText" placeholder="Ваше исправление или пожелание..."></textarea>
-    <div class="feedback-actions">
-      <button class="feedback-btn-secondary" onclick="closeFeedbackModal()">Отмена</button>
-      <button class="feedback-btn-primary" onclick="submitFeedback()" id="feedbackSubmitBtn">Отправить</button>
-    </div>
-  </div>
-</div>
-
 <script>
 /* ===== Supabase ===== */
 const SB_URL='https://cqthnymltqpcxtpiryka.supabase.co';
@@ -830,7 +819,6 @@ let chats=[];
 let abcCounter=0;
 let authHydrationPromise=null,authHydratedUserId='';
 let knowledgeDocs=[];
-let pendingFeedbackRaw='';
 let isGenerating=false,activeAbortController=null,activeStreamStop=null;
 const CHAT_TIMEOUT_MS=60000;
 const PRIMARY_API_ORIGIN='https://harmonyai-zeta.vercel.app';
@@ -1542,53 +1530,7 @@ async function logOut(){
   document.getElementById('app').classList.remove('show');
   closeSettings();
   closePersDrop();
-  closeFeedbackModal();
   showAuthS(1);
-}
-
-/* ===== FEEDBACK MODAL ===== */
-function openFeedbackModal(raw){
-  pendingFeedbackRaw=raw||'';
-  const ta=document.getElementById('feedbackText');
-  if(ta)ta.value='';
-  const overlay=document.getElementById('feedbackOverlay');
-  if(overlay){
-    overlay.classList.add('open');
-    document.body.style.overflow='hidden';
-  }
-  setTimeout(()=>ta?.focus(),100);
-}
-function closeFeedbackModal(){
-  const overlay=document.getElementById('feedbackOverlay');
-  if(overlay){
-    overlay.classList.remove('open');
-    document.body.style.overflow='';
-  }
-  pendingFeedbackRaw='';
-}
-async function submitFeedback(){
-  const ta=document.getElementById('feedbackText');
-  const correction=(ta?.value||'').trim();
-  if(!correction){
-    ta?.focus();
-    return;
-  }
-  const btn=document.getElementById('feedbackSubmitBtn');
-  if(btn){
-    btn.textContent='Отправка...';
-    btn.disabled=true;
-  }
-  try{
-    await recordFeedbackToSupabase(pendingFeedbackRaw||'',correction,'Пользователь указал на ошибку через dislike');
-    closeFeedbackModal();
-  }catch(e){
-    alert('Не удалось сохранить исправление: '+e.message);
-  }finally{
-    if(btn){
-      btn.textContent='Отправить';
-      btn.disabled=false;
-    }
-  }
 }
 
 /* ===== SIDEBAR ===== */
@@ -2187,10 +2129,10 @@ function streamText(el,text){
         resolve({stopped:true,text:partial});
         return;
       }
-      i+=12;
+      i+=16;
       el.textContent=text.slice(0,Math.min(i,text.length))+(i<text.length?'▍':'');
       scrollChat();
-      if(i<text.length)setTimeout(step,1);
+      if(i<text.length)setTimeout(step,5);
       else{activeStreamStop=null;renderMd(el,text);scrollChat();resolve({stopped:false,text});}
     }
     step();
@@ -2233,12 +2175,12 @@ function createLiveTypingController(el){
     if(stopped||completed)return;
     if(shownLength<pendingText.length){
       const remain=pendingText.length-shownLength;
-      shownLength+=remain>12?6:remain>4?3:1;
+      shownLength+=remain>80?20:remain>30?12:remain>10?6:remain;
       const partial=pendingText.slice(0,shownLength);
       el.textContent=partial+(shownLength<pendingText.length||finalText===null?'▍':'');
       el.dataset.raw=partial;
       scrollChat();
-      timer=setTimeout(tick,4);
+      timer=setTimeout(tick,8);
       return;
     }
     timer=null;
@@ -2265,7 +2207,7 @@ function cpMsg(btn){
   navigator.clipboard.writeText(txt).catch(()=>{});
   btn.classList.add('liked');setTimeout(()=>btn.classList.remove('liked'),800);
 }
-async function likeMsg(btn,t){
+function likeMsg(btn,t){
   const g=btn.parentElement;
   const lb=g.children[1],db=g.children[2];
   if(t==='like'){lb.classList.toggle('liked');db.classList.remove('disliked');}
@@ -2276,7 +2218,7 @@ async function likeMsg(btn,t){
     if(becameActive){
       const wrap=btn.closest('.msg-ai-wrap');
       const raw=wrap?.querySelector('.msg-ai')?.dataset?.raw||wrap?.querySelector('.msg-ai')?.textContent||'';
-      openFeedbackModal(raw);
+      openFbModal(raw);
     }
   }
 }
@@ -2783,5 +2725,99 @@ async function saveSetting(key,val){
   await sb.from('profiles').upsert({id:curUser.id,settings:curUser.settings},{onConflict:'id'});
 }
 </script>
+
+
+<!-- ===== DISLIKE FEEDBACK MODAL ===== -->
+<div class="fb-overlay" id="fbOverlay" onclick="if(event.target===this)closeFbModal()">
+  <div class="fb-modal">
+    <div class="fb-title">Что не так с ответом?</div>
+    <div class="fb-desc">Ваш отзыв поможет улучшить ИИ. Укажите ошибку в свободной форме или в формате «Вопрос → Ответ».</div>
+    <div class="fb-tabs">
+      <button class="fb-tab active" onclick="switchFbTab('free')">Свободно</button>
+      <button class="fb-tab" onclick="switchFbTab('qa')">Вопрос → Ответ</button>
+    </div>
+    <div class="fb-pane active" id="fbPaneFree">
+      <textarea class="fb-textarea" id="fbFreeText" placeholder="Опишите, что было неверно или как должен был выглядеть правильный ответ…" rows="4"></textarea>
+    </div>
+    <div class="fb-pane" id="fbPaneQa">
+      <div class="fb-qa-row">
+        <div class="fb-qa-label">Вопрос</div>
+        <input class="fb-qa-input" id="fbQaQ" placeholder="Какой вопрос задал пользователь?" />
+      </div>
+      <div class="fb-qa-row">
+        <div class="fb-qa-label">Правильный ответ</div>
+        <textarea class="fb-textarea" id="fbQaA" placeholder="Как должен был ответить ИИ?" rows="3"></textarea>
+      </div>
+    </div>
+    <div class="fb-success" id="fbSuccess">✓ Сохранено! Спасибо за помощь.</div>
+    <div class="fb-actions">
+      <button class="fb-btn-cancel" onclick="closeFbModal()">Отмена</button>
+      <button class="fb-btn-send" id="fbSendBtn" onclick="submitFbModal()">Отправить</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===== DISLIKE MODAL ===== */
+let _fbRaw='';
+let _fbTab='free';
+
+function openFbModal(rawText){
+  _fbRaw=rawText||'';
+  _fbTab='free';
+  document.getElementById('fbFreeText').value='';
+  document.getElementById('fbQaQ').value='';
+  document.getElementById('fbQaA').value='';
+  document.getElementById('fbSuccess').style.display='none';
+  document.getElementById('fbSendBtn').disabled=false;
+  switchFbTab('free');
+  document.getElementById('fbOverlay').classList.add('show');
+  setTimeout(()=>document.getElementById('fbFreeText').focus(),220);
+}
+
+function closeFbModal(){
+  document.getElementById('fbOverlay').classList.remove('show');
+}
+
+function switchFbTab(tab){
+  _fbTab=tab;
+  document.querySelectorAll('.fb-tab').forEach((el,i)=>{
+    el.classList.toggle('active',(i===0&&tab==='free')||(i===1&&tab==='qa'));
+  });
+  document.getElementById('fbPaneFree').classList.toggle('active',tab==='free');
+  document.getElementById('fbPaneQa').classList.toggle('active',tab==='qa');
+}
+
+async function submitFbModal(){
+  let correction='',note='';
+  if(_fbTab==='free'){
+    correction=(document.getElementById('fbFreeText').value||'').trim();
+    note='Свободная форма';
+  }else{
+    const q=(document.getElementById('fbQaQ').value||'').trim();
+    const a=(document.getElementById('fbQaA').value||'').trim();
+    if(q&&a){correction=a;note='Вопрос: '+q;}
+    else if(a){correction=a;note='Формат В/О';}
+    else{correction=q;note='Формат В/О';}
+  }
+  if(!correction){
+    const el=_fbTab==='free'?document.getElementById('fbFreeText'):document.getElementById('fbQaA');
+    el.focus();el.style.borderColor='#ef4444';setTimeout(()=>el.style.borderColor='',1200);
+    return;
+  }
+  const btn=document.getElementById('fbSendBtn');
+  btn.disabled=true;btn.textContent='Сохраняем…';
+  try{
+    await recordFeedbackToSupabase(_fbRaw,correction,note);
+    document.getElementById('fbSuccess').style.display='block';
+    btn.textContent='Отправить';
+    setTimeout(()=>closeFbModal(),1200);
+  }catch(e){
+    btn.disabled=false;btn.textContent='Отправить';
+    alert('Не удалось сохранить: '+e.message);
+  }
+}
+</script>
+
 </body>
 </html>
