@@ -1,30 +1,11 @@
-const FREE_MODEL_CHAINS = {
-  openaiLite: [
-    process.env.FREE_LITE_MODEL || 'gpt-4o-mini',
-    process.env.FREE_LITE_FALLBACK_MODEL || process.env.FREE_LITE_MODEL || 'gpt-4o-mini'
+const MODEL_CHAINS = {
+  adanatos: [
+    process.env.ADANATOS_MODEL || 'gpt-5.4-mini',
+    process.env.ADANATOS_FALLBACK || 'gpt-5.4'
   ],
-  openaiPro: [
-    process.env.FREE_PRO_MODEL || 'gpt-4o',
-    process.env.FREE_PRO_FALLBACK_MODEL || process.env.FREE_PRO_MODEL || 'gpt-4o-mini'
-  ],
-  geminiLite: [
-    process.env.FREE_LITE_GEMINI_MODEL || 'gemini-2.5-flash-lite',
-    process.env.FREE_LITE_GEMINI_FALLBACK_MODEL || 'gemini-2.5-flash'
-  ],
-  geminiPro: [
-    process.env.FREE_PRO_GEMINI_MODEL || 'gemini-2.5-flash',
-    process.env.FREE_PRO_GEMINI_FALLBACK_MODEL || 'gemini-2.5-flash-lite'
-  ]
-};
-
-const PREMIUM_MODEL_CHAINS = {
-  openai: [
-    process.env.PREMIUM_MODEL || process.env.FREE_PRO_MODEL || 'gpt-4o',
-    process.env.PREMIUM_FALLBACK_MODEL || process.env.FREE_LITE_MODEL || 'gpt-4o-mini'
-  ],
-  gemini: [
-    process.env.PREMIUM_MODEL || 'gemini-2.5-pro',
-    process.env.PREMIUM_FALLBACK_MODEL || 'gemini-2.5-flash'
+  dynatos: [
+    process.env.DYNATOS_MODEL || 'gpt-5.4',
+    process.env.DYNATOS_FALLBACK || 'gpt-5.4-mini'
   ]
 };
 
@@ -44,7 +25,7 @@ function hasUsableGemini() {
 
 function hasUsableOpenAI() {
   const key = readEnv('OPENAI_API_KEY');
-  const baseUrl = readEnv('OPENAI_BASE_URL') || 'https://api.openai.com/v1';
+  const baseUrl = readEnv('OPENAI_BASE_URL') || 'https://api.codex-api.online/v1';
   if (!key || isPlaceholderValue(key)) return false;
   if (isPlaceholderValue(baseUrl)) return false;
   try {
@@ -399,7 +380,7 @@ async function callGemini(apiKey, modelName, body, timeoutMs = 35000) {
 }
 
 async function callOpenAI(apiKey, modelName, messages, timeoutMs = 35000) {
-  const baseUrl = String(readEnv('OPENAI_BASE_URL') || 'https://api.openai.com/v1').replace(/\/+$/, '');
+  const baseUrl = String(readEnv('OPENAI_BASE_URL') || 'https://api.codex-api.online/v1').replace(/\/+$/, '');
   const response = await withTimeout(
     fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
@@ -425,7 +406,7 @@ async function callOpenAI(apiKey, modelName, messages, timeoutMs = 35000) {
 }
 
 async function callOpenAIStream(apiKey, modelName, messages, timeoutMs = 65000) {
-  const baseUrl = String(readEnv('OPENAI_BASE_URL') || 'https://api.openai.com/v1').replace(/\/+$/, '');
+  const baseUrl = String(readEnv('OPENAI_BASE_URL') || 'https://api.codex-api.online/v1').replace(/\/+$/, '');
   return await withTimeout(
     fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
@@ -633,20 +614,13 @@ async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs,
 }
 
 function selectRoute(profile, requestedModel) {
-  const plan = profile?.plan || 'free';
   const wantsPro = requestedModel === 'pro';
-  if (wantsPro && plan === 'premium') {
-    return {
-      provider: 'openai',
-      apiKey: readEnv('OPENAI_API_KEY'),
-      models: PREMIUM_MODEL_CHAINS.openai
-    };
-  }
-
+  const modelChain = wantsPro ? MODEL_CHAINS.dynatos : MODEL_CHAINS.adanatos;
+  
   return {
     provider: 'openai',
     apiKey: readEnv('OPENAI_API_KEY'),
-    models: wantsPro ? FREE_MODEL_CHAINS.openaiPro : FREE_MODEL_CHAINS.openaiLite
+    models: modelChain
   };
 }
 
@@ -713,10 +687,9 @@ export default async function handler(req, res) {
     await maybeSaveDeveloperNote(profile, query);
 
     const route = selectRoute(profile, model);
-    const { systemText, contents } = mapMessagesForGemini(messages);
+    const systemText = messages.find(m => m.role === 'system')?.content || '';
     const isNotationHeavy = isCreativeOrNotationRequest(query);
     const modelTimeoutMs = think || effort === 'max' ? 60000 : isQuick ? 12000 : isNotationHeavy ? 40000 : 25000;
-    const geminiAttempts = think || effort === 'max' ? 2 : isQuick ? 1 : 2;
     const mergedSystem = appendServerContext(systemText, [
       profile ? `Профиль пользователя: role=${profile.role || 'user'}, plan=${profile.plan || 'free'}` : '',
       buildMemoryContext(memories, query),
@@ -843,85 +816,3 @@ export default async function handler(req, res) {
       });
     }
 
-    const body = { contents };
-    if (mergedSystem) body.systemInstruction = { parts: [{ text: mergedSystem }] };
-
-    for (const modelName of route.models) {
-      for (let attempt = 0; attempt < geminiAttempts; attempt += 1) {
-        const { response, data } = await callGemini(route.apiKey, modelName, body, modelTimeoutMs);
-        const errorMessage = data?.error?.message || '';
-        if (!response.ok || data.error) {
-          lastError = { status: response.status || 500, message: errorMessage || `Ошибка модели ${modelName}`, model: modelName };
-          if (isModelUnavailable(errorMessage)) {
-            return res.status(400).json({
-              error: {
-                message: `Модель недоступна у текущего провайдера API. Проверьте FREE_LITE_MODEL / FREE_PRO_MODEL / PREMIUM_MODEL. Причина: ${compactErrorValue(errorMessage, 320)} | model=${modelName}`,
-                provider: 'gemini',
-                model: modelName,
-                status: response.status || 400
-              }
-            });
-          }
-          if (isQuotaExceeded(response.status, errorMessage)) {
-            return res.status(429).json({
-              error: {
-                message: formatQuotaErrorMessage(errorMessage, modelName),
-                provider: 'gemini',
-                model: modelName,
-                status: response.status || 429
-              }
-            });
-          }
-          if (isOverloaded(response.status, errorMessage) && attempt === 0) {
-            await sleep(900);
-            continue;
-          }
-          break;
-        }
-        const replyText = sanitizeAssistantText(data?.candidates?.[0]?.content?.parts?.[0]?.text || 'Нет ответа');
-        return res.status(200).json({
-          choices: [{ message: { content: replyText } }],
-          model: modelName
-        });
-      }
-    }
-
-    if (lastError && isQuotaExceeded(lastError.status, lastError.message)) {
-      return res.status(429).json({
-        error: {
-          message: formatQuotaErrorMessage(lastError.message, lastError.model),
-          status: lastError.status || 429,
-          model: lastError.model
-        }
-      });
-    }
-
-    if (lastError && isOverloaded(lastError.status, lastError.message)) {
-      return res.status(503).json({
-        error: {
-          message: `This model is currently experiencing high demand. Please try again in a minute. Причина: ${compactErrorValue(lastError.message, 320) || 'unknown'}${lastError.model ? ` | model=${lastError.model}` : ''}`,
-          status: lastError.status || 503,
-          model: lastError.model
-        }
-      });
-    }
-
-    if (lastError && isTimeoutError(lastError.message)) {
-      return res.status(504).json({
-        error: {
-          message: `Модель отвечает слишком долго. Попробуйте ещё раз или отключите сложный режим. Причина: ${compactErrorValue(lastError.message, 320) || 'timeout'}${lastError.model ? ` | model=${lastError.model}` : ''}`,
-          status: 504,
-          model: lastError.model
-        }
-      });
-    }
-
-    return res.status(lastError?.status || 500).json({
-      error: {
-        message: lastError?.message || 'Не удалось получить ответ от модели'
-      }
-    });
-  } catch (error) {
-    return res.status(500).json({ error: { message: error.message } });
-  }
-}
