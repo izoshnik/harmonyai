@@ -83,7 +83,7 @@ function lastUserText(messages = []) {
   return '';
 }
 
-function chunkText(text, size = 1800, overlap = 220) {
+function chunkText(text, size = 6000, overlap = 600) {
   const src = normalizeText(text);
   if (!src) return [];
   const chunks = [];
@@ -94,7 +94,7 @@ function chunkText(text, size = 1800, overlap = 220) {
     if (end >= src.length) break;
     start = Math.max(end - overlap, start + 300);
   }
-  return chunks.slice(0, 120);
+  return chunks;
 }
 
 function buildSupabaseHeaders() {
@@ -139,7 +139,7 @@ async function fetchAccessibleDocuments(userId) {
     ? `or=(scope.eq.global,and(scope.eq.user,owner_user_id.eq.${userId}))`
     : `scope=eq.global`;
   return await supabaseRequest(
-    `/rest/v1/knowledge_documents?select=id,title,scope,source_type,owner_user_id,created_at,chunk_count,is_active&is_active=eq.true&${encodeURI(orClause)}&order=created_at.desc&limit=60`
+    `/rest/v1/knowledge_documents?select=id,title,scope,source_type,owner_user_id,created_at,chunk_count,is_active&is_active=eq.true&${encodeURI(orClause)}&order=created_at.desc&limit=500`
   );
 }
 
@@ -147,7 +147,7 @@ async function fetchChunksForDocuments(docIds) {
   if (!docIds.length) return [];
   const encodedIds = docIds.join(',');
   return await supabaseRequest(
-    `/rest/v1/knowledge_chunks?select=document_id,chunk_index,content&document_id=in.(${encodedIds})&order=document_id.asc,chunk_index.asc&limit=600`
+    `/rest/v1/knowledge_chunks?select=document_id,chunk_index,content&document_id=in.(${encodedIds})&order=document_id.asc,chunk_index.asc&limit=20000`
   );
 }
 
@@ -176,7 +176,7 @@ function scoreText(queryTokens, text) {
   return score;
 }
 
-function selectTopItems(items, pickText, queryText, limit = 4, maxChars = 8000) {
+function selectTopItems(items, pickText, queryText, limit = 50, maxChars = 300000) {
   const tokens = tokenize(queryText);
   const scored = items
     .map((item) => {
@@ -203,7 +203,7 @@ function buildKnowledgeContext(documents, chunks, query) {
   const items = chunks
     .map((chunk) => ({ ...chunk, document: docMap.get(chunk.document_id) }))
     .filter((row) => row.document);
-  const picked = selectTopItems(items, (item) => item.content, query, 5, 10000);
+  const picked = selectTopItems(items, (item) => item.content, query, 80, 350000);
   if (!picked.length) return '';
   return '\nБАЗА ЗНАНИЙ:\n' + picked
     .map((item, index) => `[Источник ${index + 1}: ${item.document.title}]\n${item.content}`)
@@ -212,7 +212,7 @@ function buildKnowledgeContext(documents, chunks, query) {
 
 function buildMemoryContext(memories, query) {
   if (!memories.length) return '';
-  const picked = selectTopItems(memories, (item) => item.memory_text, query, 6, 4000);
+  const picked = selectTopItems(memories, (item) => item.memory_text, query, 20, 30000);
   if (!picked.length) return '';
   return '\nПАМЯТЬ О ПОЛЬЗОВАТЕЛЕ:\n' + picked
     .map((item, index) => `${index + 1}. ${item.memory_text}`)
@@ -225,8 +225,8 @@ function buildFeedbackContext(feedbackRows, query) {
     feedbackRows,
     (item) => `${item.assistant_excerpt}\n${item.corrected_answer}\n${item.note || ''}`,
     query,
-    6,
-    5000
+    20,
+    50000
   );
   if (!picked.length) return '';
   return '\nИСПРАВЛЕНИЯ И ОШИБКИ, КОТОРЫЕ НУЖНО УЧИТЫВАТЬ:\n' + picked
