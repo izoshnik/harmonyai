@@ -1317,8 +1317,8 @@ function updateComposerPlaceholder(){
   const docCount=pendingAttachments.filter(item=>item.kind==='document').length;
   const imageCount=pendingAttachments.filter(item=>item.kind==='image').length;
   if(docCount&&imageCount)ta.placeholder=`Прикреплено: файлов ${docCount}, фото ${imageCount} — задайте вопрос...`;
-  else if(docCount===1&&!imageCount)ta.placeholder=`Файл "${pendingAttachments.find(item=>item.kind==='document')?.name||''}" загружен — задайте вопрос...`;
-  else if(docCount>1&&!imageCount)ta.placeholder=`Прикреплено файлов: ${docCount} — задайте вопрос...`;
+  else if(docCount===1&&!imageCount)ta.placeholder='Файл загружен — можете задать вопрос по его содержимому...';
+  else if(docCount>1&&!imageCount)ta.placeholder=`Прикреплено файлов: ${docCount} — можете задать вопрос по их содержимому...`;
   else if(imageCount===1&&!docCount)ta.placeholder='Фото прикреплено — напишите вопрос...';
   else if(imageCount>1&&!docCount)ta.placeholder=`Прикреплено фото: ${imageCount} — напишите вопрос...`;
   else ta.placeholder='Введите сообщение..';
@@ -1831,19 +1831,19 @@ const IC_STOP='<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect
 function setGeneratingState(active){
   isGenerating=active;
   const btn=document.getElementById('sendBtn');
-  const ta=document.getElementById('msgTa');
   if(btn){
     btn.innerHTML=active?IC_STOP:IC_SEND;
     btn.classList.toggle('is-stop',active);
     btn.title=active?'Остановить':'Отправить';
     btn.setAttribute('aria-label',active?'Остановить':'Отправить');
   }
-  if(ta)ta.disabled=active;
 }
 function stopGeneration(){
   if(activeAbortController)activeAbortController.abort();
   if(typeof activeStreamStop==='function')activeStreamStop();
   hideTyping();
+  activeAbortController=null;
+  activeStreamStop=null;
   setGeneratingState(false);
 }
 
@@ -2099,20 +2099,23 @@ function createLiveTypingController(el){
   let finalText=null;
   let timer=null;
   let stopped=false;
+  let completed=false;
   let resolveDone;
   const done=new Promise(resolve=>{resolveDone=resolve;});
   el.style.whiteSpace='pre-wrap';
   activeStreamStop=()=>{
+    if(completed)return;
     stopped=true;
     if(timer)clearTimeout(timer);
     const partial=pendingText.slice(0,shownLength);
     el.textContent=partial;
     el.dataset.raw=partial;
     activeStreamStop=null;
+    completed=true;
     resolveDone(partial);
   };
   function finishIfReady(){
-    if(stopped)return;
+    if(stopped||completed)return;
     if(finalText===null)return;
     if(shownLength<pendingText.length)return;
     timer=null;
@@ -2120,10 +2123,11 @@ function createLiveTypingController(el){
     renderMd(el,finalText);
     el.dataset.raw=finalText;
     scrollChat();
+    completed=true;
     resolveDone(finalText);
   }
   function tick(){
-    if(stopped)return;
+    if(stopped||completed)return;
     if(shownLength<pendingText.length){
       const remain=pendingText.length-shownLength;
       shownLength+=remain>12?3:remain>4?2:1;
@@ -2325,9 +2329,10 @@ async function requestChatReplyLive(msgEl,actionsEl){
         const typer=createLiveTypingController(msgEl);
         let buffer='';
         let gotDelta=false;
+        let streamFinished=false;
         while(true){
           const {done,value}=await reader.read();
-          if(done)break;
+          if(done){streamFinished=true;break;}
           buffer+=decoder.decode(value,{stream:true});
           const events=buffer.split('\n\n');
           buffer=events.pop()||'';
@@ -2341,6 +2346,7 @@ async function requestChatReplyLive(msgEl,actionsEl){
                 if(!gotDelta){hideTyping();gotDelta=true;}
                 typer.push(payloadChunk.text||'');
               }else if(payloadChunk.type==='done'){
+                streamFinished=true;
                 hideTyping();
                 const finalText=await typer.complete(normalizeReplyNotation(payloadChunk.text||''));
                 setMessageActionsVisible(actionsEl,true);
@@ -2352,8 +2358,12 @@ async function requestChatReplyLive(msgEl,actionsEl){
           }
         }
         hideTyping();
-        const finalText=await typer.complete(normalizeReplyNotation(msgEl.dataset.raw||msgEl.textContent||''));
+        const fallbackText=normalizeReplyNotation(msgEl.dataset.raw||msgEl.textContent||'');
+        const finalText=await typer.complete(fallbackText);
         setMessageActionsVisible(actionsEl,true);
+        if(!streamFinished&&!finalText){
+          throw new Error('Поток ответа оборвался до завершения');
+        }
         return finalText;
       }
       let data=null;
@@ -2386,7 +2396,8 @@ async function sendMsg(){
 
   const imageAttachments=pendingAttachments.filter(item=>item.kind==='image');
   const docAttachments=pendingAttachments.filter(item=>item.kind==='document');
-  const historyAttachments=pendingAttachments.map(cloneAttachmentForHistory);
+  const outgoingAttachments=[...pendingAttachments];
+  const historyAttachments=outgoingAttachments.map(cloneAttachmentForHistory);
   const displayText=text||'';
   if(isDeveloper()&&text)rememberDeveloperMessage(text);
   let userContent;
@@ -2410,7 +2421,8 @@ async function sendMsg(){
     userContent=(text?text+'\n\n':'')+docAttachments.map((attachment,index)=>`[ПРИКРЕПЛЁН ФАЙЛ ${index+1}: ${attachment.name}]\nИспользуй загруженный материал из контекста и базы знаний при ответе.`).join('\n\n');
   }else{userContent=text;}
 
-  rememberRecentAttachments(pendingAttachments);
+  rememberRecentAttachments(outgoingAttachments);
+  clearPendingAttachments();
   addUserBubble(displayText,historyAttachments);
   chatHistory.push({role:'user',content:userContent,attachments:historyAttachments});
   if(chatHistory.length===1)await saveChat(displayText.slice(0,40));
@@ -2423,7 +2435,6 @@ async function sendMsg(){
     const finalText=await requestChatReplyLive(aiShell.msg,aiShell.actions);
     if(finalText)chatHistory.push({role:'assistant',content:finalText});
     await saveChat();
-    clearPendingAttachments();
   }catch(e){
     hideTyping();
     if(e.message!=='Генерация остановлена'){
