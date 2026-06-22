@@ -138,7 +138,7 @@ async function supabaseRequest(path, init = {}) {
   const headers = { ...buildSupabaseHeaders(), ...(init.headers || {}) };
   const response = await withTimeout(
     fetch(`${baseUrl}${path}`, { ...init, headers }),
-    12000,
+    8000,
     'Supabase request timed out'
   );
   let data = null;
@@ -581,7 +581,7 @@ async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs,
   while (true) {
     const { done, value } = await withTimeout(
       reader.read(),
-      Math.max(12000, Math.min(timeoutMs, 25000)),
+      Math.max(8000, Math.min(timeoutMs, 20000)),
       `OpenAI stream chunk timed out for ${modelName}`
     );
     if (done) break;
@@ -691,19 +691,20 @@ export default async function handler(req, res) {
 
     if (!isQuick || think || effort === 'max') {
       const ownerId = profile?.id || userId || '';
-      const results = await Promise.all([
+      // Fetch docs, memories, and feedback in parallel
+      const [docsResult, memoriesResult, feedbackResult] = await Promise.all([
         fetchAccessibleDocuments(ownerId).catch(() => []),
         fetchUserMemories(ownerId).catch(() => []),
         fetchFeedback(ownerId).catch(() => [])
       ]);
-      documents = results[0] || [];
-      memories = results[1] || [];
-      feedbackRows = results[2] || [];
+      documents = docsResult || [];
+      memories = memoriesResult || [];
+      feedbackRows = feedbackResult || [];
 
       if (documents.length) {
         chunks = await withTimeout(
           fetchChunksForDocuments(documents.map((doc) => doc.id)).catch(() => []),
-          12000,
+          8000,
           'Knowledge chunks request timed out'
         ).catch(() => []);
       }
@@ -714,7 +715,7 @@ export default async function handler(req, res) {
     const route = selectRoute(profile, model);
     const { systemText, contents } = mapMessagesForGemini(messages);
     const isNotationHeavy = isCreativeOrNotationRequest(query);
-    const modelTimeoutMs = think || effort === 'max' ? 65000 : isQuick ? 18000 : isNotationHeavy ? 45000 : 30000;
+    const modelTimeoutMs = think || effort === 'max' ? 60000 : isQuick ? 12000 : isNotationHeavy ? 40000 : 25000;
     const geminiAttempts = think || effort === 'max' ? 2 : isQuick ? 1 : 2;
     const mergedSystem = appendServerContext(systemText, [
       profile ? `Профиль пользователя: role=${profile.role || 'user'}, plan=${profile.plan || 'free'}` : '',
