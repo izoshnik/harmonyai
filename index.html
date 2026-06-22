@@ -669,11 +669,11 @@ body{background:var(--bg);color:var(--text);}
                 <div class="mmp-section">
                   <div class="mmp-label">Модель</div>
                   <button class="mmp-opt" id="mobModelLite" onclick="selectModel('lite')">
-                    <span>MusMind Lite</span>
+                    <span>Adanatos</span>
                     <span class="mmp-check">✓</span>
                   </button>
                   <button class="mmp-opt" id="mobModelPro" onclick="selectModel('pro')">
-                    <span>MusMind Pro</span>
+                    <span>Dynatos</span>
                     <span class="mmp-check">✓</span>
                   </button>
                 </div>
@@ -704,7 +704,7 @@ body{background:var(--bg);color:var(--text);}
               <div class="desktop-model-wrap" id="desktopModelWrap" onclick="event.stopPropagation()">
                 <div class="desktop-model-drop" id="desktopModelDrop">
                   <div class="desktop-row" onclick="closeDesktopSubs()">
-                    <div class="desktop-model-current" id="desktopModelCurrent">MusMind Lite</div>
+                    <div class="desktop-model-current" id="desktopModelCurrent">Adanatos</div>
                     <div class="md-check" id="desktopCurrentCheck">✓</div>
                   </div>
                   <div class="md-divider"></div>
@@ -734,11 +734,11 @@ body{background:var(--bg);color:var(--text);}
                 </div>
                 <div class="desktop-sub-drop models" id="desktopModelsSub">
                   <div class="desktop-option" onclick="selectModel('lite')">
-                    <div class="desktop-copy"><strong>MusMind Lite</strong><span>Быстро и легко</span></div>
+                    <div class="desktop-copy"><strong>Adanatos</strong><span>Быстро и легко</span></div>
                     <span class="desktop-check on" id="desktopCkLite">✓</span>
                   </div>
                   <div class="desktop-option" onclick="selectModel('pro')">
-                    <div class="desktop-copy"><strong>MusMind Pro</strong><span>Максимум возможностей</span></div>
+                    <div class="desktop-copy"><strong>Dynatos</strong><span>Максимум возможностей</span></div>
                     <span class="desktop-check" id="desktopCkPro">✓</span>
                   </div>
                 </div>
@@ -789,6 +789,7 @@ const CHAT_TIMEOUT_MS=60000;
 const PRIMARY_API_ORIGIN='https://harmonyai-zeta.vercel.app';
 const KB_GLOBAL_KEY='harmonyai_global_kb_v1';
 const KB_USER_PREFIX='harmonyai_user_kb_v1_';
+const MAX_ATTACHMENTS_PER_SEND=20;
 
 /* marked setup */
 if(typeof marked!=='undefined') marked.setOptions({breaks:true,gfm:true});
@@ -1185,7 +1186,7 @@ function normalizeDocText(text){
     .replace(/[ \t]{2,}/g,' ')
     .trim();
 }
-function chunkText(text,size=1800,overlap=220){
+function chunkText(text,size=6000,overlap=600){
   const src=normalizeDocText(text);
   if(!src)return [];
   const out=[];
@@ -1196,7 +1197,7 @@ function chunkText(text,size=1800,overlap=220){
     if(end>=src.length)break;
     start=Math.max(end-overlap,start+300);
   }
-  return out.slice(0,120);
+  return out;
 }
 function makeKnowledgeDoc(fileName,text,kind){
   const clean=normalizeDocText(text);
@@ -1294,20 +1295,20 @@ function topChunksFromDocs(query,docs,limit=4,maxChars=8000){
 }
 function buildKnowledgeContext(query){
   if(!knowledgeDocs.length)return '';
-  const selected=topChunksFromDocs(query,knowledgeDocs,4,9000);
+  const selected=topChunksFromDocs(query,knowledgeDocs,24,200000);
   if(!selected.length)return '';
   return '\nБАЗА ЗНАНИЙ / ЗАГРУЖЕННЫЕ МАТЕРИАЛЫ:\n'+selected.map((item,i)=>`[Источник ${i+1}: ${item.name}]\n${item.chunk}`).join('\n\n');
 }
 function buildPendingDocContext(query){
   const pendingDocs=pendingAttachments.filter(item=>item.kind==='document'&&item.doc?.chunks?.length).map(item=>item.doc);
   if(!pendingDocs.length)return '';
-  const selected=topChunksFromDocs(query,pendingDocs,6,10000);
+  const selected=topChunksFromDocs(query,pendingDocs,40,250000);
   if(!selected.length)return '';
   return '\nТЕКУЩИЕ ПРИКРЕПЛЕНИЯ:\n'+selected.map((item,i)=>`[Файл ${i+1}: ${item.name}]\n${item.chunk}`).join('\n\n');
 }
 function buildRecentAttachmentContext(query){
   if(!recentAttachmentDocs.length)return '';
-  const selected=topChunksFromDocs(query,recentAttachmentDocs,6,10000);
+  const selected=topChunksFromDocs(query,recentAttachmentDocs,40,250000);
   if(!selected.length)return '';
   return '\nНЕДАВНО ПРИКРЕПЛЁННЫЕ ФАЙЛЫ В ЭТОМ ЧАТЕ:\n'+selected.map((item,i)=>`[Файл ${i+1}: ${item.name}]\n${item.chunk}`).join('\n\n');
 }
@@ -1335,7 +1336,7 @@ function rememberRecentAttachments(attachments=[]){
   if(!docs.length)return;
   const existing=new Map(recentAttachmentDocs.map(doc=>[doc.id,doc]));
   docs.forEach(doc=>existing.set(doc.id,doc));
-  recentAttachmentDocs=Array.from(existing.values()).slice(-8);
+  recentAttachmentDocs=Array.from(existing.values()).slice(-20);
 }
 function restoreRecentAttachmentsFromHistory(history=[]){
   const collected=[];
@@ -1347,7 +1348,7 @@ function restoreRecentAttachmentsFromHistory(history=[]){
   });
   const dedup=new Map();
   collected.forEach(doc=>dedup.set(doc.id||(`${doc.name}_${doc.createdAt||''}`),doc));
-  recentAttachmentDocs=Array.from(dedup.values()).slice(-8);
+  recentAttachmentDocs=Array.from(dedup.values()).slice(-20);
 }
 function formatBytes(bytes){
   const value=Number(bytes)||0;
@@ -1642,11 +1643,11 @@ function setText(id,value){
 }
 function refreshModelUI(){
   const shortModel=curModel==='lite'?'lite':'pro';
-  const mobileModel=curModel==='lite'?'MusMind lite':'MusMind pro';
-  const fullModel=curModel==='lite'?'MusMind Lite':'MusMind Pro';
+  const mobileModel=curModel==='lite'?'Adanatos':'Dynatos';
+  const fullModel=curModel==='lite'?'Adanatos':'Dynatos';
   const modeLabel=curMode==='low'?'Low':'Max';
   const modeTiny=curMode==='low'?'· low':'· max';
-  setText('pillName',isDesktop()?'MusMind':mobileModel);
+  setText('pillName',isDesktop()?(curModel==='lite'?'Adanatos':'Dynatos'):mobileModel);
   setText('pillMode',isDesktop()?shortModel:modeTiny);
   setText('modeLabel',modeLabel);
   setText('desktopModelCurrent',fullModel);
@@ -1773,6 +1774,9 @@ async function handleFile(inp){
   const files=Array.from(inp.files||[]);
   if(!files.length)return;
   try{
+    if(pendingAttachments.length+files.length>MAX_ATTACHMENTS_PER_SEND){
+      throw new Error(`Можно прикрепить не больше ${MAX_ATTACHMENTS_PER_SEND} файлов или фото за один раз`);
+    }
     for(const f of files){
       const parsed=await parseGenericFile(f);
       if(parsed.kind==='image'){
@@ -2502,15 +2506,15 @@ function renderSettingsMain(){
           <div class="s-row-val" style="font-size:12px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${curUser?.email||''}</div>
         </div>
         <div class="s-row">
-          <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7l3-7z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></div>
-          <div class="s-row-text">Подписка</div>
-          <div class="s-row-val">MusMind Lite</div>
-        </div>
-        <div class="s-row">
-          <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z" stroke="currentColor" stroke-width="2"/><path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-          <div class="s-row-text">Перейти на MusMind Pro</div>
-          <div class="s-row-val soon">Скоро</div>
-        </div>
+        <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7l3-7z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></div>
+        <div class="s-row-text">Подписка</div>
+        <div class="s-row-val">Adanatos</div>
+      </div>
+      <div class="s-row">
+        <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z" stroke="currentColor" stroke-width="2"/><path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+        <div class="s-row-text">Перейти на Dynatos</div>
+        <div class="s-row-val soon">Скоро</div>
+      </div>
       </div>
     </div>`;
 }
