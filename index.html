@@ -91,6 +91,8 @@ body{background:var(--bg);color:var(--text);}
 .auth-btn-secondary{width:100%;padding:12px;border-radius:12px;background:transparent;color:var(--text2);font-size:14px;font-weight:500;border:1px solid var(--border);cursor:pointer;font-family:inherit;transition:background .15s;}
 .auth-btn-secondary:hover{background:var(--hover);}
 .auth-tos{font-size:12px;color:var(--text2);text-align:center;line-height:1.6;margin-top:12px;}
+.auth-tos a{color:var(--text);text-decoration:underline;text-underline-offset:2px;}
+.auth-tos a:hover{opacity:.78;}
 .auth-beta{font-size:12px;color:var(--text2);text-align:center;margin-top:24px;opacity:.5;}
 .auth-error{font-size:13px;color:#ef4444;text-align:center;display:none;margin-bottom:8px;}
 .otp-row{display:flex;gap:8px;justify-content:center;margin-bottom:10px;}
@@ -224,13 +226,23 @@ body{background:var(--bg);color:var(--text);}
 .msg-ai a{color:#3b82f6;text-decoration:underline;}
 
 /* ABC Notation block */
-.abc-block{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;margin:10px 0;overflow:hidden;}
-.abc-label{font-size:11px;font-weight:700;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;}
+.abc-block{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:14px;margin:10px 0;overflow:hidden;display:flex;flex-direction:column;gap:10px;}
+.abc-caption{font-size:12px;font-weight:700;color:var(--text);line-height:1.35;}
+.abc-annotations{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+.abc-annotation-chip{display:inline-flex;align-items:center;min-height:28px;padding:5px 10px;border-radius:999px;background:var(--bg3);border:1px solid var(--border2);font-size:12px;font-weight:600;line-height:1.2;color:var(--text);}
 .abc-surface{width:100%;overflow-x:auto;overflow-y:hidden;}
-.abc-surface svg{max-width:100%;height:auto;}
+.abc-surface svg{max-width:100%;height:auto;display:block;margin:0 auto;}
+.abc-surface .abcjs-title,
+.abc-surface .abcjs-subtitle,
+.abc-surface .abcjs-rhythm,
+.abc-surface .abcjs-composer,
+.abc-surface .abcjs-author,
+.abc-surface .abcjs-origin,
+.abc-surface .abcjs-part-order{display:none!important;}
 @media(max-width:768px){
-  .abc-block{padding:14px 12px;}
+  .abc-block{padding:12px;}
   .abc-surface{overflow-x:hidden;}
+  .abc-annotation-chip{font-size:11px;padding:5px 9px;}
 }
 
 /* AI message actions */
@@ -253,9 +265,35 @@ body{background:var(--bg);color:var(--text);}
 .think-dots span:nth-child(3){animation-delay:.4s;}
 @keyframes bop{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
 
+/* Composer attachments */
+.composer-attachments{width:100%;max-width:720px;display:none;align-items:flex-start;justify-content:flex-start;flex-wrap:wrap;gap:10px;}
+.composer-attachments.has-items{display:flex;}
+.composer-attachment{position:relative;display:flex;flex-direction:column;gap:8px;min-width:102px;max-width:132px;padding:10px 10px 12px;border-radius:20px;background:linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.03));border:1px solid var(--border);box-shadow:0 12px 26px rgba(0,0,0,.12);overflow:hidden;}
+.composer-attachment.image{min-width:118px;max-width:132px;}
+.composer-attachment-remove{position:absolute;top:8px;right:8px;width:24px;height:24px;border-radius:999px;border:none;background:rgba(0,0,0,.34);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;line-height:1;}
+.composer-attachment-remove:hover{opacity:.84;}
+.composer-file-icon{width:74px;height:74px;border-radius:18px;background:linear-gradient(180deg,#ffffff,#ececf1);border:1px solid rgba(0,0,0,.06);display:flex;align-items:center;justify-content:center;align-self:flex-start;overflow:hidden;}
+.composer-file-icon svg{width:100%;height:100%;display:block;}
+.composer-thumb{width:74px;height:74px;border-radius:18px;object-fit:cover;display:block;align-self:flex-start;border:1px solid rgba(255,255,255,.08);}
+.composer-attachment-name{max-width:100%;font-size:13px;font-weight:600;line-height:1.25;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:12px;}
+.composer-attachment-meta{font-size:11px;line-height:1.2;color:var(--text2);}
+@media(max-width:768px){
+  .composer-attachments{max-width:100%;padding:0 2px 2px;gap:12px;}
+  .composer-attachment{min-width:120px;max-width:126px;padding:10px 10px 12px;border-radius:22px;background:linear-gradient(180deg,rgba(24,24,31,.84),rgba(18,18,24,.70));backdrop-filter:blur(18px);border-color:rgba(255,255,255,.10);box-shadow:0 18px 30px rgba(0,0,0,.20);}
+  .composer-attachment-remove{top:7px;right:7px;background:rgba(0,0,0,.44);}
+  .composer-file-icon,.composer-thumb{width:84px;height:84px;border-radius:16px;}
+  .composer-attachment-name{font-size:14px;}
+}
+@media(min-width:769px){
+  .composer-attachments{padding:0 0 2px;}
+  .composer-attachment{min-width:96px;max-width:116px;padding:8px 8px 10px;border-radius:18px;background:linear-gradient(180deg,#ffffff,#f4f2ed);box-shadow:0 10px 24px rgba(0,0,0,.06);}
+  .composer-file-icon,.composer-thumb{width:60px;height:60px;border-radius:14px;}
+  .composer-attachment-name{font-size:12px;}
+}
+
 /* ===================== INPUT BAR ===================== */
-.input-wrap{padding:10px 20px 20px;display:flex;justify-content:center;position:relative;z-index:2;}
-@media(max-width:768px){.input-wrap{padding:8px 16px 18px;}}
+.input-wrap{padding:10px 20px 20px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;position:relative;z-index:2;}
+@media(max-width:768px){.input-wrap{padding:8px 16px 18px;gap:10px;}}
 .input-box{width:100%;max-width:720px;background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:12px 14px 10px;box-shadow:0 2px 12px rgba(0,0,0,0.06);transition:border-color .15s;}
 .input-box:focus-within{border-color:var(--text);}
 @media(max-width:768px){.input-box{border-radius:20px;padding:10px 12px 8px;background:rgba(255,255,255,0.04);backdrop-filter:blur(12px);border-color:rgba(255,255,255,0.08);}}
@@ -502,7 +540,7 @@ body{background:var(--bg);color:var(--text);}
       <div class="auth-h1">Думает быстро,<br>результат быстрее</div>
       <div class="auth-sub">ИИ для учеников музыкальной школы. Подходит не только для музыки — он умеет всё!</div>
       <button class="auth-btn-primary" onclick="goToEmail()">Продолжить с Email</button>
-      <div class="auth-tos">Продолжая, вы соглашаетесь с Политикой конфиденциальности.</div>
+      <div class="auth-tos">Продолжая, вы соглашаетесь с <a href="./HarmonyAI-Privacy-Policy.docx" target="_blank" rel="noopener noreferrer">Политикой конфиденциальности</a>.</div>
       <div class="auth-beta">beta version 1.0</div>
     </div>
     <!-- Экран 2: Email -->
@@ -589,16 +627,17 @@ body{background:var(--bg);color:var(--text);}
     </div>
 
     <div class="input-wrap">
+      <div class="composer-attachments" id="composerAttachments" aria-live="polite"></div>
       <div class="input-box" id="inputBox">
         <textarea id="msgTa" placeholder="Введите сообщение.." rows="1"
           oninput="taResize(this)"
           onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg();}"></textarea>
         <div class="input-bar-row">
           <div class="bar-left">
-            <button class="bar-icon" onclick="document.getElementById('fileInp').click()" title="Добавить фото">
+            <button class="bar-icon" onclick="document.getElementById('fileInp').click()" title="Добавить файл или фото">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M16.5 6.5L9 14a3.5 3.5 0 105 5l8-8a5.5 5.5 0 00-7.78-7.78l-8.7 8.7a7.5 7.5 0 1010.6 10.6l7.4-7.4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
-            <input type="file" id="fileInp" accept="image/*,.pdf,.md,.markdown,.txt,.docx" style="display:none" onchange="handleFile(this)">
+            <input type="file" id="fileInp" accept="image/*,.pdf,.md,.markdown,.txt,.docx" multiple style="display:none" onchange="handleFile(this)" aria-label="Выбрать файл или фотографию">
           </div>
           <div class="bar-right">
             <!-- Model pill -->
@@ -722,7 +761,7 @@ if(window.pdfjsLib)window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.
 let curUser=null,curEmail='',resendTimer=null,resendLeft=0;
 let sidebarExpanded=false;
 let curModel='lite',curMode='low',thinkOn=false,dropOpen=false,modeSubOpen=false,modelsSubOpen=false;
-let chatHistory=[],pendingImg=null,pendingDoc=null,curChatId=null;
+let chatHistory=[],pendingAttachments=[],curChatId=null;
 let chats=[];
 let abcCounter=0;
 let authHydrationPromise=null,authHydratedUserId='';
@@ -1242,17 +1281,92 @@ function buildKnowledgeContext(query){
   return '\nБАЗА ЗНАНИЙ / ЗАГРУЖЕННЫЕ МАТЕРИАЛЫ:\n'+selected.map((item,i)=>`[Источник ${i+1}: ${item.name}]\n${item.chunk}`).join('\n\n');
 }
 function buildPendingDocContext(query){
-  if(!pendingDoc?.chunks?.length)return '';
-  const selected=topChunksFromDocs(query,[pendingDoc],4,7000);
+  const pendingDocs=pendingAttachments.filter(item=>item.kind==='document'&&item.doc?.chunks?.length).map(item=>item.doc);
+  if(!pendingDocs.length)return '';
+  const selected=topChunksFromDocs(query,pendingDocs,6,10000);
   if(!selected.length)return '';
-  return '\nТЕКУЩЕЕ ПРИКРЕПЛЕНИЕ:\n'+selected.map((item,i)=>`[Файл ${i+1}: ${pendingDoc.name}]\n${item.chunk}`).join('\n\n');
+  return '\nТЕКУЩИЕ ПРИКРЕПЛЕНИЯ:\n'+selected.map((item,i)=>`[Файл ${i+1}: ${item.name}]\n${item.chunk}`).join('\n\n');
 }
 function updateComposerPlaceholder(){
   const ta=document.getElementById('msgTa');
   if(!ta)return;
-  if(pendingDoc)ta.placeholder=`Файл "${pendingDoc.name}" загружен — задайте вопрос...`;
-  else if(pendingImg)ta.placeholder='Фото прикреплено — напишите вопрос...';
+  const docCount=pendingAttachments.filter(item=>item.kind==='document').length;
+  const imageCount=pendingAttachments.filter(item=>item.kind==='image').length;
+  if(docCount&&imageCount)ta.placeholder=`Прикреплено: файлов ${docCount}, фото ${imageCount} — задайте вопрос...`;
+  else if(docCount===1&&!imageCount)ta.placeholder=`Файл "${pendingAttachments.find(item=>item.kind==='document')?.name||''}" загружен — задайте вопрос...`;
+  else if(docCount>1&&!imageCount)ta.placeholder=`Прикреплено файлов: ${docCount} — задайте вопрос...`;
+  else if(imageCount===1&&!docCount)ta.placeholder='Фото прикреплено — напишите вопрос...';
+  else if(imageCount>1&&!docCount)ta.placeholder=`Прикреплено фото: ${imageCount} — напишите вопрос...`;
   else ta.placeholder='Введите сообщение..';
+}
+function clearPendingAttachments(){
+  pendingAttachments=[];
+  renderComposerAttachments();
+  updateComposerPlaceholder();
+}
+function formatBytes(bytes){
+  const value=Number(bytes)||0;
+  if(value<1024)return `${value} Б`;
+  if(value<1024*1024)return `${(value/1024).toFixed(value<10*1024?1:0)} КБ`;
+  return `${(value/(1024*1024)).toFixed(value<10*1024*1024?1:0)} МБ`;
+}
+function fileExtLabel(name){
+  const ext=String(name||'').split('.').pop()?.toUpperCase();
+  return ext&&ext!==String(name||'').toUpperCase()?ext:'FILE';
+}
+function escapeHtml(value){
+  return String(value??'')
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
+function attachmentFileIcon(name){
+  const ext=fileExtLabel(name);
+  let badge='#64748b';
+  if(ext==='PDF')badge='#ef4444';
+  else if(ext==='DOCX'||ext==='DOC')badge='#2563eb';
+  else if(ext==='MD'||ext==='MARKDOWN')badge='#7c3aed';
+  else if(ext==='TXT')badge='#0f766e';
+  return `
+    <svg viewBox="0 0 88 88" aria-hidden="true">
+      <rect x="18" y="10" width="42" height="56" rx="10" fill="#ffffff" stroke="rgba(15,23,42,0.08)" stroke-width="2"></rect>
+      <path d="M48 10v16c0 3.314 2.686 6 6 6h14" fill="#f8fafc"></path>
+      <path d="M48 10l20 20" stroke="rgba(15,23,42,0.08)" stroke-width="2"></path>
+      <rect x="13" y="50" width="34" height="20" rx="7" fill="${badge}"></rect>
+      <text x="30" y="64" text-anchor="middle" font-size="13" font-weight="800" fill="#ffffff" font-family="Inter, Arial, sans-serif">${ext}</text>
+    </svg>
+  `;
+}
+function renderComposerAttachments(){
+  const host=document.getElementById('composerAttachments');
+  if(!host)return;
+  host.innerHTML='';
+  host.classList.toggle('has-items',pendingAttachments.length>0);
+  pendingAttachments.forEach((item,index)=>{
+    const card=document.createElement('div');
+    card.className='composer-attachment '+(item.kind==='image'?'image':'document');
+    const removeLabel=item.kind==='image'?'Удалить фото':'Удалить файл';
+    const meta=item.kind==='image'
+      ? (item.meta||fileExtLabel(item.name))
+      : `${fileExtLabel(item.name)}${item.size?` · ${formatBytes(item.size)}`:''}`;
+    card.innerHTML=`
+      <button class="composer-attachment-remove" type="button" aria-label="${removeLabel}" title="${removeLabel}" onclick="removeAttachment(${index})">×</button>
+      ${item.kind==='image'
+        ? `<img class="composer-thumb" src="${item.previewUrl}" alt="${escapeHtml(item.name||'Изображение')}">`
+        : `<div class="composer-file-icon">${attachmentFileIcon(item.name)}</div>`}
+      <div class="composer-attachment-name" title="${escapeHtml(item.name||'Файл')}">${escapeHtml(item.name||'Файл')}</div>
+      <div class="composer-attachment-meta">${escapeHtml(meta)}</div>
+    `;
+    host.appendChild(card);
+  });
+}
+function removeAttachment(index){
+  const [removed]=pendingAttachments.splice(index,1);
+  if(removed?.previewUrl)URL.revokeObjectURL(removed.previewUrl);
+  renderComposerAttachments();
+  updateComposerPlaceholder();
 }
 async function parsePdfFile(file){
   const arr=await file.arrayBuffer();
@@ -1500,6 +1614,9 @@ const BASE_SYSTEM=`Ты HarmonyAI — музыкальный ИИ-помощни
 9. Для фортепианных или многоголосных фрагментов можно использовать V:1 / V:2 и %%score.
 10. Если пользователь просит сложный материал для фортепиано или несколько станов, лучше делать несколько отдельных ABC-блоков вместо одного перегруженного.
 11. Если пример длинный, лучше вернуть несколько корректных нотных станов подряд, чем один сломанный.
+12. Если пользователь просит подписи, буквенные обозначения аккордов, аппликатуру или подсказки, добавляй их кратко и читаемо рядом со станом.
+13. Для служебных подписей можно использовать строки комментариев %caption: текст и %annotation: текст внутри ABC-блока.
+14. Предпочитай русские подписи и не выводи лишние англоязычные системные заголовки, если они не нужны по смыслу.
 Пример гаммы в две октавы:
 \`\`\`abc
 X:1
@@ -1546,7 +1663,9 @@ function buildSystem(){
 - не пиши внутри ABC ноты в формате C4, D#5, Bb3;
 - если нужна тональность, учитывай ключ и не дублируй случайные знаки без причины;
 - обозначения функций и аккордов в тексте пиши только как T53, T6, T64, S53, S6, S64, D53, D6, D64, I53, IV53, V53, V6, V64;
-- никогда не используй в обычном тексте запись вида $T_{53}$, \\(D_{64}\\), T_{53}.`;
+- никогда не используй в обычном тексте запись вида $T_{53}$, \\(D_{64}\\), T_{53};
+- если пользователь просит подписи к стану, добавляй короткие русские комментарии через %caption: и %annotation:;
+- не выводи лишние англоязычные служебные поля.`; 
   }
   const styleMap={professional:'Отвечай профессионально и точно.',friendly:'Отвечай тепло и разговорчиво.',frank:'Отвечай прямо и мотивируя.',whimsical:'Отвечай весело и творчески.',efficient:'Отвечай коротко и по делу.',cynical:'Можешь быть немного саркастичным.'};
   if(s.style&&styleMap[s.style])sys+='\nСТИЛЬ: '+styleMap[s.style];
@@ -1562,25 +1681,46 @@ function buildSystem(){
 
 /* ===== FILE UPLOAD ===== */
 async function handleFile(inp){
-  const f=inp.files[0];if(!f)return;
+  const files=Array.from(inp.files||[]);
+  if(!files.length)return;
   try{
-    if(f.type.startsWith('image/')){
-      pendingDoc=null;
-      const r=new FileReader();
-      r.onload=e=>{pendingImg=e.target.result.split(',')[1];updateComposerPlaceholder();};
-      r.readAsDataURL(f);
-      return;
+    for(const f of files){
+      const parsed=await parseGenericFile(f);
+      if(parsed.kind==='image'){
+        const dataUrl=await new Promise((resolve,reject)=>{
+          const r=new FileReader();
+          r.onload=e=>resolve(String(e.target?.result||''));
+          r.onerror=()=>reject(new Error('Не удалось прочитать изображение'));
+          r.readAsDataURL(f);
+        });
+        pendingAttachments.push({
+          kind:'image',
+          name:f.name||'Изображение',
+          mime:f.type||'image/jpeg',
+          size:f.size||0,
+          dataUrl,
+          base64:dataUrl.split(',')[1]||'',
+          previewUrl:URL.createObjectURL(f),
+          meta:fileExtLabel(f.name||f.type||'image')
+        });
+        continue;
+      }
+      if(parsed.kind!=='document')throw new Error('Не удалось прочитать файл');
+      const doc=makeKnowledgeDoc(f.name,parsed.text,f.name.split('.').pop().toLowerCase());
+      if(!doc.chunks.length)throw new Error(`В файле "${f.name}" не найден читаемый текст`);
+      storeKnowledgeDoc(doc,isDeveloper()?'global':'user');
+      pendingAttachments.push({
+        kind:'document',
+        name:f.name,
+        size:f.size||0,
+        mime:f.type||'application/octet-stream',
+        doc
+      });
     }
-    pendingImg=null;
-    const parsed=await parseGenericFile(f);
-    if(parsed.kind!=='document')throw new Error('Не удалось прочитать файл');
-    const doc=makeKnowledgeDoc(f.name,parsed.text,f.name.split('.').pop().toLowerCase());
-    if(!doc.chunks.length)throw new Error('В файле не найден читаемый текст');
-    pendingDoc=doc;
-    storeKnowledgeDoc(doc,isDeveloper()?'global':'user');
+    renderComposerAttachments();
     updateComposerPlaceholder();
   }catch(e){
-    pendingImg=null;pendingDoc=null;updateComposerPlaceholder();
+    clearPendingAttachments();
     alert('Ошибка загрузки файла: '+e.message);
   }finally{
     inp.value='';
@@ -1746,21 +1886,49 @@ function sanitizeTheoryText(text){
     .replace(/\(\s*([A-Ga-g][,']?)\s*\)/g,'($1)')
     .replace(/\s+([,.;:!?])/g,'$1');
 }
-function getAbcRenderOptions(hostEl){
+function extractAbcDisplayMeta(src){
+  const lines=String(src||'').replace(/\r/g,'').split('\n');
+  const captions=[];
+  const annotations=[];
+  const filtered=[];
+  for(const line of lines){
+    const caption=line.match(/^\s*%caption:\s*(.+)\s*$/i);
+    if(caption){captions.push(caption[1].trim());continue;}
+    const annotation=line.match(/^\s*%annotation:\s*(.+)\s*$/i);
+    if(annotation){annotations.push(annotation[1].trim());continue;}
+    filtered.push(line);
+  }
+  return {
+    abc:filtered.join('\n').trim(),
+    caption:captions.join(' · '),
+    annotations
+  };
+}
+function estimateAbcDensity(abcText){
+  const lines=String(abcText||'').replace(/\r/g,'').split('\n');
+  const musicLines=lines.filter(line=>line.trim()&&!/^(X:|T:|M:|L:|K:|Q:|V:|%%|P:|C:|R:|Z:|N:)/.test(line.trim()));
+  const bars=(abcText.match(/\|/g)||[]).length;
+  const notes=(abcText.match(/[A-Ga-gz]/g)||[]).length;
+  return {musicLines:musicLines.length,bars,notes};
+}
+function getAbcRenderOptions(hostEl,abcText=''){
   const mobile=window.innerWidth<769;
-  const width=Math.max(260,Math.min((hostEl?.clientWidth||680)-8,mobile?360:760));
+  const width=Math.max(260,Math.min((hostEl?.clientWidth||680)-8,mobile?340:760));
+  const density=estimateAbcDensity(abcText);
+  const denseFactor=(density.musicLines>=6||density.bars>=18||density.notes>=160)?0.84:(density.musicLines>=4||density.bars>=12||density.notes>=100)?0.92:1;
   return {
     responsive:'resize',
     add_classes:true,
+    scale:mobile?Math.min(1,denseFactor+0.02):denseFactor,
     paddingright:0,
     paddingleft:0,
     paddingtop:8,
     paddingbottom:8,
     staffwidth:width,
     wrap:{
-      preferredMeasuresPerLine:mobile?2:4,
-      minSpacing:1.05,
-      maxSpacing:2.1
+      preferredMeasuresPerLine:mobile?(density.bars>10?1:2):(density.bars>16?3:4),
+      minSpacing:denseFactor<1?0.9:1.05,
+      maxSpacing:denseFactor<0.9?1.5:2.1
     }
   };
 }
@@ -1771,17 +1939,34 @@ function renderMd(el,text){
   parts.forEach(part=>{
     const abcMatch=part.match(/```\s*abc[\r\n]+([\s\S]*?)```/i);
     if(abcMatch){
-      const abcSrc=abcMatch[1].trim();
+      const meta=extractAbcDisplayMeta(abcMatch[1].trim());
+      const abcSrc=meta.abc;
+      if(!abcSrc)return;
       const id='abc-'+(++abcCounter);
       const wrap=document.createElement('div');wrap.className='abc-block';
-      const lbl=document.createElement('div');lbl.className='abc-label';lbl.textContent='♩ Нотный стан';
-      wrap.appendChild(lbl);
+      if(meta.caption){
+        const caption=document.createElement('div');
+        caption.className='abc-caption';
+        caption.textContent=meta.caption;
+        wrap.appendChild(caption);
+      }
+      if(meta.annotations.length){
+        const annotations=document.createElement('div');
+        annotations.className='abc-annotations';
+        meta.annotations.forEach(item=>{
+          const chip=document.createElement('div');
+          chip.className='abc-annotation-chip';
+          chip.textContent=item;
+          annotations.appendChild(chip);
+        });
+        wrap.appendChild(annotations);
+      }
       const surface=document.createElement('div');surface.className='abc-surface';
       const cvs=document.createElement('div');cvs.id=id;surface.appendChild(cvs);
       wrap.appendChild(surface);
       el.appendChild(wrap);
       setTimeout(()=>{
-        try{window.ABCJS?.renderAbc(id,abcSrc,getAbcRenderOptions(surface));}
+        try{window.ABCJS?.renderAbc(id,abcSrc,getAbcRenderOptions(surface,abcSrc));}
         catch(e){cvs.textContent=abcSrc;}
       },60);
     }else if(part.trim()){
@@ -2102,17 +2287,38 @@ async function sendMsg(){
   if(isGenerating){stopGeneration();return;}
   const ta=document.getElementById('msgTa');
   const text=ta.value.trim();
-  if(!text&&!pendingImg&&!pendingDoc)return;
+  if(!text&&!pendingAttachments.length)return;
   ta.value='';ta.style.height='auto';
 
-  let userContent,displayText=text||(pendingImg?'[фото]':pendingDoc?`[файл: ${pendingDoc.name}]`:'');
+  const imageAttachments=pendingAttachments.filter(item=>item.kind==='image');
+  const docAttachments=pendingAttachments.filter(item=>item.kind==='document');
+  const fallbackLabelParts=[];
+  if(imageAttachments.length)fallbackLabelParts.push(imageAttachments.length===1?'[фото]':`[фото: ${imageAttachments.length}]`);
+  if(docAttachments.length){
+    if(docAttachments.length===1)fallbackLabelParts.push(`[файл: ${docAttachments[0].name}]`);
+    else fallbackLabelParts.push(`[файлы: ${docAttachments.length}]`);
+  }
+  const displayText=text||fallbackLabelParts.join(' ');
   if(isDeveloper()&&text)rememberDeveloperMessage(text);
-  if(pendingImg){
+  let userContent;
+  if(imageAttachments.length){
     userContent=[];
     if(text)userContent.push({type:'text',text});
-    userContent.push({type:'image_url',image_url:{url:'data:image/jpeg;base64,'+pendingImg}});
-  }else if(pendingDoc){
-    userContent=(text?text+'\n\n':'')+`[ПРИКРЕПЛЁН ФАЙЛ: ${pendingDoc.name}]\nИспользуй загруженный материал из контекста и базы знаний при ответе.`;
+    docAttachments.forEach((attachment,index)=>{
+      userContent.push({
+        type:'text',
+        text:`[ПРИКРЕПЛЁН ДОКУМЕНТ ${index+1}: ${attachment.name}]\nИспользуй загруженный материал из контекста и базы знаний при ответе.`
+      });
+    });
+    imageAttachments.forEach((attachment,index)=>{
+      userContent.push({
+        type:'text',
+        text:`[ПРИКРЕПЛЁННОЕ ИЗОБРАЖЕНИЕ ${index+1}: ${attachment.name}]`
+      });
+      userContent.push({type:'image_url',image_url:{url:attachment.dataUrl||('data:'+attachment.mime+';base64,'+attachment.base64)}});
+    });
+  }else if(docAttachments.length){
+    userContent=(text?text+'\n\n':'')+docAttachments.map((attachment,index)=>`[ПРИКРЕПЛЁН ФАЙЛ ${index+1}: ${attachment.name}]\nИспользуй загруженный материал из контекста и базы знаний при ответе.`).join('\n\n');
   }else{userContent=text;}
 
   addUserBubble(displayText);
@@ -2127,9 +2333,7 @@ async function sendMsg(){
     const finalText=await requestChatReplyLive(aiShell.msg,aiShell.actions);
     if(finalText)chatHistory.push({role:'assistant',content:finalText});
     await saveChat();
-    pendingImg=null;
-    pendingDoc=null;
-    updateComposerPlaceholder();
+    clearPendingAttachments();
   }catch(e){
     hideTyping();
     if(e.message!=='Генерация остановлена'){
