@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>HarmonyAI</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230d0f14'/%3E%3Cpath d='M18 14h8v18h12V14h8v36h-8V39H26v11h-8z' fill='%23ffffff'/%3E%3C/svg%3E">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/abcjs@6.2.3/dist/abcjs-basic-min.js"></script>
@@ -202,7 +203,7 @@ body{background:var(--bg);color:var(--text);}
 
 /* ===================== MESSAGES ===================== */
 /* USER — bubble */
-.msg-user{align-self:flex-end;max-width:78%;background:var(--user-bg);color:var(--user-txt);border-radius:18px 18px 4px 18px;padding:11px 16px;font-size:var(--font-base);line-height:1.55;word-break:break-word;white-space:pre-wrap;}
+.msg-user{align-self:flex-end;max-width:78%;background:var(--user-bg);color:var(--user-txt);border-radius:18px 18px 4px 18px;padding:11px 16px;font-size:var(--font-base);line-height:1.55;word-break:normal;overflow-wrap:anywhere;white-space:pre-wrap;hyphens:none;}
 @media(max-width:768px){.msg-user{border-radius:20px 20px 4px 20px;padding:12px 16px;max-width:85%;}}
 .msg-user-wrap{align-self:flex-end;max-width:78%;display:flex;flex-direction:column;gap:8px;align-items:flex-end;}
 .msg-user-attachments{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;max-width:min(100%,420px);}
@@ -225,7 +226,7 @@ body{background:var(--bg);color:var(--text);}
 
 /* AI — NO BUBBLE, text flows on background */
 .msg-ai-wrap{align-self:stretch;display:flex;flex-direction:column;gap:6px;}
-.msg-ai{font-size:var(--font-base);line-height:1.7;color:var(--text-ai);word-break:break-word;}
+.msg-ai{font-size:var(--font-base);line-height:1.7;color:var(--text-ai);word-break:normal;overflow-wrap:anywhere;white-space:pre-wrap;hyphens:none;}
 /* Force AI text visible - dark on mobile, dark on desktop */
 @media(max-width:768px){.msg-ai{color:#e2e2e6;}}
 @media(min-width:769px){.msg-ai{color:#1a1a1a;}}
@@ -968,10 +969,8 @@ async function verifyOtpViaSdk(email,code,type){
 async function verifyOtpVariants(email,code){
   let lastError=null;
   const attempts=[
-    ()=>verifyOtpDirect(email,code,'email'),
     ()=>verifyOtpViaSdk(email,code,'email'),
-    ()=>verifyOtpDirect(email,code,'signup'),
-    ()=>verifyOtpDirect(email,code,'magiclink')
+    ()=>verifyOtpDirect(email,code,'email')
   ];
   for(const run of attempts){
     try{
@@ -995,11 +994,12 @@ async function sendOTP(){
   const requestNonce=++otpRequestNonce;
   try{
     clearOTP();
-    const {error}=await withTimeout(
+    const sendResult=await withTimeout(
       sb.auth.signInWithOtp(buildOtpSendOptions(email)),
       20000,
       'Сервис авторизации слишком долго отвечает'
     );
+    const error=sendResult?.error||null;
     if(error) throw error;
     if(requestNonce!==otpRequestNonce)return;
     curEmail=email;
@@ -1046,11 +1046,12 @@ async function resendOTP(){
   const requestNonce=++otpRequestNonce;
   try{
     clearOTP();
-    await withTimeout(
+    const resendResult=await withTimeout(
       sb.auth.signInWithOtp(buildOtpSendOptions(curEmail)),
       20000,
       'Повторная отправка кода заняла слишком много времени'
     );
+    if(resendResult?.error)throw resendResult.error;
     if(requestNonce!==otpRequestNonce)return;
     startResend();
     document.getElementById('codeErr').style.display='none';
@@ -1124,8 +1125,14 @@ sb.auth.onAuthStateChange((event,session)=>{
 initSession();
 
 async function loadProfile(uid,email){
-  const {data}=await sb.from('profiles').select('*').eq('id',uid).maybeSingle();
-  curUser={id:uid,email,nickname:data?.nickname||email.split('@')[0],role:data?.role||'user',settings:data?.settings||{}};
+  try{
+    const {data,error}=await sb.from('profiles').select('*').eq('id',uid).maybeSingle();
+    if(error)throw error;
+    curUser={id:uid,email,nickname:data?.nickname||email.split('@')[0],role:data?.role||'user',settings:data?.settings||{}};
+  }catch(e){
+    console.warn('Profile load failed, using fallback user shell',e);
+    curUser={id:uid,email,nickname:(email||'').split('@')[0]||'Пользователь',role:'user',settings:{}};
+  }
   loadKnowledgeDocs();
   await loadKnowledgeDocsFromSupabase();
 }
