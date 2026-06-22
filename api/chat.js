@@ -792,7 +792,7 @@ export default async function handler(req, res) {
       if (lastError && isOverloaded(lastError.status, lastError.message)) {
         return res.status(503).json({
           error: {
-            message: `This model is currently experiencing high demand. Please try again in a minute. РџСЂРёС‡РёРЅР°: ${compactErrorValue(lastError.message, 320) || 'unknown'}${lastError.model ? ` | model=${lastError.model}` : ''}`,
+            message: `This model is currently experiencing high demand. Please try again in a minute. Причина: ${compactErrorValue(lastError.message, 320) || 'unknown'}${lastError.model ? ` | model=${lastError.model}` : ''}`,
             status: lastError.status || 503,
             model: lastError.model
           }
@@ -802,7 +802,7 @@ export default async function handler(req, res) {
       if (lastError && isTimeoutError(lastError.message)) {
         return res.status(504).json({
           error: {
-            message: `РњРѕРґРµР»СЊ РѕС‚РІРµС‡Р°РµС‚ СЃР»РёС€РєРѕРј РґРѕР»РіРѕ. РџРѕРїСЂРѕР±СѓР№С‚Рµ РµС‰С‘ СЂР°Р· РёР»Рё РѕС‚РєР»СЋС‡РёС‚Рµ СЃР»РѕР¶РЅС‹Р№ СЂРµР¶РёРј. РџСЂРёС‡РёРЅР°: ${compactErrorValue(lastError.message, 320) || 'timeout'}${lastError.model ? ` | model=${lastError.model}` : ''}`,
+            message: `Модель отвечает слишком долго. Попробуйте ещё раз или отключите сложный режим. Причина: ${compactErrorValue(lastError.message, 320) || 'timeout'}${lastError.model ? ` | model=${lastError.model}` : ''}`,
             status: 504,
             model: lastError.model
           }
@@ -811,8 +811,21 @@ export default async function handler(req, res) {
 
       return res.status(lastError?.status || 500).json({
         error: {
-          message: lastError?.message || 'РќРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ РѕС‚РІРµС‚ РѕС‚ РјРѕРґРµР»Рё'
+          message: lastError?.message || 'Не удалось получить ответ от модели'
         }
       });
     }
 
+    return res.status(500).json({
+      error: {
+        message: 'Не удалось выбрать провайдера модели'
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({
+      error: {
+        message: error?.message || 'Внутренняя ошибка сервера'
+      }
+    });
+  }
+}
