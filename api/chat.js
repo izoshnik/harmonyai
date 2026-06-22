@@ -804,6 +804,44 @@ export default async function handler(req, res) {
       }
     }
 
+    if (route.provider === 'openai') {
+      if (lastError && isQuotaExceeded(lastError.status, lastError.message)) {
+        return res.status(429).json({
+          error: {
+            message: formatQuotaErrorMessage(lastError.message, lastError.model),
+            status: lastError.status || 429,
+            model: lastError.model
+          }
+        });
+      }
+
+      if (lastError && isOverloaded(lastError.status, lastError.message)) {
+        return res.status(503).json({
+          error: {
+            message: `This model is currently experiencing high demand. Please try again in a minute. РџСЂРёС‡РёРЅР°: ${compactErrorValue(lastError.message, 320) || 'unknown'}${lastError.model ? ` | model=${lastError.model}` : ''}`,
+            status: lastError.status || 503,
+            model: lastError.model
+          }
+        });
+      }
+
+      if (lastError && isTimeoutError(lastError.message)) {
+        return res.status(504).json({
+          error: {
+            message: `РњРѕРґРµР»СЊ РѕС‚РІРµС‡Р°РµС‚ СЃР»РёС€РєРѕРј РґРѕР»РіРѕ. РџРѕРїСЂРѕР±СѓР№С‚Рµ РµС‰С‘ СЂР°Р· РёР»Рё РѕС‚РєР»СЋС‡РёС‚Рµ СЃР»РѕР¶РЅС‹Р№ СЂРµР¶РёРј. РџСЂРёС‡РёРЅР°: ${compactErrorValue(lastError.message, 320) || 'timeout'}${lastError.model ? ` | model=${lastError.model}` : ''}`,
+            status: 504,
+            model: lastError.model
+          }
+        });
+      }
+
+      return res.status(lastError?.status || 500).json({
+        error: {
+          message: lastError?.message || 'РќРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ РѕС‚РІРµС‚ РѕС‚ РјРѕРґРµР»Рё'
+        }
+      });
+    }
+
     const body = { contents };
     if (mergedSystem) body.systemInstruction = { parts: [{ text: mergedSystem }] };
 
