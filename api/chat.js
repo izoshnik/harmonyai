@@ -1,3 +1,7 @@
+export const config = {
+  maxDuration: 60
+};
+
 const MODEL_CHAINS = {
   adanatos: [
     process.env.ADANATOS_MODEL || 'gpt-5.4-mini',
@@ -251,6 +255,31 @@ function isSimpleQuery(query = '') {
   if (clean.length <= 40 && /^(привет|здравствуй|здравствуйте|как дела|спасибо|ок|понял|поняла|да|нет|hi|hello|thanks|thank you)[\s!.?]*$/i.test(clean)) {
     return true;
   }
+  return false;
+}
+
+// Определяет, нужен ли запросу персональный контекст пользователя:
+// память, профиль/настройки, загруженные документы, история этого чата.
+// Если контекст не нужен — отвечаем быстрым путём без похода в Supabase за памятью/документами.
+function needsPersonalContext(query = '', messages = []) {
+  const clean = normalizeText(query).toLowerCase();
+  if (!clean) return false;
+
+  // Явные сигналы: пользователь ссылается на себя, свою историю, свои файлы/настройки
+  const personalSignals = /(помнишь|как обычно|как всегда|мо[йяюе]\s|мне нравится|мне не нравится|я говорил|я писал|я просил|я предпочита|настрой(ка|ки)|профил|документ|файл|учебник|загрузил|прикреп|ранее мы|в прошлый раз|продолжи|как в прошлый раз|исправь(те)? (как|так)|мою память|обнови память|запомни)/;
+  if (personalSignals.test(clean)) return true;
+
+  // Если в этом чате уже есть прикреплённые документы/изображения среди сообщений — контекст нужен
+  const hasAttachmentInHistory = messages.some((msg) => {
+    if (!Array.isArray(msg.content)) return false;
+    return msg.content.some((item) => item.type === 'image_url' || item.type === 'file' || item.type === 'document');
+  });
+  if (hasAttachmentInHistory) return true;
+
+  // Длинные содержательные вопросы тоже выигрывают от знаний/памяти,
+  // короткие нейтральные вопросы — нет.
+  if (clean.length > 220) return true;
+
   return false;
 }
 
@@ -657,13 +686,14 @@ export default async function handler(req, res) {
     const profile = await fetchProfile(userId);
     const query = lastUserText(messages);
     const isQuick = isSimpleQuery(query);
+    const wantsContext = needsPersonalContext(query, messages);
 
     let documents = [];
     let memories = [];
     let feedbackRows = [];
     let chunks = [];
 
-    if (!isQuick || think || effort === 'max') {
+    if (wantsContext || think || effort === 'max') {
       const ownerId = profile?.id || userId || '';
       // Fetch docs, memories, and feedback in parallel
       const [docsResult, memoriesResult, feedbackResult] = await Promise.all([
@@ -689,7 +719,7 @@ export default async function handler(req, res) {
     const route = selectRoute(profile, model);
     const systemText = messages.find(m => m.role === 'system')?.content || '';
     const isNotationHeavy = isCreativeOrNotationRequest(query);
-    const modelTimeoutMs = think || effort === 'max' ? 60000 : isQuick ? 12000 : isNotationHeavy ? 40000 : 25000;
+    const modelTimeoutMs = think || effort === 'max' ? 55000 : isQuick ? 20000 : wantsContext ? 45000 : isNotationHeavy ? 45000 : 30000;
     const mergedSystem = appendServerContext(systemText, [
       profile ? `Профиль пользователя: role=${profile.role || 'user'}, plan=${profile.plan || 'free'}` : '',
       buildMemoryContext(memories, query),
