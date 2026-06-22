@@ -635,50 +635,18 @@ async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs,
 function selectRoute(profile, requestedModel) {
   const plan = profile?.plan || 'free';
   const wantsPro = requestedModel === 'pro';
-  const hasOpenAi = hasUsableOpenAI();
-  const hasGemini = hasUsableGemini();
-  const freeProvider = readEnv('FREE_PROVIDER').toLowerCase();
-  const premiumProvider = readEnv('PREMIUM_PROVIDER').toLowerCase();
-
-  const pickProvider = (preferred) => {
-    if (preferred === 'gemini' && hasGemini) return 'gemini';
-    if (preferred === 'openai' && hasOpenAi) return 'openai';
-    if (hasGemini) return 'gemini';
-    if (hasOpenAi) return 'openai';
-    return null;
-  };
-
   if (wantsPro && plan === 'premium') {
-    const provider = pickProvider(premiumProvider);
-    if (provider === 'openai') {
-      return {
-        provider: 'openai',
-        apiKey: readEnv('OPENAI_API_KEY'),
-        models: PREMIUM_MODEL_CHAINS.openai
-      };
-    }
-    if (provider === 'gemini') {
-      return {
-        provider: 'gemini',
-        apiKey: readEnv('GEMINI_API_KEY'),
-        models: PREMIUM_MODEL_CHAINS.gemini
-      };
-    }
-  }
-
-  const provider = pickProvider(freeProvider);
-  if (provider === 'openai') {
     return {
       provider: 'openai',
       apiKey: readEnv('OPENAI_API_KEY'),
-      models: wantsPro ? FREE_MODEL_CHAINS.openaiPro : FREE_MODEL_CHAINS.openaiLite
+      models: PREMIUM_MODEL_CHAINS.openai
     };
   }
 
   return {
-    provider: 'gemini',
-    apiKey: readEnv('GEMINI_API_KEY'),
-    models: wantsPro ? FREE_MODEL_CHAINS.geminiPro : FREE_MODEL_CHAINS.geminiLite
+    provider: 'openai',
+    apiKey: readEnv('OPENAI_API_KEY'),
+    models: wantsPro ? FREE_MODEL_CHAINS.openaiPro : FREE_MODEL_CHAINS.openaiLite
   };
 }
 
@@ -695,8 +663,12 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: { message: 'Method not allowed' } });
   }
 
-  if (!process.env.OPENAI_API_KEY && !process.env.GEMINI_API_KEY) {
-    return res.status(500).json({ error: { message: 'OPENAI_API_KEY или GEMINI_API_KEY не настроен' } });
+  if (!hasUsableOpenAI()) {
+    return res.status(500).json({
+      error: {
+        message: 'OPENAI_API_KEY или OPENAI_BASE_URL настроены неверно.'
+      }
+    });
   }
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return res.status(500).json({ error: { message: 'SUPABASE_URL или SUPABASE_SERVICE_ROLE_KEY не настроены' } });
