@@ -28,6 +28,33 @@ const PREMIUM_MODEL_CHAINS = {
   ]
 };
 
+function readEnv(name) {
+  return String(process.env[name] || '').trim();
+}
+
+function isPlaceholderValue(value = '') {
+  const low = String(value || '').trim().toLowerCase();
+  return !low || low === 'undefined' || low === 'null' || low === 'your_key_here' || low === 'openai_base_url';
+}
+
+function hasUsableGemini() {
+  const key = readEnv('GEMINI_API_KEY');
+  return Boolean(key && !isPlaceholderValue(key));
+}
+
+function hasUsableOpenAI() {
+  const key = readEnv('OPENAI_API_KEY');
+  const baseUrl = readEnv('OPENAI_BASE_URL') || 'https://api.openai.com/v1';
+  if (!key || isPlaceholderValue(key)) return false;
+  if (isPlaceholderValue(baseUrl)) return false;
+  try {
+    const parsed = new URL(baseUrl);
+    return Boolean(parsed.protocol && parsed.host);
+  } catch (error) {
+    return false;
+  }
+}
+
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -372,7 +399,7 @@ async function callGemini(apiKey, modelName, body, timeoutMs = 35000) {
 }
 
 async function callOpenAI(apiKey, modelName, messages, timeoutMs = 35000) {
-  const baseUrl = String(process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1').replace(/\/+$/, '');
+  const baseUrl = String(readEnv('OPENAI_BASE_URL') || 'https://api.openai.com/v1').replace(/\/+$/, '');
   const response = await withTimeout(
     fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
@@ -398,7 +425,7 @@ async function callOpenAI(apiKey, modelName, messages, timeoutMs = 35000) {
 }
 
 async function callOpenAIStream(apiKey, modelName, messages, timeoutMs = 65000) {
-  const baseUrl = String(process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1').replace(/\/+$/, '');
+  const baseUrl = String(readEnv('OPENAI_BASE_URL') || 'https://api.openai.com/v1').replace(/\/+$/, '');
   return await withTimeout(
     fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
@@ -608,38 +635,49 @@ async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs,
 function selectRoute(profile, requestedModel) {
   const plan = profile?.plan || 'free';
   const wantsPro = requestedModel === 'pro';
-  const hasOpenAi = Boolean(process.env.OPENAI_API_KEY);
-  const hasGemini = Boolean(process.env.GEMINI_API_KEY);
+  const hasOpenAi = hasUsableOpenAI();
+  const hasGemini = hasUsableGemini();
+  const freeProvider = readEnv('FREE_PROVIDER').toLowerCase();
+  const premiumProvider = readEnv('PREMIUM_PROVIDER').toLowerCase();
+
+  const pickProvider = (preferred) => {
+    if (preferred === 'gemini' && hasGemini) return 'gemini';
+    if (preferred === 'openai' && hasOpenAi) return 'openai';
+    if (hasGemini) return 'gemini';
+    if (hasOpenAi) return 'openai';
+    return null;
+  };
 
   if (wantsPro && plan === 'premium') {
-    const provider = (process.env.PREMIUM_PROVIDER || (hasOpenAi ? 'openai' : 'gemini')).toLowerCase();
-    if (provider === 'openai' && hasOpenAi) {
+    const provider = pickProvider(premiumProvider);
+    if (provider === 'openai') {
       return {
         provider: 'openai',
-        apiKey: process.env.OPENAI_API_KEY,
+        apiKey: readEnv('OPENAI_API_KEY'),
         models: PREMIUM_MODEL_CHAINS.openai
       };
     }
-    if (provider === 'gemini' && hasGemini) {
+    if (provider === 'gemini') {
       return {
         provider: 'gemini',
-        apiKey: process.env.GEMINI_API_KEY,
+        apiKey: readEnv('GEMINI_API_KEY'),
         models: PREMIUM_MODEL_CHAINS.gemini
       };
     }
   }
 
-  if (hasOpenAi) {
+  const provider = pickProvider(freeProvider);
+  if (provider === 'openai') {
     return {
       provider: 'openai',
-      apiKey: process.env.OPENAI_API_KEY,
+      apiKey: readEnv('OPENAI_API_KEY'),
       models: wantsPro ? FREE_MODEL_CHAINS.openaiPro : FREE_MODEL_CHAINS.openaiLite
     };
   }
 
   return {
     provider: 'gemini',
-    apiKey: process.env.GEMINI_API_KEY,
+    apiKey: readEnv('GEMINI_API_KEY'),
     models: wantsPro ? FREE_MODEL_CHAINS.geminiPro : FREE_MODEL_CHAINS.geminiLite
   };
 }
