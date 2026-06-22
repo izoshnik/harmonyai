@@ -549,9 +549,14 @@ async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs,
   const decoder = new TextDecoder();
   let buffer = '';
   let fullText = '';
+  let gotAnyDelta = false;
 
   while (true) {
-    const { done, value } = await reader.read();
+    const { done, value } = await withTimeout(
+      reader.read(),
+      Math.max(12000, Math.min(timeoutMs, 25000)),
+      `OpenAI stream chunk timed out for ${modelName}`
+    );
     if (done) break;
     buffer += decoder.decode(value, { stream: true });
     const events = buffer.split('\n\n');
@@ -574,11 +579,23 @@ async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs,
           delta = delta.map((item) => item?.text || '').join('');
         }
         if (typeof delta === 'string' && delta) {
+          gotAnyDelta = true;
           fullText += delta;
           writeSseEvent(res, { type: 'delta', text: delta });
         }
       }
     }
+  }
+
+  if (!gotAnyDelta && !fullText.trim()) {
+    writeSseEvent(res, { type: 'error', message: `Потоковый ответ прервался слишком рано для модели ${modelName}` });
+    res.end();
+    return {
+      ok: false,
+      status: 504,
+      message: `Потоковый ответ прервался слишком рано для модели ${modelName}`,
+      model: modelName
+    };
   }
 
   const finalText = await repairNotationReplyIfNeeded(apiKey, modelName, query, fullText, Math.max(timeoutMs, 45000));
