@@ -204,6 +204,24 @@ body{background:var(--bg);color:var(--text);}
 /* USER — bubble */
 .msg-user{align-self:flex-end;max-width:78%;background:var(--user-bg);color:var(--user-txt);border-radius:18px 18px 4px 18px;padding:11px 16px;font-size:var(--font-base);line-height:1.55;word-break:break-word;white-space:pre-wrap;}
 @media(max-width:768px){.msg-user{border-radius:20px 20px 4px 20px;padding:12px 16px;max-width:85%;}}
+.msg-user-wrap{align-self:flex-end;max-width:78%;display:flex;flex-direction:column;gap:8px;align-items:flex-end;}
+.msg-user-attachments{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;max-width:min(100%,420px);}
+.msg-user-attachment{position:relative;display:flex;flex-direction:column;gap:6px;min-width:94px;max-width:128px;padding:8px 8px 10px;border-radius:18px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.08);backdrop-filter:blur(12px);box-shadow:0 10px 20px rgba(0,0,0,.10);}
+.msg-user-attachment.image{padding:6px;}
+.msg-user-attachment img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:14px;display:block;}
+.msg-user-file-icon{width:58px;height:58px;border-radius:14px;overflow:hidden;align-self:flex-start;}
+.msg-user-attachment-name{font-size:12px;font-weight:600;line-height:1.25;color:var(--user-txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.msg-user-attachment-meta{font-size:10px;line-height:1.2;color:rgba(255,255,255,.72);}
+@media(min-width:769px){
+  .msg-user-wrap{max-width:72%;}
+  .msg-user-attachments{max-width:min(100%,520px);}
+  .msg-user-attachment{background:rgba(255,255,255,0.05);}
+}
+@media(max-width:768px){
+  .msg-user-wrap{max-width:85%;}
+  .msg-user-attachments{max-width:100%;}
+  .msg-user-attachment{min-width:102px;max-width:124px;}
+}
 
 /* AI — NO BUBBLE, text flows on background */
 .msg-ai-wrap{align-self:stretch;display:flex;flex-direction:column;gap:6px;}
@@ -1339,6 +1357,46 @@ function attachmentFileIcon(name){
     </svg>
   `;
 }
+function cloneAttachmentForHistory(item){
+  if(item.kind==='image'){
+    return {
+      kind:'image',
+      name:item.name||'Изображение',
+      mime:item.mime||'image/jpeg',
+      size:item.size||0,
+      dataUrl:item.dataUrl||('data:'+item.mime+';base64,'+item.base64),
+      meta:item.meta||fileExtLabel(item.name||item.mime||'image')
+    };
+  }
+  return {
+    kind:'document',
+    name:item.name||'Файл',
+    size:item.size||0,
+    mime:item.mime||'application/octet-stream',
+    ext:fileExtLabel(item.name||'Файл')
+  };
+}
+function renderUserAttachmentsMarkup(attachments=[]){
+  if(!attachments.length)return '';
+  return `<div class="msg-user-attachments">`+attachments.map(item=>{
+    if(item.kind==='image'){
+      return `
+        <div class="msg-user-attachment image">
+          <img src="${item.dataUrl}" alt="${escapeHtml(item.name||'Изображение')}">
+          <div class="msg-user-attachment-name" title="${escapeHtml(item.name||'Изображение')}">${escapeHtml(item.name||'Изображение')}</div>
+        </div>
+      `;
+    }
+    const meta=`${item.ext||fileExtLabel(item.name)}${item.size?` · ${formatBytes(item.size)}`:''}`;
+    return `
+      <div class="msg-user-attachment document">
+        <div class="msg-user-file-icon">${attachmentFileIcon(item.name)}</div>
+        <div class="msg-user-attachment-name" title="${escapeHtml(item.name||'Файл')}">${escapeHtml(item.name||'Файл')}</div>
+        <div class="msg-user-attachment-meta">${escapeHtml(meta)}</div>
+      </div>
+    `;
+  }).join('')+`</div>`;
+}
 function renderComposerAttachments(){
   const host=document.getElementById('composerAttachments');
   if(!host)return;
@@ -1454,7 +1512,7 @@ async function openChat(id){
   const inner=document.getElementById('chatInner');inner.innerHTML='';
   chatHistory.forEach(m=>{
     const txt=typeof m.content==='string'?m.content:(Array.isArray(m.content)?m.content.find(c=>c.type==='text')?.text:'[фото]');
-    if(m.role==='user')addUserBubble(txt);
+    if(m.role==='user')addUserBubble(txt,m.attachments||[]);
     else addAiBubble(txt,false);
   });
   renderChatList();
@@ -1774,7 +1832,7 @@ function setMessageActionsVisible(actionsEl,visible){
   if(!actionsEl)return;
   actionsEl.classList.toggle('is-hidden',!visible);
 }
-function createAiBubbleShell({showActions=true,hiddenActions=false}={}){
+function createAiBubbleShell({showActions=true,hiddenActions=false}={}){ 
   const inner=getChatInner();
   const wrap=document.createElement('div');wrap.className='msg-ai-wrap';
   const msg=document.createElement('div');msg.className='msg-ai';wrap.appendChild(msg);
@@ -1788,10 +1846,13 @@ function createAiBubbleShell({showActions=true,hiddenActions=false}={}){
   inner.appendChild(wrap);scrollChat();
   return {wrap,msg,actions};
 }
-function addUserBubble(text){
+function addUserBubble(text,attachments=[]){
   const inner=getChatInner();
-  const d=document.createElement('div');d.className='msg-user';d.textContent=text;
-  inner.appendChild(d);scrollChat();
+  const wrap=document.createElement('div');wrap.className='msg-user-wrap';
+  if(attachments.length)wrap.innerHTML=renderUserAttachmentsMarkup(attachments);
+  const d=document.createElement('div');d.className='msg-user';d.textContent=text||'';
+  wrap.appendChild(d);
+  inner.appendChild(wrap);scrollChat();
 }
 function addAiBubble(text,stream,opts={}){
   const shell=createAiBubbleShell({
@@ -2292,6 +2353,7 @@ async function sendMsg(){
 
   const imageAttachments=pendingAttachments.filter(item=>item.kind==='image');
   const docAttachments=pendingAttachments.filter(item=>item.kind==='document');
+  const historyAttachments=pendingAttachments.map(cloneAttachmentForHistory);
   const fallbackLabelParts=[];
   if(imageAttachments.length)fallbackLabelParts.push(imageAttachments.length===1?'[фото]':`[фото: ${imageAttachments.length}]`);
   if(docAttachments.length){
@@ -2321,8 +2383,8 @@ async function sendMsg(){
     userContent=(text?text+'\n\n':'')+docAttachments.map((attachment,index)=>`[ПРИКРЕПЛЁН ФАЙЛ ${index+1}: ${attachment.name}]\nИспользуй загруженный материал из контекста и базы знаний при ответе.`).join('\n\n');
   }else{userContent=text;}
 
-  addUserBubble(displayText);
-  chatHistory.push({role:'user',content:userContent});
+  addUserBubble(displayText,historyAttachments);
+  chatHistory.push({role:'user',content:userContent,attachments:historyAttachments});
   if(chatHistory.length===1)await saveChat(displayText.slice(0,40));
   else await saveChat();
   showTyping();
