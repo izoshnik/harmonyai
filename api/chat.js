@@ -1,11 +1,11 @@
 const FREE_MODEL_CHAINS = {
   openaiLite: [
-    process.env.FREE_LITE_MODEL || 'GPT-5.4-Mini',
-    process.env.FREE_LITE_FALLBACK_MODEL || process.env.FREE_LITE_MODEL || 'GPT-5.3-Codex'
+    process.env.FREE_LITE_MODEL || 'gpt-4o-mini',
+    process.env.FREE_LITE_FALLBACK_MODEL || process.env.FREE_LITE_MODEL || 'gpt-4o-mini'
   ],
   openaiPro: [
-    process.env.FREE_PRO_MODEL || 'GPT-5.4',
-    process.env.FREE_PRO_FALLBACK_MODEL || process.env.FREE_PRO_MODEL || 'GPT-5.4-Mini'
+    process.env.FREE_PRO_MODEL || 'gpt-4o',
+    process.env.FREE_PRO_FALLBACK_MODEL || process.env.FREE_PRO_MODEL || 'gpt-4o-mini'
   ],
   geminiLite: [
     process.env.FREE_LITE_GEMINI_MODEL || 'gemini-2.5-flash-lite',
@@ -19,8 +19,8 @@ const FREE_MODEL_CHAINS = {
 
 const PREMIUM_MODEL_CHAINS = {
   openai: [
-    process.env.PREMIUM_MODEL || process.env.FREE_PRO_MODEL || 'GPT-5.4',
-    process.env.PREMIUM_FALLBACK_MODEL || process.env.FREE_LITE_MODEL || 'GPT-5.4-Mini'
+    process.env.PREMIUM_MODEL || process.env.FREE_PRO_MODEL || 'gpt-4o',
+    process.env.PREMIUM_FALLBACK_MODEL || process.env.FREE_LITE_MODEL || 'gpt-4o-mini'
   ],
   gemini: [
     process.env.PREMIUM_MODEL || 'gemini-2.5-pro',
@@ -44,7 +44,7 @@ function hasUsableGemini() {
 
 function hasUsableOpenAI() {
   const key = readEnv('OPENAI_API_KEY');
-  const baseUrl = readEnv('OPENAI_BASE_URL') || 'https://api.codex-api.online/v1';
+  const baseUrl = readEnv('OPENAI_BASE_URL') || 'https://api.openai.com/v1';
   if (!key || isPlaceholderValue(key)) return false;
   if (isPlaceholderValue(baseUrl)) return false;
   try {
@@ -399,7 +399,7 @@ async function callGemini(apiKey, modelName, body, timeoutMs = 35000) {
 }
 
 async function callOpenAI(apiKey, modelName, messages, timeoutMs = 35000) {
-  const baseUrl = String(readEnv('OPENAI_BASE_URL') || 'https://api.codex-api.online/v1').replace(/\/+$/, '');
+  const baseUrl = String(readEnv('OPENAI_BASE_URL') || 'https://api.openai.com/v1').replace(/\/+$/, '');
   const response = await withTimeout(
     fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
@@ -425,7 +425,7 @@ async function callOpenAI(apiKey, modelName, messages, timeoutMs = 35000) {
 }
 
 async function callOpenAIStream(apiKey, modelName, messages, timeoutMs = 65000) {
-  const baseUrl = String(readEnv('OPENAI_BASE_URL') || 'https://api.codex-api.online/v1').replace(/\/+$/, '');
+  const baseUrl = String(readEnv('OPENAI_BASE_URL') || 'https://api.openai.com/v1').replace(/\/+$/, '');
   return await withTimeout(
     fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
