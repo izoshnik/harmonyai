@@ -779,7 +779,7 @@ if(window.pdfjsLib)window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.
 let curUser=null,curEmail='',resendTimer=null,resendLeft=0;
 let sidebarExpanded=false;
 let curModel='lite',curMode='low',thinkOn=false,dropOpen=false,modeSubOpen=false,modelsSubOpen=false;
-let chatHistory=[],pendingAttachments=[],curChatId=null;
+let chatHistory=[],pendingAttachments=[],recentAttachmentDocs=[],curChatId=null;
 let chats=[];
 let abcCounter=0;
 let authHydrationPromise=null,authHydratedUserId='';
@@ -1305,6 +1305,12 @@ function buildPendingDocContext(query){
   if(!selected.length)return '';
   return '\nТЕКУЩИЕ ПРИКРЕПЛЕНИЯ:\n'+selected.map((item,i)=>`[Файл ${i+1}: ${item.name}]\n${item.chunk}`).join('\n\n');
 }
+function buildRecentAttachmentContext(query){
+  if(!recentAttachmentDocs.length)return '';
+  const selected=topChunksFromDocs(query,recentAttachmentDocs,6,10000);
+  if(!selected.length)return '';
+  return '\nНЕДАВНО ПРИКРЕПЛЁННЫЕ ФАЙЛЫ В ЭТОМ ЧАТЕ:\n'+selected.map((item,i)=>`[Файл ${i+1}: ${item.name}]\n${item.chunk}`).join('\n\n');
+}
 function updateComposerPlaceholder(){
   const ta=document.getElementById('msgTa');
   if(!ta)return;
@@ -1321,6 +1327,27 @@ function clearPendingAttachments(){
   pendingAttachments=[];
   renderComposerAttachments();
   updateComposerPlaceholder();
+}
+function rememberRecentAttachments(attachments=[]){
+  const docs=attachments
+    .filter(item=>item.kind==='document'&&item.doc?.chunks?.length)
+    .map(item=>item.doc);
+  if(!docs.length)return;
+  const existing=new Map(recentAttachmentDocs.map(doc=>[doc.id,doc]));
+  docs.forEach(doc=>existing.set(doc.id,doc));
+  recentAttachmentDocs=Array.from(existing.values()).slice(-8);
+}
+function restoreRecentAttachmentsFromHistory(history=[]){
+  const collected=[];
+  history.forEach(msg=>{
+    if(msg.role!=='user'||!Array.isArray(msg.attachments))return;
+    msg.attachments.forEach(att=>{
+      if(att.kind==='document'&&att.doc?.chunks?.length)collected.push(att.doc);
+    });
+  });
+  const dedup=new Map();
+  collected.forEach(doc=>dedup.set(doc.id||(`${doc.name}_${doc.createdAt||''}`),doc));
+  recentAttachmentDocs=Array.from(dedup.values()).slice(-8);
 }
 function formatBytes(bytes){
   const value=Number(bytes)||0;
@@ -1373,7 +1400,8 @@ function cloneAttachmentForHistory(item){
     name:item.name||'Файл',
     size:item.size||0,
     mime:item.mime||'application/octet-stream',
-    ext:fileExtLabel(item.name||'Файл')
+    ext:fileExtLabel(item.name||'Файл'),
+    doc:item.doc||null
   };
 }
 function renderUserAttachmentsMarkup(attachments=[]){
@@ -1509,6 +1537,7 @@ async function openChat(id){
   if(!data)return;
   curChatId=id;
   chatHistory=data.history||[];
+  restoreRecentAttachmentsFromHistory(chatHistory);
   const inner=document.getElementById('chatInner');inner.innerHTML='';
   chatHistory.forEach(m=>{
     const txt=typeof m.content==='string'?m.content:(Array.isArray(m.content)?m.content.find(c=>c.type==='text')?.text:'[фото]');
@@ -1519,6 +1548,7 @@ async function openChat(id){
 }
 function newChat(){
   curChatId=null;chatHistory=[];
+  recentAttachmentDocs=[];
   const inner=document.getElementById('chatInner');
   inner.innerHTML=`<div class="greeting-wrap" id="greetingWrap">
     <div class="greeting-title">Привет! Я Harmony Ai</div>
@@ -1733,6 +1763,7 @@ function buildSystem(){
   if(isDeveloper())sys+='\nПользователь с ролью developer. Его заметки и загруженные материалы считай приоритетными источниками знаний.';
   sys+=buildKnowledgeContext(currentQuery);
   sys+=buildPendingDocContext(currentQuery);
+  sys+=buildRecentAttachmentContext(currentQuery);
   if(s.customInstructions)sys+='\nДОПОЛНИТЕЛЬНО от пользователя: '+s.customInstructions;
   return sys;
 }
@@ -1850,8 +1881,10 @@ function addUserBubble(text,attachments=[]){
   const inner=getChatInner();
   const wrap=document.createElement('div');wrap.className='msg-user-wrap';
   if(attachments.length)wrap.innerHTML=renderUserAttachmentsMarkup(attachments);
-  const d=document.createElement('div');d.className='msg-user';d.textContent=text||'';
-  wrap.appendChild(d);
+  if(text&&text.trim()){
+    const d=document.createElement('div');d.className='msg-user';d.textContent=text;
+    wrap.appendChild(d);
+  }
   inner.appendChild(wrap);scrollChat();
 }
 function addAiBubble(text,stream,opts={}){
@@ -2354,13 +2387,7 @@ async function sendMsg(){
   const imageAttachments=pendingAttachments.filter(item=>item.kind==='image');
   const docAttachments=pendingAttachments.filter(item=>item.kind==='document');
   const historyAttachments=pendingAttachments.map(cloneAttachmentForHistory);
-  const fallbackLabelParts=[];
-  if(imageAttachments.length)fallbackLabelParts.push(imageAttachments.length===1?'[фото]':`[фото: ${imageAttachments.length}]`);
-  if(docAttachments.length){
-    if(docAttachments.length===1)fallbackLabelParts.push(`[файл: ${docAttachments[0].name}]`);
-    else fallbackLabelParts.push(`[файлы: ${docAttachments.length}]`);
-  }
-  const displayText=text||fallbackLabelParts.join(' ');
+  const displayText=text||'';
   if(isDeveloper()&&text)rememberDeveloperMessage(text);
   let userContent;
   if(imageAttachments.length){
@@ -2383,6 +2410,7 @@ async function sendMsg(){
     userContent=(text?text+'\n\n':'')+docAttachments.map((attachment,index)=>`[ПРИКРЕПЛЁН ФАЙЛ ${index+1}: ${attachment.name}]\nИспользуй загруженный материал из контекста и базы знаний при ответе.`).join('\n\n');
   }else{userContent=text;}
 
+  rememberRecentAttachments(pendingAttachments);
   addUserBubble(displayText,historyAttachments);
   chatHistory.push({role:'user',content:userContent,attachments:historyAttachments});
   if(chatHistory.length===1)await saveChat(displayText.slice(0,40));
