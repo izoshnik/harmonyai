@@ -283,9 +283,19 @@ function needsPersonalContext(query = '', messages = []) {
   return false;
 }
 
+// Широкая проверка музыкальной тематики — используется только для увеличения таймаута,
+// не запускает никаких дополнительных вызовов модели.
 function isCreativeOrNotationRequest(query = '') {
   const clean = normalizeText(query).toLowerCase();
   return /(сгенерируй|создай|напиши|придумай|построй|сочини|гамм|аккорд|нот|стан|abc|мелоди|пьес|цепочк)/.test(clean);
+}
+
+// Узкая проверка: пользователь реально хочет ВИЗУАЛЬНЫЙ нотный стан (картинку нот),
+// а не просто текстовое объяснение теории с упоминанием аккордов/нот.
+// Только в этом случае оправдан дорогой повторный вызов модели для abc-нотации.
+function wantsRenderedStaff(query = '') {
+  const clean = normalizeText(query).toLowerCase();
+  return /(нотн(ый|ую|ом|ыми)?\s*стан|нотами|на нотах|запиши\s+нот|изобрази\s+нот|нарисуй\s+нот|покажи\s+нот|abc[-\s]?нотаци|сыграй|сочини\s+(мелоди|пьес|гамм)|напиши\s+(мелоди|пьес|гамм)|придумай\s+(мелоди|пьес|гамм)|построй\s+гамм|партитур)/.test(clean);
 }
 
 async function maybeSaveDeveloperNote(profile, queryText) {
@@ -515,9 +525,9 @@ function hasAbcBlock(text = '') {
   return /```\s*abc[\r\n]+[\s\S]*?```/i.test(String(text || ''));
 }
 
-async function repairNotationReplyIfNeeded(apiKey, modelName, query, replyText, timeoutMs = 45000) {
+async function repairNotationReplyIfNeeded(apiKey, modelName, query, replyText) {
   const cleanReply = sanitizeAssistantText(replyText);
-  if (!isCreativeOrNotationRequest(query) || hasAbcBlock(cleanReply)) {
+  if (!wantsRenderedStaff(query) || hasAbcBlock(cleanReply)) {
     return cleanReply;
   }
 
@@ -538,7 +548,7 @@ async function repairNotationReplyIfNeeded(apiKey, modelName, query, replyText, 
   ];
 
   try {
-    const { response, data } = await callOpenAI(apiKey, modelName, repairMessages, Math.max(timeoutMs, 45000));
+    const { response, data } = await callOpenAI(apiKey, modelName, repairMessages, 20000);
     if (!response.ok || data?.error) return cleanReply;
     return sanitizeAssistantText(data?.choices?.[0]?.message?.content || cleanReply);
   } catch (error) {
@@ -635,7 +645,7 @@ async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs,
     };
   }
 
-  const finalText = await repairNotationReplyIfNeeded(apiKey, modelName, query, fullText, Math.max(timeoutMs, 45000));
+  const finalText = await repairNotationReplyIfNeeded(apiKey, modelName, query, fullText);
   writeSseEvent(res, { type: 'done', text: finalText, model: modelName });
   res.end();
 
@@ -719,7 +729,23 @@ export default async function handler(req, res) {
     const route = selectRoute(profile, model);
     const systemText = messages.find(m => m.role === 'system')?.content || '';
     const isNotationHeavy = isCreativeOrNotationRequest(query);
-    const modelTimeoutMs = think || effort === 'max' ? 55000 : isQuick ? 20000 : wantsContext ? 45000 : isNotationHeavy ? 45000 : 30000;
+    const wantsStaff = wantsRenderedStaff(query);
+    // Бюджет функции на Vercel ограничен (maxDuration 60с), а repair-вызов добавляет +20с,
+    // если запрос реально требует нотного стана — поэтому для wantsStaff оставляем запас.
+    let modelTimeoutMs;
+    if (think || effort === 'max') {
+      modelTimeoutMs = wantsStaff ? 35000 : 50000;
+    } else if (isQuick) {
+      modelTimeoutMs = 15000;
+    } else if (wantsStaff) {
+      modelTimeoutMs = 30000;
+    } else if (wantsContext) {
+      modelTimeoutMs = 35000;
+    } else if (isNotationHeavy) {
+      modelTimeoutMs = 30000;
+    } else {
+      modelTimeoutMs = 25000;
+    }
     const mergedSystem = appendServerContext(systemText, [
       profile ? `Профиль пользователя: role=${profile.role || 'user'}, plan=${profile.plan || 'free'}` : '',
       buildMemoryContext(memories, query),
@@ -798,8 +824,7 @@ export default async function handler(req, res) {
           route.apiKey,
           modelName,
           query,
-          data?.choices?.[0]?.message?.content || 'Нет ответа',
-          modelTimeoutMs
+          data?.choices?.[0]?.message?.content || 'Нет ответа'
         );
         return res.status(200).json({
           choices: [{ message: { content: replyText } }],
