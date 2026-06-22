@@ -226,6 +226,10 @@ body{background:var(--bg);color:var(--text);}
 
 /* AI — NO BUBBLE, text flows on background */
 .msg-ai-wrap{align-self:stretch;display:flex;flex-direction:column;gap:6px;}
+@keyframes aiBubbleIn{from{opacity:0;transform:translateY(7px);}to{opacity:1;transform:translateY(0);}}
+.msg-ai-wrap.bubble-in{animation:aiBubbleIn 0.28s cubic-bezier(0.22,0.61,0.36,1) both;}
+@keyframes streamCursorBlink{0%,100%{opacity:1;}50%{opacity:0.25;}}
+.msg-ai.is-streaming{caret-color:transparent;}
 .msg-ai{font-size:var(--font-base);line-height:1.7;color:var(--text-ai);word-break:normal;overflow-wrap:anywhere;white-space:pre-wrap;hyphens:none;}
 /* Force AI text visible - dark on mobile, dark on desktop */
 @media(max-width:768px){.msg-ai{color:#e2e2e6;}}
@@ -1915,7 +1919,7 @@ function setMessageActionsVisible(actionsEl,visible){
 }
 function createAiBubbleShell({showActions=true,hiddenActions=false}={}){ 
   const inner=getChatInner();
-  const wrap=document.createElement('div');wrap.className='msg-ai-wrap';
+  const wrap=document.createElement('div');wrap.className='msg-ai-wrap bubble-in';
   const msg=document.createElement('div');msg.className='msg-ai';wrap.appendChild(msg);
   let actions=null;
   if(showActions){
@@ -2128,25 +2132,30 @@ function renderMd(el,text){
 }
 function streamText(el,text){
   return new Promise(resolve=>{
-    let i=0,stopped=false;el.style.whiteSpace='pre-wrap';
-    activeStreamStop=()=>{stopped=true;};
-    function step(){
-      if(stopped){
-        const partial=text.slice(0,Math.min(i,text.length));
-        el.textContent=partial;
-        el.dataset.raw=partial;
-        activeStreamStop=null;
-        scrollChat();
-        resolve({stopped:true,text:partial});
-        return;
-      }
-      i+=16;
-      el.textContent=text.slice(0,Math.min(i,text.length))+(i<text.length?'▍':'');
+    let i=0,stopped=false,lastT=0;el.style.whiteSpace='pre-wrap';
+    activeStreamStop=()=>{
+      stopped=true;
+      const partial=text.slice(0,Math.min(i,text.length));
+      el.textContent=partial;
+      el.dataset.raw=partial;
+      activeStreamStop=null;
       scrollChat();
-      if(i<text.length)setTimeout(step,5);
+      resolve({stopped:true,text:partial});
+    };
+    function step(now){
+      if(stopped)return;
+      if(typeof now!=='number')now=performance.now();
+      const dt=lastT>0?Math.min(now-lastT,80):16;
+      lastT=now;
+      const remain=text.length-i;
+      const charsPerSec=remain>600?2400:remain>150?900:remain>40?360:150;
+      i=Math.min(text.length,i+Math.max(1,Math.round(charsPerSec*dt/1000)));
+      el.textContent=text.slice(0,i)+(i<text.length?'▍':'');
+      scrollChat();
+      if(i<text.length)requestAnimationFrame(step);
       else{activeStreamStop=null;renderMd(el,text);scrollChat();resolve({stopped:false,text});}
     }
-    step();
+    requestAnimationFrame(step);
   });
 }
 function createLiveTypingController(el){
@@ -2156,16 +2165,20 @@ function createLiveTypingController(el){
   let timer=null;
   let stopped=false;
   let completed=false;
+  let lastFrameTime=0;
   let resolveDone;
   const done=new Promise(resolve=>{resolveDone=resolve;});
   el.style.whiteSpace='pre-wrap';
+  el.classList.add('is-streaming');
   activeStreamStop=()=>{
     if(completed)return;
     stopped=true;
-    if(timer)clearTimeout(timer);
+    if(timer!=null)cancelAnimationFrame(timer);
+    timer=null;
     const partial=pendingText.slice(0,shownLength);
     el.textContent=partial;
     el.dataset.raw=partial;
+    el.classList.remove('is-streaming');
     activeStreamStop=null;
     completed=true;
     resolveDone(partial);
@@ -2176,22 +2189,30 @@ function createLiveTypingController(el){
     if(shownLength<pendingText.length)return;
     timer=null;
     activeStreamStop=null;
+    el.classList.remove('is-streaming');
     renderMd(el,finalText);
     el.dataset.raw=finalText;
     scrollChat();
     completed=true;
     resolveDone(finalText);
   }
-  function tick(){
+  function tick(now){
     if(stopped||completed)return;
+    if(typeof now!=='number')now=performance.now();
     if(shownLength<pendingText.length){
+      // Плавное появление: время-зависимая скорость, синхронизирована с экраном
+      const dt=lastFrameTime>0?Math.min(now-lastFrameTime,80):16;
+      lastFrameTime=now;
       const remain=pendingText.length-shownLength;
-      shownLength+=remain>80?20:remain>30?12:remain>10?6:remain;
+      // Адаптивная скорость: быстро догоняем если много отставания, нежно у края потока
+      const charsPerSec=remain>600?2400:remain>150?900:remain>40?360:150;
+      const advance=Math.max(1,Math.round(charsPerSec*dt/1000));
+      shownLength=Math.min(pendingText.length,shownLength+advance);
       const partial=pendingText.slice(0,shownLength);
       el.textContent=partial+(shownLength<pendingText.length||finalText===null?'▍':'');
       el.dataset.raw=partial;
       scrollChat();
-      timer=setTimeout(tick,8);
+      timer=requestAnimationFrame(tick);
       return;
     }
     timer=null;
@@ -2201,12 +2222,17 @@ function createLiveTypingController(el){
     push(chunk){
       if(stopped||!chunk)return;
       pendingText+=chunk;
-      if(!timer)tick();
+      if(timer==null)timer=requestAnimationFrame(tick);
     },
     complete(text){
-      if(typeof text==='string'&&text.length>pendingText.length)pendingText=text;
-      finalText=typeof text==='string'&&text?text:pendingText;
-      if(!timer)finishIfReady();
+      // Используем максимальный текст: весь полученный поток, не только показанный
+      if(typeof text==='string'&&text.length>pendingText.length){
+        pendingText=text;
+        finalText=text;
+      }else{
+        finalText=pendingText;
+      }
+      if(timer==null)finishIfReady();
       return done;
     },
     done
