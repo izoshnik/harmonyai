@@ -138,7 +138,7 @@ async function supabaseRequest(path, init = {}) {
   const headers = { ...buildSupabaseHeaders(), ...(init.headers || {}) };
   const response = await withTimeout(
     fetch(`${baseUrl}${path}`, { ...init, headers }),
-    8000,
+    12000,
     'Supabase request timed out'
   );
   let data = null;
@@ -376,7 +376,7 @@ function mapMessagesForGemini(messages) {
   return { systemText, contents };
 }
 
-async function callGemini(apiKey, modelName, body, timeoutMs = 35000) {
+async function callGemini(apiKey, modelName, body, timeoutMs = 25000) {
   const response = await withTimeout(
     fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
@@ -398,7 +398,7 @@ async function callGemini(apiKey, modelName, body, timeoutMs = 35000) {
   return { response, data };
 }
 
-async function callOpenAI(apiKey, modelName, messages, timeoutMs = 35000) {
+async function callOpenAI(apiKey, modelName, messages, timeoutMs = 25000) {
   const baseUrl = String(readEnv('OPENAI_BASE_URL') || 'https://api.openai.com/v1').replace(/\/+$/, '');
   const response = await withTimeout(
     fetch(`${baseUrl}/chat/completions`, {
@@ -505,7 +505,7 @@ function hasAbcBlock(text = '') {
   return /```\s*abc[\r\n]+[\s\S]*?```/i.test(String(text || ''));
 }
 
-async function repairNotationReplyIfNeeded(apiKey, modelName, query, replyText, timeoutMs = 45000) {
+async function repairNotationReplyIfNeeded(apiKey, modelName, query, replyText, timeoutMs = 20000) {
   const cleanReply = sanitizeAssistantText(replyText);
   if (!isCreativeOrNotationRequest(query) || hasAbcBlock(cleanReply)) {
     return cleanReply;
@@ -528,7 +528,7 @@ async function repairNotationReplyIfNeeded(apiKey, modelName, query, replyText, 
   ];
 
   try {
-    const { response, data } = await callOpenAI(apiKey, modelName, repairMessages, Math.max(timeoutMs, 45000));
+    const { response, data } = await callOpenAI(apiKey, modelName, repairMessages, Math.max(timeoutMs, 20000));
     if (!response.ok || data?.error) return cleanReply;
     return sanitizeAssistantText(data?.choices?.[0]?.message?.content || cleanReply);
   } catch (error) {
@@ -581,7 +581,7 @@ async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs,
   while (true) {
     const { done, value } = await withTimeout(
       reader.read(),
-      Math.max(8000, Math.min(timeoutMs, 20000)),
+      Math.max(8000, Math.min(timeoutMs, 15000)),
       `OpenAI stream chunk timed out for ${modelName}`
     );
     if (done) break;
@@ -625,7 +625,7 @@ async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs,
     };
   }
 
-  const finalText = await repairNotationReplyIfNeeded(apiKey, modelName, query, fullText, Math.max(timeoutMs, 45000));
+  const finalText = await repairNotationReplyIfNeeded(apiKey, modelName, query, fullText, Math.max(timeoutMs, 20000));
   writeSseEvent(res, { type: 'done', text: finalText, model: modelName });
   res.end();
 
@@ -691,20 +691,19 @@ export default async function handler(req, res) {
 
     if (!isQuick || think || effort === 'max') {
       const ownerId = profile?.id || userId || '';
-      // Fetch docs, memories, and feedback in parallel
-      const [docsResult, memoriesResult, feedbackResult] = await Promise.all([
+      const results = await Promise.all([
         fetchAccessibleDocuments(ownerId).catch(() => []),
         fetchUserMemories(ownerId).catch(() => []),
         fetchFeedback(ownerId).catch(() => [])
       ]);
-      documents = docsResult || [];
-      memories = memoriesResult || [];
-      feedbackRows = feedbackResult || [];
+      documents = results[0] || [];
+      memories = results[1] || [];
+      feedbackRows = results[2] || [];
 
       if (documents.length) {
         chunks = await withTimeout(
           fetchChunksForDocuments(documents.map((doc) => doc.id)).catch(() => []),
-          8000,
+          12000,
           'Knowledge chunks request timed out'
         ).catch(() => []);
       }
@@ -715,7 +714,7 @@ export default async function handler(req, res) {
     const route = selectRoute(profile, model);
     const { systemText, contents } = mapMessagesForGemini(messages);
     const isNotationHeavy = isCreativeOrNotationRequest(query);
-    const modelTimeoutMs = think || effort === 'max' ? 60000 : isQuick ? 12000 : isNotationHeavy ? 40000 : 25000;
+    const modelTimeoutMs = think || effort === 'max' ? 65000 : isQuick ? 15000 : isNotationHeavy ? 35000 : 25000;
     const geminiAttempts = think || effort === 'max' ? 2 : isQuick ? 1 : 2;
     const mergedSystem = appendServerContext(systemText, [
       profile ? `Профиль пользователя: role=${profile.role || 'user'}, plan=${profile.plan || 'free'}` : '',
@@ -759,7 +758,7 @@ export default async function handler(req, res) {
             });
           }
           if (isOverloaded(lastError.status, errorMessage)) {
-            await sleep(800);
+            await sleep(300);
             continue;
           }
           continue;
@@ -788,7 +787,7 @@ export default async function handler(req, res) {
               }
             });
           }
-          if (isOverloaded(response.status, errorMessage)) await sleep(800);
+          if (isOverloaded(response.status, errorMessage)) await sleep(300);
           continue;
         }
         const replyText = await repairNotationReplyIfNeeded(
@@ -819,7 +818,7 @@ export default async function handler(req, res) {
       if (lastError && isOverloaded(lastError.status, lastError.message)) {
         return res.status(503).json({
           error: {
-            message: `This model is currently experiencing high demand. Please try again in a minute. РџСЂРёС‡РёРЅР°: ${compactErrorValue(lastError.message, 320) || 'unknown'}${lastError.model ? ` | model=${lastError.model}` : ''}`,
+            message: `This model is currently experiencing high demand. Please try again in a minute. Причина: ${compactErrorValue(lastError.message, 320) || 'unknown'}${lastError.model ? ` | model=${lastError.model}` : ''}`,
             status: lastError.status || 503,
             model: lastError.model
           }
@@ -829,7 +828,7 @@ export default async function handler(req, res) {
       if (lastError && isTimeoutError(lastError.message)) {
         return res.status(504).json({
           error: {
-            message: `РњРѕРґРµР»СЊ РѕС‚РІРµС‡Р°РµС‚ СЃР»РёС€РєРѕРј РґРѕР»РіРѕ. РџРѕРїСЂРѕР±СѓР№С‚Рµ РµС‰С‘ СЂР°Р· РёР»Рё РѕС‚РєР»СЋС‡РёС‚Рµ СЃР»РѕР¶РЅС‹Р№ СЂРµР¶РёРј. РџСЂРёС‡РёРЅР°: ${compactErrorValue(lastError.message, 320) || 'timeout'}${lastError.model ? ` | model=${lastError.model}` : ''}`,
+            message: `Модель отвечает слишком долго. Попробуйте ещё раз или отключите сложный режим. Причина: ${compactErrorValue(lastError.message, 320) || 'timeout'}${lastError.model ? ` | model=${lastError.model}` : ''}`,
             status: 504,
             model: lastError.model
           }
@@ -838,7 +837,7 @@ export default async function handler(req, res) {
 
       return res.status(lastError?.status || 500).json({
         error: {
-          message: lastError?.message || 'РќРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ РѕС‚РІРµС‚ РѕС‚ РјРѕРґРµР»Рё'
+          message: lastError?.message || 'Не удалось получить ответ от модели'
         }
       });
     }
@@ -873,7 +872,7 @@ export default async function handler(req, res) {
             });
           }
           if (isOverloaded(response.status, errorMessage) && attempt === 0) {
-            await sleep(900);
+            await sleep(300);
             continue;
           }
           break;
