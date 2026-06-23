@@ -248,10 +248,8 @@ body{background:var(--bg);color:var(--text);}
 .msg-ai hr{border:none;border-top:1px solid var(--border);margin:12px 0;}
 .msg-ai a{color:#3b82f6;text-decoration:underline;}
 
-/* Фигурный бас: цифры обращений аккордов (D65, D43, K64...) стопкой над/под, как в нотных учебниках */
-.msg-ai .chord-fig{display:inline-flex;flex-direction:column;justify-content:center;vertical-align:middle;line-height:.8;margin:0 1px;transform:translateY(1px);}
-.msg-ai .chord-fig .fig-top,.msg-ai .chord-fig .fig-bottom{font-size:.62em;font-weight:700;}
-.msg-ai .chord-sub{font-size:.68em;font-weight:700;}
+/* Цифровые обозначения аккордов и функций (T53, D65, K64...) */
+.msg-ai .chord-sub{font-size:.70em;font-weight:700;vertical-align:sub;line-height:1;letter-spacing:-.01em;}
 
 /* ABC Notation block */
 .abc-block{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:14px;margin:10px 0;overflow:hidden;display:flex;flex-direction:column;gap:10px;}
@@ -320,12 +318,14 @@ body{background:var(--bg);color:var(--text);}
 
 /* Thinking */
 .thinking{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text2);padding:4px 0;}
-.thinking.think-text{font-weight:600;letter-spacing:.01em;}
+.thinking.think-text{font-weight:500;letter-spacing:.01em;}
 .think-dots{display:flex;gap:4px;}
 .think-dots span{width:5px;height:5px;border-radius:50%;background:var(--text2);animation:bop 1.2s infinite;}
 .think-dots span:nth-child(2){animation-delay:.2s;}
 .think-dots span:nth-child(3){animation-delay:.4s;}
 @keyframes bop{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+@keyframes thinkStepIn{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:translateY(0);}}
+.think-step{display:inline-block;animation:thinkStepIn .3s cubic-bezier(.22,.61,.36,1) both;}
 
 /* Composer attachments */
 .composer-attachments{width:100%;max-width:720px;display:none;align-items:flex-start;justify-content:flex-start;flex-wrap:wrap;gap:10px;}
@@ -1320,19 +1320,29 @@ async function recordFeedbackToSupabase(rawAnswer,correction,note=''){
 function tokenizeForSearch(text){
   return Array.from(new Set(String(text||'').toLowerCase().replace(/[^a-zа-я0-9#]+/gi,' ').split(/\s+/).filter(word=>word.length>2)));
 }
-function topChunksFromDocs(query,docs,limit=4,maxChars=8000){
+function topChunksFromDocs(query,docs,limit=4,maxChars=8000,requireScore=true){
   const tokens=tokenizeForSearch(query);
   const scored=[];
   docs.forEach(doc=>{
-    (doc.chunks||[]).forEach(chunk=>{
+    (doc.chunks||[]).forEach((chunk,idx)=>{
       const low=chunk.toLowerCase();
       let score=0;
       tokens.forEach(token=>{if(low.includes(token))score+=token.length>5?3:2;});
       if(doc.kind==='note')score+=1;
-      if(score>0||!tokens.length)scored.push({score,chunk,name:doc.name});
+      // requireScore=false → always include (for attached/recent docs that are all relevant)
+      // requireScore=true  → only include if matched, but fallback to first chunks if nothing matched
+      if(!requireScore||score>0||!tokens.length)scored.push({score,chunk,name:doc.name,idx});
     });
   });
-  scored.sort((a,b)=>b.score-a.score);
+  // Fallback for global knowledge base: if nothing matched, include first chunk from each doc
+  if(requireScore&&!scored.length&&docs.length){
+    docs.forEach(doc=>{
+      (doc.chunks||[]).slice(0,Math.max(1,Math.ceil(limit/docs.length))).forEach((chunk,idx)=>{
+        scored.push({score:0,chunk,name:doc.name,idx});
+      });
+    });
+  }
+  scored.sort((a,b)=>b.score-a.score||(a.idx||0)-(b.idx||0));
   const selected=[];
   let chars=0;
   for(const item of scored){
@@ -1352,15 +1362,17 @@ function buildKnowledgeContext(query){
 function buildPendingDocContext(query){
   const pendingDocs=pendingAttachments.filter(item=>item.kind==='document'&&item.doc?.chunks?.length).map(item=>item.doc);
   if(!pendingDocs.length)return '';
-  const selected=topChunksFromDocs(query,pendingDocs,40,250000);
+  // requireScore=false — прикреплённые файлы всегда релевантны, включаем весь контент
+  const selected=topChunksFromDocs(query,pendingDocs,40,250000,false);
   if(!selected.length)return '';
   return '\nТЕКУЩИЕ ПРИКРЕПЛЕНИЯ:\n'+selected.map((item,i)=>`[Файл ${i+1}: ${item.name}]\n${item.chunk}`).join('\n\n');
 }
 function buildRecentAttachmentContext(query){
   if(!recentAttachmentDocs.length)return '';
-  const selected=topChunksFromDocs(query,recentAttachmentDocs,40,250000);
+  // requireScore=false — документы из этого чата всегда включаем, независимо от формулировки запроса
+  const selected=topChunksFromDocs(query,recentAttachmentDocs,40,250000,false);
   if(!selected.length)return '';
-  return '\nНЕДАВНО ПРИКРЕПЛЁННЫЕ ФАЙЛЫ В ЭТОМ ЧАТЕ:\n'+selected.map((item,i)=>`[Файл ${i+1}: ${item.name}]\n${item.chunk}`).join('\n\n');
+  return '\nПРИКРЕПЛЁННЫЕ ФАЙЛЫ В ЭТОМ ЧАТЕ:\n'+selected.map((item,i)=>`[Файл ${i+1}: ${item.name}]\n${item.chunk}`).join('\n\n');
 }
 function updateComposerPlaceholder(){
   const ta=document.getElementById('msgTa');
@@ -1733,7 +1745,8 @@ document.addEventListener('click',e=>{
 const BASE_SYSTEM=`Ты HarmonyAI — музыкальный ИИ-помощник для учеников музыкальной школы. Ты мужского пола — говори о себе в мужском роде. Отвечай на русском языке. Будь дружелюбным и понятным.
 Ты знаешь: сольфеджио, нотную грамоту, интервалы, аккорды (T53, S64, D7, VII7, II7 и др.), лады, ритм, размеры, музыкальные термины. Помогаешь и с другими предметами.
 ФОРМАТИРОВАНИЕ: Всегда используй Markdown — **жирный**, # заголовки, списки, > цитаты, \`код\`.
-ОБОЗНАЧЕНИЯ АККОРДОВ И ФУНКЦИЙ: пиши их только обычным текстом, без LaTeX и без математической разметки. Верно: T53, T6, T64, S53, S6, S64, D53, D6, D64, D7, I53, IV53, V53, V6, V64. Неверно: $T_{53}$, \\(S_{64}\\), T_{53}, D_{6}.
+ОБОЗНАЧЕНИЯ АККОРДОВ И ФУНКЦИЙ: пиши их только обычным текстом (интерфейс сам превратит цифры в подстрочные). Верно: T53, T6, T64, S53, S6, S64, D53, D6, D64, D7, D65, D43, D2, K64, VII7, II7, I53, IV53, V53, V6, V64, Б53, М53, Ум53, Ув53, ББ7, БМ7, МБ7, ММ7. Неверно: $T_{53}$, \\(D_{65}\\), T_{53}, D₆₅ (не используй Unicode-подстрочные сам — только обычные цифры).
+РАБОТА С ФАЙЛАМИ: если пользователь загружает учебник или документ, ты получаешь его содержимое прямо в контексте — ЧИТАЙ и ИСПОЛЬЗУЙ его. Никогда не говори "у меня нет доступа к файлу" — если файл прикреплён, его текст уже в твоём контексте. Когда просят "обучись по учебнику" — изучи структуру и темы документа и подтверди что изучил.
 РАСПОЗНАВАНИЕ ФОТО: если присылают фото с нотами — разбери каждую ноту, аккорд, ритм.
 ГЕНЕРАЦИЯ НОТНЫХ СТАНОВ:
 1. Для нотного вывода всегда используй один или несколько блоков \`\`\`abc ... \`\`\`.
@@ -2024,20 +2037,17 @@ function normalizeReplyNotation(text){
     .replace(/\n{3,}/g,'\n\n')
     .trim();
 }
+const CHORD_SUB_MAP={'0':'₀','1':'₁','2':'₂','3':'₃','4':'₄','5':'₅','6':'₆','7':'₇','8':'₈','9':'₉'};
+function toChordSub(s){return String(s).split('').map(c=>CHORD_SUB_MAP[c]||c).join('');}
 function sanitizeTheoryText(text){
   return String(text||'')
     .replace(/\\\(/g,'(')
     .replace(/\\\)/g,')')
-    .replace(/\(\s*\$+\s*([TSDIVXivx]+)\s*_\{?\s*(\d{1,3})\s*\}?\s*\$+\s*\)/g,'$1$2')
-    .replace(/\$+\s*([TSDIVXivx]+)\s*_\{?\s*(\d{1,3})\s*\}?\s*\$+/g,'$1$2')
-    .replace(/([TSDIVXivx]+)\s*_\{?\s*(\d{1,3})\s*\}?/g,'$1$2')
+    .replace(/\(\s*\$+\s*([TSDIVXivxТСДКБМ]+)\s*_\{?\s*(\d{1,3})\s*\}?\s*\$+\s*\)/g,'$1$2')
+    .replace(/\$+\s*([TSDIVXivxТСДКБМ]+)\s*_\{?\s*(\d{1,3})\s*\}?\s*\$+/g,'$1$2')
+    .replace(/([TSDIVXivxТСДКБМ]+)\s*_\{?\s*(\d{1,3})\s*\}?/g,'$1$2')
     .replace(/\(\s*([A-Ga-g][,']?)\s*\)/g,'($1)')
-    .replace(/\b([TSDIVXivx]+)(\d{1,2})\b/g,(m,letters,digits)=>{
-      if(digits.length===2){
-        return `${letters}<span class="chord-fig"><span class="fig-top">${digits[0]}</span><span class="fig-bottom">${digits[1]}</span></span>`;
-      }
-      return `${letters}<sub class="chord-sub">${digits}</sub>`;
-    })
+    .replace(/\b([TSDIVXivxТСДКБМ]+)(\d{1,3})\b/g,(m,letters,digits)=>letters+toChordSub(digits))
     .replace(/\s+([,.;:!?])/g,'$1');
 }
 function extractAbcDisplayMeta(src){
@@ -2273,7 +2283,7 @@ async function regenMsg(item){
   setMessageActionsVisible(actionsEl,false);
   if(chatHistory.length&&chatHistory[chatHistory.length-1].role==='assistant')chatHistory.pop();
   msgEl.innerHTML='';msgEl.style.whiteSpace='pre-wrap';
-  showTyping();
+  showTyping('regen');
   setGeneratingState(true);
   try{
     const finalText=await requestChatReplyLive(msgEl,actionsEl);
@@ -2288,18 +2298,39 @@ async function regenMsg(item){
     setGeneratingState(false);
   }
 }
-function showTyping(){
+function showTyping(kind='text',steps=[]){
   const inner=getChatInner();
   const d=document.createElement('div');d.className='thinking';d.id='typEl';
   if(thinkOn){
     d.classList.add('think-text');
-    d.textContent='Думать';
+    const defaultSteps={
+      text:['Анализирую вопрос..','Думаю..','Строю ответ..','Проверяю..'],
+      file:['Читаю файл..','Изучаю содержимое..','Думаю над структурой..','Строю ответ..'],
+      photo:['Рассматриваю изображение..','Анализирую детали..','Думаю..','Строю ответ..'],
+      regen:['Переосмысливаю..','Думаю иначе..','Пишу лучший ответ..']
+    };
+    const list=steps.length?steps:(defaultSteps[kind]||defaultSteps.text);
+    let idx=0;
+    const setStep=()=>{
+      d.innerHTML=`<span class="think-step">${list[idx]}</span>`;
+    };
+    setStep();
+    d._cycle=setInterval(()=>{
+      if(!d.isConnected){clearInterval(d._cycle);return;}
+      idx=(idx+1)%list.length;
+      setStep();
+    },2200);
   }else{
-    d.innerHTML='<div class="think-dots"><span></span><span></span><span></span></div><span style="font-size:14px;color:var(--text2)">Генерирую...</span>';
+    const labelMap={file:'Читаю файл..', photo:'Смотрю фото..'};
+    const label=labelMap[kind]||'';
+    d.innerHTML=`<div class="think-dots"><span></span><span></span><span></span></div>${label?`<span style="font-size:14px;color:var(--text2)">${label}</span>`:''}`;
   }
   inner.appendChild(d);scrollChat();
 }
-function hideTyping(){const t=document.getElementById('typEl');if(t)t.remove();}
+function hideTyping(){
+  const t=document.getElementById('typEl');
+  if(t){if(t._cycle)clearInterval(t._cycle);t.remove();}
+}
 function tChatErr(msg){
   const text=String(msg||'');
   const low=text.toLowerCase();
@@ -2502,7 +2533,10 @@ async function sendMsg(){
   chatHistory.push({role:'user',content:userContent,attachments:historyAttachments});
   if(chatHistory.length===1)await saveChat(displayText.slice(0,40));
   else await saveChat();
-  showTyping();
+  // Контекстный индикатор загрузки
+  const hasImg=imageAttachments.length>0, hasDoc=docAttachments.length>0;
+  const typKind=hasImg&&hasDoc?'photo':hasImg?'photo':hasDoc?'file':'text';
+  showTyping(typKind);
   setGeneratingState(true);
   const aiShell=createAiBubbleShell({showActions:true,hiddenActions:true});
 
