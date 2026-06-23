@@ -71,7 +71,7 @@ function tokenize(text = '') {
     new Set(
       String(text)
         .toLowerCase()
-        .replace(/[^a-zа-я0-9#]+/gi, ' ')
+        .replace(/[^a-zÐ°-Ñ0-9#]+/gi, ' ')
         .split(/\s+/)
         .filter((part) => part.length > 2)
     )
@@ -217,8 +217,8 @@ function buildKnowledgeContext(documents, chunks, query) {
     .filter((row) => row.document);
   const picked = selectTopItems(items, (item) => item.content, query, 80, 350000);
   if (!picked.length) return '';
-  return '\nБАЗА ЗНАНИЙ:\n' + picked
-    .map((item, index) => `[Источник ${index + 1}: ${item.document.title}]\n${item.content}`)
+  return '\nÐÐÐÐ ÐÐÐÐÐÐ:\n' + picked
+    .map((item, index) => `[ÐÑÑÐ¾ÑÐ½Ð¸Ðº ${index + 1}: ${item.document.title}]\n${item.content}`)
     .join('\n\n');
 }
 
@@ -226,7 +226,7 @@ function buildMemoryContext(memories, query) {
   if (!memories.length) return '';
   const picked = selectTopItems(memories, (item) => item.memory_text, query, 20, 30000);
   if (!picked.length) return '';
-  return '\nПАМЯТЬ О ПОЛЬЗОВАТЕЛЕ:\n' + picked
+  return '\nÐÐÐÐ¯Ð¢Ð¬ Ð ÐÐÐÐ¬ÐÐÐÐÐ¢ÐÐÐ:\n' + picked
     .map((item, index) => `${index + 1}. ${item.memory_text}`)
     .join('\n');
 }
@@ -241,10 +241,10 @@ function buildFeedbackContext(feedbackRows, query) {
     50000
   );
   if (!picked.length) return '';
-  return '\nИСПРАВЛЕНИЯ И ОШИБКИ, КОТОРЫЕ НУЖНО УЧИТЫВАТЬ:\n' + picked
+  return '\nÐÐ¡ÐÐ ÐÐÐÐÐÐÐ¯ Ð ÐÐ¨ÐÐÐÐ, ÐÐÐ¢ÐÐ Ð«Ð ÐÐ£ÐÐÐ Ð£Ð§ÐÐ¢Ð«ÐÐÐ¢Ð¬:\n' + picked
     .map((item, index) => {
-      const note = item.note ? `\nКомментарий: ${item.note}` : '';
-      return `${index + 1}. Было неверно: ${item.assistant_excerpt}\nПравильно: ${item.corrected_answer}${note}`;
+      const note = item.note ? `\nÐÐ¾Ð¼Ð¼ÐµÐ½ÑÐ°ÑÐ¸Ð¹: ${item.note}` : '';
+      return `${index + 1}. ÐÑÐ»Ð¾ Ð½ÐµÐ²ÐµÑÐ½Ð¾: ${item.assistant_excerpt}\nÐÑÐ°Ð²Ð¸Ð»ÑÐ½Ð¾: ${item.corrected_answer}${note}`;
     })
     .join('\n\n');
 }
@@ -252,50 +252,50 @@ function buildFeedbackContext(feedbackRows, query) {
 function isSimpleQuery(query = '') {
   const clean = normalizeText(query).toLowerCase();
   if (!clean) return true;
-  if (clean.length <= 40 && /^(привет|здравствуй|здравствуйте|как дела|спасибо|ок|понял|поняла|да|нет|hi|hello|thanks|thank you)[\s!.?]*$/i.test(clean)) {
+  if (clean.length <= 40 && /^(Ð¿ÑÐ¸Ð²ÐµÑ|Ð·Ð´ÑÐ°Ð²ÑÑÐ²ÑÐ¹|Ð·Ð´ÑÐ°Ð²ÑÑÐ²ÑÐ¹ÑÐµ|ÐºÐ°Ðº Ð´ÐµÐ»Ð°|ÑÐ¿Ð°ÑÐ¸Ð±Ð¾|Ð¾Ðº|Ð¿Ð¾Ð½ÑÐ»|Ð¿Ð¾Ð½ÑÐ»Ð°|Ð´Ð°|Ð½ÐµÑ|hi|hello|thanks|thank you)[\s!.?]*$/i.test(clean)) {
     return true;
   }
   return false;
 }
 
-// Определяет, нужен ли запросу персональный контекст пользователя:
-// память, профиль/настройки, загруженные документы, история этого чата.
-// Если контекст не нужен — отвечаем быстрым путём без похода в Supabase за памятью/документами.
+// ÐÐ¿ÑÐµÐ´ÐµÐ»ÑÐµÑ, Ð½ÑÐ¶ÐµÐ½ Ð»Ð¸ Ð·Ð°Ð¿ÑÐ¾ÑÑ Ð¿ÐµÑÑÐ¾Ð½Ð°Ð»ÑÐ½ÑÐ¹ ÐºÐ¾Ð½ÑÐµÐºÑÑ Ð¿Ð¾Ð»ÑÐ·Ð¾Ð²Ð°ÑÐµÐ»Ñ:
+// Ð¿Ð°Ð¼ÑÑÑ, Ð¿ÑÐ¾ÑÐ¸Ð»Ñ/Ð½Ð°ÑÑÑÐ¾Ð¹ÐºÐ¸, Ð·Ð°Ð³ÑÑÐ¶ÐµÐ½Ð½ÑÐµ Ð´Ð¾ÐºÑÐ¼ÐµÐ½ÑÑ, Ð¸ÑÑÐ¾ÑÐ¸Ñ ÑÑÐ¾Ð³Ð¾ ÑÐ°ÑÐ°.
+// ÐÑÐ»Ð¸ ÐºÐ¾Ð½ÑÐµÐºÑÑ Ð½Ðµ Ð½ÑÐ¶ÐµÐ½ â Ð¾ÑÐ²ÐµÑÐ°ÐµÐ¼ Ð±ÑÑÑÑÑÐ¼ Ð¿ÑÑÑÐ¼ Ð±ÐµÐ· Ð¿Ð¾ÑÐ¾Ð´Ð° Ð² Supabase Ð·Ð° Ð¿Ð°Ð¼ÑÑÑÑ/Ð´Ð¾ÐºÑÐ¼ÐµÐ½ÑÐ°Ð¼Ð¸.
 function needsPersonalContext(query = '', messages = []) {
   const clean = normalizeText(query).toLowerCase();
   if (!clean) return false;
 
-  // Явные сигналы: пользователь ссылается на себя, свою историю, свои файлы/настройки
-  const personalSignals = /(помнишь|как обычно|как всегда|мо[йяюе]\s|мне нравится|мне не нравится|я говорил|я писал|я просил|я предпочита|настрой(ка|ки)|профил|документ|файл|учебник|загрузил|прикреп|ранее мы|в прошлый раз|продолжи|как в прошлый раз|исправь(те)? (как|так)|мою память|обнови память|запомни)/;
+  // Ð¯Ð²Ð½ÑÐµ ÑÐ¸Ð³Ð½Ð°Ð»Ñ: Ð¿Ð¾Ð»ÑÐ·Ð¾Ð²Ð°ÑÐµÐ»Ñ ÑÑÑÐ»Ð°ÐµÑÑÑ Ð½Ð° ÑÐµÐ±Ñ, ÑÐ²Ð¾Ñ Ð¸ÑÑÐ¾ÑÐ¸Ñ, ÑÐ²Ð¾Ð¸ ÑÐ°Ð¹Ð»Ñ/Ð½Ð°ÑÑÑÐ¾Ð¹ÐºÐ¸
+  const personalSignals = /(Ð¿Ð¾Ð¼Ð½Ð¸ÑÑ|ÐºÐ°Ðº Ð¾Ð±ÑÑÐ½Ð¾|ÐºÐ°Ðº Ð²ÑÐµÐ³Ð´Ð°|Ð¼Ð¾[Ð¹ÑÑÐµ]\s|Ð¼Ð½Ðµ Ð½ÑÐ°Ð²Ð¸ÑÑÑ|Ð¼Ð½Ðµ Ð½Ðµ Ð½ÑÐ°Ð²Ð¸ÑÑÑ|Ñ Ð³Ð¾Ð²Ð¾ÑÐ¸Ð»|Ñ Ð¿Ð¸ÑÐ°Ð»|Ñ Ð¿ÑÐ¾ÑÐ¸Ð»|Ñ Ð¿ÑÐµÐ´Ð¿Ð¾ÑÐ¸ÑÐ°|Ð½Ð°ÑÑÑÐ¾Ð¹(ÐºÐ°|ÐºÐ¸)|Ð¿ÑÐ¾ÑÐ¸Ð»|Ð´Ð¾ÐºÑÐ¼ÐµÐ½Ñ|ÑÐ°Ð¹Ð»|ÑÑÐµÐ±Ð½Ð¸Ðº|Ð·Ð°Ð³ÑÑÐ·Ð¸Ð»|Ð¿ÑÐ¸ÐºÑÐµÐ¿|ÑÐ°Ð½ÐµÐµ Ð¼Ñ|Ð² Ð¿ÑÐ¾ÑÐ»ÑÐ¹ ÑÐ°Ð·|Ð¿ÑÐ¾Ð´Ð¾Ð»Ð¶Ð¸|ÐºÐ°Ðº Ð² Ð¿ÑÐ¾ÑÐ»ÑÐ¹ ÑÐ°Ð·|Ð¸ÑÐ¿ÑÐ°Ð²Ñ(ÑÐµ)? (ÐºÐ°Ðº|ÑÐ°Ðº)|Ð¼Ð¾Ñ Ð¿Ð°Ð¼ÑÑÑ|Ð¾Ð±Ð½Ð¾Ð²Ð¸ Ð¿Ð°Ð¼ÑÑÑ|Ð·Ð°Ð¿Ð¾Ð¼Ð½Ð¸)/;
   if (personalSignals.test(clean)) return true;
 
-  // Если в этом чате уже есть прикреплённые документы/изображения среди сообщений — контекст нужен
+  // ÐÑÐ»Ð¸ Ð² ÑÑÐ¾Ð¼ ÑÐ°ÑÐµ ÑÐ¶Ðµ ÐµÑÑÑ Ð¿ÑÐ¸ÐºÑÐµÐ¿Ð»ÑÐ½Ð½ÑÐµ Ð´Ð¾ÐºÑÐ¼ÐµÐ½ÑÑ/Ð¸Ð·Ð¾Ð±ÑÐ°Ð¶ÐµÐ½Ð¸Ñ ÑÑÐµÐ´Ð¸ ÑÐ¾Ð¾Ð±ÑÐµÐ½Ð¸Ð¹ â ÐºÐ¾Ð½ÑÐµÐºÑÑ Ð½ÑÐ¶ÐµÐ½
   const hasAttachmentInHistory = messages.some((msg) => {
     if (!Array.isArray(msg.content)) return false;
     return msg.content.some((item) => item.type === 'image_url' || item.type === 'file' || item.type === 'document');
   });
   if (hasAttachmentInHistory) return true;
 
-  // Длинные содержательные вопросы тоже выигрывают от знаний/памяти,
-  // короткие нейтральные вопросы — нет.
+  // ÐÐ»Ð¸Ð½Ð½ÑÐµ ÑÐ¾Ð´ÐµÑÐ¶Ð°ÑÐµÐ»ÑÐ½ÑÐµ Ð²Ð¾Ð¿ÑÐ¾ÑÑ ÑÐ¾Ð¶Ðµ Ð²ÑÐ¸Ð³ÑÑÐ²Ð°ÑÑ Ð¾Ñ Ð·Ð½Ð°Ð½Ð¸Ð¹/Ð¿Ð°Ð¼ÑÑÐ¸,
+  // ÐºÐ¾ÑÐ¾ÑÐºÐ¸Ðµ Ð½ÐµÐ¹ÑÑÐ°Ð»ÑÐ½ÑÐµ Ð²Ð¾Ð¿ÑÐ¾ÑÑ â Ð½ÐµÑ.
   if (clean.length > 220) return true;
 
   return false;
 }
 
-// Широкая проверка музыкальной тематики — используется только для увеличения таймаута,
-// не запускает никаких дополнительных вызовов модели.
+// Ð¨Ð¸ÑÐ¾ÐºÐ°Ñ Ð¿ÑÐ¾Ð²ÐµÑÐºÐ° Ð¼ÑÐ·ÑÐºÐ°Ð»ÑÐ½Ð¾Ð¹ ÑÐµÐ¼Ð°ÑÐ¸ÐºÐ¸ â Ð¸ÑÐ¿Ð¾Ð»ÑÐ·ÑÐµÑÑÑ ÑÐ¾Ð»ÑÐºÐ¾ Ð´Ð»Ñ ÑÐ²ÐµÐ»Ð¸ÑÐµÐ½Ð¸Ñ ÑÐ°Ð¹Ð¼Ð°ÑÑÐ°,
+// Ð½Ðµ Ð·Ð°Ð¿ÑÑÐºÐ°ÐµÑ Ð½Ð¸ÐºÐ°ÐºÐ¸Ñ Ð´Ð¾Ð¿Ð¾Ð»Ð½Ð¸ÑÐµÐ»ÑÐ½ÑÑ Ð²ÑÐ·Ð¾Ð²Ð¾Ð² Ð¼Ð¾Ð´ÐµÐ»Ð¸.
 function isCreativeOrNotationRequest(query = '') {
   const clean = normalizeText(query).toLowerCase();
-  return /(сгенерируй|создай|напиши|придумай|построй|сочини|гамм|аккорд|нот|стан|abc|мелоди|пьес|цепочк)/.test(clean);
+  return /(ÑÐ³ÐµÐ½ÐµÑÐ¸ÑÑÐ¹|ÑÐ¾Ð·Ð´Ð°Ð¹|Ð½Ð°Ð¿Ð¸ÑÐ¸|Ð¿ÑÐ¸Ð´ÑÐ¼Ð°Ð¹|Ð¿Ð¾ÑÑÑÐ¾Ð¹|ÑÐ¾ÑÐ¸Ð½Ð¸|Ð³Ð°Ð¼Ð¼|Ð°ÐºÐºÐ¾ÑÐ´|Ð½Ð¾Ñ|ÑÑÐ°Ð½|abc|Ð¼ÐµÐ»Ð¾Ð´Ð¸|Ð¿ÑÐµÑ|ÑÐµÐ¿Ð¾ÑÐº)/.test(clean);
 }
 
-// Узкая проверка: пользователь реально хочет ВИЗУАЛЬНЫЙ нотный стан (картинку нот),
-// а не просто текстовое объяснение теории с упоминанием аккордов/нот.
-// Только в этом случае оправдан дорогой повторный вызов модели для abc-нотации.
+// Ð£Ð·ÐºÐ°Ñ Ð¿ÑÐ¾Ð²ÐµÑÐºÐ°: Ð¿Ð¾Ð»ÑÐ·Ð¾Ð²Ð°ÑÐµÐ»Ñ ÑÐµÐ°Ð»ÑÐ½Ð¾ ÑÐ¾ÑÐµÑ ÐÐÐÐ£ÐÐÐ¬ÐÐ«Ð Ð½Ð¾ÑÐ½ÑÐ¹ ÑÑÐ°Ð½ (ÐºÐ°ÑÑÐ¸Ð½ÐºÑ Ð½Ð¾Ñ),
+// Ð° Ð½Ðµ Ð¿ÑÐ¾ÑÑÐ¾ ÑÐµÐºÑÑÐ¾Ð²Ð¾Ðµ Ð¾Ð±ÑÑÑÐ½ÐµÐ½Ð¸Ðµ ÑÐµÐ¾ÑÐ¸Ð¸ Ñ ÑÐ¿Ð¾Ð¼Ð¸Ð½Ð°Ð½Ð¸ÐµÐ¼ Ð°ÐºÐºÐ¾ÑÐ´Ð¾Ð²/Ð½Ð¾Ñ.
+// Ð¢Ð¾Ð»ÑÐºÐ¾ Ð² ÑÑÐ¾Ð¼ ÑÐ»ÑÑÐ°Ðµ Ð¾Ð¿ÑÐ°Ð²Ð´Ð°Ð½ Ð´Ð¾ÑÐ¾Ð³Ð¾Ð¹ Ð¿Ð¾Ð²ÑÐ¾ÑÐ½ÑÐ¹ Ð²ÑÐ·Ð¾Ð² Ð¼Ð¾Ð´ÐµÐ»Ð¸ Ð´Ð»Ñ abc-Ð½Ð¾ÑÐ°ÑÐ¸Ð¸.
 function wantsRenderedStaff(query = '') {
   const clean = normalizeText(query).toLowerCase();
-  return /(нотн(ый|ую|ом|ыми)?\s*стан|нотами|на нотах|запиши\s+нот|изобрази\s+нот|нарисуй\s+нот|покажи\s+нот|abc[-\s]?нотаци|сыграй|сочини\s+(мелоди|пьес|гамм)|напиши\s+(мелоди|пьес|гамм)|придумай\s+(мелоди|пьес|гамм)|построй\s+гамм|партитур)/.test(clean);
+  return /(Ð½Ð¾ÑÐ½(ÑÐ¹|ÑÑ|Ð¾Ð¼|ÑÐ¼Ð¸)?\s*ÑÑÐ°Ð½|Ð½Ð¾ÑÐ°Ð¼Ð¸|Ð½Ð° Ð½Ð¾ÑÐ°Ñ|Ð·Ð°Ð¿Ð¸ÑÐ¸\s+Ð½Ð¾Ñ|Ð¸Ð·Ð¾Ð±ÑÐ°Ð·Ð¸\s+Ð½Ð¾Ñ|Ð½Ð°ÑÐ¸ÑÑÐ¹\s+Ð½Ð¾Ñ|Ð¿Ð¾ÐºÐ°Ð¶Ð¸\s+Ð½Ð¾Ñ|abc[-\s]?Ð½Ð¾ÑÐ°ÑÐ¸|ÑÑÐ³ÑÐ°Ð¹|ÑÐ¾ÑÐ¸Ð½Ð¸\s+(Ð¼ÐµÐ»Ð¾Ð´Ð¸|Ð¿ÑÐµÑ|Ð³Ð°Ð¼Ð¼)|Ð½Ð°Ð¿Ð¸ÑÐ¸\s+(Ð¼ÐµÐ»Ð¾Ð´Ð¸|Ð¿ÑÐµÑ|Ð³Ð°Ð¼Ð¼)|Ð¿ÑÐ¸Ð´ÑÐ¼Ð°Ð¹\s+(Ð¼ÐµÐ»Ð¾Ð´Ð¸|Ð¿ÑÐµÑ|Ð³Ð°Ð¼Ð¼)|Ð¿Ð¾ÑÑÑÐ¾Ð¹\s+Ð³Ð°Ð¼Ð¼|Ð¿Ð°ÑÑÐ¸ÑÑÑ)/.test(clean);
 }
 
 async function maybeSaveDeveloperNote(profile, queryText) {
@@ -493,7 +493,7 @@ function compactErrorValue(value, limit = 500) {
 function formatQuotaErrorMessage(errorMessage = '', modelName = '') {
   const reason = compactErrorValue(errorMessage, 320);
   const suffix = [reason, modelName ? `model=${modelName}` : ''].filter(Boolean).join(' | ');
-  return suffix ? `Ошибка 1511. Сообщите в поддержку. Причина: ${suffix}` : 'Ошибка 1511. Сообщите в поддержку.';
+  return suffix ? `ÐÑÐ¸Ð±ÐºÐ° 1511. Ð¡Ð¾Ð¾Ð±ÑÐ¸ÑÐµ Ð² Ð¿Ð¾Ð´Ð´ÐµÑÐ¶ÐºÑ. ÐÑÐ¸ÑÐ¸Ð½Ð°: ${suffix}` : 'ÐÑÐ¸Ð±ÐºÐ° 1511. Ð¡Ð¾Ð¾Ð±ÑÐ¸ÑÐµ Ð² Ð¿Ð¾Ð´Ð´ÐµÑÐ¶ÐºÑ.';
 }
 
 function isTimeoutError(message = '') {
@@ -535,15 +535,15 @@ async function repairNotationReplyIfNeeded(apiKey, modelName, query, replyText) 
     {
       role: 'system',
       content: [
-        'Ты исправляешь музыкальный ответ модели.',
-        'Верни полноценный визуализируемый нотный стан строго через один или несколько блоков ```abc```.',
-        'Запрещено использовать ASCII-стан, псевдографику, таблицы линий, просто список нот или текстовое описание вместо abc.',
-        'Сначала дай корректный abc-блок, затем краткое объяснение.'
+        'Ð¢Ñ Ð¸ÑÐ¿ÑÐ°Ð²Ð»ÑÐµÑÑ Ð¼ÑÐ·ÑÐºÐ°Ð»ÑÐ½ÑÐ¹ Ð¾ÑÐ²ÐµÑ Ð¼Ð¾Ð´ÐµÐ»Ð¸.',
+        'ÐÐµÑÐ½Ð¸ Ð¿Ð¾Ð»Ð½Ð¾ÑÐµÐ½Ð½ÑÐ¹ Ð²Ð¸Ð·ÑÐ°Ð»Ð¸Ð·Ð¸ÑÑÐµÐ¼ÑÐ¹ Ð½Ð¾ÑÐ½ÑÐ¹ ÑÑÐ°Ð½ ÑÑÑÐ¾Ð³Ð¾ ÑÐµÑÐµÐ· Ð¾Ð´Ð¸Ð½ Ð¸Ð»Ð¸ Ð½ÐµÑÐºÐ¾Ð»ÑÐºÐ¾ Ð±Ð»Ð¾ÐºÐ¾Ð² ```abc```.',
+        'ÐÐ°Ð¿ÑÐµÑÐµÐ½Ð¾ Ð¸ÑÐ¿Ð¾Ð»ÑÐ·Ð¾Ð²Ð°ÑÑ ASCII-ÑÑÐ°Ð½, Ð¿ÑÐµÐ²Ð´Ð¾Ð³ÑÐ°ÑÐ¸ÐºÑ, ÑÐ°Ð±Ð»Ð¸ÑÑ Ð»Ð¸Ð½Ð¸Ð¹, Ð¿ÑÐ¾ÑÑÐ¾ ÑÐ¿Ð¸ÑÐ¾Ðº Ð½Ð¾Ñ Ð¸Ð»Ð¸ ÑÐµÐºÑÑÐ¾Ð²Ð¾Ðµ Ð¾Ð¿Ð¸ÑÐ°Ð½Ð¸Ðµ Ð²Ð¼ÐµÑÑÐ¾ abc.',
+        'Ð¡Ð½Ð°ÑÐ°Ð»Ð° Ð´Ð°Ð¹ ÐºÐ¾ÑÑÐµÐºÑÐ½ÑÐ¹ abc-Ð±Ð»Ð¾Ðº, Ð·Ð°ÑÐµÐ¼ ÐºÑÐ°ÑÐºÐ¾Ðµ Ð¾Ð±ÑÑÑÐ½ÐµÐ½Ð¸Ðµ.'
       ].join('\n')
     },
     {
       role: 'user',
-      content: `Запрос пользователя:\n${query}\n\nПредыдущий ответ был недостаточным:\n${cleanReply}\n\nПерепиши ответ корректно.`
+      content: `ÐÐ°Ð¿ÑÐ¾Ñ Ð¿Ð¾Ð»ÑÐ·Ð¾Ð²Ð°ÑÐµÐ»Ñ:\n${query}\n\nÐÑÐµÐ´ÑÐ´ÑÑÐ¸Ð¹ Ð¾ÑÐ²ÐµÑ Ð±ÑÐ» Ð½ÐµÐ´Ð¾ÑÑÐ°ÑÐ¾ÑÐ½ÑÐ¼:\n${cleanReply}\n\nÐÐµÑÐµÐ¿Ð¸ÑÐ¸ Ð¾ÑÐ²ÐµÑ ÐºÐ¾ÑÑÐµÐºÑÐ½Ð¾.`
     }
   ];
 
@@ -572,7 +572,7 @@ async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs,
     return {
       ok: false,
       status: upstream.status || 500,
-      message: data?.error?.message || `Ошибка модели ${modelName}`,
+      message: data?.error?.message || `ÐÑÐ¸Ð±ÐºÐ° Ð¼Ð¾Ð´ÐµÐ»Ð¸ ${modelName}`,
       model: modelName
     };
   }
@@ -581,7 +581,7 @@ async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs,
     return {
       ok: false,
       status: 500,
-      message: `Потоковый ответ недоступен для модели ${modelName}`,
+      message: `ÐÐ¾ÑÐ¾ÐºÐ¾Ð²ÑÐ¹ Ð¾ÑÐ²ÐµÑ Ð½ÐµÐ´Ð¾ÑÑÑÐ¿ÐµÐ½ Ð´Ð»Ñ Ð¼Ð¾Ð´ÐµÐ»Ð¸ ${modelName}`,
       model: modelName
     };
   }
@@ -608,7 +608,7 @@ async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs,
         `OpenAI stream chunk timed out for ${modelName}`
       ));
     } catch (chunkErr) {
-      // Модель замолчала между токенами — грациозно завершаем с тем, что получили
+      // ÐÐ¾Ð´ÐµÐ»Ñ Ð·Ð°Ð¼Ð¾Ð»ÑÐ°Ð»Ð° Ð¼ÐµÐ¶Ð´Ñ ÑÐ¾ÐºÐµÐ½Ð°Ð¼Ð¸ â Ð³ÑÐ°ÑÐ¸Ð¾Ð·Ð½Ð¾ Ð·Ð°Ð²ÐµÑÑÐ°ÐµÐ¼ Ñ ÑÐµÐ¼, ÑÑÐ¾ Ð¿Ð¾Ð»ÑÑÐ¸Ð»Ð¸
       break;
     }
     if (done) break;
@@ -642,12 +642,12 @@ async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs,
   }
 
   if (!gotAnyDelta && !fullText.trim()) {
-    writeSseEvent(res, { type: 'error', message: `Потоковый ответ прервался слишком рано для модели ${modelName}` });
+    writeSseEvent(res, { type: 'error', message: `ÐÐ¾ÑÐ¾ÐºÐ¾Ð²ÑÐ¹ Ð¾ÑÐ²ÐµÑ Ð¿ÑÐµÑÐ²Ð°Ð»ÑÑ ÑÐ»Ð¸ÑÐºÐ¾Ð¼ ÑÐ°Ð½Ð¾ Ð´Ð»Ñ Ð¼Ð¾Ð´ÐµÐ»Ð¸ ${modelName}` });
     res.end();
     return {
       ok: false,
       status: 504,
-      message: `Потоковый ответ прервался слишком рано для модели ${modelName}`,
+      message: `ÐÐ¾ÑÐ¾ÐºÐ¾Ð²ÑÐ¹ Ð¾ÑÐ²ÐµÑ Ð¿ÑÐµÑÐ²Ð°Ð»ÑÑ ÑÐ»Ð¸ÑÐºÐ¾Ð¼ ÑÐ°Ð½Ð¾ Ð´Ð»Ñ Ð¼Ð¾Ð´ÐµÐ»Ð¸ ${modelName}`,
       model: modelName
     };
   }
@@ -686,18 +686,18 @@ export default async function handler(req, res) {
   if (!hasUsableOpenAI()) {
     return res.status(500).json({
       error: {
-        message: 'OPENAI_API_KEY или OPENAI_BASE_URL настроены неверно.'
+        message: 'OPENAI_API_KEY Ð¸Ð»Ð¸ OPENAI_BASE_URL Ð½Ð°ÑÑÑÐ¾ÐµÐ½Ñ Ð½ÐµÐ²ÐµÑÐ½Ð¾.'
       }
     });
   }
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return res.status(500).json({ error: { message: 'SUPABASE_URL или SUPABASE_SERVICE_ROLE_KEY не настроены' } });
+    return res.status(500).json({ error: { message: 'SUPABASE_URL Ð¸Ð»Ð¸ SUPABASE_SERVICE_ROLE_KEY Ð½Ðµ Ð½Ð°ÑÑÑÐ¾ÐµÐ½Ñ' } });
   }
 
   try {
     const { messages, model, userId, think = false, effort = 'low', stream = false } = req.body || {};
     if (!Array.isArray(messages) || messages.length === 0) {
-      return res.status(400).json({ error: { message: 'Пустой запрос к модели' } });
+      return res.status(400).json({ error: { message: 'ÐÑÑÑÐ¾Ð¹ Ð·Ð°Ð¿ÑÐ¾Ñ Ðº Ð¼Ð¾Ð´ÐµÐ»Ð¸' } });
     }
 
     const profile = await fetchProfile(userId);
@@ -737,8 +737,8 @@ export default async function handler(req, res) {
     const systemText = messages.find(m => m.role === 'system')?.content || '';
     const isNotationHeavy = isCreativeOrNotationRequest(query);
     const wantsStaff = wantsRenderedStaff(query);
-    // Бюджет функции на Vercel ограничен (maxDuration 60с), а repair-вызов добавляет +20с,
-    // если запрос реально требует нотного стана — поэтому для wantsStaff оставляем запас.
+    // ÐÑÐ´Ð¶ÐµÑ ÑÑÐ½ÐºÑÐ¸Ð¸ Ð½Ð° Vercel Ð¾Ð³ÑÐ°Ð½Ð¸ÑÐµÐ½ (maxDuration 60Ñ), Ð° repair-Ð²ÑÐ·Ð¾Ð² Ð´Ð¾Ð±Ð°Ð²Ð»ÑÐµÑ +20Ñ,
+    // ÐµÑÐ»Ð¸ Ð·Ð°Ð¿ÑÐ¾Ñ ÑÐµÐ°Ð»ÑÐ½Ð¾ ÑÑÐµÐ±ÑÐµÑ Ð½Ð¾ÑÐ½Ð¾Ð³Ð¾ ÑÑÐ°Ð½Ð° â Ð¿Ð¾ÑÑÐ¾Ð¼Ñ Ð´Ð»Ñ wantsStaff Ð¾ÑÑÐ°Ð²Ð»ÑÐµÐ¼ Ð·Ð°Ð¿Ð°Ñ.
     let modelTimeoutMs;
     if (think || effort === 'max') {
       modelTimeoutMs = wantsStaff ? 35000 : 50000;
@@ -754,7 +754,7 @@ export default async function handler(req, res) {
       modelTimeoutMs = 25000;
     }
     const mergedSystem = appendServerContext(systemText, [
-      profile ? `Профиль пользователя: role=${profile.role || 'user'}, plan=${profile.plan || 'free'}` : '',
+      profile ? `ÐÑÐ¾ÑÐ¸Ð»Ñ Ð¿Ð¾Ð»ÑÐ·Ð¾Ð²Ð°ÑÐµÐ»Ñ: role=${profile.role || 'user'}, plan=${profile.plan || 'free'}` : '',
       buildMemoryContext(memories, query),
       buildFeedbackContext(feedbackRows, query),
       buildKnowledgeContext(documents, chunks, query)
@@ -770,14 +770,14 @@ export default async function handler(req, res) {
           if (streamResult.ok) return;
           lastError = {
             status: streamResult.status || 500,
-            message: streamResult.message || `Ошибка модели ${modelName}`,
+            message: streamResult.message || `ÐÑÐ¸Ð±ÐºÐ° Ð¼Ð¾Ð´ÐµÐ»Ð¸ ${modelName}`,
             model: streamResult.model || modelName
           };
           const errorMessage = lastError.message || '';
           if (isModelUnavailable(errorMessage)) {
             return res.status(400).json({
               error: {
-                message: `Модель недоступна у текущего провайдера API. Проверьте FREE_LITE_MODEL / FREE_PRO_MODEL / PREMIUM_MODEL. Причина: ${compactErrorValue(errorMessage, 320)} | model=${modelName}`,
+                message: `ÐÐ¾Ð´ÐµÐ»Ñ Ð½ÐµÐ´Ð¾ÑÑÑÐ¿Ð½Ð° Ñ ÑÐµÐºÑÑÐµÐ³Ð¾ Ð¿ÑÐ¾Ð²Ð°Ð¹Ð´ÐµÑÐ° API. ÐÑÐ¾Ð²ÐµÑÑÑÐµ FREE_LITE_MODEL / FREE_PRO_MODEL / PREMIUM_MODEL. ÐÑÐ¸ÑÐ¸Ð½Ð°: ${compactErrorValue(errorMessage, 320)} | model=${modelName}`,
                 provider: 'openai',
                 model: modelName,
                 status: lastError.status || 400
@@ -803,11 +803,11 @@ export default async function handler(req, res) {
         const { response, data } = await callOpenAI(route.apiKey, modelName, openAiMessages, modelTimeoutMs);
         const errorMessage = data?.error?.message || '';
         if (!response.ok || data.error) {
-          lastError = { status: response.status || 500, message: errorMessage || `Ошибка модели ${modelName}`, model: modelName };
+          lastError = { status: response.status || 500, message: errorMessage || `ÐÑÐ¸Ð±ÐºÐ° Ð¼Ð¾Ð´ÐµÐ»Ð¸ ${modelName}`, model: modelName };
           if (isModelUnavailable(errorMessage)) {
             return res.status(400).json({
               error: {
-                message: `Модель недоступна у текущего провайдера API. Проверьте FREE_LITE_MODEL / FREE_PRO_MODEL / PREMIUM_MODEL. Причина: ${compactErrorValue(errorMessage, 320)} | model=${modelName}`,
+                message: `ÐÐ¾Ð´ÐµÐ»Ñ Ð½ÐµÐ´Ð¾ÑÑÑÐ¿Ð½Ð° Ñ ÑÐµÐºÑÑÐµÐ³Ð¾ Ð¿ÑÐ¾Ð²Ð°Ð¹Ð´ÐµÑÐ° API. ÐÑÐ¾Ð²ÐµÑÑÑÐµ FREE_LITE_MODEL / FREE_PRO_MODEL / PREMIUM_MODEL. ÐÑÐ¸ÑÐ¸Ð½Ð°: ${compactErrorValue(errorMessage, 320)} | model=${modelName}`,
                 provider: 'openai',
                 model: modelName,
                 status: response.status || 400
@@ -831,7 +831,7 @@ export default async function handler(req, res) {
           route.apiKey,
           modelName,
           query,
-          data?.choices?.[0]?.message?.content || 'Нет ответа'
+          data?.choices?.[0]?.message?.content || 'ÐÐµÑ Ð¾ÑÐ²ÐµÑÐ°'
         );
         return res.status(200).json({
           choices: [{ message: { content: replyText } }],
@@ -854,7 +854,7 @@ export default async function handler(req, res) {
       if (lastError && isOverloaded(lastError.status, lastError.message)) {
         return res.status(503).json({
           error: {
-            message: `This model is currently experiencing high demand. Please try again in a minute. Причина: ${compactErrorValue(lastError.message, 320) || 'unknown'}${lastError.model ? ` | model=${lastError.model}` : ''}`,
+            message: `This model is currently experiencing high demand. Please try again in a minute. ÐÑÐ¸ÑÐ¸Ð½Ð°: ${compactErrorValue(lastError.message, 320) || 'unknown'}${lastError.model ? ` | model=${lastError.model}` : ''}`,
             status: lastError.status || 503,
             model: lastError.model
           }
@@ -864,7 +864,7 @@ export default async function handler(req, res) {
       if (lastError && isTimeoutError(lastError.message)) {
         return res.status(504).json({
           error: {
-            message: `Модель отвечает слишком долго. Попробуйте ещё раз или отключите сложный режим. Причина: ${compactErrorValue(lastError.message, 320) || 'timeout'}${lastError.model ? ` | model=${lastError.model}` : ''}`,
+            message: `ÐÐ¾Ð´ÐµÐ»Ñ Ð¾ÑÐ²ÐµÑÐ°ÐµÑ ÑÐ»Ð¸ÑÐºÐ¾Ð¼ Ð´Ð¾Ð»Ð³Ð¾. ÐÐ¾Ð¿ÑÐ¾Ð±ÑÐ¹ÑÐµ ÐµÑÑ ÑÐ°Ð· Ð¸Ð»Ð¸ Ð¾ÑÐºÐ»ÑÑÐ¸ÑÐµ ÑÐ»Ð¾Ð¶Ð½ÑÐ¹ ÑÐµÐ¶Ð¸Ð¼. ÐÑÐ¸ÑÐ¸Ð½Ð°: ${compactErrorValue(lastError.message, 320) || 'timeout'}${lastError.model ? ` | model=${lastError.model}` : ''}`,
             status: 504,
             model: lastError.model
           }
@@ -873,20 +873,20 @@ export default async function handler(req, res) {
 
       return res.status(lastError?.status || 500).json({
         error: {
-          message: lastError?.message || 'Не удалось получить ответ от модели'
+          message: lastError?.message || 'ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ Ð¿Ð¾Ð»ÑÑÐ¸ÑÑ Ð¾ÑÐ²ÐµÑ Ð¾Ñ Ð¼Ð¾Ð´ÐµÐ»Ð¸'
         }
       });
     }
 
     return res.status(500).json({
       error: {
-        message: 'Не удалось выбрать провайдера модели'
+        message: 'ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ Ð²ÑÐ±ÑÐ°ÑÑ Ð¿ÑÐ¾Ð²Ð°Ð¹Ð´ÐµÑÐ° Ð¼Ð¾Ð´ÐµÐ»Ð¸'
       }
     });
   } catch (error) {
     return res.status(500).json({
       error: {
-        message: error?.message || 'Внутренняя ошибка сервера'
+        message: error?.message || 'ÐÐ½ÑÑÑÐµÐ½Ð½ÑÑ Ð¾ÑÐ¸Ð±ÐºÐ° ÑÐµÑÐ²ÐµÑÐ°'
       }
     });
   }
