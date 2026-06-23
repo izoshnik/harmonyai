@@ -1318,7 +1318,13 @@ async function recordFeedbackToSupabase(rawAnswer,correction,note=''){
   return true;
 }
 function tokenizeForSearch(text){
-  return Array.from(new Set(String(text||'').toLowerCase().replace(/[^a-zа-я0-9#]+/gi,' ').split(/\s+/).filter(word=>word.length>2)));
+  const words=Array.from(new Set(String(text||'').toLowerCase().replace(/[^a-zа-я0-9#]+/gi,' ').split(/\s+/).filter(word=>word.length>2)));
+  // Для русских слов добавляем стем (первые ~65% букв) — чтобы "тональностях" нашёл "тональность"
+  const result=new Set(words);
+  words.forEach(w=>{
+    if(/[а-я]/.test(w)&&w.length>5)result.add(w.slice(0,Math.max(4,Math.ceil(w.length*0.65))));
+  });
+  return Array.from(result);
 }
 function topChunksFromDocs(query,docs,limit=4,maxChars=8000,requireScore=true){
   const tokens=tokenizeForSearch(query);
@@ -1369,10 +1375,11 @@ function buildPendingDocContext(query){
 }
 function buildRecentAttachmentContext(query){
   if(!recentAttachmentDocs.length)return '';
-  // requireScore=false — документы из этого чата всегда включаем, независимо от формулировки запроса
-  const selected=topChunksFromDocs(query,recentAttachmentDocs,40,250000,false);
+  // Контент уже встроен в тело сообщения пользователя.
+  // Здесь добавляем только 4 целевых чанка по ключевым словам запроса (фокусное внимание).
+  const selected=topChunksFromDocs(query,recentAttachmentDocs,4,16000,true);
   if(!selected.length)return '';
-  return '\nПРИКРЕПЛЁННЫЕ ФАЙЛЫ В ЭТОМ ЧАТЕ:\n'+selected.map((item,i)=>`[Файл ${i+1}: ${item.name}]\n${item.chunk}`).join('\n\n');
+  return '\nФОКУСНЫЙ КОНТЕКСТ ИЗ ФАЙЛОВ (по теме запроса):\n'+selected.map((item,i)=>`[${item.name}]\n${item.chunk}`).join('\n\n');
 }
 function updateComposerPlaceholder(){
   const ta=document.getElementById('msgTa');
@@ -2506,25 +2513,33 @@ async function sendMsg(){
   const historyAttachments=outgoingAttachments.map(cloneAttachmentForHistory);
   const displayText=text||'';
   if(isDeveloper()&&text)rememberDeveloperMessage(text);
+  // Строим userContent — для документов вставляем РЕАЛЬНЫЙ ТЕКСТ, а не плейсхолдер.
+  // Это ключево: контент остаётся в chatHistory и виден модели на ЛЮБОЙ последующий вопрос.
+  const MAX_INLINE_DOC_CHARS=180000; // ~45k токенов — охватывает большинство учебников целиком
+  function buildDocInlineText(att,idx){
+    const chunks=att.doc?.chunks||[];
+    if(!chunks.length)return `[ФАЙЛ ${idx+1}: ${att.name}]\n(текст не удалось извлечь)`;
+    let content='',chars=0;
+    for(const chunk of chunks){
+      if(chars+chunk.length>MAX_INLINE_DOC_CHARS){content+='\n\n[— текст продолжается, доступен через контекст —]';break;}
+      content+=(content?'\n\n':'')+chunk;chars+=chunk.length;
+    }
+    return `[ФАЙЛ ${idx+1}: ${att.name}]\n${content}`;
+  }
   let userContent;
   if(imageAttachments.length){
     userContent=[];
     if(text)userContent.push({type:'text',text});
-    docAttachments.forEach((attachment,index)=>{
-      userContent.push({
-        type:'text',
-        text:`[ПРИКРЕПЛЁН ДОКУМЕНТ ${index+1}: ${attachment.name}]\nИспользуй загруженный материал из контекста и базы знаний при ответе.`
-      });
-    });
-    imageAttachments.forEach((attachment,index)=>{
-      userContent.push({
-        type:'text',
-        text:`[ПРИКРЕПЛЁННОЕ ИЗОБРАЖЕНИЕ ${index+1}: ${attachment.name}]`
-      });
-      userContent.push({type:'image_url',image_url:{url:attachment.dataUrl||('data:'+attachment.mime+';base64,'+attachment.base64)}});
+    docAttachments.forEach((att,i)=>userContent.push({type:'text',text:buildDocInlineText(att,i)}));
+    imageAttachments.forEach((att,i)=>{
+      userContent.push({type:'text',text:`[ИЗОБРАЖЕНИЕ ${i+1}: ${att.name}]`});
+      userContent.push({type:'image_url',image_url:{url:att.dataUrl||('data:'+att.mime+';base64,'+att.base64)}});
     });
   }else if(docAttachments.length){
-    userContent=(text?text+'\n\n':'')+docAttachments.map((attachment,index)=>`[ПРИКРЕПЛЁН ФАЙЛ ${index+1}: ${attachment.name}]\nИспользуй загруженный материал из контекста и базы знаний при ответе.`).join('\n\n');
+    const parts=[];
+    if(text)parts.push(text);
+    docAttachments.forEach((att,i)=>parts.push(buildDocInlineText(att,i)));
+    userContent=parts.join('\n\n');
   }else{userContent=text;}
 
   rememberRecentAttachments(outgoingAttachments);
