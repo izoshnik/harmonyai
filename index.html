@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
@@ -2172,11 +2172,8 @@ function renderMd(el,text){
 }
 function streamText(el,text){
   return new Promise(resolve=>{
-    let i=0,stopped=false,lastT=0,mdBreakPos=0,mdBreakHtml='';
-    el.innerHTML='<div class="stream-break"></div><span class="stream-tail"></span>';
+    let i=0,stopped=false,lastT=0,lastDom=0;
     el.classList.add('is-streaming');
-    const breakEl=el.querySelector('.stream-break');
-    const tailEl=el.querySelector('.stream-tail');
     activeStreamStop=()=>{
       stopped=true;
       const partial=text.slice(0,i);
@@ -2192,14 +2189,15 @@ function streamText(el,text){
       const remain=text.length-i;
       const charsPerSec=remain>600?2400:remain>150?900:remain>40?360:150;
       i=Math.min(text.length,i+Math.max(1,Math.round(charsPerSec*dt/1000)));
-      const partial=text.slice(0,i);
-      const nb=partial.lastIndexOf('\n\n');
-      if(nb>=0&&nb+1>mdBreakPos){
-        mdBreakHtml=typeof marked!=='undefined'?marked.parse(normalizeReplyNotation(partial.slice(0,nb+1))):partial.slice(0,nb+1);
-        mdBreakPos=nb+1;breakEl.innerHTML=mdBreakHtml;
+      if(now-lastDom>=40||i>=text.length){
+        lastDom=now;
+        try{
+          const partial=text.slice(0,i);
+          el.innerHTML=inlineMd(normalizeReplyNotation(partial))+(i<text.length?'<span class="stream-cur">▍</span>':'');
+          el.dataset.raw=partial;
+          scrollChat();
+        }catch(e){}
       }
-      tailEl.innerHTML=inlineMd(normalizeReplyNotation(partial.slice(mdBreakPos)))+(i<text.length?'<span class="stream-cur">▍</span>':'');
-      scrollChat();
       if(i<text.length)requestAnimationFrame(step);
       else{el.classList.remove('is-streaming');activeStreamStop=null;renderMd(el,text);scrollChat();resolve({stopped:false,text});}
     }
@@ -2214,26 +2212,10 @@ function createLiveTypingController(el){
   let stopped=false;
   let completed=false;
   let lastFrameTime=0;
-  let mdBreakPos=0;
-  let mdBreakHtml='';
-  let breakEl=null;
-  let tailEl=null;
+  let lastDomUpdate=0;
   let resolveDone;
   const done=new Promise(resolve=>{resolveDone=resolve;});
   el.classList.add('is-streaming');
-  // Создаём структуру для инкрементального MD-рендера
-  el.innerHTML='<div class="stream-break"></div><span class="stream-tail"></span>';
-  breakEl=el.querySelector('.stream-break');
-  tailEl=el.querySelector('.stream-tail');
-  function updateStreamDom(partial,showCursor){
-    const nb=partial.lastIndexOf('\n\n');
-    if(nb>=0&&nb+1>mdBreakPos){
-      mdBreakHtml=typeof marked!=='undefined'?marked.parse(normalizeReplyNotation(partial.slice(0,nb+1))):partial.slice(0,nb+1);
-      mdBreakPos=nb+1;
-      breakEl.innerHTML=mdBreakHtml;
-    }
-    tailEl.innerHTML=inlineMd(normalizeReplyNotation(partial.slice(mdBreakPos)))+(showCursor?'<span class="stream-cur">▍</span>':'');
-  }
   activeStreamStop=()=>{
     if(completed)return;
     stopped=true;
@@ -2262,36 +2244,42 @@ function createLiveTypingController(el){
   }
   function tick(now){
     if(stopped||completed)return;
-    if(typeof now!=='number')now=performance.now();
-    if(shownLength<pendingText.length){
-      const dt=lastFrameTime>0?Math.min(now-lastFrameTime,80):16;
-      lastFrameTime=now;
-      const remain=pendingText.length-shownLength;
-      const charsPerSec=remain>600?2400:remain>150?900:remain>40?360:150;
-      const advance=Math.max(1,Math.round(charsPerSec*dt/1000));
-      shownLength=Math.min(pendingText.length,shownLength+advance);
-      const partial=pendingText.slice(0,shownLength);
-      updateStreamDom(partial,shownLength<pendingText.length||finalText===null);
-      el.dataset.raw=partial;
-      scrollChat();
+    try{
+      if(typeof now!=='number')now=performance.now();
+      if(shownLength<pendingText.length){
+        const dt=lastFrameTime>0?Math.min(now-lastFrameTime,80):16;
+        lastFrameTime=now;
+        const remain=pendingText.length-shownLength;
+        const charsPerSec=remain>600?2400:remain>150?900:remain>40?360:150;
+        shownLength=Math.min(pendingText.length,shownLength+Math.max(1,Math.round(charsPerSec*dt/1000)));
+        // Обновляем DOM не каждый кадр, а каждые 40мс — плавно без скачков высоты
+        if(now-lastDomUpdate>=40||shownLength>=pendingText.length){
+          lastDomUpdate=now;
+          const partial=pendingText.slice(0,shownLength);
+          const showCursor=shownLength<pendingText.length||finalText===null;
+          el.innerHTML=inlineMd(normalizeReplyNotation(partial))+(showCursor?'<span class="stream-cur">▍</span>':'');
+          el.dataset.raw=partial;
+          scrollChat();
+        }
+        timer=requestAnimationFrame(tick);
+        return;
+      }
+      timer=null;
+      finishIfReady();
+    }catch(e){
+      // Никогда не даём анимации умереть из-за ошибки
       timer=requestAnimationFrame(tick);
-      return;
     }
-    timer=null;
-    finishIfReady();
   }
-  return {
+  return{
     push(chunk){
       if(stopped||!chunk)return;
       pendingText+=chunk;
       if(timer==null)timer=requestAnimationFrame(tick);
     },
     complete(text){
-      if(typeof text==='string'&&text.length>pendingText.length){
-        pendingText=text;finalText=text;
-      }else{
-        finalText=pendingText;
-      }
+      if(typeof text==='string'&&text.length>pendingText.length){pendingText=text;finalText=text;}
+      else{finalText=pendingText;}
       if(timer==null)finishIfReady();
       return done;
     },
@@ -2556,21 +2544,11 @@ async function sendMsg(){
   const historyAttachments=outgoingAttachments.map(cloneAttachmentForHistory);
   const displayText=text||'';
   if(isDeveloper()&&text)rememberDeveloperMessage(text);
-  const MAX_INLINE_DOC_CHARS=300000; // ~75k токенов — покрывает книги до ~200 страниц
   function buildDocInlineText(att,idx){
     const chunks=att.doc?.chunks||[];
     if(!chunks.length)return `[ФАЙЛ ${idx+1}: ${att.name}]\n(текст не удалось извлечь)`;
-    const totalChars=chunks.reduce((s,c)=>s+c.length,0);
-    let content='',chars=0;
-    for(const chunk of chunks){
-      if(chars+chunk.length>MAX_INLINE_DOC_CHARS){
-        const pct=Math.round(chars/totalChars*100);
-        content+=`\n\n[⚠️ ДОКУМЕНТ ОБРЕЗАН: загружено ${pct}% (${Math.round(chars/1000)}К из ${Math.round(totalChars/1000)}К символов). Отвечай только по тому, что видишь выше. Если вопрос касается остальной части — скажи об этом честно.]`;
-        break;
-      }
-      content+=(content?'\n\n':'')+chunk;chars+=chunk.length;
-    }
-    return `[ФАЙЛ ${idx+1}: ${att.name}]\n${content}`;
+    // Отправляем весь документ без ограничений — контекстное окно модели управляет размером
+    return `[ФАЙЛ ${idx+1}: ${att.name}]\n${chunks.join('\n\n')}`;
   }
   let userContent;
   if(imageAttachments.length){
