@@ -298,10 +298,13 @@ function wantsRenderedStaff(query = '') {
   return /(Ð½Ð¾ÑÐ½(ÑÐ¹|ÑÑ|Ð¾Ð¼|ÑÐ¼Ð¸)?\s*ÑÑÐ°Ð½|Ð½Ð¾ÑÐ°Ð¼Ð¸|Ð½Ð° Ð½Ð¾ÑÐ°Ñ|Ð·Ð°Ð¿Ð¸ÑÐ¸\s+Ð½Ð¾Ñ|Ð¸Ð·Ð¾Ð±ÑÐ°Ð·Ð¸\s+Ð½Ð¾Ñ|Ð½Ð°ÑÐ¸ÑÑÐ¹\s+Ð½Ð¾Ñ|Ð¿Ð¾ÐºÐ°Ð¶Ð¸\s+Ð½Ð¾Ñ|abc[-\s]?Ð½Ð¾ÑÐ°ÑÐ¸|ÑÑÐ³ÑÐ°Ð¹|ÑÐ¾ÑÐ¸Ð½Ð¸\s+(Ð¼ÐµÐ»Ð¾Ð´Ð¸|Ð¿ÑÐµÑ|Ð³Ð°Ð¼Ð¼)|Ð½Ð°Ð¿Ð¸ÑÐ¸\s+(Ð¼ÐµÐ»Ð¾Ð´Ð¸|Ð¿ÑÐµÑ|Ð³Ð°Ð¼Ð¼)|Ð¿ÑÐ¸Ð´ÑÐ¼Ð°Ð¹\s+(Ð¼ÐµÐ»Ð¾Ð´Ð¸|Ð¿ÑÐµÑ|Ð³Ð°Ð¼Ð¼)|Ð¿Ð¾ÑÑÑÐ¾Ð¹\s+Ð³Ð°Ð¼Ð¼|Ð¿Ð°ÑÑÐ¸ÑÑÑ)/.test(clean);
 }
 
-async function maybeSaveDeveloperNote(profile, queryText) {
-  if (!profile || profile.role !== 'developer') return;
+async function maybeSaveDeveloperNote(profile, queryText, trainingMode = false) {
+  if (!profile || (profile.role !== 'developer' && profile.role !== 'admin')) return;
   const clean = normalizeText(queryText);
-  if (clean.length < 24) return;
+  // Ð ÑÐµÐ¶Ð¸Ð¼Ðµ Â«ÐÐ±ÑÑÐµÐ½Ð¸ÐµÂ» ÑÐ¾ÑÑÐ°Ð½ÑÐµÐ¼ Ð°Ð±ÑÐ¾Ð»ÑÑÐ½Ð¾ Ð²ÑÑ, ÑÑÐ¾ Ð¿ÑÐ¸ÑÐ»Ð°Ð» developer/admin.
+  // Ð Ð¾Ð±ÑÑÐ½Ð¾Ð¼ ÑÐ°ÑÐµ â ÑÐ¾Ð»ÑÐºÐ¾ ÑÐ¾Ð´ÐµÑÐ¶Ð°ÑÐµÐ»ÑÐ½ÑÐµ ÑÐ¾Ð¾Ð±ÑÐµÐ½Ð¸Ñ (Ð¿Ð°ÑÑÐ¸Ð²Ð½Ð¾Ðµ Ð¾Ð±ÑÑÐµÐ½Ð¸Ðµ), ÑÑÐ¾Ð±Ñ Ð½Ðµ Ð·Ð°ÑÐ¾ÑÑÑÑ Ð±Ð°Ð·Ñ Ð·Ð½Ð°Ð½Ð¸Ð¹.
+  const minLength = trainingMode ? 1 : 24;
+  if (clean.length < minLength) return;
   const chunks = chunkText(clean);
   if (!chunks.length) return;
 
@@ -309,14 +312,14 @@ async function maybeSaveDeveloperNote(profile, queryText) {
     method: 'POST',
     headers: { Prefer: 'return=representation' },
     body: JSON.stringify([{
-      title: `Developer note ${new Date().toISOString()}`,
+      title: trainingMode ? `ÐÐ±ÑÑÐµÐ½Ð¸Ðµ ${new Date().toISOString()}` : `Developer note ${new Date().toISOString()}`,
       scope: 'global',
-      source_type: 'developer_note',
+      source_type: trainingMode ? 'training_note' : 'developer_note',
       owner_user_id: profile.id,
       created_by: profile.id,
       content_preview: clean.slice(0, 220),
       chunk_count: chunks.length,
-      meta: { auto_learned: true }
+      meta: { auto_learned: true, training_mode: Boolean(trainingMode) }
     }])
   });
 
@@ -491,9 +494,8 @@ function compactErrorValue(value, limit = 500) {
 }
 
 function formatQuotaErrorMessage(errorMessage = '', modelName = '') {
-  const reason = compactErrorValue(errorMessage, 320);
-  const suffix = [reason, modelName ? `model=${modelName}` : ''].filter(Boolean).join(' | ');
-  return suffix ? `ÐÑÐ¸Ð±ÐºÐ° 1511. Ð¡Ð¾Ð¾Ð±ÑÐ¸ÑÐµ Ð² Ð¿Ð¾Ð´Ð´ÐµÑÐ¶ÐºÑ. ÐÑÐ¸ÑÐ¸Ð½Ð°: ${suffix}` : 'ÐÑÐ¸Ð±ÐºÐ° 1511. Ð¡Ð¾Ð¾Ð±ÑÐ¸ÑÐµ Ð² Ð¿Ð¾Ð´Ð´ÐµÑÐ¶ÐºÑ.';
+  console.error(`[harmonyai] quota exceeded | model=${modelName} | reason=${compactErrorValue(errorMessage, 500)}`);
+  return 'Ð¡ÐµÑÐ²Ð¸Ñ Ð²ÑÐµÐ¼ÐµÐ½Ð½Ð¾ Ð¿ÐµÑÐµÐ³ÑÑÐ¶ÐµÐ½ Ð¸Ð»Ð¸ Ð¿ÑÐµÐ²ÑÑÐµÐ½ Ð»Ð¸Ð¼Ð¸Ñ Ð·Ð°Ð¿ÑÐ¾ÑÐ¾Ð². ÐÐ¾Ð¿ÑÐ¾Ð±ÑÐ¹ÑÐµ Ð½ÐµÐ¼Ð½Ð¾Ð³Ð¾ Ð¿Ð¾Ð·Ð¶Ðµ Ð»Ð¸Ð±Ð¾ Ð¾Ð±ÑÐ°ÑÐ¸ÑÐµÑÑ Ð² Ð¿Ð¾Ð´Ð´ÐµÑÐ¶ÐºÑ (ÐºÐ¾Ð´ 1511).';
 }
 
 function isTimeoutError(message = '') {
@@ -644,7 +646,7 @@ async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs,
   }
 
   if (!gotAnyDelta && !fullText.trim()) {
-    writeSseEvent(res, { type: 'error', message: `ÐÐ¾ÑÐ¾ÐºÐ¾Ð²ÑÐ¹ Ð¾ÑÐ²ÐµÑ Ð¿ÑÐµÑÐ²Ð°Ð»ÑÑ ÑÐ»Ð¸ÑÐºÐ¾Ð¼ ÑÐ°Ð½Ð¾ Ð´Ð»Ñ Ð¼Ð¾Ð´ÐµÐ»Ð¸ ${modelName}` });
+    writeSseEvent(res, { type: 'error', message: 'ÐÐ¾ÑÐ¾ÐºÐ¾Ð²ÑÐ¹ Ð¾ÑÐ²ÐµÑ Ð¿ÑÐµÑÐ²Ð°Ð»ÑÑ ÑÐ»Ð¸ÑÐºÐ¾Ð¼ ÑÐ°Ð½Ð¾. ÐÐ¾Ð¿ÑÐ¾Ð±ÑÐ¹ÑÐµ ÐµÑÑ ÑÐ°Ð·.' });
     res.end();
     return {
       ok: false,
@@ -655,7 +657,7 @@ async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs,
   }
 
   const finalText = await repairNotationReplyIfNeeded(apiKey, modelName, query, fullText);
-  writeSseEvent(res, { type: 'done', text: finalText, model: modelName });
+  writeSseEvent(res, { type: 'done', text: finalText });
   res.end();
 
   return { ok: true, text: finalText, model: modelName };
@@ -688,7 +690,7 @@ export default async function handler(req, res) {
   if (!hasUsableOpenAI()) {
     return res.status(500).json({
       error: {
-        message: 'OPENAI_API_KEY Ð¸Ð»Ð¸ OPENAI_BASE_URL Ð½Ð°ÑÑÑÐ¾ÐµÐ½Ñ Ð½ÐµÐ²ÐµÑÐ½Ð¾.'
+        message: 'ÐÐ»ÑÑ Ð¸Ð»Ð¸ Ð°Ð´ÑÐµÑ API ÐÐ-Ð¿ÑÐ¾Ð²Ð°Ð¹Ð´ÐµÑÐ° Ð½Ð°ÑÑÑÐ¾ÐµÐ½Ñ Ð½ÐµÐ²ÐµÑÐ½Ð¾. ÐÐ±ÑÐ°ÑÐ¸ÑÐµÑÑ Ðº Ð°Ð´Ð¼Ð¸Ð½Ð¸ÑÑÑÐ°ÑÐ¾ÑÑ.'
       }
     });
   }
@@ -697,7 +699,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { messages, model, userId, think = false, effort = 'low', stream = false } = req.body || {};
+    const { messages, model, userId, think = false, effort = 'low', stream = false, trainingMode = false } = req.body || {};
     if (!Array.isArray(messages) || messages.length === 0) {
       return res.status(400).json({ error: { message: 'ÐÑÑÑÐ¾Ð¹ Ð·Ð°Ð¿ÑÐ¾Ñ Ðº Ð¼Ð¾Ð´ÐµÐ»Ð¸' } });
     }
@@ -712,7 +714,7 @@ export default async function handler(req, res) {
     let feedbackRows = [];
     let chunks = [];
 
-    if (wantsContext || think || effort === 'max') {
+    if (wantsContext || think || effort === 'max' || trainingMode) {
       const ownerId = profile?.id || userId || '';
       // Fetch docs, memories, and feedback in parallel
       const [docsResult, memoriesResult, feedbackResult] = await Promise.all([
@@ -733,7 +735,7 @@ export default async function handler(req, res) {
       }
     }
 
-    await maybeSaveDeveloperNote(profile, query);
+    await maybeSaveDeveloperNote(profile, query, Boolean(trainingMode));
 
     const route = selectRoute(profile, model);
     const systemText = messages.find(m => m.role === 'system')?.content || '';
@@ -785,11 +787,10 @@ export default async function handler(req, res) {
           };
           const errorMessage = lastError.message || '';
           if (isModelUnavailable(errorMessage)) {
+            console.error(`[harmonyai] model unavailable | model=${modelName} | reason=${compactErrorValue(errorMessage, 500)}`);
             return res.status(400).json({
               error: {
-                message: `ÐÐ¾Ð´ÐµÐ»Ñ Ð½ÐµÐ´Ð¾ÑÑÑÐ¿Ð½Ð° Ñ ÑÐµÐºÑÑÐµÐ³Ð¾ Ð¿ÑÐ¾Ð²Ð°Ð¹Ð´ÐµÑÐ° API. ÐÑÐ¾Ð²ÐµÑÑÑÐµ FREE_LITE_MODEL / FREE_PRO_MODEL / PREMIUM_MODEL. ÐÑÐ¸ÑÐ¸Ð½Ð°: ${compactErrorValue(errorMessage, 320)} | model=${modelName}`,
-                provider: 'openai',
-                model: modelName,
+                message: 'ÐÑÐ±ÑÐ°Ð½Ð½Ð°Ñ Ð¼Ð¾Ð´ÐµÐ»Ñ Ð²ÑÐµÐ¼ÐµÐ½Ð½Ð¾ Ð½ÐµÐ´Ð¾ÑÑÑÐ¿Ð½Ð°. ÐÐ¾Ð¿ÑÐ¾Ð±ÑÐ¹ÑÐµ Ð´ÑÑÐ³ÑÑ Ð¼Ð¾Ð´ÐµÐ»Ñ Ð¸Ð»Ð¸ Ð¿Ð¾Ð²ÑÐ¾ÑÐ¸ÑÐµ Ð¿Ð¾Ð·Ð¶Ðµ.',
                 status: lastError.status || 400
               }
             });
@@ -798,8 +799,6 @@ export default async function handler(req, res) {
             return res.status(429).json({
               error: {
                 message: formatQuotaErrorMessage(errorMessage, modelName),
-                provider: 'openai',
-                model: modelName,
                 status: lastError.status || 429
               }
             });
@@ -815,11 +814,10 @@ export default async function handler(req, res) {
         if (!response.ok || data.error) {
           lastError = { status: response.status || 500, message: errorMessage || `ÐÑÐ¸Ð±ÐºÐ° Ð¼Ð¾Ð´ÐµÐ»Ð¸ ${modelName}`, model: modelName };
           if (isModelUnavailable(errorMessage)) {
+            console.error(`[harmonyai] model unavailable | model=${modelName} | reason=${compactErrorValue(errorMessage, 500)}`);
             return res.status(400).json({
               error: {
-                message: `ÐÐ¾Ð´ÐµÐ»Ñ Ð½ÐµÐ´Ð¾ÑÑÑÐ¿Ð½Ð° Ñ ÑÐµÐºÑÑÐµÐ³Ð¾ Ð¿ÑÐ¾Ð²Ð°Ð¹Ð´ÐµÑÐ° API. ÐÑÐ¾Ð²ÐµÑÑÑÐµ FREE_LITE_MODEL / FREE_PRO_MODEL / PREMIUM_MODEL. ÐÑÐ¸ÑÐ¸Ð½Ð°: ${compactErrorValue(errorMessage, 320)} | model=${modelName}`,
-                provider: 'openai',
-                model: modelName,
+                message: 'ÐÑÐ±ÑÐ°Ð½Ð½Ð°Ñ Ð¼Ð¾Ð´ÐµÐ»Ñ Ð²ÑÐµÐ¼ÐµÐ½Ð½Ð¾ Ð½ÐµÐ´Ð¾ÑÑÑÐ¿Ð½Ð°. ÐÐ¾Ð¿ÑÐ¾Ð±ÑÐ¹ÑÐµ Ð´ÑÑÐ³ÑÑ Ð¼Ð¾Ð´ÐµÐ»Ñ Ð¸Ð»Ð¸ Ð¿Ð¾Ð²ÑÐ¾ÑÐ¸ÑÐµ Ð¿Ð¾Ð·Ð¶Ðµ.',
                 status: response.status || 400
               }
             });
@@ -828,8 +826,6 @@ export default async function handler(req, res) {
             return res.status(429).json({
               error: {
                 message: formatQuotaErrorMessage(errorMessage, modelName),
-                provider: 'openai',
-                model: modelName,
                 status: response.status || 429
               }
             });
@@ -844,8 +840,7 @@ export default async function handler(req, res) {
           data?.choices?.[0]?.message?.content || 'ÐÐµÑ Ð¾ÑÐ²ÐµÑÐ°'
         );
         return res.status(200).json({
-          choices: [{ message: { content: replyText } }],
-          model: modelName
+          choices: [{ message: { content: replyText } }]
         });
       }
     }
@@ -855,35 +850,35 @@ export default async function handler(req, res) {
         return res.status(429).json({
           error: {
             message: formatQuotaErrorMessage(lastError.message, lastError.model),
-            status: lastError.status || 429,
-            model: lastError.model
+            status: lastError.status || 429
           }
         });
       }
 
       if (lastError && isOverloaded(lastError.status, lastError.message)) {
+        console.error(`[harmonyai] overloaded | model=${lastError.model || ''} | reason=${compactErrorValue(lastError.message, 500)}`);
         return res.status(503).json({
           error: {
-            message: `This model is currently experiencing high demand. Please try again in a minute. ÐÑÐ¸ÑÐ¸Ð½Ð°: ${compactErrorValue(lastError.message, 320) || 'unknown'}${lastError.model ? ` | model=${lastError.model}` : ''}`,
-            status: lastError.status || 503,
-            model: lastError.model
+            message: 'Ð¡ÐµÐ¹ÑÐ°Ñ Ð²ÑÑÐ¾ÐºÐ°Ñ Ð½Ð°Ð³ÑÑÐ·ÐºÐ° Ð½Ð° ÑÐµÑÐ²Ð¸Ñ. ÐÐ¾Ð¿ÑÐ¾Ð±ÑÐ¹ÑÐµ Ð¿Ð¾Ð²ÑÐ¾ÑÐ¸ÑÑ Ð·Ð°Ð¿ÑÐ¾Ñ ÑÐµÑÐµÐ· Ð¼Ð¸Ð½ÑÑÑ.',
+            status: lastError.status || 503
           }
         });
       }
 
       if (lastError && isTimeoutError(lastError.message)) {
+        console.error(`[harmonyai] timeout | model=${lastError.model || ''} | reason=${compactErrorValue(lastError.message, 500)}`);
         return res.status(504).json({
           error: {
-            message: `ÐÐ¾Ð´ÐµÐ»Ñ Ð¾ÑÐ²ÐµÑÐ°ÐµÑ ÑÐ»Ð¸ÑÐºÐ¾Ð¼ Ð´Ð¾Ð»Ð³Ð¾. ÐÐ¾Ð¿ÑÐ¾Ð±ÑÐ¹ÑÐµ ÐµÑÑ ÑÐ°Ð· Ð¸Ð»Ð¸ Ð¾ÑÐºÐ»ÑÑÐ¸ÑÐµ ÑÐ»Ð¾Ð¶Ð½ÑÐ¹ ÑÐµÐ¶Ð¸Ð¼. ÐÑÐ¸ÑÐ¸Ð½Ð°: ${compactErrorValue(lastError.message, 320) || 'timeout'}${lastError.model ? ` | model=${lastError.model}` : ''}`,
-            status: 504,
-            model: lastError.model
+            message: 'ÐÐ¾Ð´ÐµÐ»Ñ Ð¾ÑÐ²ÐµÑÐ°ÐµÑ ÑÐ»Ð¸ÑÐºÐ¾Ð¼ Ð´Ð¾Ð»Ð³Ð¾. ÐÐ¾Ð¿ÑÐ¾Ð±ÑÐ¹ÑÐµ ÐµÑÑ ÑÐ°Ð· Ð¸Ð»Ð¸ Ð¾ÑÐºÐ»ÑÑÐ¸ÑÐµ ÑÐ»Ð¾Ð¶Ð½ÑÐ¹ ÑÐµÐ¶Ð¸Ð¼.',
+            status: 504
           }
         });
       }
 
+      console.error(`[harmonyai] request failed | model=${lastError?.model || ''} | reason=${compactErrorValue(lastError?.message, 500)}`);
       return res.status(lastError?.status || 500).json({
         error: {
-          message: lastError?.message || 'ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ Ð¿Ð¾Ð»ÑÑÐ¸ÑÑ Ð¾ÑÐ²ÐµÑ Ð¾Ñ Ð¼Ð¾Ð´ÐµÐ»Ð¸'
+          message: 'ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ Ð¿Ð¾Ð»ÑÑÐ¸ÑÑ Ð¾ÑÐ²ÐµÑ Ð¾Ñ Ð¼Ð¾Ð´ÐµÐ»Ð¸. ÐÐ¾Ð¿ÑÐ¾Ð±ÑÐ¹ÑÐµ ÐµÑÑ ÑÐ°Ð·.'
         }
       });
     }
