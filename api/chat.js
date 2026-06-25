@@ -71,7 +71,7 @@ function tokenize(text = '') {
     new Set(
       String(text)
         .toLowerCase()
-        .replace(/[^a-zÐ°-Ñ0-9#]+/gi, ' ')
+        .replace(/[^a-zа-я0-9#]+/gi, ' ')
         .split(/\s+/)
         .filter((part) => part.length > 2)
     )
@@ -217,8 +217,8 @@ function buildKnowledgeContext(documents, chunks, query) {
     .filter((row) => row.document);
   const picked = selectTopItems(items, (item) => item.content, query, 80, 350000);
   if (!picked.length) return '';
-  return '\nÐÐÐÐ ÐÐÐÐÐÐ:\n' + picked
-    .map((item, index) => `[ÐÑÑÐ¾ÑÐ½Ð¸Ðº ${index + 1}: ${item.document.title}]\n${item.content}`)
+  return '\nБАЗА ЗНАНИЙ:\n' + picked
+    .map((item, index) => `[Источник ${index + 1}: ${item.document.title}]\n${item.content}`)
     .join('\n\n');
 }
 
@@ -226,7 +226,7 @@ function buildMemoryContext(memories, query) {
   if (!memories.length) return '';
   const picked = selectTopItems(memories, (item) => item.memory_text, query, 20, 30000);
   if (!picked.length) return '';
-  return '\nÐÐÐÐ¯Ð¢Ð¬ Ð ÐÐÐÐ¬ÐÐÐÐÐ¢ÐÐÐ:\n' + picked
+  return '\nПАМЯТЬ О ПОЛЬЗОВАТЕЛЕ:\n' + picked
     .map((item, index) => `${index + 1}. ${item.memory_text}`)
     .join('\n');
 }
@@ -241,10 +241,10 @@ function buildFeedbackContext(feedbackRows, query) {
     50000
   );
   if (!picked.length) return '';
-  return '\nÐÐ¡ÐÐ ÐÐÐÐÐÐÐ¯ Ð ÐÐ¨ÐÐÐÐ, ÐÐÐ¢ÐÐ Ð«Ð ÐÐ£ÐÐÐ Ð£Ð§ÐÐ¢Ð«ÐÐÐ¢Ð¬:\n' + picked
+  return '\nИСПРАВЛЕНИЯ И ОШИБКИ, КОТОРЫЕ НУЖНО УЧИТЫВАТЬ:\n' + picked
     .map((item, index) => {
-      const note = item.note ? `\nÐÐ¾Ð¼Ð¼ÐµÐ½ÑÐ°ÑÐ¸Ð¹: ${item.note}` : '';
-      return `${index + 1}. ÐÑÐ»Ð¾ Ð½ÐµÐ²ÐµÑÐ½Ð¾: ${item.assistant_excerpt}\nÐÑÐ°Ð²Ð¸Ð»ÑÐ½Ð¾: ${item.corrected_answer}${note}`;
+      const note = item.note ? `\nКомментарий: ${item.note}` : '';
+      return `${index + 1}. Было неверно: ${item.assistant_excerpt}\nПравильно: ${item.corrected_answer}${note}`;
     })
     .join('\n\n');
 }
@@ -252,57 +252,57 @@ function buildFeedbackContext(feedbackRows, query) {
 function isSimpleQuery(query = '') {
   const clean = normalizeText(query).toLowerCase();
   if (!clean) return true;
-  if (clean.length <= 40 && /^(Ð¿ÑÐ¸Ð²ÐµÑ|Ð·Ð´ÑÐ°Ð²ÑÑÐ²ÑÐ¹|Ð·Ð´ÑÐ°Ð²ÑÑÐ²ÑÐ¹ÑÐµ|ÐºÐ°Ðº Ð´ÐµÐ»Ð°|ÑÐ¿Ð°ÑÐ¸Ð±Ð¾|Ð¾Ðº|Ð¿Ð¾Ð½ÑÐ»|Ð¿Ð¾Ð½ÑÐ»Ð°|Ð´Ð°|Ð½ÐµÑ|hi|hello|thanks|thank you)[\s!.?]*$/i.test(clean)) {
+  if (clean.length <= 40 && /^(привет|здравствуй|здравствуйте|как дела|спасибо|ок|понял|поняла|да|нет|hi|hello|thanks|thank you)[\s!.?]*$/i.test(clean)) {
     return true;
   }
   return false;
 }
 
-// ÐÐ¿ÑÐµÐ´ÐµÐ»ÑÐµÑ, Ð½ÑÐ¶ÐµÐ½ Ð»Ð¸ Ð·Ð°Ð¿ÑÐ¾ÑÑ Ð¿ÐµÑÑÐ¾Ð½Ð°Ð»ÑÐ½ÑÐ¹ ÐºÐ¾Ð½ÑÐµÐºÑÑ Ð¿Ð¾Ð»ÑÐ·Ð¾Ð²Ð°ÑÐµÐ»Ñ:
-// Ð¿Ð°Ð¼ÑÑÑ, Ð¿ÑÐ¾ÑÐ¸Ð»Ñ/Ð½Ð°ÑÑÑÐ¾Ð¹ÐºÐ¸, Ð·Ð°Ð³ÑÑÐ¶ÐµÐ½Ð½ÑÐµ Ð´Ð¾ÐºÑÐ¼ÐµÐ½ÑÑ, Ð¸ÑÑÐ¾ÑÐ¸Ñ ÑÑÐ¾Ð³Ð¾ ÑÐ°ÑÐ°.
-// ÐÑÐ»Ð¸ ÐºÐ¾Ð½ÑÐµÐºÑÑ Ð½Ðµ Ð½ÑÐ¶ÐµÐ½ â Ð¾ÑÐ²ÐµÑÐ°ÐµÐ¼ Ð±ÑÑÑÑÑÐ¼ Ð¿ÑÑÑÐ¼ Ð±ÐµÐ· Ð¿Ð¾ÑÐ¾Ð´Ð° Ð² Supabase Ð·Ð° Ð¿Ð°Ð¼ÑÑÑÑ/Ð´Ð¾ÐºÑÐ¼ÐµÐ½ÑÐ°Ð¼Ð¸.
+// Определяет, нужен ли запросу персональный контекст пользователя:
+// память, профиль/настройки, загруженные документы, история этого чата.
+// Если контекст не нужен — отвечаем быстрым путём без похода в Supabase за памятью/документами.
 function needsPersonalContext(query = '', messages = []) {
   const clean = normalizeText(query).toLowerCase();
   if (!clean) return false;
 
-  // Ð¯Ð²Ð½ÑÐµ ÑÐ¸Ð³Ð½Ð°Ð»Ñ: Ð¿Ð¾Ð»ÑÐ·Ð¾Ð²Ð°ÑÐµÐ»Ñ ÑÑÑÐ»Ð°ÐµÑÑÑ Ð½Ð° ÑÐµÐ±Ñ, ÑÐ²Ð¾Ñ Ð¸ÑÑÐ¾ÑÐ¸Ñ, ÑÐ²Ð¾Ð¸ ÑÐ°Ð¹Ð»Ñ/Ð½Ð°ÑÑÑÐ¾Ð¹ÐºÐ¸
-  const personalSignals = /(Ð¿Ð¾Ð¼Ð½Ð¸ÑÑ|ÐºÐ°Ðº Ð¾Ð±ÑÑÐ½Ð¾|ÐºÐ°Ðº Ð²ÑÐµÐ³Ð´Ð°|Ð¼Ð¾[Ð¹ÑÑÐµ]\s|Ð¼Ð½Ðµ Ð½ÑÐ°Ð²Ð¸ÑÑÑ|Ð¼Ð½Ðµ Ð½Ðµ Ð½ÑÐ°Ð²Ð¸ÑÑÑ|Ñ Ð³Ð¾Ð²Ð¾ÑÐ¸Ð»|Ñ Ð¿Ð¸ÑÐ°Ð»|Ñ Ð¿ÑÐ¾ÑÐ¸Ð»|Ñ Ð¿ÑÐµÐ´Ð¿Ð¾ÑÐ¸ÑÐ°|Ð½Ð°ÑÑÑÐ¾Ð¹(ÐºÐ°|ÐºÐ¸)|Ð¿ÑÐ¾ÑÐ¸Ð»|Ð´Ð¾ÐºÑÐ¼ÐµÐ½Ñ|ÑÐ°Ð¹Ð»|ÑÑÐµÐ±Ð½Ð¸Ðº|Ð·Ð°Ð³ÑÑÐ·Ð¸Ð»|Ð¿ÑÐ¸ÐºÑÐµÐ¿|ÑÐ°Ð½ÐµÐµ Ð¼Ñ|Ð² Ð¿ÑÐ¾ÑÐ»ÑÐ¹ ÑÐ°Ð·|Ð¿ÑÐ¾Ð´Ð¾Ð»Ð¶Ð¸|ÐºÐ°Ðº Ð² Ð¿ÑÐ¾ÑÐ»ÑÐ¹ ÑÐ°Ð·|Ð¸ÑÐ¿ÑÐ°Ð²Ñ(ÑÐµ)? (ÐºÐ°Ðº|ÑÐ°Ðº)|Ð¼Ð¾Ñ Ð¿Ð°Ð¼ÑÑÑ|Ð¾Ð±Ð½Ð¾Ð²Ð¸ Ð¿Ð°Ð¼ÑÑÑ|Ð·Ð°Ð¿Ð¾Ð¼Ð½Ð¸)/;
+  // Явные сигналы: пользователь ссылается на себя, свою историю, свои файлы/настройки
+  const personalSignals = /(помнишь|как обычно|как всегда|мо[йяюе]\s|мне нравится|мне не нравится|я говорил|я писал|я просил|я предпочита|настрой(ка|ки)|профил|документ|файл|учебник|загрузил|прикреп|ранее мы|в прошлый раз|продолжи|как в прошлый раз|исправь(те)? (как|так)|мою память|обнови память|запомни)/;
   if (personalSignals.test(clean)) return true;
 
-  // ÐÑÐ»Ð¸ Ð² ÑÑÐ¾Ð¼ ÑÐ°ÑÐµ ÑÐ¶Ðµ ÐµÑÑÑ Ð¿ÑÐ¸ÐºÑÐµÐ¿Ð»ÑÐ½Ð½ÑÐµ Ð´Ð¾ÐºÑÐ¼ÐµÐ½ÑÑ/Ð¸Ð·Ð¾Ð±ÑÐ°Ð¶ÐµÐ½Ð¸Ñ ÑÑÐµÐ´Ð¸ ÑÐ¾Ð¾Ð±ÑÐµÐ½Ð¸Ð¹ â ÐºÐ¾Ð½ÑÐµÐºÑÑ Ð½ÑÐ¶ÐµÐ½
+  // Если в этом чате уже есть прикреплённые документы/изображения среди сообщений — контекст нужен
   const hasAttachmentInHistory = messages.some((msg) => {
     if (!Array.isArray(msg.content)) return false;
     return msg.content.some((item) => item.type === 'image_url' || item.type === 'file' || item.type === 'document');
   });
   if (hasAttachmentInHistory) return true;
 
-  // ÐÐ»Ð¸Ð½Ð½ÑÐµ ÑÐ¾Ð´ÐµÑÐ¶Ð°ÑÐµÐ»ÑÐ½ÑÐµ Ð²Ð¾Ð¿ÑÐ¾ÑÑ ÑÐ¾Ð¶Ðµ Ð²ÑÐ¸Ð³ÑÑÐ²Ð°ÑÑ Ð¾Ñ Ð·Ð½Ð°Ð½Ð¸Ð¹/Ð¿Ð°Ð¼ÑÑÐ¸,
-  // ÐºÐ¾ÑÐ¾ÑÐºÐ¸Ðµ Ð½ÐµÐ¹ÑÑÐ°Ð»ÑÐ½ÑÐµ Ð²Ð¾Ð¿ÑÐ¾ÑÑ â Ð½ÐµÑ.
+  // Длинные содержательные вопросы тоже выигрывают от знаний/памяти,
+  // короткие нейтральные вопросы — нет.
   if (clean.length > 220) return true;
 
   return false;
 }
 
-// Ð¨Ð¸ÑÐ¾ÐºÐ°Ñ Ð¿ÑÐ¾Ð²ÐµÑÐºÐ° Ð¼ÑÐ·ÑÐºÐ°Ð»ÑÐ½Ð¾Ð¹ ÑÐµÐ¼Ð°ÑÐ¸ÐºÐ¸ â Ð¸ÑÐ¿Ð¾Ð»ÑÐ·ÑÐµÑÑÑ ÑÐ¾Ð»ÑÐºÐ¾ Ð´Ð»Ñ ÑÐ²ÐµÐ»Ð¸ÑÐµÐ½Ð¸Ñ ÑÐ°Ð¹Ð¼Ð°ÑÑÐ°,
-// Ð½Ðµ Ð·Ð°Ð¿ÑÑÐºÐ°ÐµÑ Ð½Ð¸ÐºÐ°ÐºÐ¸Ñ Ð´Ð¾Ð¿Ð¾Ð»Ð½Ð¸ÑÐµÐ»ÑÐ½ÑÑ Ð²ÑÐ·Ð¾Ð²Ð¾Ð² Ð¼Ð¾Ð´ÐµÐ»Ð¸.
+// Широкая проверка музыкальной тематики — используется только для увеличения таймаута,
+// не запускает никаких дополнительных вызовов модели.
 function isCreativeOrNotationRequest(query = '') {
   const clean = normalizeText(query).toLowerCase();
-  return /(ÑÐ³ÐµÐ½ÐµÑÐ¸ÑÑÐ¹|ÑÐ¾Ð·Ð´Ð°Ð¹|Ð½Ð°Ð¿Ð¸ÑÐ¸|Ð¿ÑÐ¸Ð´ÑÐ¼Ð°Ð¹|Ð¿Ð¾ÑÑÑÐ¾Ð¹|ÑÐ¾ÑÐ¸Ð½Ð¸|Ð³Ð°Ð¼Ð¼|Ð°ÐºÐºÐ¾ÑÐ´|Ð½Ð¾Ñ|ÑÑÐ°Ð½|abc|Ð¼ÐµÐ»Ð¾Ð´Ð¸|Ð¿ÑÐµÑ|ÑÐµÐ¿Ð¾ÑÐº)/.test(clean);
+  return /(сгенерируй|создай|напиши|придумай|построй|сочини|гамм|аккорд|нот|стан|abc|мелоди|пьес|цепочк)/.test(clean);
 }
 
-// Ð£Ð·ÐºÐ°Ñ Ð¿ÑÐ¾Ð²ÐµÑÐºÐ°: Ð¿Ð¾Ð»ÑÐ·Ð¾Ð²Ð°ÑÐµÐ»Ñ ÑÐµÐ°Ð»ÑÐ½Ð¾ ÑÐ¾ÑÐµÑ ÐÐÐÐ£ÐÐÐ¬ÐÐ«Ð Ð½Ð¾ÑÐ½ÑÐ¹ ÑÑÐ°Ð½ (ÐºÐ°ÑÑÐ¸Ð½ÐºÑ Ð½Ð¾Ñ),
-// Ð° Ð½Ðµ Ð¿ÑÐ¾ÑÑÐ¾ ÑÐµÐºÑÑÐ¾Ð²Ð¾Ðµ Ð¾Ð±ÑÑÑÐ½ÐµÐ½Ð¸Ðµ ÑÐµÐ¾ÑÐ¸Ð¸ Ñ ÑÐ¿Ð¾Ð¼Ð¸Ð½Ð°Ð½Ð¸ÐµÐ¼ Ð°ÐºÐºÐ¾ÑÐ´Ð¾Ð²/Ð½Ð¾Ñ.
-// Ð¢Ð¾Ð»ÑÐºÐ¾ Ð² ÑÑÐ¾Ð¼ ÑÐ»ÑÑÐ°Ðµ Ð¾Ð¿ÑÐ°Ð²Ð´Ð°Ð½ Ð´Ð¾ÑÐ¾Ð³Ð¾Ð¹ Ð¿Ð¾Ð²ÑÐ¾ÑÐ½ÑÐ¹ Ð²ÑÐ·Ð¾Ð² Ð¼Ð¾Ð´ÐµÐ»Ð¸ Ð´Ð»Ñ abc-Ð½Ð¾ÑÐ°ÑÐ¸Ð¸.
+// Узкая проверка: пользователь реально хочет ВИЗУАЛЬНЫЙ нотный стан (картинку нот),
+// а не просто текстовое объяснение теории с упоминанием аккордов/нот.
+// Только в этом случае оправдан дорогой повторный вызов модели для abc-нотации.
 function wantsRenderedStaff(query = '') {
   const clean = normalizeText(query).toLowerCase();
-  return /(Ð½Ð¾ÑÐ½(ÑÐ¹|ÑÑ|Ð¾Ð¼|ÑÐ¼Ð¸)?\s*ÑÑÐ°Ð½|Ð½Ð¾ÑÐ°Ð¼Ð¸|Ð½Ð° Ð½Ð¾ÑÐ°Ñ|Ð·Ð°Ð¿Ð¸ÑÐ¸\s+Ð½Ð¾Ñ|Ð¸Ð·Ð¾Ð±ÑÐ°Ð·Ð¸\s+Ð½Ð¾Ñ|Ð½Ð°ÑÐ¸ÑÑÐ¹\s+Ð½Ð¾Ñ|Ð¿Ð¾ÐºÐ°Ð¶Ð¸\s+Ð½Ð¾Ñ|abc[-\s]?Ð½Ð¾ÑÐ°ÑÐ¸|ÑÑÐ³ÑÐ°Ð¹|ÑÐ¾ÑÐ¸Ð½Ð¸\s+(Ð¼ÐµÐ»Ð¾Ð´Ð¸|Ð¿ÑÐµÑ|Ð³Ð°Ð¼Ð¼)|Ð½Ð°Ð¿Ð¸ÑÐ¸\s+(Ð¼ÐµÐ»Ð¾Ð´Ð¸|Ð¿ÑÐµÑ|Ð³Ð°Ð¼Ð¼)|Ð¿ÑÐ¸Ð´ÑÐ¼Ð°Ð¹\s+(Ð¼ÐµÐ»Ð¾Ð´Ð¸|Ð¿ÑÐµÑ|Ð³Ð°Ð¼Ð¼)|Ð¿Ð¾ÑÑÑÐ¾Ð¹\s+Ð³Ð°Ð¼Ð¼|Ð¿Ð°ÑÑÐ¸ÑÑÑ)/.test(clean);
+  return /(нотн(ый|ую|ом|ыми)?\s*стан|нотами|на нотах|запиши\s+нот|изобрази\s+нот|нарисуй\s+нот|покажи\s+нот|abc[-\s]?нотаци|сыграй|сочини\s+(мелоди|пьес|гамм)|напиши\s+(мелоди|пьес|гамм)|придумай\s+(мелоди|пьес|гамм)|построй\s+гамм|партитур)/.test(clean);
 }
 
 async function maybeSaveDeveloperNote(profile, queryText, trainingMode = false) {
   if (!profile || (profile.role !== 'developer' && profile.role !== 'admin')) return;
   const clean = normalizeText(queryText);
-  // Ð ÑÐµÐ¶Ð¸Ð¼Ðµ Â«ÐÐ±ÑÑÐµÐ½Ð¸ÐµÂ» ÑÐ¾ÑÑÐ°Ð½ÑÐµÐ¼ Ð°Ð±ÑÐ¾Ð»ÑÑÐ½Ð¾ Ð²ÑÑ, ÑÑÐ¾ Ð¿ÑÐ¸ÑÐ»Ð°Ð» developer/admin.
-  // Ð Ð¾Ð±ÑÑÐ½Ð¾Ð¼ ÑÐ°ÑÐµ â ÑÐ¾Ð»ÑÐºÐ¾ ÑÐ¾Ð´ÐµÑÐ¶Ð°ÑÐµÐ»ÑÐ½ÑÐµ ÑÐ¾Ð¾Ð±ÑÐµÐ½Ð¸Ñ (Ð¿Ð°ÑÑÐ¸Ð²Ð½Ð¾Ðµ Ð¾Ð±ÑÑÐµÐ½Ð¸Ðµ), ÑÑÐ¾Ð±Ñ Ð½Ðµ Ð·Ð°ÑÐ¾ÑÑÑÑ Ð±Ð°Ð·Ñ Ð·Ð½Ð°Ð½Ð¸Ð¹.
+  // В режиме «Обучение» сохраняем абсолютно всё, что прислал developer/admin.
+  // В обычном чате — только содержательные сообщения (пассивное обучение), чтобы не засорять базу знаний.
   const minLength = trainingMode ? 1 : 24;
   if (clean.length < minLength) return;
   const chunks = chunkText(clean);
@@ -312,7 +312,7 @@ async function maybeSaveDeveloperNote(profile, queryText, trainingMode = false) 
     method: 'POST',
     headers: { Prefer: 'return=representation' },
     body: JSON.stringify([{
-      title: trainingMode ? `ÐÐ±ÑÑÐµÐ½Ð¸Ðµ ${new Date().toISOString()}` : `Developer note ${new Date().toISOString()}`,
+      title: trainingMode ? `Обучение ${new Date().toISOString()}` : `Developer note ${new Date().toISOString()}`,
       scope: 'global',
       source_type: trainingMode ? 'training_note' : 'developer_note',
       owner_user_id: profile.id,
@@ -495,7 +495,7 @@ function compactErrorValue(value, limit = 500) {
 
 function formatQuotaErrorMessage(errorMessage = '', modelName = '') {
   console.error(`[harmonyai] quota exceeded | model=${modelName} | reason=${compactErrorValue(errorMessage, 500)}`);
-  return 'Ð¡ÐµÑÐ²Ð¸Ñ Ð²ÑÐµÐ¼ÐµÐ½Ð½Ð¾ Ð¿ÐµÑÐµÐ³ÑÑÐ¶ÐµÐ½ Ð¸Ð»Ð¸ Ð¿ÑÐµÐ²ÑÑÐµÐ½ Ð»Ð¸Ð¼Ð¸Ñ Ð·Ð°Ð¿ÑÐ¾ÑÐ¾Ð². ÐÐ¾Ð¿ÑÐ¾Ð±ÑÐ¹ÑÐµ Ð½ÐµÐ¼Ð½Ð¾Ð³Ð¾ Ð¿Ð¾Ð·Ð¶Ðµ Ð»Ð¸Ð±Ð¾ Ð¾Ð±ÑÐ°ÑÐ¸ÑÐµÑÑ Ð² Ð¿Ð¾Ð´Ð´ÐµÑÐ¶ÐºÑ (ÐºÐ¾Ð´ 1511).';
+  return 'Сервис временно перегружен или превышен лимит запросов. Попробуйте немного позже либо обратитесь в поддержку (код 1511).';
 }
 
 function isTimeoutError(message = '') {
@@ -537,15 +537,15 @@ async function repairNotationReplyIfNeeded(apiKey, modelName, query, replyText) 
     {
       role: 'system',
       content: [
-        'Ð¢Ñ Ð¸ÑÐ¿ÑÐ°Ð²Ð»ÑÐµÑÑ Ð¼ÑÐ·ÑÐºÐ°Ð»ÑÐ½ÑÐ¹ Ð¾ÑÐ²ÐµÑ Ð¼Ð¾Ð´ÐµÐ»Ð¸.',
-        'ÐÐµÑÐ½Ð¸ Ð¿Ð¾Ð»Ð½Ð¾ÑÐµÐ½Ð½ÑÐ¹ Ð²Ð¸Ð·ÑÐ°Ð»Ð¸Ð·Ð¸ÑÑÐµÐ¼ÑÐ¹ Ð½Ð¾ÑÐ½ÑÐ¹ ÑÑÐ°Ð½ ÑÑÑÐ¾Ð³Ð¾ ÑÐµÑÐµÐ· Ð¾Ð´Ð¸Ð½ Ð¸Ð»Ð¸ Ð½ÐµÑÐºÐ¾Ð»ÑÐºÐ¾ Ð±Ð»Ð¾ÐºÐ¾Ð² ```abc```.',
-        'ÐÐ°Ð¿ÑÐµÑÐµÐ½Ð¾ Ð¸ÑÐ¿Ð¾Ð»ÑÐ·Ð¾Ð²Ð°ÑÑ ASCII-ÑÑÐ°Ð½, Ð¿ÑÐµÐ²Ð´Ð¾Ð³ÑÐ°ÑÐ¸ÐºÑ, ÑÐ°Ð±Ð»Ð¸ÑÑ Ð»Ð¸Ð½Ð¸Ð¹, Ð¿ÑÐ¾ÑÑÐ¾ ÑÐ¿Ð¸ÑÐ¾Ðº Ð½Ð¾Ñ Ð¸Ð»Ð¸ ÑÐµÐºÑÑÐ¾Ð²Ð¾Ðµ Ð¾Ð¿Ð¸ÑÐ°Ð½Ð¸Ðµ Ð²Ð¼ÐµÑÑÐ¾ abc.',
-        'Ð¡Ð½Ð°ÑÐ°Ð»Ð° Ð´Ð°Ð¹ ÐºÐ¾ÑÑÐµÐºÑÐ½ÑÐ¹ abc-Ð±Ð»Ð¾Ðº, Ð·Ð°ÑÐµÐ¼ ÐºÑÐ°ÑÐºÐ¾Ðµ Ð¾Ð±ÑÑÑÐ½ÐµÐ½Ð¸Ðµ.'
+        'Ты исправляешь музыкальный ответ модели.',
+        'Верни полноценный визуализируемый нотный стан строго через один или несколько блоков ```abc```.',
+        'Запрещено использовать ASCII-стан, псевдографику, таблицы линий, просто список нот или текстовое описание вместо abc.',
+        'Сначала дай корректный abc-блок, затем краткое объяснение.'
       ].join('\n')
     },
     {
       role: 'user',
-      content: `ÐÐ°Ð¿ÑÐ¾Ñ Ð¿Ð¾Ð»ÑÐ·Ð¾Ð²Ð°ÑÐµÐ»Ñ:\n${query}\n\nÐÑÐµÐ´ÑÐ´ÑÑÐ¸Ð¹ Ð¾ÑÐ²ÐµÑ Ð±ÑÐ» Ð½ÐµÐ´Ð¾ÑÑÐ°ÑÐ¾ÑÐ½ÑÐ¼:\n${cleanReply}\n\nÐÐµÑÐµÐ¿Ð¸ÑÐ¸ Ð¾ÑÐ²ÐµÑ ÐºÐ¾ÑÑÐµÐºÑÐ½Ð¾.`
+      content: `Запрос пользователя:\n${query}\n\nПредыдущий ответ был недостаточным:\n${cleanReply}\n\nПерепиши ответ корректно.`
     }
   ];
 
@@ -574,7 +574,7 @@ async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs,
     return {
       ok: false,
       status: upstream.status || 500,
-      message: data?.error?.message || `ÐÑÐ¸Ð±ÐºÐ° Ð¼Ð¾Ð´ÐµÐ»Ð¸ ${modelName}`,
+      message: data?.error?.message || `Ошибка модели ${modelName}`,
       model: modelName
     };
   }
@@ -583,7 +583,7 @@ async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs,
     return {
       ok: false,
       status: 500,
-      message: `ÐÐ¾ÑÐ¾ÐºÐ¾Ð²ÑÐ¹ Ð¾ÑÐ²ÐµÑ Ð½ÐµÐ´Ð¾ÑÑÑÐ¿ÐµÐ½ Ð´Ð»Ñ Ð¼Ð¾Ð´ÐµÐ»Ð¸ ${modelName}`,
+      message: `Потоковый ответ недоступен для модели ${modelName}`,
       model: modelName
     };
   }
@@ -601,8 +601,8 @@ async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs,
   let gotAnyDelta = false;
 
   const chunkTimeoutMs = largeContext
-    ? Math.max(30000, Math.min(timeoutMs, 60000))  // Ð´Ð¾ 60Ñ Ð¼ÐµÐ¶Ð´Ñ ÑÐ°Ð½ÐºÐ°Ð¼Ð¸ Ð´Ð»Ñ Ð±Ð¾Ð»ÑÑÐ¸Ñ Ð´Ð¾ÐºÑÐ¼ÐµÐ½ÑÐ¾Ð²
-    : Math.max(8000, Math.min(timeoutMs, 20000));   // ÑÑÐ°Ð½Ð´Ð°ÑÑÐ½ÑÐ¹ 20Ñ
+    ? Math.max(30000, Math.min(timeoutMs, 60000))  // до 60с между чанками для больших документов
+    : Math.max(8000, Math.min(timeoutMs, 20000));   // стандартный 20с
   while (true) {
     let done, value;
     try {
@@ -612,7 +612,7 @@ async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs,
         `OpenAI stream chunk timed out for ${modelName}`
       ));
     } catch (chunkErr) {
-      // ÐÐ¾Ð´ÐµÐ»Ñ Ð·Ð°Ð¼Ð¾Ð»ÑÐ°Ð»Ð° Ð¼ÐµÐ¶Ð´Ñ ÑÐ¾ÐºÐµÐ½Ð°Ð¼Ð¸ â Ð³ÑÐ°ÑÐ¸Ð¾Ð·Ð½Ð¾ Ð·Ð°Ð²ÐµÑÑÐ°ÐµÐ¼ Ñ ÑÐµÐ¼, ÑÑÐ¾ Ð¿Ð¾Ð»ÑÑÐ¸Ð»Ð¸
+      // Модель замолчала между токенами — грациозно завершаем с тем, что получили
       break;
     }
     if (done) break;
@@ -646,12 +646,12 @@ async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs,
   }
 
   if (!gotAnyDelta && !fullText.trim()) {
-    writeSseEvent(res, { type: 'error', message: 'ÐÐ¾ÑÐ¾ÐºÐ¾Ð²ÑÐ¹ Ð¾ÑÐ²ÐµÑ Ð¿ÑÐµÑÐ²Ð°Ð»ÑÑ ÑÐ»Ð¸ÑÐºÐ¾Ð¼ ÑÐ°Ð½Ð¾. ÐÐ¾Ð¿ÑÐ¾Ð±ÑÐ¹ÑÐµ ÐµÑÑ ÑÐ°Ð·.' });
+    writeSseEvent(res, { type: 'error', message: 'Потоковый ответ прервался слишком рано. Попробуйте ещё раз.' });
     res.end();
     return {
       ok: false,
       status: 504,
-      message: `ÐÐ¾ÑÐ¾ÐºÐ¾Ð²ÑÐ¹ Ð¾ÑÐ²ÐµÑ Ð¿ÑÐµÑÐ²Ð°Ð»ÑÑ ÑÐ»Ð¸ÑÐºÐ¾Ð¼ ÑÐ°Ð½Ð¾ Ð´Ð»Ñ Ð¼Ð¾Ð´ÐµÐ»Ð¸ ${modelName}`,
+      message: `Потоковый ответ прервался слишком рано для модели ${modelName}`,
       model: modelName
     };
   }
@@ -690,18 +690,18 @@ export default async function handler(req, res) {
   if (!hasUsableOpenAI()) {
     return res.status(500).json({
       error: {
-        message: 'ÐÐ»ÑÑ Ð¸Ð»Ð¸ Ð°Ð´ÑÐµÑ API ÐÐ-Ð¿ÑÐ¾Ð²Ð°Ð¹Ð´ÐµÑÐ° Ð½Ð°ÑÑÑÐ¾ÐµÐ½Ñ Ð½ÐµÐ²ÐµÑÐ½Ð¾. ÐÐ±ÑÐ°ÑÐ¸ÑÐµÑÑ Ðº Ð°Ð´Ð¼Ð¸Ð½Ð¸ÑÑÑÐ°ÑÐ¾ÑÑ.'
+        message: 'Ключ или адрес API ИИ-провайдера настроены неверно. Обратитесь к администратору.'
       }
     });
   }
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return res.status(500).json({ error: { message: 'SUPABASE_URL Ð¸Ð»Ð¸ SUPABASE_SERVICE_ROLE_KEY Ð½Ðµ Ð½Ð°ÑÑÑÐ¾ÐµÐ½Ñ' } });
+    return res.status(500).json({ error: { message: 'SUPABASE_URL или SUPABASE_SERVICE_ROLE_KEY не настроены' } });
   }
 
   try {
     const { messages, model, userId, think = false, effort = 'low', stream = false, trainingMode = false } = req.body || {};
     if (!Array.isArray(messages) || messages.length === 0) {
-      return res.status(400).json({ error: { message: 'ÐÑÑÑÐ¾Ð¹ Ð·Ð°Ð¿ÑÐ¾Ñ Ðº Ð¼Ð¾Ð´ÐµÐ»Ð¸' } });
+      return res.status(400).json({ error: { message: 'Пустой запрос к модели' } });
     }
 
     const profile = await fetchProfile(userId);
@@ -739,14 +739,14 @@ export default async function handler(req, res) {
 
     const route = selectRoute(profile, model);
     const systemText = messages.find(m => m.role === 'system')?.content || '';
-    // ÐÐ¿ÑÐµÐ´ÐµÐ»ÑÐµÐ¼ ÑÐ°Ð·Ð¼ÐµÑ ÐºÐ¾Ð½ÑÐµÐºÑÑÐ° â ÐµÑÐ»Ð¸ Ð² ÑÐ°ÑÐµ ÐµÑÑÑ Ð±Ð¾Ð»ÑÑÐ¾Ð¹ Ð´Ð¾ÐºÑÐ¼ÐµÐ½Ñ, Ð½ÑÐ¶Ð½Ñ ÑÐ²ÐµÐ»Ð¸ÑÐµÐ½Ð½ÑÐµ ÑÐ°Ð¹Ð¼Ð°ÑÑÑ
+    // Определяем размер контекста — если в чате есть большой документ, нужны увеличенные таймауты
     const totalContextChars = messages.reduce((sum, m) => {
       const c = m.content;
       if (typeof c === 'string') return sum + c.length;
       if (Array.isArray(c)) return sum + c.reduce((s, p) => s + (p.text?.length || 0), 0);
       return sum;
     }, 0);
-    const isLargeContext = totalContextChars > 80000; // > ~80k ÑÐ¸Ð¼Ð²Ð¾Ð»Ð¾Ð² = Ð´Ð¾ÐºÑÐ¼ÐµÐ½Ñ Ð² Ð¸ÑÑÐ¾ÑÐ¸Ð¸
+    const isLargeContext = totalContextChars > 80000; // > ~80k символов = документ в истории
     const isNotationHeavy = isCreativeOrNotationRequest(query);
     const wantsStaff = wantsRenderedStaff(query);
     let modelTimeoutMs;
@@ -763,10 +763,10 @@ export default async function handler(req, res) {
     } else {
       modelTimeoutMs = 25000;
     }
-    // ÐÐ»Ñ Ð±Ð¾Ð»ÑÑÐ¾Ð³Ð¾ ÐºÐ¾Ð½ÑÐµÐºÑÑÐ° (Ð´Ð¾ÐºÑÐ¼ÐµÐ½Ñ 300Ðº+ ÑÐ¸Ð¼Ð²Ð¾Ð»Ð¾Ð²) Ð¼Ð¾Ð´ÐµÐ»Ð¸ Ð½ÑÐ¶Ð½Ð¾ Ð±Ð¾Ð»ÑÑÐµ Ð²ÑÐµÐ¼ÐµÐ½Ð¸
+    // Для большого контекста (документ 300к+ символов) модели нужно больше времени
     if (isLargeContext) modelTimeoutMs = Math.max(modelTimeoutMs, 90000);
     const mergedSystem = appendServerContext(systemText, [
-      profile ? `ÐÑÐ¾ÑÐ¸Ð»Ñ Ð¿Ð¾Ð»ÑÐ·Ð¾Ð²Ð°ÑÐµÐ»Ñ: role=${profile.role || 'user'}, plan=${profile.plan || 'free'}` : '',
+      profile ? `Профиль пользователя: role=${profile.role || 'user'}, plan=${profile.plan || 'free'}` : '',
       buildMemoryContext(memories, query),
       buildFeedbackContext(feedbackRows, query),
       buildKnowledgeContext(documents, chunks, query)
@@ -782,7 +782,7 @@ export default async function handler(req, res) {
           if (streamResult.ok) return;
           lastError = {
             status: streamResult.status || 500,
-            message: streamResult.message || `ÐÑÐ¸Ð±ÐºÐ° Ð¼Ð¾Ð´ÐµÐ»Ð¸ ${modelName}`,
+            message: streamResult.message || `Ошибка модели ${modelName}`,
             model: streamResult.model || modelName
           };
           const errorMessage = lastError.message || '';
@@ -790,7 +790,7 @@ export default async function handler(req, res) {
             console.error(`[harmonyai] model unavailable | model=${modelName} | reason=${compactErrorValue(errorMessage, 500)}`);
             return res.status(400).json({
               error: {
-                message: 'ÐÑÐ±ÑÐ°Ð½Ð½Ð°Ñ Ð¼Ð¾Ð´ÐµÐ»Ñ Ð²ÑÐµÐ¼ÐµÐ½Ð½Ð¾ Ð½ÐµÐ´Ð¾ÑÑÑÐ¿Ð½Ð°. ÐÐ¾Ð¿ÑÐ¾Ð±ÑÐ¹ÑÐµ Ð´ÑÑÐ³ÑÑ Ð¼Ð¾Ð´ÐµÐ»Ñ Ð¸Ð»Ð¸ Ð¿Ð¾Ð²ÑÐ¾ÑÐ¸ÑÐµ Ð¿Ð¾Ð·Ð¶Ðµ.',
+                message: 'Выбранная модель временно недоступна. Попробуйте другую модель или повторите позже.',
                 status: lastError.status || 400
               }
             });
@@ -812,12 +812,12 @@ export default async function handler(req, res) {
         const { response, data } = await callOpenAI(route.apiKey, modelName, openAiMessages, modelTimeoutMs);
         const errorMessage = data?.error?.message || '';
         if (!response.ok || data.error) {
-          lastError = { status: response.status || 500, message: errorMessage || `ÐÑÐ¸Ð±ÐºÐ° Ð¼Ð¾Ð´ÐµÐ»Ð¸ ${modelName}`, model: modelName };
+          lastError = { status: response.status || 500, message: errorMessage || `Ошибка модели ${modelName}`, model: modelName };
           if (isModelUnavailable(errorMessage)) {
             console.error(`[harmonyai] model unavailable | model=${modelName} | reason=${compactErrorValue(errorMessage, 500)}`);
             return res.status(400).json({
               error: {
-                message: 'ÐÑÐ±ÑÐ°Ð½Ð½Ð°Ñ Ð¼Ð¾Ð´ÐµÐ»Ñ Ð²ÑÐµÐ¼ÐµÐ½Ð½Ð¾ Ð½ÐµÐ´Ð¾ÑÑÑÐ¿Ð½Ð°. ÐÐ¾Ð¿ÑÐ¾Ð±ÑÐ¹ÑÐµ Ð´ÑÑÐ³ÑÑ Ð¼Ð¾Ð´ÐµÐ»Ñ Ð¸Ð»Ð¸ Ð¿Ð¾Ð²ÑÐ¾ÑÐ¸ÑÐµ Ð¿Ð¾Ð·Ð¶Ðµ.',
+                message: 'Выбранная модель временно недоступна. Попробуйте другую модель или повторите позже.',
                 status: response.status || 400
               }
             });
@@ -837,7 +837,7 @@ export default async function handler(req, res) {
           route.apiKey,
           modelName,
           query,
-          data?.choices?.[0]?.message?.content || 'ÐÐµÑ Ð¾ÑÐ²ÐµÑÐ°'
+          data?.choices?.[0]?.message?.content || 'Нет ответа'
         );
         return res.status(200).json({
           choices: [{ message: { content: replyText } }]
@@ -859,7 +859,7 @@ export default async function handler(req, res) {
         console.error(`[harmonyai] overloaded | model=${lastError.model || ''} | reason=${compactErrorValue(lastError.message, 500)}`);
         return res.status(503).json({
           error: {
-            message: 'Ð¡ÐµÐ¹ÑÐ°Ñ Ð²ÑÑÐ¾ÐºÐ°Ñ Ð½Ð°Ð³ÑÑÐ·ÐºÐ° Ð½Ð° ÑÐµÑÐ²Ð¸Ñ. ÐÐ¾Ð¿ÑÐ¾Ð±ÑÐ¹ÑÐµ Ð¿Ð¾Ð²ÑÐ¾ÑÐ¸ÑÑ Ð·Ð°Ð¿ÑÐ¾Ñ ÑÐµÑÐµÐ· Ð¼Ð¸Ð½ÑÑÑ.',
+            message: 'Сейчас высокая нагрузка на сервис. Попробуйте повторить запрос через минуту.',
             status: lastError.status || 503
           }
         });
@@ -869,7 +869,7 @@ export default async function handler(req, res) {
         console.error(`[harmonyai] timeout | model=${lastError.model || ''} | reason=${compactErrorValue(lastError.message, 500)}`);
         return res.status(504).json({
           error: {
-            message: 'ÐÐ¾Ð´ÐµÐ»Ñ Ð¾ÑÐ²ÐµÑÐ°ÐµÑ ÑÐ»Ð¸ÑÐºÐ¾Ð¼ Ð´Ð¾Ð»Ð³Ð¾. ÐÐ¾Ð¿ÑÐ¾Ð±ÑÐ¹ÑÐµ ÐµÑÑ ÑÐ°Ð· Ð¸Ð»Ð¸ Ð¾ÑÐºÐ»ÑÑÐ¸ÑÐµ ÑÐ»Ð¾Ð¶Ð½ÑÐ¹ ÑÐµÐ¶Ð¸Ð¼.',
+            message: 'Модель отвечает слишком долго. Попробуйте ещё раз или отключите сложный режим.',
             status: 504
           }
         });
@@ -878,20 +878,20 @@ export default async function handler(req, res) {
       console.error(`[harmonyai] request failed | model=${lastError?.model || ''} | reason=${compactErrorValue(lastError?.message, 500)}`);
       return res.status(lastError?.status || 500).json({
         error: {
-          message: 'ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ Ð¿Ð¾Ð»ÑÑÐ¸ÑÑ Ð¾ÑÐ²ÐµÑ Ð¾Ñ Ð¼Ð¾Ð´ÐµÐ»Ð¸. ÐÐ¾Ð¿ÑÐ¾Ð±ÑÐ¹ÑÐµ ÐµÑÑ ÑÐ°Ð·.'
+          message: 'Не удалось получить ответ от модели. Попробуйте ещё раз.'
         }
       });
     }
 
     return res.status(500).json({
       error: {
-        message: 'ÐÐµ ÑÐ´Ð°Ð»Ð¾ÑÑ Ð²ÑÐ±ÑÐ°ÑÑ Ð¿ÑÐ¾Ð²Ð°Ð¹Ð´ÐµÑÐ° Ð¼Ð¾Ð´ÐµÐ»Ð¸'
+        message: 'Не удалось выбрать провайдера модели'
       }
     });
   } catch (error) {
     return res.status(500).json({
       error: {
-        message: error?.message || 'ÐÐ½ÑÑÑÐµÐ½Ð½ÑÑ Ð¾ÑÐ¸Ð±ÐºÐ° ÑÐµÑÐ²ÐµÑÐ°'
+        message: error?.message || 'Внутренняя ошибка сервера'
       }
     });
   }
