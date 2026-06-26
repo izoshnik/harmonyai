@@ -2,14 +2,16 @@ export const config = {
   maxDuration: 300
 };
 
+// Adanatos (free) всегда отвечает на gpt-5.4, Dynatos (pro) — на gpt-5.5.
+// Режимы low/max НЕ меняют модель, они меняют только таймаут/глубину (см. selectRoute/handler).
 const MODEL_CHAINS = {
   adanatos: [
-    process.env.ADANATOS_MODEL || 'gpt-5.4-mini',
-    process.env.ADANATOS_FALLBACK || 'gpt-5.4'
+    process.env.ADANATOS_MODEL || 'gpt-5.4',
+    process.env.ADANATOS_FALLBACK || 'gpt-5.4-mini'
   ],
   dynatos: [
-    process.env.DYNATOS_MODEL || 'gpt-5.4',
-    process.env.DYNATOS_FALLBACK || 'gpt-5.4-mini'
+    process.env.DYNATOS_MODEL || 'gpt-5.5',
+    process.env.DYNATOS_FALLBACK || 'gpt-5.4'
   ]
 };
 
@@ -335,6 +337,17 @@ async function maybeSaveDeveloperNote(profile, queryText, trainingMode = false) 
   });
 }
 
+function buildThinkInstruction() {
+  return [
+    '',
+    'РЕЖИМ ДУМАТЬ ВКЛЮЧЁН.',
+    `Сначала напиши настоящий, развёрнутый ход рассуждений простым текстом (анализ вопроса, варианты, проверка) — это реальные размышления, а не заглушка.`,
+    `Когда рассуждения закончены, выведи на отдельной строке ровно маркер ${REASONING_DELIMITER}`,
+    `Сразу после маркера дай финальный, чистый ответ для пользователя без повторения рассуждений.`,
+    'Не используй маркер где-либо ещё, кроме этого единственного разделителя.'
+  ].join('\n');
+}
+
 function appendServerContext(systemText, additions) {
   return [systemText || '', ...additions.filter(Boolean)].join('\n');
 }
@@ -527,6 +540,12 @@ function hasAbcBlock(text = '') {
   return /```\s*abc[\r\n]+[\s\S]*?```/i.test(String(text || ''));
 }
 
+function stripReasoningPrefix(text = '') {
+  const idx = String(text || '').indexOf(REASONING_DELIMITER);
+  if (idx === -1) return text;
+  return String(text).slice(idx + REASONING_DELIMITER.length).replace(/^\s+/, '');
+}
+
 async function repairNotationReplyIfNeeded(apiKey, modelName, query, replyText) {
   const cleanReply = sanitizeAssistantText(replyText);
   if (!wantsRenderedStaff(query) || hasAbcBlock(cleanReply)) {
@@ -562,7 +581,11 @@ function writeSseEvent(res, payload) {
   res.write(`data: ${JSON.stringify(payload)}\n\n`);
 }
 
-async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs, query, largeContext = false) {
+// Маркер, после которого начинается финальный ответ для пользователя.
+// Модель просят сначала писать реальные рассуждения, затем этот маркер, затем сам ответ.
+const REASONING_DELIMITER = '===ОТВЕТ===';
+
+async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs, query, largeContext = false, captureReasoning = false) {
   const upstream = await callOpenAIStream(apiKey, modelName, messages, timeoutMs);
   if (!upstream.ok) {
     let data = {};
@@ -599,6 +622,11 @@ async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs,
   let buffer = '';
   let fullText = '';
   let gotAnyDelta = false;
+
+  // Состояние разбора рассуждений в реальном времени (только если captureReasoning=true)
+  let rawAll = '';            // весь текст модели как есть (с маркером)
+  let switchedToAnswer = !captureReasoning; // если не просили рассуждения — сразу режим ответа
+  let pendingHold = '';       // придерживаем хвост на случай, если маркер разорван между чанками
 
   const chunkTimeoutMs = largeContext
     ? Math.max(30000, Math.min(timeoutMs, 60000))  // до 60с между чанками для больших документов
@@ -639,7 +667,33 @@ async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs,
         if (typeof delta === 'string' && delta) {
           gotAnyDelta = true;
           fullText += delta;
-          writeSseEvent(res, { type: 'delta', text: delta });
+
+          if (!captureReasoning || switchedToAnswer) {
+            writeSseEvent(res, { type: 'delta', text: delta });
+            continue;
+          }
+
+          // Накопили текст с потенциальным маркером — ищем его, придерживая хвост
+          rawAll += pendingHold + delta;
+          pendingHold = '';
+          const idx = rawAll.indexOf(REASONING_DELIMITER);
+          if (idx === -1) {
+            // Держим в буфере только хвост, который может быть началом маркера
+            const holdLen = Math.min(rawAll.length, REASONING_DELIMITER.length - 1);
+            const safeLen = rawAll.length - holdLen;
+            if (safeLen > 0) {
+              writeSseEvent(res, { type: 'reasoning', text: rawAll.slice(0, safeLen) });
+            }
+            pendingHold = rawAll.slice(safeLen);
+            rawAll = rawAll.slice(safeLen);
+          } else {
+            const reasoningPart = rawAll.slice(0, idx);
+            if (reasoningPart) writeSseEvent(res, { type: 'reasoning', text: reasoningPart });
+            const answerPart = rawAll.slice(idx + REASONING_DELIMITER.length).replace(/^\s+/, '');
+            switchedToAnswer = true;
+            rawAll = '';
+            if (answerPart) writeSseEvent(res, { type: 'delta', text: answerPart });
+          }
         }
       }
     }
@@ -656,7 +710,14 @@ async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs,
     };
   }
 
-  const finalText = await repairNotationReplyIfNeeded(apiKey, modelName, query, fullText);
+  // Если маркер так и не пришёл (модель не подчинилась формату) — отдаём всё как ответ целиком
+  let finalRawText = fullText;
+  if (captureReasoning && !switchedToAnswer) {
+    const idx = fullText.indexOf(REASONING_DELIMITER);
+    finalRawText = idx === -1 ? fullText : fullText.slice(idx + REASONING_DELIMITER.length).replace(/^\s+/, '');
+  }
+
+  const finalText = await repairNotationReplyIfNeeded(apiKey, modelName, query, finalRawText);
   writeSseEvent(res, { type: 'done', text: finalText });
   res.end();
 
@@ -749,24 +810,30 @@ export default async function handler(req, res) {
     const isLargeContext = totalContextChars > 80000; // > ~80k символов = документ в истории
     const isNotationHeavy = isCreativeOrNotationRequest(query);
     const wantsStaff = wantsRenderedStaff(query);
+    // Цель: простые/обычные запросы (думать выкл, эффорт low) должны укладываться в 5-10 сек
+    // ощущаемого времени ответа — таймаут здесь это потолок ожидания, а не искусственная задержка,
+    // но более низкий потолок заставляет быстрее фейлиться на зависшем запросе и не "висеть" зря.
+    // Режим "Думать" и effort=max сознательно получают намного больше времени, т.к. там нужна
+    // реальная глубина рассуждений, а не скорость.
     let modelTimeoutMs;
     if (think || effort === 'max') {
-      modelTimeoutMs = wantsStaff ? 35000 : 50000;
+      modelTimeoutMs = wantsStaff ? 45000 : 60000;
     } else if (isQuick && !isLargeContext) {
-      modelTimeoutMs = 15000;
+      modelTimeoutMs = 8000;
     } else if (wantsStaff) {
-      modelTimeoutMs = 30000;
+      modelTimeoutMs = 20000;
     } else if (wantsContext) {
-      modelTimeoutMs = 35000;
+      modelTimeoutMs = 18000;
     } else if (isNotationHeavy) {
-      modelTimeoutMs = 30000;
+      modelTimeoutMs = 16000;
     } else {
-      modelTimeoutMs = 25000;
+      modelTimeoutMs = 12000;
     }
     // Для большого контекста (документ 300к+ символов) модели нужно больше времени
     if (isLargeContext) modelTimeoutMs = Math.max(modelTimeoutMs, 90000);
     const mergedSystem = appendServerContext(systemText, [
       profile ? `Профиль пользователя: role=${profile.role || 'user'}, plan=${profile.plan || 'free'}` : '',
+      think ? buildThinkInstruction() : '',
       buildMemoryContext(memories, query),
       buildFeedbackContext(feedbackRows, query),
       buildKnowledgeContext(documents, chunks, query)
@@ -778,7 +845,7 @@ export default async function handler(req, res) {
       const openAiMessages = mapMessagesForOpenAI(messages, mergedSystem);
       for (const modelName of route.models) {
         if (stream) {
-          const streamResult = await streamOpenAIToClient(res, route.apiKey, modelName, openAiMessages, modelTimeoutMs, query, isLargeContext);
+          const streamResult = await streamOpenAIToClient(res, route.apiKey, modelName, openAiMessages, modelTimeoutMs, query, isLargeContext, Boolean(think));
           if (streamResult.ok) return;
           lastError = {
             status: streamResult.status || 500,
@@ -833,11 +900,12 @@ export default async function handler(req, res) {
           if (isOverloaded(response.status, errorMessage)) await sleep(800);
           continue;
         }
+        const rawContent = data?.choices?.[0]?.message?.content || 'Нет ответа';
         const replyText = await repairNotationReplyIfNeeded(
           route.apiKey,
           modelName,
           query,
-          data?.choices?.[0]?.message?.content || 'Нет ответа'
+          think ? stripReasoningPrefix(rawContent) : rawContent
         );
         return res.status(200).json({
           choices: [{ message: { content: replyText } }]
