@@ -64,15 +64,71 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans
 
 body{background:var(--bg);color:var(--text);}
 
-/* ===================== GLOSSY MOBILE BACKGROUND ===================== */
+/* ===================== ПЛАВНЫЕ АНИМАЦИИ КНОПОК (ощущение "живого" интерфейса) ===================== */
+/* Группа A: элементы без своего layout-transform — им безопасно давать scale() на нажатии. */
+.sb-icon-btn,.topbar-btn,.sth-back,.s-row,.mmp-opt,.desktop-option,.auth-btn-primary,
+.auth-btn-secondary,.mac-btn,.more-item,.pers-selector,.composer-attachment,.msg-user-attachment,
+.sb-user-row,.sb-chat-item,.training-tip,.otp-box{
+  transition:transform .16s cubic-bezier(.34,1.56,.64,1),background-color .15s ease,box-shadow .18s ease,opacity .15s ease,color .15s ease,border-color .15s ease;
+  will-change:transform;
+}
+.sb-icon-btn:active,.topbar-btn:active,.sth-back:active,.s-row:active,.mmp-opt:active,
+.desktop-option:active,.auth-btn-primary:active,.auth-btn-secondary:active,.mac-btn:active,
+.more-item:active,.pers-selector:active,.composer-attachment:active,.msg-user-attachment:active{
+  transform:scale(.94);
+  transition:transform .08s cubic-bezier(.4,0,.2,1);
+}
+.sb-icon-btn:hover,.topbar-btn:hover,.mmp-opt:hover,.desktop-option:hover,.mac-btn:hover,.more-item:hover{
+  transform:translateY(-1px);
+}
+/* Группа B: элементы со своим layout-transform (центрирование/смещение) — анимируем без transform,
+   чтобы не сбить позиционирование, отдачу даём через яркость/тень. */
+button,.model-pill,.send-btn{
+  transition:filter .15s ease,box-shadow .18s ease,opacity .15s ease,background-color .15s ease,border-color .15s ease;
+}
+button:active,.model-pill:active,.send-btn:active{
+  filter:brightness(.88);
+}
+@media(prefers-reduced-motion:reduce){
+  .sb-icon-btn,.topbar-btn,.sth-back,.s-row,.mmp-opt,.desktop-option,.auth-btn-primary,
+  .auth-btn-secondary,.mac-btn,.more-item,.pers-selector,button,.model-pill,.send-btn{transition:none!important;}
+  .sb-icon-btn:active,.topbar-btn:active,.sth-back:active,.s-row:active,.mmp-opt:active,
+  .desktop-option:active,.auth-btn-primary:active,.auth-btn-secondary:active,.mac-btn:active,
+  .more-item:active,.pers-selector:active,button:active,.model-pill:active,.send-btn:active{transform:none;filter:none;}
+}
+
+/* ===================== GLOSSY MOBILE BACKGROUND (чёрный/графит, liquid glass) ===================== */
 .mobile-glossy{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
-.mobile-glossy .bubble{position:absolute;border-radius:50%;filter:blur(60px);opacity:0.35;animation:floatBubble 12s ease-in-out infinite;}
-.mobile-glossy .b1{width:280px;height:280px;background:radial-gradient(circle,#4f46e5 0%,transparent 70%);top:10%;left:-10%;animation-delay:0s;}
-.mobile-glossy .b2{width:240px;height:240px;background:radial-gradient(circle,#7c3aed 0%,transparent 70%);top:35%;right:-15%;animation-delay:-4s;}
-.mobile-glossy .b3{width:200px;height:200px;background:radial-gradient(circle,#2563eb 0%,transparent 70%);top:60%;left:20%;animation-delay:-8s;}
-.mobile-glossy .b4{width:180px;height:180px;background:radial-gradient(circle,#0891b2 0%,transparent 70%);bottom:20%;right:10%;animation-delay:-2s;}
+.mobile-glossy .bubble{position:absolute;border-radius:50%;filter:blur(70px);opacity:0.28;animation:floatBubble 14s ease-in-out infinite;}
+.mobile-glossy .b1{width:280px;height:280px;background:radial-gradient(circle,#3a3a42 0%,transparent 70%);top:10%;left:-10%;animation-delay:0s;}
+.mobile-glossy .b2{width:240px;height:240px;background:radial-gradient(circle,#26262c 0%,transparent 70%);top:35%;right:-15%;animation-delay:-4s;}
+.mobile-glossy .b3{width:200px;height:200px;background:radial-gradient(circle,#1d1d22 0%,transparent 70%);top:60%;left:20%;animation-delay:-8s;}
+.mobile-glossy .b4{width:180px;height:180px;background:radial-gradient(circle,#2e2e35 0%,transparent 70%);bottom:20%;right:10%;animation-delay:-2s;}
 @keyframes floatBubble{0%,100%{transform:translate(0,0) scale(1);}33%{transform:translate(20px,-15px) scale(1.05);}66%{transform:translate(-15px,10px) scale(0.95);}}
 @media(min-width:769px){.mobile-glossy{display:none;}}
+
+/* ===================== LIQUID GLASS CORE ===================== */
+/* SVG-фильтр (feTurbulence -> feDisplacementMap) задаёт "текучее" искажение для .bg-liquid-glass.
+   Подложка (::before) получает blur+saturate+displacement, контент рисуется отдельным слоем сверху,
+   поэтому текст никогда не искажается и не сливается с фоном. */
+.bg-liquid-glass,
+.sidebar,.settings-box,.mobile-model-drop,.desktop-model-drop,.desktop-sub-drop,.input-box,.pers-drop-sheet,
+.s-rows,.mem-rows,.pers-card,.more-menu,.model-drop,.mode-sub,.fb-modal{position:relative;isolation:isolate;}
+.bg-liquid-glass::before,
+.sidebar::before,.settings-box::before,.mobile-model-drop::before,.desktop-model-drop::before,.desktop-sub-drop::before,.input-box::before,.pers-drop-sheet::before,
+.s-rows::before,.mem-rows::before,.pers-card::before,.more-menu::before,.model-drop::before,.mode-sub::before,.fb-modal::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;
+  backdrop-filter:blur(22px) saturate(150%);-webkit-backdrop-filter:blur(22px) saturate(150%);
+  background:linear-gradient(155deg,rgba(255,255,255,0.07),rgba(255,255,255,0.015) 40%,rgba(0,0,0,0.10));
+  filter:url(#liquidGlassFilter);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.10),inset 0 0 0 1px rgba(255,255,255,0.06),0 18px 40px rgba(0,0,0,0.38);
+  pointer-events:none;}
+.bg-liquid-glass::after,
+.sidebar::after,.settings-box::after,.mobile-model-drop::after,.desktop-model-drop::after,.desktop-sub-drop::after,.input-box::after,.pers-drop-sheet::after,
+.s-rows::after,.mem-rows::after,.pers-card::after,.more-menu::after,.model-drop::after,.mode-sub::after,.fb-modal::after{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;
+  background:linear-gradient(125deg,rgba(255,255,255,0.10) 0%,rgba(255,255,255,0) 26%,rgba(255,255,255,0) 70%,rgba(255,255,255,0.05) 100%);
+  mix-blend-mode:overlay;opacity:.9;animation:liquidSheen 9s ease-in-out infinite;}
+@keyframes liquidSheen{0%,100%{opacity:.55;}50%{opacity:.95;}}
+@media(prefers-reduced-motion:reduce){.bg-liquid-glass::after,.sidebar::after,.settings-box::after,.mobile-model-drop::after,.desktop-model-drop::after,.desktop-sub-drop::after,.input-box::after,.pers-drop-sheet::after,.s-rows::after,.mem-rows::after,.pers-card::after,.more-menu::after,.model-drop::after,.mode-sub::after,.fb-modal::after{animation:none;}.mobile-glossy .bubble{animation:none;}}
 
 /* ===================== AUTH ===================== */
 .auth-wrap{position:fixed;inset:0;z-index:1000;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px;}
@@ -108,7 +164,7 @@ body{background:var(--bg);color:var(--text);}
 .app.show{display:flex;}
 @media(max-width:768px){
   .app{flex-direction:column;}
-  .sidebar{position:fixed;top:0;left:0;bottom:0;width:min(78vw,286px);z-index:50;background:rgba(18,18,22,.96);backdrop-filter:blur(18px);border-right:1px solid rgba(255,255,255,.08);box-shadow:18px 0 48px rgba(0,0,0,.34);transform:translateX(-100%);transition:transform .28s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;padding:18px 12px calc(16px + env(safe-area-inset-bottom,0px));overflow:hidden;height:100%;box-sizing:border-box;}
+  .sidebar{position:fixed;top:0;left:0;bottom:0;width:min(78vw,286px);z-index:50;background:rgba(18,18,20,0.5);backdrop-filter:blur(26px) saturate(150%);border-right:1px solid rgba(255,255,255,.08);box-shadow:18px 0 48px rgba(0,0,0,.34);transform:translateX(-100%);transition:transform .28s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;padding:18px 12px calc(16px + env(safe-area-inset-bottom,0px));overflow:hidden;}
   .sidebar.open{transform:translateX(0);}
   .overlay{position:fixed;inset:0;background:rgba(0,0,0,.42);backdrop-filter:blur(2px);z-index:40;opacity:0;visibility:hidden;transition:opacity .25s;}
   .overlay.show{opacity:1;visibility:visible;}
@@ -119,7 +175,7 @@ body{background:var(--bg);color:var(--text);}
 @media(min-width:769px){
   .app{flex-direction:row;}
   .overlay{display:none;}
-  .sidebar{width:52px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:16px 0;gap:4px;transition:width .25s cubic-bezier(.4,0,.2,1);overflow:hidden;height:100%;box-sizing:border-box;}
+  .sidebar{width:52px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:16px 0;gap:4px;transition:width .25s cubic-bezier(.4,0,.2,1);overflow:hidden;}
   .sidebar.expanded{width:220px;align-items:stretch;padding:16px 10px;}
   .main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);}
   .topbar{display:none;}
@@ -136,12 +192,12 @@ body{background:var(--bg);color:var(--text);}
 }
 .sb-top{display:flex;flex-direction:column;gap:4px;}
 @media(max-width:768px){.sb-top{margin-bottom:8px;}}
-.sb-chat-list{flex:1;overflow-y:auto;margin-top:8px;display:none;min-height:0;}
+.sb-chat-list{flex:1;overflow-y:auto;margin-top:8px;display:none;}
 .sb-chat-list::-webkit-scrollbar{width:3px;}
 .sb-chat-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
 .sb-chat-item{padding:8px 10px;border-radius:8px;font-size:13px;color:var(--text);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.75;transition:background .12s;margin-bottom:2px;}
 .sb-chat-item:hover,.sb-chat-item.active{background:var(--active);opacity:1;}
-@media(max-width:768px){.sb-chat-list{display:flex!important;flex-direction:column;gap:4px;min-height:0;}}
+@media(max-width:768px){.sb-chat-list{display:block!important;}}
 @media(min-width:769px){
   .sb-chat-list{display:none;}
   .sidebar.expanded .sb-chat-list{display:block!important;}
@@ -326,6 +382,14 @@ body{background:var(--bg);color:var(--text);}
 @keyframes bop{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
 @keyframes thinkStepIn{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:translateY(0);}}
 .think-step{display:inline-block;animation:thinkStepIn .3s cubic-bezier(.22,.61,.36,1) both;}
+.think-trace{align-self:stretch;font-size:13px;line-height:1.55;color:var(--text2);background:rgba(255,255,255,0.035);border:1px solid var(--border2);border-left:2px solid rgba(255,255,255,0.16);border-radius:12px;padding:10px 12px;margin-bottom:6px;white-space:pre-wrap;overflow-wrap:anywhere;max-height:1600px;overflow:hidden;transition:max-height .35s ease,opacity .35s ease,padding .35s ease;}
+.think-trace.collapsed{max-height:34px;cursor:pointer;opacity:.68;}
+.think-trace.collapsed:hover{opacity:1;background:rgba(255,255,255,0.06);}
+.think-trace-label{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;}
+.think-trace-label svg{flex-shrink:0;opacity:.8;}
+.think-trace.live .think-trace-label svg{animation:thinkSpin 1.6s linear infinite;}
+@keyframes thinkSpin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+.think-trace-body{opacity:.92;}
 
 /* Composer attachments */
 .composer-attachments{width:100%;max-width:720px;display:none;align-items:flex-start;justify-content:flex-start;flex-wrap:wrap;gap:10px;}
@@ -425,7 +489,7 @@ body{background:var(--bg);color:var(--text);}
 .stream-break>*:last-child{display:inline;}
 @media(max-width:768px){
   .input-wrap{padding:6px 14px calc(8px + env(safe-area-inset-bottom,0px));}
-  .input-box{position:relative;overflow:visible;border-radius:22px;padding:12px 14px 58px;min-height:96px;background:linear-gradient(180deg,rgba(25,25,31,.78),rgba(15,15,20,.94));backdrop-filter:blur(18px);border-color:rgba(255,255,255,0.10);box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 10px 34px rgba(0,0,0,.22);}
+  .input-box{position:relative;overflow:visible;border-radius:22px;padding:12px 14px 58px;min-height:96px;background:linear-gradient(180deg,rgba(28,28,34,.46),rgba(15,15,20,.56));backdrop-filter:blur(24px) saturate(150%);-webkit-backdrop-filter:blur(24px) saturate(150%);border-color:rgba(255,255,255,0.10);box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 10px 34px rgba(0,0,0,.22);}
   .input-box textarea{min-height:26px;padding-right:8px;font-size:17px;line-height:1.4;}
   .input-box textarea::placeholder{color:rgba(212,209,220,.58);}
   .input-bar-row{position:absolute;left:14px;right:12px;bottom:10px;height:42px;margin-top:0;}
@@ -438,7 +502,7 @@ body{background:var(--bg);color:var(--text);}
   .pill-name{max-width:76px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#1d1d21;font-size:12px;font-weight:800;}
   .pill-mode{font-size:12px;color:rgba(29,29,33,.72);text-transform:none;}
   .pill-caret{display:none;}
-  .mobile-model-drop.compact-mobile-picker{left:50%;right:auto;bottom:calc(100% + 14px);transform:translateX(-50%);width:min(276px, calc(100vw - 56px));min-width:0;max-height:min(62vh,420px);overflow-y:auto;padding:12px;border-radius:22px;background:rgba(20,20,27,.97);border:1px solid rgba(255,255,255,.09);backdrop-filter:blur(22px);box-shadow:0 24px 48px rgba(0,0,0,.35);}
+  .mobile-model-drop.compact-mobile-picker{left:50%;right:auto;bottom:calc(100% + 14px);transform:translateX(-50%);width:min(276px, calc(100vw - 56px));min-width:0;max-height:min(62vh,420px);overflow-y:auto;padding:12px;border-radius:22px;background:rgba(20,20,27,.55);border:1px solid rgba(255,255,255,.10);backdrop-filter:blur(26px) saturate(150%);-webkit-backdrop-filter:blur(26px) saturate(150%);box-shadow:0 24px 48px rgba(0,0,0,.35);}
   .mobile-mode-sub{display:none!important;}
   .desktop-model-wrap{display:none!important;}
   .mmp-title{font-size:13px;font-weight:700;color:var(--text);padding:2px 4px 10px;}
@@ -554,6 +618,13 @@ body{background:var(--bg);color:var(--text);}
 
 /* ===================== ПЕРСОНАЛИЗАЦИЯ ===================== */
 .pers-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:16px;}
+@media(max-width:768px){
+  /* Liquid glass: на тёмной мобильной теме делаем поверхности полупрозрачными, чтобы сквозь
+     blur(backdrop-filter) было видно размытый чёрный фон с шарами позади — это и даёт эффект стекла. */
+  .settings-overlay{background:rgba(8,8,10,.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);}
+  .s-rows,.mem-rows,.pers-card{background:rgba(255,255,255,0.045);border-color:rgba(255,255,255,0.09);backdrop-filter:blur(18px) saturate(140%);-webkit-backdrop-filter:blur(18px) saturate(140%);}
+  .more-menu,.model-drop,.mode-sub,.fb-modal{background:rgba(22,22,27,0.55);border-color:rgba(255,255,255,0.10);backdrop-filter:blur(22px) saturate(150%);-webkit-backdrop-filter:blur(22px) saturate(150%);}
+}
 .pers-header{padding:16px 16px 12px;}
 .pers-h-label{font-size:13px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;}
 .pers-selector{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:10px;background:var(--bg3);cursor:pointer;transition:background .12s;border:1px solid transparent;}
@@ -608,6 +679,16 @@ body{background:var(--bg);color:var(--text);}
 </style>
 </head>
 <body>
+
+<!-- LIQUID GLASS SVG FILTER: feTurbulence генерирует шум, feDisplacementMap создаёт "текучее" искажение -->
+<svg width="0" height="0" style="position:absolute;overflow:hidden;pointer-events:none">
+  <defs>
+    <filter id="liquidGlassFilter" x="-20%" y="-20%" width="140%" height="140%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.010 0.016" numOctaves="2" seed="7" result="lgNoise"/>
+      <feDisplacementMap in="SourceGraphic" in2="lgNoise" scale="14" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+  </defs>
+</svg>
 
 <!-- GLOSSY MOBILE BACKGROUND -->
 <div class="mobile-glossy">
@@ -731,9 +812,10 @@ body{background:var(--bg);color:var(--text);}
           </div>
           <div class="bar-right">
             <!-- Training pill (shown instead of model pill while in Обучение) -->
-            <div class="model-pill" id="trainingPill" title="Режим обучения активен" style="display:none;cursor:default;opacity:.85;">
+            <div class="model-pill" id="trainingPill" onclick="exitTraining()" title="Выйти из режима обучения" style="display:none">
               <span class="pill-name">🎓</span>
               <span class="pill-mode">Обучение</span>
+              <span class="pill-caret">▾</span>
             </div>
             <!-- Model pill -->
             <div class="model-pill" id="modelPill" onclick="toggleModelDrop(event)">
@@ -875,8 +957,6 @@ function isDesktop(){return window.innerWidth>=769;}
 function isDeveloper(){return curUser?.role==='developer';}
 function hasTrainingAccess(){return Boolean(curUser&&(curUser.role==='developer'||curUser.role==='admin'));}
 let trainingMode=false;
-// Восстанавливаем режим обучения при перезаходе/переключении вкладки в PWA
-try{trainingMode=sessionStorage.getItem('harmonyTrainingMode')==='1';}catch(e){}
 function withTimeout(promise,ms,message){
   let timer;
   return Promise.race([
@@ -963,16 +1043,7 @@ function ensureSignedInShell(session){
   document.getElementById('authWrap').classList.add('gone');
   document.getElementById('app').classList.add('show');
   updateUserUI();
-  if(!curChatId&&chatHistory.length===0){
-    // Если был активен режим обучения — восстановить его, иначе открыть новый чат
-    if(trainingMode&&hasTrainingAccess()){
-      const inner=document.getElementById('chatInner');
-      if(inner)inner.innerHTML=trainingGreetingHTML();
-      updateTrainingPillUI();
-    }else{
-      newChat();
-    }
-  }
+  if(!curChatId&&chatHistory.length===0)newChat();
 }
 async function hydrateSignedInState(session){
   const uid=session?.user?.id;
@@ -1284,7 +1355,7 @@ function normalizeDocText(text){
     .replace(/[ \t]{2,}/g,' ')
     .trim();
 }
-function chunkText(text,size=12000,overlap=800){
+function chunkText(text,size=6000,overlap=600){
   const src=normalizeDocText(text);
   if(!src)return [];
   const out=[];
@@ -1390,25 +1461,20 @@ function topChunksFromDocs(query,docs,limit=4,maxChars=8000,requireScore=true){
       let score=0;
       tokens.forEach(token=>{if(low.includes(token))score+=token.length>5?3:2;});
       if(doc.kind==='note')score+=1;
-      // requireScore=false → включаем ВСЕ чанки в порядке следования (полное чтение файла без потерь)
-      // requireScore=true  → только совпадающие по ключевым словам (поиск по базе знаний)
-      if(!requireScore||score>0||!tokens.length)scored.push({score,chunk,name:doc.name,idx,docId:doc.id||doc.name});
+      // requireScore=false → always include (for attached/recent docs that are all relevant)
+      // requireScore=true  → only include if matched, but fallback to first chunks if nothing matched
+      if(!requireScore||score>0||!tokens.length)scored.push({score,chunk,name:doc.name,idx});
     });
   });
-  // Fallback для базы знаний: если ничего не совпало — первые чанки каждого документа
+  // Fallback for global knowledge base: if nothing matched, include first chunk from each doc
   if(requireScore&&!scored.length&&docs.length){
     docs.forEach(doc=>{
       (doc.chunks||[]).slice(0,Math.max(1,Math.ceil(limit/docs.length))).forEach((chunk,idx)=>{
-        scored.push({score:0,chunk,name:doc.name,idx,docId:doc.id||doc.name});
+        scored.push({score:0,chunk,name:doc.name,idx});
       });
     });
   }
-  if(!requireScore){
-    // Для полного чтения файлов — сохраняем порядок чанков как в оригинале
-    scored.sort((a,b)=>(a.docId>b.docId?1:a.docId<b.docId?-1:0)||(a.idx-b.idx));
-  }else{
-    scored.sort((a,b)=>b.score-a.score||(a.idx||0)-(b.idx||0));
-  }
+  scored.sort((a,b)=>b.score-a.score||(a.idx||0)-(b.idx||0));
   const selected=[];
   let chars=0;
   for(const item of scored){
@@ -1428,17 +1494,17 @@ function buildKnowledgeContext(query){
 function buildPendingDocContext(query){
   const pendingDocs=pendingAttachments.filter(item=>item.kind==='document'&&item.doc?.chunks?.length).map(item=>item.doc);
   if(!pendingDocs.length)return '';
-  // requireScore=false — прикреплённые файлы всегда релевантны, включаем весь контент без ограничений по ключевым словам
-  const selected=topChunksFromDocs(query,pendingDocs,200,800000,false);
+  // requireScore=false — прикреплённые файлы всегда релевантны, включаем весь контент
+  const selected=topChunksFromDocs(query,pendingDocs,40,250000,false);
   if(!selected.length)return '';
   return '\nТЕКУЩИЕ ПРИКРЕПЛЕНИЯ:\n'+selected.map((item,i)=>`[Файл ${i+1}: ${item.name}]\n${item.chunk}`).join('\n\n');
 }
 function buildRecentAttachmentContext(query){
   if(!recentAttachmentDocs.length)return '';
-  // requireScore=false — читаем ВСЕ чанки из прикреплённых ранее файлов полностью, без keyword-фильтрации
-  const selected=topChunksFromDocs(query,recentAttachmentDocs,200,500000,false);
+  // Ищем контент конкретно по теме запроса — дополняет inline-контент для follow-up вопросов
+  const selected=topChunksFromDocs(query,recentAttachmentDocs,12,60000,true);
   if(!selected.length)return '';
-  return '\nКОНТЕКСТ ИЗ ФАЙЛОВ (все материалы из текущего чата):\n'+selected.map(item=>`[${item.name}]\n${item.chunk}`).join('\n\n');
+  return '\nФОКУСНЫЙ КОНТЕКСТ ИЗ ФАЙЛОВ (по теме запроса):\n'+selected.map(item=>`[${item.name}]\n${item.chunk}`).join('\n\n');
 }
 function updateComposerPlaceholder(){
   const ta=document.getElementById('msgTa');
@@ -1590,28 +1656,9 @@ async function parsePdfFile(file){
   for(let i=1;i<=pdf.numPages;i++){
     const page=await pdf.getPage(i);
     const content=await page.getTextContent();
-    // Умное объединение текстовых элементов: сохраняем пробелы и переносы строк
-    let pageText='';
-    let lastY=null;
-    let lastX=null;
-    for(const item of content.items){
-      if(!item.str)continue;
-      const y=item.transform?item.transform[5]:null;
-      const x=item.transform?item.transform[4]:null;
-      if(lastY!==null&&y!==null&&Math.abs(y-lastY)>5){
-        // Новая строка (Y изменился)
-        pageText+='\n';
-      }else if(lastX!==null&&x!==null&&lastX+1<x&&pageText&&!pageText.endsWith(' ')&&!pageText.endsWith('\n')){
-        // Горизонтальный пробел между словами
-        pageText+=' ';
-      }
-      pageText+=item.str;
-      if(y!==null)lastY=y;
-      if(x!==null)lastX=x+(item.width||0);
-    }
-    pages.push(pageText.trim());
+    pages.push(content.items.map(item=>item.str).join(' '));
   }
-  return pages.map((p,i)=>`[Страница ${i+1}]\n${p}`).join('\n\n');
+  return pages.join('\n\n');
 }
 async function parseDocxFile(file){
   const arr=await file.arrayBuffer();
@@ -1682,7 +1729,6 @@ function renderChatList(){
 async function openChat(id){
   closeSidebar();
   trainingMode=false;
-  try{sessionStorage.removeItem('harmonyTrainingMode');}catch(e){}
   const {data}=await sb.from('chats').select('history').eq('id',id).eq('user_id',curUser.id).single();
   if(!data)return;
   curChatId=id;
@@ -1741,7 +1787,6 @@ function updateSidebarTrainingVisibility(){
 function openTraining(){
   if(!hasTrainingAccess())return;
   trainingMode=true;
-  try{sessionStorage.setItem('harmonyTrainingMode','1');}catch(e){}
   curChatId=null;chatHistory=[];recentAttachmentDocs=[];
   const inner=document.getElementById('chatInner');
   if(inner)inner.innerHTML=trainingGreetingHTML();
@@ -1751,12 +1796,10 @@ function openTraining(){
 }
 function exitTraining(){
   trainingMode=false;
-  try{sessionStorage.removeItem('harmonyTrainingMode');}catch(e){}
   newChat();
 }
 function newChat(){
   trainingMode=false;
-  try{sessionStorage.removeItem('harmonyTrainingMode');}catch(e){}
   curChatId=null;chatHistory=[];
   recentAttachmentDocs=[];
   const inner=document.getElementById('chatInner');
@@ -1980,7 +2023,6 @@ function buildSystem(){
   if(s.emojis&&s.emojis!=='default'&&emojisMap[s.emojis])sys+='\n'+emojisMap[s.emojis];
   if(curMode==='low')sys+='\nРЕЖИМ Low: отвечай кратко, максимум 3-4 предложения.';
   if(curMode==='max')sys+='\nРЕЖИМ Max: отвечай подробно, с объяснениями и примерами.';
-  if(thinkOn)sys+='\nРЕЖИМ ДУМАТЬ: тщательно анализируй задачу, покажи ход рассуждений.';
   if(hasTrainingAccess())sys+='\nПользователь с ролью developer/admin. Его заметки и загруженные материалы считай приоритетными источниками знаний.';
   if(trainingMode&&hasTrainingAccess())sys+='\nРЕЖИМ ОБУЧЕНИЯ: пользователь сейчас в специальном разделе «Обучение». Всё, что он присылает, уже автоматически сохраняется в базу знаний. Кратко подтверди, что информация принята и сохранена, и при необходимости задай уточняющий вопрос, чтобы материал был более полным и полезным для дальнейшего обучения.';
   sys+=buildKnowledgeContext(currentQuery);
@@ -2477,28 +2519,44 @@ async function regenMsg(item){
     setGeneratingState(false);
   }
 }
+function ensureReasoningTrace(msgEl){
+  const wrap=msgEl.closest('.msg-ai-wrap');
+  if(!wrap)return null;
+  let trace=wrap.querySelector('.think-trace');
+  if(!trace){
+    trace=document.createElement('div');
+    trace.className='think-trace live';
+    trace.innerHTML=`<div class="think-trace-label"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Размышляю</span></div><div class="think-trace-body"></div>`;
+    wrap.insertBefore(trace,msgEl);
+    trace.addEventListener('click',()=>{
+      if(trace.classList.contains('collapsed'))trace.classList.remove('collapsed');
+    });
+  }
+  return trace;
+}
+function appendReasoningChunk(msgEl,text){
+  if(!text)return;
+  const trace=ensureReasoningTrace(msgEl);
+  if(!trace)return;
+  const body=trace.querySelector('.think-trace-body');
+  body.textContent+=text;
+  scrollChat();
+}
+function finalizeReasoningTrace(msgEl){
+  const wrap=msgEl.closest('.msg-ai-wrap');
+  const trace=wrap&&wrap.querySelector('.think-trace');
+  if(!trace)return;
+  trace.classList.remove('live');
+  const label=trace.querySelector('.think-trace-label span');
+  if(label)label.textContent='Ход рассуждений · нажмите, чтобы развернуть';
+  trace.classList.add('collapsed');
+}
 function showTyping(kind='text',steps=[]){
   const inner=getChatInner();
   const d=document.createElement('div');d.className='thinking';d.id='typEl';
   if(thinkOn){
     d.classList.add('think-text');
-    const defaultSteps={
-      text:['Анализирую вопрос..','Думаю..','Строю ответ..','Проверяю..'],
-      file:['Читаю файл..','Изучаю содержимое..','Думаю над структурой..','Строю ответ..'],
-      photo:['Рассматриваю изображение..','Анализирую детали..','Думаю..','Строю ответ..'],
-      regen:['Переосмысливаю..','Думаю иначе..','Пишу лучший ответ..']
-    };
-    const list=steps.length?steps:(defaultSteps[kind]||defaultSteps.text);
-    let idx=0;
-    const setStep=()=>{
-      d.innerHTML=`<span class="think-step">${list[idx]}</span>`;
-    };
-    setStep();
-    d._cycle=setInterval(()=>{
-      if(!d.isConnected){clearInterval(d._cycle);return;}
-      idx=(idx+1)%list.length;
-      setStep();
-    },2200);
+    d.innerHTML=`<div class="think-dots"><span></span><span></span><span></span></div><span style="font-size:14px;color:var(--text2)">Думаю над ответом..</span>`;
   }else{
     const labelMap={file:'Читаю файл..', photo:'Смотрю фото..'};
     const label=labelMap[kind]||'';
@@ -2616,6 +2674,7 @@ async function requestChatReplyLive(msgEl,actionsEl){
         const typer=createLiveTypingController(msgEl);
         let buffer='';
         let gotDelta=false;
+        let gotReasoning=false;
         let streamFinished=false;
         while(true){
           const {done,value}=await withTimeout(reader.read(),STREAM_STALL_MS,'Сервер слишком долго отвечает');
@@ -2629,12 +2688,16 @@ async function requestChatReplyLive(msgEl,actionsEl){
               const raw=line.slice(5).trim();
               if(!raw)continue;
               const payloadChunk=JSON.parse(raw);
-              if(payloadChunk.type==='delta'){
-                if(!gotDelta){hideTyping();gotDelta=true;}
+              if(payloadChunk.type==='reasoning'){
+                if(!gotReasoning){hideTyping();gotReasoning=true;}
+                appendReasoningChunk(msgEl,payloadChunk.text||'');
+              }else if(payloadChunk.type==='delta'){
+                if(!gotDelta){hideTyping();if(gotReasoning)finalizeReasoningTrace(msgEl);gotDelta=true;}
                 typer.push(payloadChunk.text||'');
               }else if(payloadChunk.type==='done'){
                 streamFinished=true;
                 hideTyping();
+                if(gotReasoning)finalizeReasoningTrace(msgEl);
                 const finalText=await typer.complete(normalizeReplyNotation(payloadChunk.text||''));
                 setMessageActionsVisible(actionsEl,true);
                 return finalText;
