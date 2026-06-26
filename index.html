@@ -169,11 +169,12 @@ button:active,.model-pill:active,.send-btn:active{
   .overlay{position:fixed;inset:0;background:rgba(0,0,0,.42);backdrop-filter:blur(2px);z-index:40;opacity:0;visibility:hidden;transition:opacity .25s;}
   .overlay.show{opacity:1;visibility:visible;}
   .main{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative;z-index:1;}
-  .topbar{display:flex;align-items:center;justify-content:space-between;padding:52px 26px 2px;gap:10px;position:relative;z-index:2;}
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:calc(env(safe-area-inset-top,0px) + 14px) 16px 2px;gap:10px;position:relative;z-index:2;}
   .topbar-logo{font-size:21px;font-weight:800;color:var(--text);position:absolute;left:50%;transform:translateX(-50%);}
   .topbar-model-pill{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;padding:9px 20px;border-radius:999px;background:rgba(255,255,255,0.06);border:1px solid rgba(167,139,250,.35);box-shadow:0 6px 18px rgba(0,0,0,.22);cursor:pointer;user-select:none;transition:background .12s,transform .12s;}
   .topbar-model-pill:active{transform:translate(-50%,-50%) scale(.95);}
   .topbar-model-pill .pill-name{font-size:15px;font-weight:800;color:#a78bfa;letter-spacing:-.2px;}
+  .topbar-training-pill{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;padding:9px 18px;border-radius:999px;background:rgba(255,255,255,0.08);border:1px solid var(--border);box-shadow:0 6px 18px rgba(0,0,0,.22);cursor:pointer;user-select:none;font-size:14px;font-weight:700;color:var(--text);}
 }
 @media(min-width:769px){
   .app{flex-direction:row;}
@@ -250,12 +251,15 @@ button:active,.model-pill:active,.send-btn:active{
 
 /* Greeting */
 .greeting-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 0;}
-.greeting-title{font-size:34px;font-weight:800;color:var(--text);letter-spacing:-1px;margin-bottom:10px;line-height:1.2;}
+.greeting-title{font-size:34px;font-weight:800;color:var(--text);letter-spacing:-1px;margin-bottom:10px;line-height:1.2;font-family:'SF Mono','Courier New',ui-monospace,monospace;}
 @media(max-width:768px){
-  .greeting-wrap{padding:108px 0 30px;justify-content:flex-start;}
+  .greeting-wrap{padding:108px 0 30px;justify-content:flex-start;align-items:flex-start;text-align:left;padding-left:24px;padding-right:24px;}
   .greeting-title{font-size:33px;line-height:1.12;margin-bottom:14px;letter-spacing:-.8px;}
 }
 .greeting-sub{font-size:15px;color:var(--text2);transition:opacity .3s;line-height:1.5;max-width:400px;}
+.greeting-hints{display:flex;flex-direction:column;gap:14px;margin-top:34px;align-items:flex-start;}
+.greeting-hint{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:600;color:var(--text2);user-select:none;}
+.greeting-hint .gh-icon{font-size:17px;flex-shrink:0;}
 @media(max-width:768px){
   .greeting-sub{font-size:21px;line-height:1.34;max-width:100%;color:rgba(200,196,214,.62);}
 }
@@ -312,6 +316,12 @@ button:active,.model-pill:active,.send-btn:active{
 
 /* ABC Notation block */
 .abc-block{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:14px;margin:10px 0;overflow:hidden;display:flex;flex-direction:column;gap:10px;}
+.abc-block.abc-block-pending .abc-skeleton{padding:4px 2px;}
+.abc-skeleton{display:flex;align-items:center;gap:10px;color:var(--text2);font-size:13px;}
+.abc-skeleton .abc-skel-dot{width:6px;height:6px;border-radius:50%;background:var(--text2);animation:abcSkelPulse 1.1s ease-in-out infinite;}
+.abc-skeleton .abc-skel-dot:nth-child(2){animation-delay:.15s}
+.abc-skeleton .abc-skel-dot:nth-child(3){animation-delay:.3s}
+@keyframes abcSkelPulse{0%,80%,100%{opacity:.25;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
 .abc-caption{font-size:12px;font-weight:700;color:var(--text);line-height:1.35;}
 .abc-annotations{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
 .abc-annotation-chip{display:inline-flex;align-items:center;min-height:28px;padding:5px 10px;border-radius:999px;background:var(--bg3);border:1px solid var(--border2);font-size:12px;font-weight:600;line-height:1.2;color:var(--text);}
@@ -332,6 +342,10 @@ button:active,.model-pill:active,.send-btn:active{
 
 /* AI message actions */
 .msg-actions{display:inline-flex;align-items:center;gap:3px;margin-top:2px;padding-left:2px;position:relative;width:max-content;max-width:100%;opacity:1;transform:translateY(0);transition:opacity .22s ease,transform .22s ease;}
+.continue-gen-btn{display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:8px 14px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;transition:background .15s;}
+.continue-gen-btn:hover{background:rgba(255,255,255,.10);}
+.continue-gen-btn:disabled{opacity:.5;cursor:default;}
+.continue-gen-btn svg{flex-shrink:0;}
 .msg-actions.is-hidden{opacity:0;transform:translateY(8px);pointer-events:none;}
 .mac-btn{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--text2);cursor:pointer;transition:background .12s,color .12s;background:transparent;border:none;}
 .mac-btn:hover{background:var(--hover);color:var(--text);}
@@ -492,22 +506,17 @@ button:active,.model-pill:active,.send-btn:active{
 .stream-break>*:last-child{display:inline;}
 @media(max-width:768px){
   .input-wrap{padding:6px 14px calc(8px + env(safe-area-inset-bottom,0px));}
-  .input-box{position:relative;overflow:visible;border-radius:22px;padding:12px 14px 58px;min-height:96px;background:linear-gradient(180deg,rgba(28,28,34,.46),rgba(15,15,20,.56));backdrop-filter:blur(24px) saturate(150%);-webkit-backdrop-filter:blur(24px) saturate(150%);border-color:rgba(255,255,255,0.10);box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 10px 34px rgba(0,0,0,.22);}
+  .input-box{position:relative;overflow:visible;border-radius:22px;padding:12px 14px 14px;min-height:56px;background:linear-gradient(180deg,rgba(28,28,34,.46),rgba(15,15,20,.56));backdrop-filter:blur(24px) saturate(150%);-webkit-backdrop-filter:blur(24px) saturate(150%);border-color:rgba(255,255,255,0.10);box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 10px 34px rgba(0,0,0,.22);}
   .input-box textarea{min-height:26px;padding-right:8px;font-size:17px;line-height:1.4;}
   .input-box textarea::placeholder{color:rgba(212,209,220,.58);}
-  .input-bar-row{position:absolute;left:14px;right:12px;bottom:10px;height:42px;margin-top:0;}
+  .input-bar-row{position:relative;left:0;right:0;bottom:0;height:40px;margin-top:6px;}
   .bar-left{position:absolute;left:0;top:50%;transform:translateY(-50%);z-index:2;}
-  .bar-right{position:absolute;left:50px;right:0;top:0;bottom:0;display:block;min-width:0;}
+  .bar-right{position:absolute;right:0;top:50%;transform:translateY(-50%);display:flex;align-items:center;gap:8px;}
   .bar-icon{width:40px;height:40px;border-radius:14px;color:rgba(255,255,255,.88);}
   .bar-icon svg{width:22px;height:22px;}
-  .model-pill{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);min-width:148px;max-width:176px;height:32px;padding:0 13px;border-radius:999px;gap:5px;background:rgba(228,228,234,.94);border-color:rgba(255,255,255,.16);color:#1d1d21;box-shadow:0 10px 22px rgba(0,0,0,.20);}
-  .model-pill:hover{background:rgba(218,218,224,.96);}
-  .pill-name{max-width:76px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#1d1d21;font-size:12px;font-weight:800;}
-  .pill-mode{font-size:12px;color:rgba(29,29,33,.72);text-transform:none;}
-  .pill-caret{display:none;}
-  .mobile-model-drop.compact-mobile-picker{left:50%;right:auto;bottom:calc(100% + 14px);transform:translateX(-50%);width:min(276px, calc(100vw - 56px));min-width:0;max-height:min(62vh,420px);overflow-y:auto;padding:12px;border-radius:22px;background:rgba(20,20,27,.55);border:1px solid rgba(255,255,255,.10);backdrop-filter:blur(26px) saturate(150%);-webkit-backdrop-filter:blur(26px) saturate(150%);box-shadow:0 24px 48px rgba(0,0,0,.35);}
-  .mobile-mode-sub{display:none!important;}
-  .desktop-model-wrap{display:none!important;}
+  .desktop-only-pill{display:none!important;}
+  .send-btn{width:38px;height:38px;}
+  /* На мобильном кнопка модели находится в топбаре — выбор отображается через bottom-sheet (.mm-overlay) */
   .mmp-title{font-size:13px;font-weight:700;color:var(--text);padding:2px 4px 10px;}
   .mmp-section{display:flex;flex-direction:column;gap:6px;}
   .mmp-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text2);padding:2px 4px;}
@@ -673,12 +682,44 @@ button:active,.model-pill:active,.send-btn:active{
   .mobile-only-setting{display:none;}
 }
 @media(max-width:768px){
-  .input-bar-row{right:14px!important;bottom:14px!important;height:52px!important;}
-  .send-btn{width:46px!important;height:46px!important;min-width:46px!important;min-height:46px!important;border-radius:50%!important;right:0!important;box-shadow:0 10px 22px rgba(0,0,0,.24)!important;}
-  .send-btn svg{width:24px!important;height:24px!important;}
-  .model-pill{min-width:148px!important;max-width:176px!important;height:32px!important;padding:0 13px!important;}
-  .pill-name{max-width:76px!important;}
+  .input-bar-row{right:0!important;bottom:0!important;height:40px!important;}
+  .send-btn{width:42px!important;height:42px!important;min-width:42px!important;min-height:42px!important;border-radius:50%!important;box-shadow:0 10px 22px rgba(0,0,0,.24)!important;}
+  .send-btn svg{width:22px!important;height:22px!important;}
 }
+
+/* ===== Mobile model bottom-sheet (liquid glass) ===== */
+.mm-overlay{position:fixed;inset:0;z-index:700;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.5);backdrop-filter:blur(6px);opacity:0;visibility:hidden;transition:opacity .22s,visibility .22s;}
+.mm-overlay.open{opacity:1;visibility:visible;}
+.mm-sheet{width:100%;max-width:560px;max-height:88vh;overflow-y:auto;background:rgba(24,24,29,.72);backdrop-filter:blur(28px) saturate(160%);-webkit-backdrop-filter:blur(28px) saturate(160%);border:1px solid rgba(255,255,255,.10);border-top-left-radius:28px;border-top-right-radius:28px;box-shadow:0 -18px 48px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.06);padding:10px 18px 28px;transform:translateY(16px);transition:transform .25s cubic-bezier(.2,.9,.3,1.1);}
+.mm-overlay.open .mm-sheet{transform:translateY(0);}
+@media(min-width:769px){
+  .mm-overlay{align-items:center;}
+  .mm-sheet{max-width:420px;border-radius:24px;}
+}
+.mm-handle{width:36px;height:5px;border-radius:3px;background:rgba(255,255,255,.22);margin:6px auto 14px;}
+.mm-screen{display:none;}
+.mm-screen.active{display:block;}
+.mm-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+.mm-close{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.10);display:flex;align-items:center;justify-content:center;color:var(--text);cursor:pointer;flex-shrink:0;}
+.mm-close:active{background:rgba(255,255,255,.14);}
+.mm-title{font-size:17px;font-weight:700;color:var(--text);}
+.mm-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:18px;overflow:hidden;margin-bottom:14px;}
+.mm-opt{display:block;width:100%;text-align:left;padding:14px 16px;background:none;border:none;color:var(--text);font-family:inherit;cursor:pointer;position:relative;}
+.mm-opt-main{display:flex;align-items:center;gap:8px;}
+.mm-opt-name{font-size:16px;font-weight:700;color:var(--text);}
+.mm-opt-badge{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:rgba(255,255,255,.14);color:var(--text);}
+.mm-opt-badge.mm-badge-neutral{background:rgba(255,255,255,.08);color:var(--text2);}
+.mm-opt-desc{font-size:13px;color:var(--text2);margin-top:3px;}
+.mm-opt-check{position:absolute;right:16px;top:14px;font-size:16px;color:var(--text);opacity:0;transition:opacity .12s;}
+.mm-divider{height:1px;background:rgba(255,255,255,.08);margin:0 16px;}
+.mm-card-link{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;}
+.mm-row-title{font-size:15px;color:var(--text2);}
+.mm-row-val{display:flex;align-items:center;gap:6px;font-size:15px;color:var(--text);font-weight:600;}
+.mm-row-val svg{color:var(--text2);}
+.mm-hint{font-size:12.5px;color:var(--text2);line-height:1.5;padding:0 4px 14px;}
+.mm-think-card{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;}
+.mm-think-title{font-size:15px;font-weight:700;color:var(--text);}
+.mm-think-sub{font-size:12.5px;color:var(--text2);margin-top:2px;}
 </style>
 </head>
 <body>
@@ -786,6 +827,9 @@ button:active,.model-pill:active,.send-btn:active{
       <div class="topbar-model-pill" id="topbarModelPill" onclick="toggleModelDrop(event)">
         <span class="pill-name" id="pillName">Adanatos</span>
       </div>
+      <div class="topbar-training-pill" id="topbarTrainingPill" onclick="exitTraining()" title="Выйти из режима обучения" style="display:none">
+        <span>🎓 Обучение</span>
+      </div>
       <div style="display:flex;align-items:center;gap:4px;">
         <button class="topbar-btn" onclick="newChat()">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
@@ -798,6 +842,10 @@ button:active,.model-pill:active,.send-btn:active{
         <div class="greeting-wrap" id="greetingWrap">
           <div class="greeting-title" id="greetingTitle">Привет! Я Harmony Ai</div>
           <div class="greeting-sub" id="greetSub">Спроси меня про любой аккорд 🎵</div>
+          <div class="greeting-hints">
+            <div class="greeting-hint"><span class="gh-icon">🎼</span><span>Сгенерировать нотный стан</span></div>
+            <div class="greeting-hint"><span class="gh-icon">🎵</span><span>Разбор сольфеджио</span></div>
+          </div>
         </div>
       </div>
     </div>
@@ -805,7 +853,7 @@ button:active,.model-pill:active,.send-btn:active{
     <div class="input-wrap">
       <div class="composer-attachments" id="composerAttachments" aria-live="polite"></div>
       <div class="input-box" id="inputBox">
-        <textarea id="msgTa" placeholder="Введите сообщение.." rows="1"
+        <textarea id="msgTa" placeholder="Спросить HarmonyAI" rows="1"
           oninput="taResize(this)"
           onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg();}"></textarea>
         <div class="input-bar-row">
@@ -822,49 +870,11 @@ button:active,.model-pill:active,.send-btn:active{
               <span class="pill-mode">Обучение</span>
               <span class="pill-caret">▾</span>
             </div>
-            <!-- Model pill -->
-            <div class="model-pill" id="modelPill" onclick="toggleModelDrop(event)">
-              <span class="pill-name" id="pillName">MusMind</span>
+            <!-- Model pill (desktop only — на мобильном кнопка модели находится в топбаре) -->
+            <div class="model-pill desktop-only-pill" id="modelPill" onclick="toggleModelDrop(event)">
+              <span class="pill-name" id="pillNameDesktop">Adanatos</span>
               <span class="pill-mode" id="pillMode">lite · low</span>
               <span class="pill-caret">▾</span>
-              <!-- Dropdown -->
-              <div class="model-drop mobile-model-drop compact-mobile-picker" id="modelDrop" onclick="event.stopPropagation()">
-                <div class="mmp-title">Параметры</div>
-                <div class="mmp-section">
-                  <div class="mmp-label">Модель</div>
-                  <button class="mmp-opt" id="mobModelLite" onclick="selectModel('lite')">
-                    <span>Adanatos</span>
-                    <span class="mmp-check">✓</span>
-                  </button>
-                  <button class="mmp-opt" id="mobModelPro" onclick="selectModel('pro')">
-                    <span>Dynatos</span>
-                    <span class="mmp-check">✓</span>
-                  </button>
-                </div>
-                <div class="mmp-divider"></div>
-                <div class="mmp-section">
-                  <div class="mmp-label">Режим</div>
-                  <button class="mmp-opt" id="mobModeLow" onclick="selectMode('low')">
-                    <span>Low</span>
-                    <span class="mmp-sub">Обычный</span>
-                    <span class="mmp-check">✓</span>
-                  </button>
-                  <button class="mmp-opt" id="mobModeMax" onclick="selectMode('max')">
-                    <span>Max</span>
-                    <span class="mmp-sub">Для сложных задач</span>
-                    <span class="mmp-check">✓</span>
-                  </button>
-                </div>
-                <div class="mmp-divider"></div>
-                <div class="mmp-think">
-                  <div class="mmp-think-copy">
-                    <div class="mmp-think-title">Думать</div>
-                    <div class="mmp-think-sub">Для решения сложных задач</div>
-                  </div>
-                  <div class="sw" id="mobThinkSw" onclick="toggleThink(event)"></div>
-                </div>
-              </div>
-              <div class="mode-sub mobile-mode-sub" id="modeSub" onclick="event.stopPropagation()"></div>
               <div class="desktop-model-wrap" id="desktopModelWrap" onclick="event.stopPropagation()">
                 <div class="desktop-model-drop" id="desktopModelDrop">
                   <div class="desktop-row" onclick="closeDesktopSubs()">
@@ -914,6 +924,81 @@ button:active,.model-pill:active,.send-btn:active{
           </div>
         </div>
         <div class="disclaimer">Это ИИ: HarmonyAI может допускать ошибки.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MOBILE MODEL BOTTOM-SHEET ===================== -->
+<div class="mm-overlay" id="mmOverlay" onclick="if(event.target===this)closeMobileModelSheet()">
+  <div class="mm-sheet" id="mmSheet" onclick="event.stopPropagation()">
+    <div class="mm-handle"></div>
+    <!-- Экран 1: выбор модели -->
+    <div class="mm-screen active" id="mmScreenModel">
+      <div class="mm-head">
+        <button class="mm-close" onclick="closeMobileModelSheet()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 5l14 14M19 5L5 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+        <div class="mm-title">Выбрать модель</div>
+        <div style="width:32px"></div>
+      </div>
+      <div class="mm-card">
+        <button class="mm-opt" id="mmOptPro" onclick="selectModel('pro')">
+          <div class="mm-opt-main">
+            <span class="mm-opt-name">Dynatos</span>
+            <span class="mm-opt-badge">Pro</span>
+          </div>
+          <span class="mm-opt-check" id="mmCheckPro">✓</span>
+          <div class="mm-opt-desc">Для сложных задач</div>
+        </button>
+        <div class="mm-divider"></div>
+        <button class="mm-opt" id="mmOptLite" onclick="selectModel('lite')">
+          <div class="mm-opt-main">
+            <span class="mm-opt-name">Adanatos</span>
+          </div>
+          <span class="mm-opt-check" id="mmCheckLite">✓</span>
+          <div class="mm-opt-desc">Для простых повседневных задач</div>
+        </button>
+      </div>
+      <div class="mm-card mm-card-link" onclick="openMobileModeScreen()">
+        <span class="mm-row-title">Режим</span>
+        <span class="mm-row-val"><span id="mmModeLabel">Low</span><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </div>
+    </div>
+    <!-- Экран 2: режим -->
+    <div class="mm-screen" id="mmScreenMode">
+      <div class="mm-head">
+        <button class="mm-close" onclick="backToMobileModelScreen()">
+          <svg width="9" height="15" viewBox="0 0 9 15" fill="none"><path d="M8 1L1 7.5L8 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="mm-title">Режим</div>
+        <div style="width:32px"></div>
+      </div>
+      <div class="mm-card">
+        <button class="mm-opt" id="mmOptLow" onclick="selectMode('low')">
+          <div class="mm-opt-main">
+            <span class="mm-opt-name">Low</span>
+            <span class="mm-opt-badge mm-badge-neutral">Обычный</span>
+          </div>
+          <span class="mm-opt-check" id="mmCheckLow">✓</span>
+          <div class="mm-opt-desc">Быстрые ответы для обычных вопросов</div>
+        </button>
+        <div class="mm-divider"></div>
+        <button class="mm-opt" id="mmOptMax" onclick="selectMode('max')">
+          <div class="mm-opt-main">
+            <span class="mm-opt-name">Max</span>
+          </div>
+          <span class="mm-opt-check" id="mmCheckMax">✓</span>
+          <div class="mm-opt-desc">Для сложных задач. Ответ больше.</div>
+        </button>
+      </div>
+      <div class="mm-hint">Режим «Max» выдаёт более большой контекст, но быстрее тратит лимиты пользователя.</div>
+      <div class="mm-card mm-think-card">
+        <div class="mm-think-copy">
+          <div class="mm-think-title">Думать</div>
+          <div class="mm-think-sub">Может думать дольше для лучшего ответа</div>
+        </div>
+        <div class="sw" id="mmThinkSw" onclick="toggleThink(event)"></div>
       </div>
     </div>
   </div>
@@ -1817,9 +1902,9 @@ function trainingGreetingHTML(){
 }
 function updateTrainingPillUI(){
   const tp=document.getElementById('trainingPill'),mp=document.getElementById('modelPill');
-  if(!tp||!mp)return;
-  tp.style.display=trainingMode?'flex':'none';
-  mp.style.display=trainingMode?'none':'flex';
+  const ttp=document.getElementById('topbarTrainingPill'),tmp=document.getElementById('topbarModelPill');
+  if(tp&&mp){tp.style.display=trainingMode?'flex':'none';mp.style.display=trainingMode?'none':'flex';}
+  if(ttp&&tmp){ttp.style.display=trainingMode?'flex':'none';tmp.style.display=trainingMode?'none':'flex';}
 }
 function updateSidebarTrainingVisibility(){
   const btn=document.getElementById('sbTrainingBtn');
@@ -1847,6 +1932,10 @@ function newChat(){
   inner.innerHTML=`<div class="greeting-wrap" id="greetingWrap">
     <div class="greeting-title" id="greetingTitle">${greetingTitleText()}</div>
     <div class="greeting-sub" id="greetSub">${GREETS[greetIdx]}</div>
+    <div class="greeting-hints">
+      <div class="greeting-hint"><span class="gh-icon">🎼</span><span>Сгенерировать нотный стан</span></div>
+      <div class="greeting-hint"><span class="gh-icon">🎵</span><span>Разбор сольфеджио</span></div>
+    </div>
   </div>`;
   updateTrainingPillUI();
   renderChatList();
@@ -1872,22 +1961,37 @@ function closeDesktopSubs(){
 }
 function closeModelMenus(){
   dropOpen=false;modeSubOpen=false;modelsSubOpen=false;
-  document.getElementById('modelDrop')?.classList.remove('open');
-  document.getElementById('modeSub')?.classList.remove('open');
   document.getElementById('desktopModelWrap')?.classList.remove('open');
   document.getElementById('desktopModeSub')?.classList.remove('open');
   document.getElementById('desktopModelsSub')?.classList.remove('open');
 }
 function toggleModelDrop(e){
-  e.stopPropagation();
+  e?.stopPropagation();
   if(isDesktop()){
     dropOpen=!dropOpen;
     document.getElementById('desktopModelWrap')?.classList.toggle('open',dropOpen);
     if(!dropOpen)closeDesktopSubs();
     return;
   }
-  dropOpen=!dropOpen;
-  document.getElementById('modelDrop')?.classList.toggle('open',dropOpen);
+  openMobileModelSheet();
+}
+function openMobileModelSheet(){
+  dropOpen=true;
+  document.getElementById('mmScreenModel')?.classList.add('active');
+  document.getElementById('mmScreenMode')?.classList.remove('active');
+  document.getElementById('mmOverlay')?.classList.add('open');
+}
+function closeMobileModelSheet(){
+  dropOpen=false;
+  document.getElementById('mmOverlay')?.classList.remove('open');
+}
+function openMobileModeScreen(){
+  document.getElementById('mmScreenModel')?.classList.remove('active');
+  document.getElementById('mmScreenMode')?.classList.add('active');
+}
+function backToMobileModelScreen(){
+  document.getElementById('mmScreenMode')?.classList.remove('active');
+  document.getElementById('mmScreenModel')?.classList.add('active');
 }
 function selectModel(m){
   curModel=m;
@@ -1937,36 +2041,35 @@ function setText(id,value){
 }
 function refreshModelUI(){
   const shortModel=curModel==='lite'?'lite':'pro';
-  const mobileModel=curModel==='lite'?'Adanatos':'Dynatos';
   const fullModel=curModel==='lite'?'Adanatos':'Dynatos';
   const modeLabel=curMode==='low'?'Low':'Max';
-  const modeTiny=curMode==='low'?'· low':'· max';
-  setText('pillName',isDesktop()?(curModel==='lite'?'Adanatos':'Dynatos'):mobileModel);
-  setText('pillMode',isDesktop()?shortModel:modeTiny);
-  setText('modeLabel',modeLabel);
+  setText('pillName',fullModel);
+  setText('pillNameDesktop',fullModel);
+  setText('pillMode',shortModel);
   setText('desktopModelCurrent',fullModel);
   setText('desktopModeLabel',modeLabel);
-  setOpacity('ck-lite',curModel==='lite'?'1':'0');
-  setOpacity('ck-pro',curModel==='pro'?'1':'0');
-  setOpacity('ck-low',curMode==='low'?'1':'0');
-  setOpacity('ck-max',curMode==='max'?'1':'0');
+  setText('mmModeLabel',modeLabel);
   toggleClass('thinkSw','on',thinkOn);
   toggleClass('desktopThinkSw','on',thinkOn);
-  toggleClass('mobThinkSw','on',thinkOn);
+  toggleClass('mmThinkSw','on',thinkOn);
   toggleClass('desktopCkLite','on',curModel==='lite');
   toggleClass('desktopCkPro','on',curModel==='pro');
   toggleClass('desktopCkLow','on',curMode==='low');
   toggleClass('desktopCkMax','on',curMode==='max');
-  toggleClass('mobModelLite','on',curModel==='lite');
-  toggleClass('mobModelPro','on',curModel==='pro');
-  toggleClass('mobModeLow','on',curMode==='low');
-  toggleClass('mobModeMax','on',curMode==='max');
+  toggleClass('mmOptLite','active',curModel==='lite');
+  toggleClass('mmOptPro','active',curModel==='pro');
+  toggleClass('mmOptLow','active',curMode==='low');
+  toggleClass('mmOptMax','active',curMode==='max');
+  setOpacity('mmCheckLite',curModel==='lite'?'1':'0');
+  setOpacity('mmCheckPro',curModel==='pro'?'1':'0');
+  setOpacity('mmCheckLow',curMode==='low'?'1':'0');
+  setOpacity('mmCheckMax',curMode==='max'?'1':'0');
 }
 refreshModelUI();
 window.addEventListener('resize',()=>{closeModelMenus();refreshModelUI();});
 
 document.addEventListener('click',e=>{
-  if(dropOpen&&!e.target.closest('#modelPill')){
+  if(dropOpen&&isDesktop()&&!e.target.closest('#modelPill')){
     closeModelMenus();
   }
   if(!e.target.closest('.mac-btn'))
@@ -2394,6 +2497,98 @@ function renderMd(el,text){
     }
   });
 }
+function splitMdSegments(text){
+  // Та же логика разбиения, что и в renderMd, но возвращает массив сегментов с метаданными,
+  // включая информацию о том, является ли последний сегмент незакрытым ```abc блоком.
+  const parts=text.split(/(```\s*abc[\r\n]+[\s\S]*?```)/gi);
+  const segs=parts.filter(p=>p!=='').map(part=>{
+    const abcMatch=part.match(/^```\s*abc[\r\n]+([\s\S]*?)```$/i);
+    if(abcMatch)return{type:'abc',raw:part,abcInner:abcMatch[1]};
+    return{type:'text',raw:part};
+  });
+  // Проверяем: не обрезается ли текст прямо посреди открытого ```abc блока (ещё не закрытого тройными кавычками)
+  const lastSeg=segs[segs.length-1];
+  if(lastSeg&&lastSeg.type==='text'){
+    const openMatch=lastSeg.raw.match(/```\s*abc[\r\n]+([\s\S]*)$/i);
+    if(openMatch){
+      const beforeOpen=lastSeg.raw.slice(0,lastSeg.raw.length-openMatch[0].length);
+      segs.pop();
+      if(beforeOpen.trim())segs.push({type:'text',raw:beforeOpen});
+      segs.push({type:'abc-pending',raw:openMatch[0]});
+    }
+  }
+  return segs;
+}
+function hashSeg(seg){return seg.type+':'+seg.raw.length+':'+seg.raw.slice(0,40);}
+function renderStreamingSegments(el,text){
+  const segs=splitMdSegments(text);
+  if(!el._segCache)el._segCache=[];
+  const cache=el._segCache;
+  // Если число сегментов уменьшилось (например, начался новый рендер с нуля) — пересоздаём всё
+  if(segs.length<cache.length){el.innerHTML='';cache.length=0;}
+  segs.forEach((seg,i)=>{
+    const isLast=i===segs.length-1;
+    const h=hashSeg(seg);
+    const cached=cache[i];
+    // Уже отрендеренный закрытый сегмент с тем же содержимым — не трогаем DOM (избегаем мигания нотного стана)
+    if(cached&&cached.hash===h&&cached.type==='abc'&&seg.type==='abc')return;
+    if(cached&&cached.hash===h&&cached.type==='text'&&seg.type==='text'&&!isLast)return;
+    if(seg.type==='abc'){
+      const meta=extractAbcDisplayMeta(seg.abcInner.trim());
+      const abcSrc=meta.abc;
+      let wrap=el.children[i];
+      if(!wrap||!wrap.classList?.contains('abc-block')||cached?.type!=='abc'){
+        wrap=document.createElement('div');wrap.className='abc-block';
+        if(el.children[i])el.replaceChild(wrap,el.children[i]);else el.appendChild(wrap);
+      }
+      wrap.innerHTML='';
+      if(meta.caption){
+        const caption=document.createElement('div');caption.className='abc-caption';caption.textContent=meta.caption;wrap.appendChild(caption);
+      }
+      if(meta.annotations.length){
+        const annotations=document.createElement('div');annotations.className='abc-annotations';
+        meta.annotations.forEach(item=>{const chip=document.createElement('div');chip.className='abc-annotation-chip';chip.textContent=item;annotations.appendChild(chip);});
+        wrap.appendChild(annotations);
+      }
+      const surface=document.createElement('div');surface.className='abc-surface';
+      const id='abc-'+(++abcCounter);
+      const cvs=document.createElement('div');cvs.id=id;surface.appendChild(cvs);
+      wrap.appendChild(surface);
+      if(abcSrc){
+        setTimeout(()=>{try{window.ABCJS?.renderAbc(id,abcSrc,getAbcRenderOptions(surface,abcSrc));}catch(e){cvs.textContent=abcSrc;}},10);
+      }
+      cache[i]={hash:h,type:'abc'};
+    }else if(seg.type==='abc-pending'){
+      let wrap=el.children[i];
+      if(!wrap||!wrap.classList?.contains('abc-block-pending')){
+        wrap=document.createElement('div');wrap.className='abc-block abc-block-pending';
+        wrap.innerHTML='<div class="abc-skeleton"><span class="abc-skel-dot"></span><span class="abc-skel-dot"></span><span class="abc-skel-dot"></span><span>Генерирую нотный стан…</span></div>';
+        if(el.children[i])el.replaceChild(wrap,el.children[i]);else el.appendChild(wrap);
+      }
+      cache[i]={hash:h,type:'abc-pending'};
+    }else{
+      let div=el.children[i];
+      if(!div||div.tagName!=='DIV'||div.classList.contains('abc-block')){
+        div=document.createElement('div');
+        if(el.children[i])el.replaceChild(div,el.children[i]);else el.appendChild(div);
+      }
+      div.innerHTML=typeof marked!=='undefined'?marked.parse(seg.raw):seg.raw;
+      cache[i]={hash:h,type:'text'};
+    }
+  });
+  // Убираем лишние DOM-узлы, если новых сегментов меньше, чем было элементов в el
+  while(el.children.length>segs.length)el.removeChild(el.lastChild);
+  cache.length=segs.length;
+}
+function updateStreamCursor(el,show){
+  let cur=el.querySelector(':scope > .stream-cur');
+  if(show){
+    if(!cur){cur=document.createElement('span');cur.className='stream-cur';cur.textContent='▍';}
+    const lastChild=el.lastElementChild;
+    if(lastChild&&!lastChild.classList.contains('abc-block')){lastChild.appendChild(cur);}
+    else{el.appendChild(cur);}
+  }else if(cur)cur.remove();
+}
 function streamText(el,text){
   return new Promise(resolve=>{
     let i=0,stopped=false,lastT=0,lastDom=0;
@@ -2417,7 +2612,8 @@ function streamText(el,text){
         lastDom=now;
         try{
           const partial=text.slice(0,i);
-          el.innerHTML=inlineMd(normalizeReplyNotation(partial))+(i<text.length?'<span class="stream-cur">▍</span>':'');
+          renderStreamingSegments(el,normalizeReplyNotation(partial));
+          updateStreamCursor(el,i<text.length);
           el.dataset.raw=partial;
           scrollChat();
         }catch(e){}
@@ -2428,9 +2624,9 @@ function streamText(el,text){
     requestAnimationFrame(step);
   });
 }
-function createLiveTypingController(el){
-  let pendingText='';
-  let shownLength=0;
+function createLiveTypingController(el,prefixText=''){
+  let pendingText=prefixText||'';
+  let shownLength=pendingText.length;
   let finalText=null;
   let timer=null;
   let stopped=false;
@@ -2481,7 +2677,8 @@ function createLiveTypingController(el){
           lastDomUpdate=now;
           const partial=pendingText.slice(0,shownLength);
           const showCursor=shownLength<pendingText.length||finalText===null;
-          el.innerHTML=inlineMd(normalizeReplyNotation(partial))+(showCursor?'<span class="stream-cur">▍</span>':'');
+          renderStreamingSegments(el,normalizeReplyNotation(partial));
+          updateStreamCursor(el,showCursor);
           el.dataset.raw=partial;
           scrollChat();
         }
@@ -2536,6 +2733,40 @@ function toggleMore(btn){
   document.querySelectorAll('.more-menu.open').forEach(x=>{if(x!==m)x.classList.remove('open');});
   m.classList.toggle('open');
 }
+function removeContinueButton(wrap){
+  const btn=wrap?.querySelector('.continue-gen-btn');
+  if(btn)btn.remove();
+}
+function showContinueButton(wrap,msgEl,actionsEl){
+  if(!wrap)return;
+  removeContinueButton(wrap);
+  const btn=document.createElement('button');
+  btn.className='continue-gen-btn';
+  btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Продолжить генерацию</span>';
+  btn.onclick=async()=>{
+    if(isGenerating)return;
+    btn.disabled=true;btn.querySelector('span').textContent='Продолжаю...';
+    setGeneratingState(true);
+    const priorText=msgEl.dataset.raw||msgEl.textContent||'';
+    msgEl._segCache=[];
+    if(chatHistory.length&&chatHistory[chatHistory.length-1].role==='assistant'){
+      chatHistory[chatHistory.length-1].content=priorText;
+    }
+    try{
+      const result=await requestChatReplyLive(msgEl,actionsEl,[{role:'user',content:'Продолжи свой предыдущий ответ ровно с того места, где он был прерван. Не повторяй уже написанное и не извиняйся, просто продолжи текст/нотацию дальше.'}],priorText);
+      if(result?.text)chatHistory[chatHistory.length-1]={role:'assistant',content:result.text};
+      await saveChat();
+      removeContinueButton(wrap);
+      if(result?.truncated)showContinueButton(wrap,msgEl,actionsEl);
+    }catch(e){
+      btn.disabled=false;btn.querySelector('span').textContent='Продолжить генерацию';
+    }finally{
+      activeAbortController=null;activeStreamStop=null;
+      setGeneratingState(false);
+    }
+  };
+  (actionsEl||msgEl).insertAdjacentElement('afterend',btn);
+}
 async function regenMsg(item){
   if(isGenerating)return;
   item.parentElement.classList.remove('open');
@@ -2543,14 +2774,16 @@ async function regenMsg(item){
   const msgEl=wrap.querySelector('.msg-ai');
   const actionsEl=wrap.querySelector('.msg-actions');
   setMessageActionsVisible(actionsEl,false);
+  removeContinueButton(wrap);
   if(chatHistory.length&&chatHistory[chatHistory.length-1].role==='assistant')chatHistory.pop();
-  msgEl.innerHTML='';msgEl.style.whiteSpace='pre-wrap';
+  msgEl.innerHTML='';msgEl.style.whiteSpace='pre-wrap';msgEl._segCache=[];
   showTyping('regen');
   setGeneratingState(true);
   try{
-    const finalText=await requestChatReplyLive(msgEl,actionsEl);
-    if(finalText)chatHistory.push({role:'assistant',content:finalText});
+    const result=await requestChatReplyLive(msgEl,actionsEl);
+    if(result?.text)chatHistory.push({role:'assistant',content:result.text});
     await saveChat();
+    if(result?.truncated)showContinueButton(wrap,msgEl,actionsEl);
   }catch(e){
     hideTyping();
     if(e.message!=='Генерация остановлена')renderMd(msgEl,'Ошибка: '+e.message);
@@ -2681,10 +2914,10 @@ async function requestChatReply(){
   }
   throw lastError||new Error('Не удалось получить ответ от сервера');
 }
-async function requestChatReplyLive(msgEl,actionsEl){
+async function requestChatReplyLive(msgEl,actionsEl,extraMessages=[],prefixText=''){
   activeAbortController=new AbortController();
   const payload={
-    messages:[{role:'system',content:buildSystem()},...chatHistory],
+    messages:[{role:'system',content:buildSystem()},...chatHistory,...extraMessages],
     model:curModel,
     effort:curMode,
     think:thinkOn,
@@ -2712,7 +2945,7 @@ async function requestChatReplyLive(msgEl,actionsEl){
       if(type.includes('text/event-stream')&&res.body){
         const reader=res.body.getReader();
         const decoder=new TextDecoder();
-        const typer=createLiveTypingController(msgEl);
+        const typer=createLiveTypingController(msgEl,prefixText);
         let buffer='';
         let gotDelta=false;
         let gotReasoning=false;
@@ -2739,9 +2972,10 @@ async function requestChatReplyLive(msgEl,actionsEl){
                 streamFinished=true;
                 hideTyping();
                 if(gotReasoning)finalizeReasoningTrace(msgEl);
-                const finalText=await typer.complete(normalizeReplyNotation(payloadChunk.text||''));
+                const fullFinal=prefixText+normalizeReplyNotation(payloadChunk.text||'');
+                const finalText=await typer.complete(fullFinal);
                 setMessageActionsVisible(actionsEl,true);
-                return finalText;
+                return {text:finalText,truncated:Boolean(payloadChunk.truncated)};
               }else if(payloadChunk.type==='error'){
                 throw new Error(payloadChunk.message||'Ошибка потоковой генерации');
               }
@@ -2755,7 +2989,8 @@ async function requestChatReplyLive(msgEl,actionsEl){
         if(!streamFinished&&!finalText){
           throw new Error('Поток ответа оборвался до завершения');
         }
-        return finalText;
+        // Соединение оборвалось без явного done-события — считаем потенциально незавершённым
+        return {text:finalText,truncated:!streamFinished};
       }
       let data=null;
       try{data=await res.json();}catch(e){data=null;}
@@ -2764,7 +2999,7 @@ async function requestChatReplyLive(msgEl,actionsEl){
       hideTyping();
       const streamed=await streamText(msgEl,normalizeReplyNotation(reply));
       setMessageActionsVisible(actionsEl,true);
-      return streamed?.text||reply;
+      return {text:streamed?.text||reply,truncated:false};
     }catch(e){
       if(e?.name==='AbortError')throw new Error('Генерация остановлена');
       lastError=e;
@@ -2829,9 +3064,10 @@ async function sendMsg(){
   const aiShell=createAiBubbleShell({showActions:true,hiddenActions:true});
 
   try{
-    const finalText=await requestChatReplyLive(aiShell.msg,aiShell.actions);
-    if(finalText)chatHistory.push({role:'assistant',content:finalText});
+    const result=await requestChatReplyLive(aiShell.msg,aiShell.actions);
+    if(result?.text)chatHistory.push({role:'assistant',content:result.text});
     await saveChat();
+    if(result?.truncated)showContinueButton(aiShell.wrap,aiShell.msg,aiShell.actions);
   }catch(e){
     hideTyping();
     if(e.message!=='Генерация остановлена'){
@@ -2951,7 +3187,7 @@ function renderSettingsName(){
       <div class="sth-title">Имя</div>
     </div>
     <div class="mem-rows" style="padding:14px;display:flex;flex-direction:column;gap:10px;">
-      <input class="auth-input" id="settingsNameInp" type="text" placeholder="Введите имя.." maxlength="40" autocomplete="given-name" value="${(curUser?.nickname||'').replace(/"/g,'&quot;')}" style="margin-bottom:0;" onkeydown="if(event.key==='Enter')saveSettingsName()">
+      <input class="auth-input" id="settingsNameInp" type="text" placeholder="Введите имя.." maxlength="40" autocomplete="given-name" lang="ru" value="${(curUser?.nickname||'').replace(/"/g,'&quot;')}" style="margin-bottom:0;" onkeydown="if(event.key==='Enter')saveSettingsName()">
       <div class="auth-error" id="settingsNameErr" style="display:none;"></div>
       <button class="auth-btn-primary" id="settingsNameBtn" style="margin-bottom:0;" onclick="saveSettingsName()">Сохранить</button>
     </div>`;
@@ -3165,7 +3401,7 @@ async function saveSetting(key,val){
   <div class="fb-modal" style="gap:16px;">
     <div class="fb-title">Как вас зовут?</div>
     <div class="fb-desc">Так мы будем обращаться к вам в чате. Это можно изменить позже в настройках.</div>
-    <input class="fb-qa-input" id="nickModalInp" placeholder="Введите имя.." maxlength="40" autocomplete="given-name" onkeydown="if(event.key==='Enter')saveNicknameModal()" />
+    <input class="fb-qa-input" id="nickModalInp" placeholder="Введите имя.." maxlength="40" autocomplete="given-name" lang="ru" onkeydown="if(event.key==='Enter')saveNicknameModal()" />
     <div class="auth-error" id="nickModalErr" style="display:none;"></div>
     <div class="fb-actions">
       <button class="fb-btn-send" id="nickModalBtn" style="flex:1;" onclick="saveNicknameModal()">Продолжить</button>
