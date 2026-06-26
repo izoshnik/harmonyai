@@ -171,6 +171,9 @@ button:active,.model-pill:active,.send-btn:active{
   .main{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative;z-index:1;}
   .topbar{display:flex;align-items:center;justify-content:space-between;padding:52px 26px 2px;gap:10px;position:relative;z-index:2;}
   .topbar-logo{font-size:21px;font-weight:800;color:var(--text);position:absolute;left:50%;transform:translateX(-50%);}
+  .topbar-model-pill{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;padding:9px 20px;border-radius:999px;background:rgba(255,255,255,0.06);border:1px solid rgba(167,139,250,.35);box-shadow:0 6px 18px rgba(0,0,0,.22);cursor:pointer;user-select:none;transition:background .12s,transform .12s;}
+  .topbar-model-pill:active{transform:translate(-50%,-50%) scale(.95);}
+  .topbar-model-pill .pill-name{font-size:15px;font-weight:800;color:#a78bfa;letter-spacing:-.2px;}
 }
 @media(min-width:769px){
   .app{flex-direction:row;}
@@ -780,7 +783,9 @@ button:active,.model-pill:active,.send-btn:active{
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="2" rx="1" fill="currentColor"/><rect x="3" y="11" width="18" height="2" rx="1" fill="currentColor"/><rect x="3" y="17" width="18" height="2" rx="1" fill="currentColor"/></svg>
         </button>
       </div>
-      <div class="topbar-logo">HarmonyAI</div>
+      <div class="topbar-model-pill" id="topbarModelPill" onclick="toggleModelDrop(event)">
+        <span class="pill-name" id="pillName">Adanatos</span>
+      </div>
       <div style="display:flex;align-items:center;gap:4px;">
         <button class="topbar-btn" onclick="newChat()">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
