@@ -217,15 +217,15 @@ button:active,.model-pill:active,.send-btn:active{
   .sidebar:not(.expanded) .sb-user-row{width:40px;height:40px;padding:0;justify-content:center;margin:0 auto;}
 }
 @media(max-width:768px){
-  .sb-top{gap:6px;}
+  .sb-top{gap:6px;flex-shrink:0;}
   .sb-icon-btn,.sb-chat-item,.sb-user-row{width:100%;box-sizing:border-box;}
   .sb-icon-btn{height:44px;justify-content:flex-start;padding:0 12px;gap:12px;border-radius:12px;}
   .sb-icon-btn svg{flex-shrink:0;}
   .sb-icon-label{display:inline;font-size:15px;font-weight:500;color:var(--text);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .sb-label{padding:14px 10px 8px;font-size:11px;letter-spacing:.8px;}
-  .sb-chat-list{margin-top:0;padding-right:2px;display:flex!important;flex-direction:column;gap:4px;min-height:0;}
-  .sb-chat-item{padding:10px 12px;border-radius:10px;font-size:14px;line-height:1.35;}
-  .sb-footer{padding:14px 2px 0;border-top:1px solid rgba(255,255,255,.06);background:linear-gradient(180deg,rgba(18,18,22,0),rgba(18,18,22,.92) 18%,rgba(18,18,22,.98));}
+  .sb-label{padding:14px 10px 8px;font-size:11px;letter-spacing:.8px;flex-shrink:0;}
+  .sb-chat-list{margin-top:0;padding-right:2px;padding-bottom:10px;display:flex!important;flex-direction:column;gap:4px;min-height:0;-webkit-mask-image:linear-gradient(180deg,#000 calc(100% - 18px),transparent 100%);mask-image:linear-gradient(180deg,#000 calc(100% - 18px),transparent 100%);}
+  .sb-chat-item{padding:10px 12px;border-radius:10px;font-size:14px;line-height:1.35;flex-shrink:0;}
+  .sb-footer{flex-shrink:0;margin-top:8px;padding:14px 2px 0;border-top:1px solid rgba(255,255,255,.06);background:transparent;position:relative;z-index:1;}
   .sb-user-row{padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.03);}
   .sb-avatar{width:34px;height:34px;font-size:14px;}
   .sb-username{min-width:0;}
@@ -791,7 +791,7 @@ button:active,.model-pill:active,.send-btn:active{
     <div class="chat-area" id="chatArea">
       <div class="chat-inner" id="chatInner">
         <div class="greeting-wrap" id="greetingWrap">
-          <div class="greeting-title">Привет! Я Harmony Ai</div>
+          <div class="greeting-title" id="greetingTitle">Привет! Я Harmony Ai</div>
           <div class="greeting-sub" id="greetSub">Спроси меня про любой аккорд 🎵</div>
         </div>
       </div>
@@ -1059,10 +1059,40 @@ async function hydrateSignedInState(session){
     if(chatsResult.status==='rejected')console.warn('Chats hydrate failed',chatsResult.reason);
     updateUserUI();
     renderChatList();
+    maybeShowNicknameModal();
   })().finally(()=>{
     authHydrationPromise=null;
   });
   return authHydrationPromise;
+}
+function maybeShowNicknameModal(){
+  if(!curUser?.needsNickname)return;
+  const ov=document.getElementById('nickOverlay');
+  if(!ov||ov.classList.contains('show'))return;
+  ov.classList.add('show');
+  setTimeout(()=>{const i=document.getElementById('nickModalInp');if(i)i.focus();},150);
+}
+async function saveNicknameModal(){
+  const inp=document.getElementById('nickModalInp');
+  const err=document.getElementById('nickModalErr');
+  const btn=document.getElementById('nickModalBtn');
+  const val=(inp?.value||'').trim();
+  err.style.display='none';
+  if(!val){err.textContent='Введите имя';err.style.display='block';return;}
+  if(!curUser){return;}
+  btn.disabled=true;btn.textContent='Сохраняем...';
+  try{
+    const {error}=await sb.from('profiles').upsert({id:curUser.id,nickname:val},{onConflict:'id'});
+    if(error)throw error;
+    curUser.nickname=val;
+    curUser.needsNickname=false;
+    updateUserUI();
+    document.getElementById('nickOverlay').classList.remove('show');
+  }catch(e){
+    err.textContent='Не удалось сохранить имя, попробуйте ещё раз';err.style.display='block';
+  }finally{
+    btn.disabled=false;btn.textContent='Продолжить';
+  }
 }
 function beginSignedInState(session){
   ensureSignedInShell(session);
@@ -1289,13 +1319,17 @@ async function loadProfile(uid,email){
   try{
     const {data,error}=await sb.from('profiles').select('*').eq('id',uid).maybeSingle();
     if(error)throw error;
-    curUser={id:uid,email,nickname:data?.nickname||email.split('@')[0],role:data?.role||'user',settings:data?.settings||{}};
+    curUser={id:uid,email,nickname:data?.nickname||email.split('@')[0],role:data?.role||'user',settings:data?.settings||{},needsNickname:!data?.nickname};
   }catch(e){
     console.warn('Profile load failed, using fallback user shell',e);
-    curUser={id:uid,email,nickname:(email||'').split('@')[0]||'Пользователь',role:'user',settings:{}};
+    curUser={id:uid,email,nickname:(email||'').split('@')[0]||'Пользователь',role:'user',settings:{},needsNickname:false};
   }
   loadKnowledgeDocs();
   await loadKnowledgeDocsFromSupabase();
+}
+function greetingTitleText(){
+  const name=curUser?.nickname;
+  return name?`Привет, ${escapeHtml(name)}`:'Привет! Я Harmony Ai';
 }
 function updateUserUI(){
   if(!curUser)return;
@@ -1304,6 +1338,8 @@ function updateUserUI(){
   const un=document.getElementById('sbUsername');
   if(av)av.textContent=ch;
   if(un)un.textContent=curUser.nickname||curUser.email;
+  const gt=document.getElementById('greetingTitle');
+  if(gt)gt.textContent=greetingTitleText();
   updateSidebarTrainingVisibility();
 }
 function kbUserKey(){return KB_USER_PREFIX+(curUser?.id||'guest');}
@@ -1804,7 +1840,7 @@ function newChat(){
   recentAttachmentDocs=[];
   const inner=document.getElementById('chatInner');
   inner.innerHTML=`<div class="greeting-wrap" id="greetingWrap">
-    <div class="greeting-title">Привет! Я Harmony Ai</div>
+    <div class="greeting-title" id="greetingTitle">${greetingTitleText()}</div>
     <div class="greeting-sub" id="greetSub">${GREETS[greetIdx]}</div>
   </div>`;
   updateTrainingPillUI();
@@ -2852,6 +2888,12 @@ function renderSettingsMain(){
     <div class="s-sect">
       <div class="s-sect-label">Учётная запись</div>
       <div class="s-rows">
+        <div class="s-row" onclick="renderSettingsName()">
+          <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="M20 21a8 8 0 10-16 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+          <div class="s-row-text">Имя</div>
+          <div class="s-row-val" style="font-size:12px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${curUser?.nickname||''}</div>
+          <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+        </div>
         <div class="s-row">
           <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" stroke-width="2"/><path d="M3 7l9 7 9-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
           <div class="s-row-text">Электронная почта</div>
@@ -2893,6 +2935,44 @@ function renderSettingsMemory(){
         <div class="sw ${memRecall?'on':''}" onclick="this.classList.toggle('on');saveSetting('memRecall',this.classList.contains('on'))"></div>
       </div>
     </div>`;
+}
+function renderSettingsName(){
+  const el=document.getElementById('settingsContent');
+  el.innerHTML=`
+    <div class="sth">
+      <div class="sth-back" onclick="renderSettingsMain()">
+        <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="sth-title">Имя</div>
+    </div>
+    <div class="mem-rows" style="padding:14px;display:flex;flex-direction:column;gap:10px;">
+      <input class="auth-input" id="settingsNameInp" type="text" placeholder="Введите имя.." maxlength="40" autocomplete="given-name" value="${(curUser?.nickname||'').replace(/"/g,'&quot;')}" style="margin-bottom:0;" onkeydown="if(event.key==='Enter')saveSettingsName()">
+      <div class="auth-error" id="settingsNameErr" style="display:none;"></div>
+      <button class="auth-btn-primary" id="settingsNameBtn" style="margin-bottom:0;" onclick="saveSettingsName()">Сохранить</button>
+    </div>`;
+  setTimeout(()=>{const i=document.getElementById('settingsNameInp');if(i)i.focus();},80);
+}
+async function saveSettingsName(){
+  const inp=document.getElementById('settingsNameInp');
+  const err=document.getElementById('settingsNameErr');
+  const btn=document.getElementById('settingsNameBtn');
+  const val=(inp?.value||'').trim();
+  err.style.display='none';
+  if(!val){err.textContent='Введите имя';err.style.display='block';return;}
+  if(!curUser)return;
+  btn.disabled=true;btn.textContent='Сохраняем...';
+  try{
+    const {error}=await sb.from('profiles').upsert({id:curUser.id,nickname:val},{onConflict:'id'});
+    if(error)throw error;
+    curUser.nickname=val;
+    curUser.needsNickname=false;
+    updateUserUI();
+    renderSettingsMain();
+  }catch(e){
+    err.textContent='Не удалось сохранить имя, попробуйте ещё раз';err.style.display='block';
+  }finally{
+    btn.disabled=false;btn.textContent='Сохранить';
+  }
 }
 
 /* ===== PERSONALIZATION (mobile only) ===== */
@@ -3071,6 +3151,19 @@ async function saveSetting(key,val){
     <div class="fb-actions">
       <button class="fb-btn-cancel" onclick="closeFbModal()">Отмена</button>
       <button class="fb-btn-send" id="fbSendBtn" onclick="submitFbModal()">Отправить</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== NICKNAME MODAL (запрашивается один раз, если в профиле нет имени) ===== -->
+<div class="fb-overlay" id="nickOverlay">
+  <div class="fb-modal" style="gap:16px;">
+    <div class="fb-title">Как вас зовут?</div>
+    <div class="fb-desc">Так мы будем обращаться к вам в чате. Это можно изменить позже в настройках.</div>
+    <input class="fb-qa-input" id="nickModalInp" placeholder="Введите имя.." maxlength="40" autocomplete="given-name" onkeydown="if(event.key==='Enter')saveNicknameModal()" />
+    <div class="auth-error" id="nickModalErr" style="display:none;"></div>
+    <div class="fb-actions">
+      <button class="fb-btn-send" id="nickModalBtn" style="flex:1;" onclick="saveNicknameModal()">Продолжить</button>
     </div>
   </div>
 </div>
