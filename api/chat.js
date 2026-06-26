@@ -629,8 +629,9 @@ async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs,
   let pendingHold = '';       // придерживаем хвост на случай, если маркер разорван между чанками
 
   const chunkTimeoutMs = largeContext
-    ? Math.max(30000, Math.min(timeoutMs, 60000))  // до 60с между чанками для больших документов
-    : Math.max(8000, Math.min(timeoutMs, 20000));   // стандартный 20с
+    ? Math.max(45000, Math.min(timeoutMs, 60000))  // до 60с между чанками для больших документов
+    : Math.max(45000, Math.min(timeoutMs, 60000));  // до 60с — модель может "молчать" во время длинных рассуждений (режим "Думать")
+  let stalled = false;
   while (true) {
     let done, value;
     try {
@@ -640,7 +641,9 @@ async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs,
         `OpenAI stream chunk timed out for ${modelName}`
       ));
     } catch (chunkErr) {
-      // Модель замолчала между токенами — грациозно завершаем с тем, что получили
+      // Модель замолчала между токенами дольше chunkTimeoutMs — грациозно завершаем с тем, что получили,
+      // но помечаем ответ как незавершённый, чтобы клиент предложил продолжить генерацию.
+      stalled = true;
       break;
     }
     if (done) break;
@@ -717,11 +720,15 @@ async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs,
     finalRawText = idx === -1 ? fullText : fullText.slice(idx + REASONING_DELIMITER.length).replace(/^\s+/, '');
   }
 
-  const finalText = await repairNotationReplyIfNeeded(apiKey, modelName, query, finalRawText);
-  writeSseEvent(res, { type: 'done', text: finalText });
+  // Ответ оборвался из-за молчания модели (а не потому что она закончила сама) — не "чиним" нотацию
+  // повторным запросом (он может полностью переписать честный частичный текст), просто сообщаем клиенту.
+  const finalText = stalled
+    ? sanitizeAssistantText(finalRawText)
+    : await repairNotationReplyIfNeeded(apiKey, modelName, query, finalRawText);
+  writeSseEvent(res, { type: 'done', text: finalText, truncated: stalled });
   res.end();
 
-  return { ok: true, text: finalText, model: modelName };
+  return { ok: true, text: finalText, model: modelName, truncated: stalled };
 }
 
 function selectRoute(profile, requestedModel) {
@@ -961,6 +968,3 @@ export default async function handler(req, res) {
       error: {
         message: error?.message || 'Внутренняя ошибка сервера'
       }
-    });
-  }
-}
