@@ -89,6 +89,20 @@ button,.model-pill,.send-btn{
 button:active,.model-pill:active,.send-btn:active{
   filter:brightness(.88);
 }
+/* Физика материала при нажатии: внутреннее давление растёт, геометрия слегка сжимается,
+   highlight становится резче — затем спринговый отскок при отпускании (см. BUTTONS/MOTION в спеке). */
+.send-btn,.model-pill,.bar-icon,.sb-icon-btn,.topbar-btn{
+  transition:transform .42s cubic-bezier(.34,1.56,.64,1),filter .15s ease,box-shadow .18s ease,opacity .15s ease,background-color .15s ease;
+}
+.send-btn:active,.model-pill:active,.bar-icon:active,.sb-icon-btn:active,.topbar-btn:active{
+  transform:scale(.93);
+  transition:transform .09s cubic-bezier(.4,0,.2,1);
+  filter:brightness(.9) saturate(1.08);
+}
+@media(prefers-reduced-motion:reduce){
+  .send-btn,.model-pill,.bar-icon,.sb-icon-btn,.topbar-btn{transition:none!important;}
+  .send-btn:active,.model-pill:active,.bar-icon:active,.sb-icon-btn:active,.topbar-btn:active{transform:none;filter:none;}
+}
 @media(prefers-reduced-motion:reduce){
   .sb-icon-btn,.topbar-btn,.sth-back,.s-row,.mmp-opt,.desktop-option,.auth-btn-primary,
   .auth-btn-secondary,.mac-btn,.more-item,.pers-selector,button,.model-pill,.send-btn{transition:none!important;}
@@ -108,26 +122,47 @@ button:active,.model-pill:active,.send-btn:active{
 @media(min-width:769px){.mobile-glossy{display:none;}}
 
 /* ===================== LIQUID GLASS CORE ===================== */
-/* SVG-фильтр (feTurbulence -> feDisplacementMap) задаёт "текучее" искажение для .bg-liquid-glass.
-   Подложка (::before) получает blur+saturate+displacement, контент рисуется отдельным слоем сверху,
-   поэтому текст никогда не искажается и не сливается с фоном. */
+/* Материал состоит из независимых оптических слоёв, а не из одного blur-эффекта:
+   ::before  -> фон + лёгкая рефракция (Layer 1-4: sampling, blur, displacement, internal density)
+   ::after   -> верхний свет + нижняя компрессия + внутренний rim-light (Layer 5-7)
+   .lg-sheen -> амбиентный отблеск, реагирующий на курсор/скролл (Layer 8)
+   Контент рисуется в отдельном слое сверху и никогда не искажается. */
 .bg-liquid-glass,
 .sidebar,.settings-box,.mobile-model-drop,.desktop-model-drop,.desktop-sub-drop,.input-box,.pers-drop-sheet,
 .s-rows,.mem-rows,.pers-card,.more-menu,.model-drop,.mode-sub,.fb-modal{position:relative;isolation:isolate;}
+
 .bg-liquid-glass::before,
 .sidebar::before,.settings-box::before,.mobile-model-drop::before,.desktop-model-drop::before,.desktop-sub-drop::before,.input-box::before,.pers-drop-sheet::before,
-.s-rows::before,.mem-rows::before,.pers-card::before,.more-menu::before,.model-drop::before,.mode-sub::before,.fb-modal::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;
-  backdrop-filter:blur(22px) saturate(150%);-webkit-backdrop-filter:blur(22px) saturate(150%);
-  background:linear-gradient(155deg,rgba(255,255,255,0.07),rgba(255,255,255,0.015) 40%,rgba(0,0,0,0.10));
+.s-rows::before,.mem-rows::before,.pers-card::before,.more-menu::before,.model-drop::before,.mode-sub::before,.fb-modal::before{
+  content:"";position:absolute;inset:0;z-index:-2;border-radius:inherit;overflow:hidden;
+  backdrop-filter:blur(20px) saturate(165%) brightness(1.03);
+  -webkit-backdrop-filter:blur(20px) saturate(165%) brightness(1.03);
+  /* Layer 4 — internal density: центр чуть прозрачнее краёв, материал не однороден */
+  background:
+    radial-gradient(120% 90% at 50% 8%,rgba(255,255,255,0.10),rgba(255,255,255,0.022) 55%,rgba(0,0,0,0.05) 100%),
+    linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.01) 45%,rgba(0,0,0,0.09) 100%);
   filter:url(#liquidGlassFilter);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,0.10),inset 0 0 0 1px rgba(255,255,255,0.06),0 18px 40px rgba(0,0,0,0.38);
-  pointer-events:none;}
+  pointer-events:none;
+  transition:filter .4s ease;
+}
+/* Layer 7 — inner rim lighting: свет, "проходящий" через край, вместо обычной границы */
 .bg-liquid-glass::after,
 .sidebar::after,.settings-box::after,.mobile-model-drop::after,.desktop-model-drop::after,.desktop-sub-drop::after,.input-box::after,.pers-drop-sheet::after,
-.s-rows::after,.mem-rows::after,.pers-card::after,.more-menu::after,.model-drop::after,.mode-sub::after,.fb-modal::after{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;
-  background:linear-gradient(125deg,rgba(255,255,255,0.10) 0%,rgba(255,255,255,0) 26%,rgba(255,255,255,0) 70%,rgba(255,255,255,0.05) 100%);
-  mix-blend-mode:overlay;opacity:.9;animation:liquidSheen 9s ease-in-out infinite;}
-@keyframes liquidSheen{0%,100%{opacity:.55;}50%{opacity:.95;}}
+.s-rows::after,.mem-rows::after,.pers-card::after,.more-menu::after,.model-drop::after,.mode-sub::after,.fb-modal::after{
+  content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;
+  /* Layer 5: верхняя кромка светлее. Layer 6: нижняя кромка темнее/компрессия. Layer 7: тонкий внутренний rim. */
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.30),
+    inset 0 0.5px 0 rgba(255,255,255,0.55),
+    inset 0 -1px 0 rgba(0,0,0,0.22),
+    inset 0 0 0 1px rgba(255,255,255,0.07),
+    inset 0 14px 26px -18px rgba(255,255,255,0.16),
+    inset 0 -16px 30px -20px rgba(0,0,0,0.30),
+    0 1px 2px rgba(0,0,0,0.06);
+  background:linear-gradient(125deg,rgba(255,255,255,0.10) 0%,rgba(255,255,255,0) 22%,rgba(255,255,255,0) 72%,rgba(255,255,255,0.045) 100%);
+  mix-blend-mode:overlay;opacity:.85;animation:liquidSheen 9s ease-in-out infinite;
+}
+@keyframes liquidSheen{0%,100%{opacity:.62;}50%{opacity:.92;}}
 @media(prefers-reduced-motion:reduce){.bg-liquid-glass::after,.sidebar::after,.settings-box::after,.mobile-model-drop::after,.desktop-model-drop::after,.desktop-sub-drop::after,.input-box::after,.pers-drop-sheet::after,.s-rows::after,.mem-rows::after,.pers-card::after,.more-menu::after,.model-drop::after,.mode-sub::after,.fb-modal::after{animation:none;}.mobile-glossy .bubble{animation:none;}}
 
 /* ===================== AUTH ===================== */
@@ -439,7 +474,7 @@ button:active,.model-pill:active,.send-btn:active{
 @media(max-width:768px){.input-wrap{padding:8px 16px 18px;gap:10px;}}
 .input-box{width:100%;max-width:720px;background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:12px 14px 10px;box-shadow:0 2px 12px rgba(0,0,0,0.06);transition:border-color .15s;}
 .input-box:focus-within{border-color:var(--text);}
-@media(max-width:768px){.input-box{border-radius:20px;padding:10px 12px 8px;background:rgba(255,255,255,0.04);backdrop-filter:blur(12px);border-color:rgba(255,255,255,0.08);}}
+@media(max-width:768px){.input-box{border-radius:20px;padding:10px 12px 8px;background:rgba(255,255,255,0.04);backdrop-filter:blur(12px);border:none;}}
 .input-box textarea{width:100%;border:none;outline:none;resize:none;font-size:var(--font-base);color:var(--text);font-family:inherit;background:transparent;line-height:1.55;max-height:160px;min-height:22px;overflow-y:auto;}
 .input-box textarea::placeholder{color:var(--text2);}
 .input-bar-row{display:flex;align-items:center;justify-content:space-between;margin-top:8px;}
@@ -506,7 +541,7 @@ button:active,.model-pill:active,.send-btn:active{
 .stream-break>*:last-child{display:inline;}
 @media(max-width:768px){
   .input-wrap{padding:6px 14px calc(8px + env(safe-area-inset-bottom,0px));}
-  .input-box{position:relative;overflow:visible;border-radius:22px;padding:12px 14px 14px;min-height:56px;background:linear-gradient(180deg,rgba(28,28,34,.46),rgba(15,15,20,.56));backdrop-filter:blur(24px) saturate(150%);-webkit-backdrop-filter:blur(24px) saturate(150%);border-color:rgba(255,255,255,0.10);box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 10px 34px rgba(0,0,0,.22);}
+  .input-box{position:relative;overflow:visible;border-radius:22px;padding:12px 14px 14px;min-height:56px;background:linear-gradient(180deg,rgba(28,28,34,.46),rgba(15,15,20,.56));backdrop-filter:blur(24px) saturate(150%);-webkit-backdrop-filter:blur(24px) saturate(150%);border:none;box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 10px 34px rgba(0,0,0,.22);}
   .input-box textarea{min-height:26px;padding-right:8px;font-size:17px;line-height:1.4;}
   .input-box textarea::placeholder{color:rgba(212,209,220,.58);}
   .input-bar-row{position:relative;left:0;right:0;bottom:0;height:40px;margin-top:6px;}
@@ -634,8 +669,8 @@ button:active,.model-pill:active,.send-btn:active{
   /* Liquid glass: на тёмной мобильной теме делаем поверхности полупрозрачными, чтобы сквозь
      blur(backdrop-filter) было видно размытый чёрный фон с шарами позади — это и даёт эффект стекла. */
   .settings-overlay{background:rgba(8,8,10,.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);}
-  .s-rows,.mem-rows,.pers-card{background:rgba(255,255,255,0.045);border-color:rgba(255,255,255,0.09);backdrop-filter:blur(18px) saturate(140%);-webkit-backdrop-filter:blur(18px) saturate(140%);}
-  .more-menu,.model-drop,.mode-sub,.fb-modal{background:rgba(22,22,27,0.55);border-color:rgba(255,255,255,0.10);backdrop-filter:blur(22px) saturate(150%);-webkit-backdrop-filter:blur(22px) saturate(150%);}
+  .s-rows,.mem-rows,.pers-card{background:rgba(255,255,255,0.045);border:none;backdrop-filter:blur(18px) saturate(140%);-webkit-backdrop-filter:blur(18px) saturate(140%);}
+  .more-menu,.model-drop,.mode-sub,.fb-modal{background:rgba(22,22,27,0.55);border:none;backdrop-filter:blur(22px) saturate(150%);-webkit-backdrop-filter:blur(22px) saturate(150%);}
 }
 .pers-header{padding:16px 16px 12px;}
 .pers-h-label{font-size:13px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;}
@@ -724,12 +759,21 @@ button:active,.model-pill:active,.send-btn:active{
 </head>
 <body>
 
-<!-- LIQUID GLASS SVG FILTER: feTurbulence генерирует шум, feDisplacementMap создаёт "текучее" искажение -->
+<!-- LIQUID GLASS SVG FILTER — рефракция должна быть ощущаемой, а не видимой.
+     Шум сглаживается (feGaussianBlur) до того как используется как карта смещения,
+     поэтому смещение получается плавным "оптическим" дрожанием без рваных краёв,
+     а сама величина смещения (scale) держится в пределах суб-пиксельного эффекта. -->
 <svg width="0" height="0" style="position:absolute;overflow:hidden;pointer-events:none">
   <defs>
-    <filter id="liquidGlassFilter" x="-20%" y="-20%" width="140%" height="140%">
-      <feTurbulence type="fractalNoise" baseFrequency="0.010 0.016" numOctaves="2" seed="7" result="lgNoise"/>
-      <feDisplacementMap in="SourceGraphic" in2="lgNoise" scale="14" xChannelSelector="R" yChannelSelector="G"/>
+    <filter id="liquidGlassFilter" x="-12%" y="-12%" width="124%" height="124%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.006 0.009" numOctaves="2" seed="7" result="lgNoiseRaw"/>
+      <feGaussianBlur in="lgNoiseRaw" stdDeviation="2.4" result="lgNoise"/>
+      <feDisplacementMap in="SourceGraphic" in2="lgNoise" scale="2.2" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <filter id="liquidGlassFilterEdge" x="-12%" y="-12%" width="124%" height="124%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.012 0.02" numOctaves="2" seed="11" result="lgEdgeRaw"/>
+      <feGaussianBlur in="lgEdgeRaw" stdDeviation="1.6" result="lgEdgeNoise"/>
+      <feDisplacementMap in="SourceGraphic" in2="lgEdgeNoise" scale="1.1" xChannelSelector="R" yChannelSelector="G"/>
     </filter>
   </defs>
 </svg>
