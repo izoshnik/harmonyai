@@ -968,3 +968,6 @@ export default async function handler(req, res) {
       error: {
         message: error?.message || 'Внутренняя ошибка сервера'
       }
+    });
+  }
+}
