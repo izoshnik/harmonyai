@@ -68,17 +68,23 @@ body{background:var(--bg);color:var(--text);}
 /* Группа A: элементы без своего layout-transform — им безопасно давать scale() на нажатии. */
 .sb-icon-btn,.topbar-btn,.sth-back,.s-row,.mmp-opt,.desktop-option,.auth-btn-primary,
 .auth-btn-secondary,.mac-btn,.more-item,.pers-selector,.composer-attachment,.msg-user-attachment,
-.sb-user-row,.sb-chat-item,.training-tip,.otp-box{
+.sb-user-row,.sb-chat-item,.training-tip,.otp-box,
+.md-option,.md-mode-row,.ms-option,.desktop-row,.pds-opt,.pers-row-inline,.logout-btn,.save-btn,
+.composer-attachment-remove,.sw,.mm-close{
   transition:transform .16s cubic-bezier(.34,1.56,.64,1),background-color .15s ease,box-shadow .18s ease,opacity .15s ease,color .15s ease,border-color .15s ease;
   will-change:transform;
 }
 .sb-icon-btn:active,.topbar-btn:active,.sth-back:active,.s-row:active,.mmp-opt:active,
 .desktop-option:active,.auth-btn-primary:active,.auth-btn-secondary:active,.mac-btn:active,
-.more-item:active,.pers-selector:active,.composer-attachment:active,.msg-user-attachment:active{
+.more-item:active,.pers-selector:active,.composer-attachment:active,.msg-user-attachment:active,
+.md-option:active,.md-mode-row:active,.ms-option:active,.desktop-row:active,.pds-opt:active,
+.pers-row-inline:active,.logout-btn:active,.save-btn:active,.composer-attachment-remove:active,
+.sw:active,.mm-close:active{
   transform:scale(.94);
   transition:transform .08s cubic-bezier(.4,0,.2,1);
 }
-.sb-icon-btn:hover,.topbar-btn:hover,.mmp-opt:hover,.desktop-option:hover,.mac-btn:hover,.more-item:hover{
+.sb-icon-btn:hover,.topbar-btn:hover,.mmp-opt:hover,.desktop-option:hover,.mac-btn:hover,.more-item:hover,
+.md-option:hover,.md-mode-row:hover,.ms-option:hover,.desktop-row:hover{
   transform:translateY(-1px);
 }
 /* Группа B: элементы со своим layout-transform (центрирование/смещение) — анимируем без transform,
@@ -105,10 +111,15 @@ button:active,.model-pill:active,.send-btn:active{
 }
 @media(prefers-reduced-motion:reduce){
   .sb-icon-btn,.topbar-btn,.sth-back,.s-row,.mmp-opt,.desktop-option,.auth-btn-primary,
-  .auth-btn-secondary,.mac-btn,.more-item,.pers-selector,button,.model-pill,.send-btn{transition:none!important;}
+  .auth-btn-secondary,.mac-btn,.more-item,.pers-selector,button,.model-pill,.send-btn,
+  .md-option,.md-mode-row,.ms-option,.desktop-row,.pds-opt,.pers-row-inline,.logout-btn,.save-btn,
+  .composer-attachment-remove,.sw,.mm-close{transition:none!important;}
   .sb-icon-btn:active,.topbar-btn:active,.sth-back:active,.s-row:active,.mmp-opt:active,
   .desktop-option:active,.auth-btn-primary:active,.auth-btn-secondary:active,.mac-btn:active,
-  .more-item:active,.pers-selector:active,button:active,.model-pill:active,.send-btn:active{transform:none;filter:none;}
+  .more-item:active,.pers-selector:active,button:active,.model-pill:active,.send-btn:active,
+  .md-option:active,.md-mode-row:active,.ms-option:active,.desktop-row:active,.pds-opt:active,
+  .pers-row-inline:active,.logout-btn:active,.save-btn:active,.composer-attachment-remove:active,
+  .sw:active,.mm-close:active{transform:none;filter:none;}
 }
 
 /* ===================== GLOSSY MOBILE BACKGROUND (чёрный/графит, liquid glass) ===================== */
@@ -131,6 +142,11 @@ button:active,.model-pill:active,.send-btn:active{
 .sidebar,.settings-box,.mobile-model-drop,.desktop-model-drop,.desktop-sub-drop,.input-box,.pers-drop-sheet,
 .s-rows,.mem-rows,.pers-card,.more-menu,.model-drop,.mode-sub,.fb-modal{position:relative;isolation:isolate;}
 
+/* Liquid Glass материал — только для мобильной версии (тёмная тема), как и задумано.
+   На десктопе у этих же классов уже есть собственный сплошной светлый фон (var(--bg2)/var(--drop-bg))
+   и обычные тени — раньше эти псевдоэлементы накладывали блюр/рефракцию/блик НА ВСЕХ разрешениях,
+   что и давало "неровный", полупрозрачный вид панелей на светлой десктопной теме. */
+@media(max-width:768px){
 .bg-liquid-glass::before,
 .sidebar::before,.settings-box::before,.mobile-model-drop::before,.desktop-model-drop::before,.desktop-sub-drop::before,.input-box::before,.pers-drop-sheet::before,
 .s-rows::before,.mem-rows::before,.pers-card::before,.more-menu::before,.model-drop::before,.mode-sub::before,.fb-modal::before{
@@ -162,8 +178,29 @@ button:active,.model-pill:active,.send-btn:active{
   background:linear-gradient(125deg,rgba(255,255,255,0.10) 0%,rgba(255,255,255,0) 22%,rgba(255,255,255,0) 72%,rgba(255,255,255,0.045) 100%);
   mix-blend-mode:overlay;opacity:.85;animation:liquidSheen 9s ease-in-out infinite;
 }
+}
 @keyframes liquidSheen{0%,100%{opacity:.62;}50%{opacity:.92;}}
-@media(prefers-reduced-motion:reduce){.bg-liquid-glass::after,.sidebar::after,.settings-box::after,.mobile-model-drop::after,.desktop-model-drop::after,.desktop-sub-drop::after,.input-box::after,.pers-drop-sheet::after,.s-rows::after,.mem-rows::after,.pers-card::after,.more-menu::after,.model-drop::after,.mode-sub::after,.fb-modal::after{animation:none;}.mobile-glossy .bubble{animation:none;}}
+@keyframes dropMenuIn{from{opacity:0;transform:translateY(6px) scale(.97);}to{opacity:1;transform:translateY(0) scale(1);}}
+@media(prefers-reduced-motion:reduce){
+  .more-menu.open,.model-drop.open,.mode-sub.open,.desktop-model-wrap.open,.desktop-sub-drop.open{animation:none!important;}
+}
+@media(max-width:768px) and (prefers-reduced-motion:reduce){.bg-liquid-glass::after,.sidebar::after,.settings-box::after,.mobile-model-drop::after,.desktop-model-drop::after,.desktop-sub-drop::after,.input-box::after,.pers-drop-sheet::after,.s-rows::after,.mem-rows::after,.pers-card::after,.more-menu::after,.model-drop::after,.mode-sub::after,.fb-modal::after{animation:none;}}
+@media(prefers-reduced-motion:reduce){.mobile-glossy .bubble{animation:none;}}
+
+/* ===================== ДЕСКТОП: чистая светлая тема без стекла, ровные карточки с мягкой анимацией ===================== */
+@media(min-width:769px){
+  .sidebar,.settings-box,.desktop-model-drop,.desktop-sub-drop,.input-box,
+  .s-rows,.mem-rows,.pers-card,.more-menu,.model-drop,.mode-sub,.fb-modal{
+    box-shadow:0 1px 2px rgba(20,18,12,.04),0 10px 28px -8px rgba(20,18,12,.08);
+    transition:box-shadow .2s ease,border-color .2s ease,transform .2s cubic-bezier(.22,.61,.36,1);
+  }
+  .input-box:focus-within{box-shadow:0 1px 2px rgba(20,18,12,.04),0 14px 32px -8px rgba(20,18,12,.12);}
+  .sidebar{box-shadow:none;}
+}
+@media(min-width:769px) and (prefers-reduced-motion:reduce){
+  .sidebar,.settings-box,.desktop-model-drop,.desktop-sub-drop,.input-box,
+  .s-rows,.mem-rows,.pers-card,.more-menu,.model-drop,.mode-sub,.fb-modal{transition:none;}
+}
 
 /* ===================== AUTH ===================== */
 .auth-wrap{position:fixed;inset:0;z-index:1000;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px;}
@@ -305,7 +342,7 @@ button:active,.model-pill:active,.send-btn:active{
 @media(max-width:768px){.msg-user{border-radius:20px 20px 4px 20px;padding:12px 16px;min-width:96px;}}
 .msg-user-wrap{align-self:flex-end;max-width:78%;display:flex;flex-direction:column;gap:8px;align-items:flex-end;}
 .msg-user-attachments{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;max-width:min(100%,420px);}
-.msg-user-attachment{position:relative;display:flex;flex-direction:column;gap:6px;min-width:94px;max-width:128px;padding:8px 8px 10px;border-radius:18px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.08);backdrop-filter:blur(12px);box-shadow:0 10px 20px rgba(0,0,0,.10);}
+.msg-user-attachment{position:relative;display:flex;flex-direction:column;gap:6px;min-width:94px;max-width:128px;padding:8px 8px 10px;border-radius:18px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.08);box-shadow:0 10px 20px rgba(0,0,0,.10);}
 .msg-user-attachment.image{padding:6px;}
 .msg-user-attachment img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:14px;display:block;}
 .msg-user-file-icon{width:58px;height:58px;border-radius:14px;overflow:hidden;align-self:flex-start;}
@@ -314,12 +351,12 @@ button:active,.model-pill:active,.send-btn:active{
 @media(min-width:769px){
   .msg-user-wrap{max-width:72%;}
   .msg-user-attachments{max-width:min(100%,520px);}
-  .msg-user-attachment{background:rgba(255,255,255,0.05);}
+  .msg-user-attachment{background:rgba(255,255,255,0.08);}
 }
 @media(max-width:768px){
   .msg-user-wrap{max-width:85%;}
   .msg-user-attachments{max-width:100%;}
-  .msg-user-attachment{min-width:102px;max-width:124px;}
+  .msg-user-attachment{min-width:102px;max-width:124px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);}
 }
 
 /* AI — NO BUBBLE, text flows on background */
@@ -420,7 +457,7 @@ button:active,.model-pill:active,.send-btn:active{
   .fb-overlay.show .fb-modal{transform:none;}
 }
 .more-menu{position:absolute;bottom:34px;right:0;left:auto;background:var(--drop-bg);border:1px solid var(--border);border-radius:12px;padding:5px;display:none;z-index:30;box-shadow:var(--drop-shadow);min-width:150px;}
-.more-menu.open{display:block;}
+.more-menu.open{display:block;animation:dropMenuIn .15s cubic-bezier(.22,.61,.36,1) both;}
 .more-item{padding:8px 14px;font-size:13px;font-weight:500;color:var(--text);border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:8px;}
 .more-item:hover{background:var(--hover);}
 
@@ -505,7 +542,7 @@ button:active,.model-pill:active,.send-btn:active{
 
 /* ===================== MODEL DROPDOWN ===================== */
 .model-drop{position:absolute;bottom:calc(100% + 8px);right:0;background:var(--drop-bg);border:1px solid var(--border);border-radius:14px;padding:6px;box-shadow:var(--drop-shadow);display:none;z-index:200;min-width:230px;}
-.model-drop.open{display:block;}
+.model-drop.open{display:block;animation:dropMenuIn .15s cubic-bezier(.22,.61,.36,1) both;}
 .md-option{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;transition:background .12s;}
 .md-option:hover{background:var(--hover);}
 .md-opt-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -529,7 +566,7 @@ button:active,.model-pill:active,.send-btn:active{
 
 /* Mode sub-dropdown */
 .mode-sub{position:absolute;bottom:calc(100% + 8px);left:0;background:var(--drop-bg);border:1px solid var(--border);border-radius:12px;padding:5px;box-shadow:var(--drop-shadow);display:none;z-index:201;min-width:170px;}
-.mode-sub.open{display:block;}
+.mode-sub.open{display:block;animation:dropMenuIn .15s cubic-bezier(.22,.61,.36,1) both;}
 .ms-option{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:9px;cursor:pointer;transition:background .12s;}
 .ms-option:hover{background:var(--hover);}
 .ms-label{font-size:13px;font-weight:700;color:var(--text);}
@@ -576,7 +613,7 @@ button:active,.model-pill:active,.send-btn:active{
 @media(min-width:769px){
   .mobile-model-drop,.mobile-mode-sub{display:none!important;}
   .desktop-model-wrap{position:absolute;right:0;bottom:calc(100% + 10px);display:none;z-index:220;}
-  .desktop-model-wrap.open{display:block;}
+  .desktop-model-wrap.open{display:block;animation:dropMenuIn .15s cubic-bezier(.22,.61,.36,1) both;}
   .desktop-model-drop,.desktop-sub-drop{background:var(--drop-bg);border:1px solid var(--border);border-radius:16px;box-shadow:0 18px 40px rgba(0,0,0,.12);}
   .desktop-model-drop{min-width:274px;padding:8px;}
   .desktop-row,.desktop-option{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 14px;border-radius:12px;cursor:pointer;transition:background .12s;}
@@ -585,7 +622,7 @@ button:active,.model-pill:active,.send-btn:active{
   .desktop-row-title{font-size:13px;font-weight:700;color:var(--text);}
   .desktop-mini{display:flex;align-items:center;gap:8px;color:var(--text2);font-size:12px;}
   .desktop-sub-drop{position:absolute;top:56px;left:calc(100% + 12px);display:none;min-width:252px;padding:8px;}
-  .desktop-sub-drop.open{display:block;}
+  .desktop-sub-drop.open{display:block;animation:dropMenuIn .15s cubic-bezier(.22,.61,.36,1) both;}
   .desktop-sub-drop.models{top:110px;}
   .desktop-copy{display:flex;flex-direction:column;gap:2px;}
   .desktop-copy strong{font-size:13px;font-weight:700;color:var(--text);}
@@ -2781,6 +2818,43 @@ function removeContinueButton(wrap){
   const btn=wrap?.querySelector('.continue-gen-btn');
   if(btn)btn.remove();
 }
+const CONTINUE_GEN_INSTRUCTION='Продолжи свой предыдущий ответ ровно с того места, где он был прерван. Не повторяй уже написанное и не извиняйся, просто продолжи текст/нотацию дальше.';
+// Один "тихий" шаг продолжения генерации: дозапрашивает модель с того места, где обрыв произошёл.
+async function performContinuation(msgEl,actionsEl,priorText){
+  msgEl._segCache=[];
+  if(chatHistory.length&&chatHistory[chatHistory.length-1].role==='assistant'){
+    chatHistory[chatHistory.length-1].content=priorText;
+  }
+  return await requestChatReplyLive(msgEl,actionsEl,[{role:'user',content:CONTINUE_GEN_INSTRUCTION}],priorText);
+}
+// Если ответ оборвался (truncated), сначала пытаемся незаметно для пользователя "дотолкать"
+// генерацию автоматически (несколько попыток), и только если это не помогло — показываем
+// кнопку "Продолжить генерацию" для ручного запуска. Так разрыв ответа в большинстве случаев
+// не будет заметен пользователю вовсе.
+async function autoContinueIfNeeded(result,wrap,msgEl,actionsEl,attemptsLeft=2){
+  if(!result?.truncated){
+    removeContinueButton(wrap);
+    return result;
+  }
+  if(attemptsLeft<=0){
+    showContinueButton(wrap,msgEl,actionsEl);
+    return result;
+  }
+  setGeneratingState(true);
+  try{
+    const priorText=result.text||msgEl.dataset.raw||msgEl.textContent||'';
+    const next=await performContinuation(msgEl,actionsEl,priorText);
+    if(next?.text)chatHistory[chatHistory.length-1]={role:'assistant',content:next.text};
+    await saveChat();
+    return await autoContinueIfNeeded(next,wrap,msgEl,actionsEl,attemptsLeft-1);
+  }catch(e){
+    showContinueButton(wrap,msgEl,actionsEl);
+    return result;
+  }finally{
+    activeAbortController=null;activeStreamStop=null;
+    setGeneratingState(false);
+  }
+}
 function showContinueButton(wrap,msgEl,actionsEl){
   if(!wrap)return;
   removeContinueButton(wrap);
@@ -2792,16 +2866,12 @@ function showContinueButton(wrap,msgEl,actionsEl){
     btn.disabled=true;btn.querySelector('span').textContent='Продолжаю...';
     setGeneratingState(true);
     const priorText=msgEl.dataset.raw||msgEl.textContent||'';
-    msgEl._segCache=[];
-    if(chatHistory.length&&chatHistory[chatHistory.length-1].role==='assistant'){
-      chatHistory[chatHistory.length-1].content=priorText;
-    }
     try{
-      const result=await requestChatReplyLive(msgEl,actionsEl,[{role:'user',content:'Продолжи свой предыдущий ответ ровно с того места, где он был прерван. Не повторяй уже написанное и не извиняйся, просто продолжи текст/нотацию дальше.'}],priorText);
+      const result=await performContinuation(msgEl,actionsEl,priorText);
       if(result?.text)chatHistory[chatHistory.length-1]={role:'assistant',content:result.text};
       await saveChat();
       removeContinueButton(wrap);
-      if(result?.truncated)showContinueButton(wrap,msgEl,actionsEl);
+      await autoContinueIfNeeded(result,wrap,msgEl,actionsEl,1);
     }catch(e){
       btn.disabled=false;btn.querySelector('span').textContent='Продолжить генерацию';
     }finally{
@@ -2827,7 +2897,7 @@ async function regenMsg(item){
     const result=await requestChatReplyLive(msgEl,actionsEl);
     if(result?.text)chatHistory.push({role:'assistant',content:result.text});
     await saveChat();
-    if(result?.truncated)showContinueButton(wrap,msgEl,actionsEl);
+    await autoContinueIfNeeded(result,wrap,msgEl,actionsEl);
   }catch(e){
     hideTyping();
     if(e.message!=='Генерация остановлена')renderMd(msgEl,'Ошибка: '+e.message);
@@ -3111,7 +3181,7 @@ async function sendMsg(){
     const result=await requestChatReplyLive(aiShell.msg,aiShell.actions);
     if(result?.text)chatHistory.push({role:'assistant',content:result.text});
     await saveChat();
-    if(result?.truncated)showContinueButton(aiShell.wrap,aiShell.msg,aiShell.actions);
+    await autoContinueIfNeeded(result,aiShell.wrap,aiShell.msg,aiShell.actions);
   }catch(e){
     hideTyping();
     if(e.message!=='Генерация остановлена'){
