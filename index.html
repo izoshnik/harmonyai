@@ -311,7 +311,8 @@ button:active,.model-pill:active,.send-btn:active{
 .topbar-btn{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);transition:background .12s;background:transparent;border:none;}
 .topbar-btn:hover{background:var(--hover);color:var(--text);}
 @media(max-width:768px){
-  .topbar-btn{width:34px;height:34px;color:rgba(245,245,248,.72);}
+  .topbar-btn{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,0.07);color:rgba(245,245,248,.82);}
+  .topbar-btn:hover{background:rgba(255,255,255,0.11);}
 }
 
 /* ===================== CHAT AREA ===================== */
@@ -604,10 +605,10 @@ button:active,.model-pill:active,.send-btn:active{
   .mmp-think-copy{display:flex;flex-direction:column;gap:2px;}
   .mmp-think-title{font-size:14px;font-weight:700;color:var(--text);}
   .mmp-think-sub{font-size:11px;color:var(--text2);line-height:1.35;}
-  .send-btn{position:absolute;right:0;top:50%;transform:translateY(-50%);width:46px;height:46px;border-radius:50%;background:#fff;color:#111;border:1px solid rgba(255,255,255,.2);box-shadow:0 10px 22px rgba(0,0,0,.24);}
+  .send-btn{position:absolute;right:0;top:50%;transform:translateY(-50%);width:46px;height:46px;border-radius:50%;background:#0a84ff;color:#fff;border:1px solid rgba(255,255,255,.12);box-shadow:0 8px 20px rgba(10,132,255,.34);}
   .send-btn svg{width:24px;height:24px;}
-  .send-btn.is-stop{background:rgba(255,255,255,.92);color:#111;}
-  .send-btn:disabled{opacity:.92;cursor:default;}
+  .send-btn.is-stop{background:#fff;color:#111;box-shadow:0 10px 22px rgba(0,0,0,.24);}
+  .send-btn:disabled{opacity:.5;cursor:default;box-shadow:none;}
   .disclaimer{display:none;}
 }
 @media(min-width:769px){
@@ -755,7 +756,7 @@ button:active,.model-pill:active,.send-btn:active{
 }
 @media(max-width:768px){
   .input-bar-row{right:0!important;bottom:0!important;height:40px!important;}
-  .send-btn{width:42px!important;height:42px!important;min-width:42px!important;min-height:42px!important;border-radius:50%!important;box-shadow:0 10px 22px rgba(0,0,0,.24)!important;}
+  .send-btn{width:42px!important;height:42px!important;min-width:42px!important;min-height:42px!important;border-radius:50%!important;}
   .send-btn svg{width:22px!important;height:22px!important;}
 }
 
@@ -912,8 +913,8 @@ button:active,.model-pill:active,.send-btn:active{
         <span>🎓 Обучение</span>
       </div>
       <div style="display:flex;align-items:center;gap:4px;">
-        <button class="topbar-btn" onclick="newChat()">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <button class="topbar-btn" onclick="newChat()" title="Новый чат">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6" stroke-dasharray="2.4 3.6"/><path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
         </button>
       </div>
     </div>
