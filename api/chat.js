@@ -586,120 +586,165 @@ function writeSseEvent(res, payload) {
 const REASONING_DELIMITER = '===ОТВЕТ===';
 
 async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs, query, largeContext = false, captureReasoning = false) {
-  const upstream = await callOpenAIStream(apiKey, modelName, messages, timeoutMs);
-  if (!upstream.ok) {
-    let data = {};
-    try {
-      data = await upstream.json();
-    } catch (error) {
-      data = {};
-    }
-    return {
-      ok: false,
-      status: upstream.status || 500,
-      message: data?.error?.message || `Ошибка модели ${modelName}`,
-      model: modelName
-    };
-  }
-
-  if (!upstream.body) {
-    return {
-      ok: false,
-      status: 500,
-      message: `Потоковый ответ недоступен для модели ${modelName}`,
-      model: modelName
-    };
-  }
-
-  res.statusCode = 200;
-  res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
-  res.setHeader('Cache-Control', 'no-cache, no-transform');
-  res.setHeader('Connection', 'keep-alive');
-  if (typeof res.flushHeaders === 'function') res.flushHeaders();
-
-  const reader = upstream.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
   let fullText = '';
   let gotAnyDelta = false;
+  let headersSent = false;
+  let buffer = '';
 
   // Состояние разбора рассуждений в реальном времени (только если captureReasoning=true)
   let rawAll = '';            // весь текст модели как есть (с маркером)
   let switchedToAnswer = !captureReasoning; // если не просили рассуждения — сразу режим ответа
   let pendingHold = '';       // придерживаем хвост на случай, если маркер разорван между чанками
 
-  const chunkTimeoutMs = largeContext
-    ? Math.max(45000, Math.min(timeoutMs, 60000))  // до 60с между чанками для больших документов
-    : Math.max(45000, Math.min(timeoutMs, 60000));  // до 60с — модель может "молчать" во время длинных рассуждений (режим "Думать")
+  // Сколько молчит апстрим между токенами, прежде чем мы считаем это обрывом.
+  // Большие документы и режим "Думать" — модель может надолго замолчать во время
+  // длинных рассуждений, поэтому даём существенно больше запаса, чем раньше (было 45-60с,
+  // чего регулярно не хватало и приводило к ложным обрывам ответа на середине).
+  const chunkTimeoutMs = (largeContext || captureReasoning) ? 110000 : 70000;
+
+  // Если апстрим всё же замолчал дольше chunkTimeoutMs — пробуем НЕЗАМЕТНО для пользователя
+  // продолжить генерацию с того места, где она остановилась, прежде чем сдаваться и помечать
+  // ответ как truncated. Это устраняет подавляющее большинство случаев "ИИ прервал ответ".
+  const MAX_SILENT_RETRIES = 2;
+  const SILENT_CONTINUE_INSTRUCTION = 'Продолжи свой предыдущий ответ ровно с места, где ты остановился — без повторов и без извинений, просто продолжай текст/нотацию дальше.';
+
+  let currentMessages = messages;
   let stalled = false;
+  let attempt = 0;
+
   while (true) {
-    let done, value;
-    try {
-      ({ done, value } = await withTimeout(
-        reader.read(),
-        chunkTimeoutMs,
-        `OpenAI stream chunk timed out for ${modelName}`
-      ));
-    } catch (chunkErr) {
-      // Модель замолчала между токенами дольше chunkTimeoutMs — грациозно завершаем с тем, что получили,
-      // но помечаем ответ как незавершённый, чтобы клиент предложил продолжить генерацию.
+    // На первой попытке не душим апстрим коротким таймаутом классификации запроса (low/quick) —
+    // 8-12с было недостаточно даже просто на установление соединения и первый токен под нагрузкой.
+    // На "тихих" попытках продолжения тоже даём адекватное время на старт ответа.
+    const connectTimeoutMs = attempt === 0 ? Math.max(timeoutMs, 20000) : 30000;
+    const upstream = await callOpenAIStream(apiKey, modelName, currentMessages, connectTimeoutMs);
+
+    if (!upstream.ok) {
+      if (attempt === 0) {
+        let data = {};
+        try {
+          data = await upstream.json();
+        } catch (error) {
+          data = {};
+        }
+        return {
+          ok: false,
+          status: upstream.status || 500,
+          message: data?.error?.message || `Ошибка модели ${modelName}`,
+          model: modelName
+        };
+      }
+      // Попытка незаметного продолжения не дотянулась до апстрима — отдаём то, что уже накопили.
       stalled = true;
       break;
     }
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const events = buffer.split('\n\n');
-    buffer = events.pop() || '';
 
-    for (const eventChunk of events) {
-      const lines = eventChunk.split('\n').filter((line) => line.startsWith('data:'));
-      for (const line of lines) {
-        const raw = line.slice(5).trim();
-        if (!raw || raw === '[DONE]') continue;
-        let parsed = null;
-        try {
-          parsed = JSON.parse(raw);
-        } catch (error) {
-          parsed = null;
-        }
-        if (!parsed) continue;
-        let delta = parsed?.choices?.[0]?.delta?.content || '';
-        if (Array.isArray(delta)) {
-          delta = delta.map((item) => item?.text || '').join('');
-        }
-        if (typeof delta === 'string' && delta) {
-          gotAnyDelta = true;
-          fullText += delta;
+    if (!upstream.body) {
+      if (attempt === 0) {
+        return {
+          ok: false,
+          status: 500,
+          message: `Потоковый ответ недоступен для модели ${modelName}`,
+          model: modelName
+        };
+      }
+      stalled = true;
+      break;
+    }
 
-          if (!captureReasoning || switchedToAnswer) {
-            writeSseEvent(res, { type: 'delta', text: delta });
-            continue;
+    if (!headersSent) {
+      res.statusCode = 200;
+      res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-cache, no-transform');
+      res.setHeader('Connection', 'keep-alive');
+      if (typeof res.flushHeaders === 'function') res.flushHeaders();
+      headersSent = true;
+    }
+
+    const reader = upstream.body.getReader();
+    const decoder = new TextDecoder();
+    let finishedNaturally = false;
+
+    while (true) {
+      let done, value;
+      try {
+        ({ done, value } = await withTimeout(
+          reader.read(),
+          chunkTimeoutMs,
+          `OpenAI stream chunk timed out for ${modelName}`
+        ));
+      } catch (chunkErr) {
+        // Модель замолчала между токенами дольше chunkTimeoutMs — выходим из чтения этой попытки
+        // и попробуем незаметно продолжить генерацию (см. ниже), не разрывая ответ пользователю.
+        break;
+      }
+      if (done) { finishedNaturally = true; break; }
+      buffer += decoder.decode(value, { stream: true });
+      const events = buffer.split('\n\n');
+      buffer = events.pop() || '';
+
+      for (const eventChunk of events) {
+        const lines = eventChunk.split('\n').filter((line) => line.startsWith('data:'));
+        for (const line of lines) {
+          const raw = line.slice(5).trim();
+          if (!raw || raw === '[DONE]') continue;
+          let parsed = null;
+          try {
+            parsed = JSON.parse(raw);
+          } catch (error) {
+            parsed = null;
           }
+          if (!parsed) continue;
+          let delta = parsed?.choices?.[0]?.delta?.content || '';
+          if (Array.isArray(delta)) {
+            delta = delta.map((item) => item?.text || '').join('');
+          }
+          if (typeof delta === 'string' && delta) {
+            gotAnyDelta = true;
+            fullText += delta;
 
-          // Накопили текст с потенциальным маркером — ищем его, придерживая хвост
-          rawAll += pendingHold + delta;
-          pendingHold = '';
-          const idx = rawAll.indexOf(REASONING_DELIMITER);
-          if (idx === -1) {
-            // Держим в буфере только хвост, который может быть началом маркера
-            const holdLen = Math.min(rawAll.length, REASONING_DELIMITER.length - 1);
-            const safeLen = rawAll.length - holdLen;
-            if (safeLen > 0) {
-              writeSseEvent(res, { type: 'reasoning', text: rawAll.slice(0, safeLen) });
+            if (!captureReasoning || switchedToAnswer) {
+              writeSseEvent(res, { type: 'delta', text: delta });
+              continue;
             }
-            pendingHold = rawAll.slice(safeLen);
-            rawAll = rawAll.slice(safeLen);
-          } else {
-            const reasoningPart = rawAll.slice(0, idx);
-            if (reasoningPart) writeSseEvent(res, { type: 'reasoning', text: reasoningPart });
-            const answerPart = rawAll.slice(idx + REASONING_DELIMITER.length).replace(/^\s+/, '');
-            switchedToAnswer = true;
-            rawAll = '';
-            if (answerPart) writeSseEvent(res, { type: 'delta', text: answerPart });
+
+            // Накопили текст с потенциальным маркером — ищем его, придерживая хвост
+            rawAll += pendingHold + delta;
+            pendingHold = '';
+            const idx = rawAll.indexOf(REASONING_DELIMITER);
+            if (idx === -1) {
+              // Держим в буфере только хвост, который может быть началом маркера
+              const holdLen = Math.min(rawAll.length, REASONING_DELIMITER.length - 1);
+              const safeLen = rawAll.length - holdLen;
+              if (safeLen > 0) {
+                writeSseEvent(res, { type: 'reasoning', text: rawAll.slice(0, safeLen) });
+              }
+              pendingHold = rawAll.slice(safeLen);
+              rawAll = rawAll.slice(safeLen);
+            } else {
+              const reasoningPart = rawAll.slice(0, idx);
+              if (reasoningPart) writeSseEvent(res, { type: 'reasoning', text: reasoningPart });
+              const answerPart = rawAll.slice(idx + REASONING_DELIMITER.length).replace(/^\s+/, '');
+              switchedToAnswer = true;
+              rawAll = '';
+              if (answerPart) writeSseEvent(res, { type: 'delta', text: answerPart });
+            }
           }
         }
       }
     }
+
+    if (finishedNaturally) break; // апстрим нормально завершил ответ — выходим из внешнего цикла
+
+    // Апстрим замолчал — пытаемся незаметно для клиента продолжить генерацию с накопленного текста.
+    attempt += 1;
+    if (attempt > MAX_SILENT_RETRIES) { stalled = true; break; }
+    currentMessages = [
+      ...messages,
+      { role: 'assistant', content: fullText },
+      { role: 'user', content: SILENT_CONTINUE_INSTRUCTION }
+    ];
+    buffer = '';
   }
 
   if (!gotAnyDelta && !fullText.trim()) {
@@ -720,8 +765,9 @@ async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs,
     finalRawText = idx === -1 ? fullText : fullText.slice(idx + REASONING_DELIMITER.length).replace(/^\s+/, '');
   }
 
-  // Ответ оборвался из-за молчания модели (а не потому что она закончила сама) — не "чиним" нотацию
-  // повторным запросом (он может полностью переписать честный частичный текст), просто сообщаем клиенту.
+  // Ответ оборвался из-за молчания модели даже после попыток незаметно продолжить — не "чиним"
+  // нотацию повторным запросом (он может полностью переписать честный частичный текст), просто
+  // сообщаем клиенту, что ответ неполный (клиент сам попробует автоматически продолжить ещё раз).
   const finalText = stalled
     ? sanitizeAssistantText(finalRawText)
     : await repairNotationReplyIfNeeded(apiKey, modelName, query, finalRawText);
