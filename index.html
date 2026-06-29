@@ -463,6 +463,26 @@ button:active,.model-pill:active,.send-btn:active{
 .more-item{padding:8px 14px;font-size:13px;font-weight:500;color:var(--text);border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:8px;}
 .more-item:hover{background:var(--hover);}
 
+/* Chat sidebar item label + pin indicator */
+.sb-chat-item{display:flex;align-items:center;gap:6px;}
+.sb-chat-item-label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sb-chat-pin-ic{flex-shrink:0;opacity:.55;color:var(--text2);display:flex;align-items:center;transform:rotate(0deg);}
+.sb-chat-item.pinned{opacity:1;}
+
+/* Long-press context menu for chat items (liquid-glass style) */
+.chat-ctx-menu{position:fixed;z-index:700;min-width:178px;padding:6px;border-radius:16px;background:rgba(28,28,32,.72);border:1px solid rgba(255,255,255,.10);backdrop-filter:blur(24px) saturate(160%);-webkit-backdrop-filter:blur(24px) saturate(160%);box-shadow:0 16px 40px rgba(0,0,0,.45);opacity:0;transform:translateY(-6px) scale(.96);transition:opacity .16s cubic-bezier(.22,.61,.36,1),transform .16s cubic-bezier(.22,.61,.36,1);}
+.chat-ctx-menu.open{opacity:1;transform:translateY(0) scale(1);}
+.chat-ctx-item{display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:11px;font-size:14px;font-weight:600;color:var(--text);cursor:pointer;transition:background .12s;}
+.chat-ctx-item:hover{background:rgba(255,255,255,.08);}
+.chat-ctx-item .chat-ctx-ic{display:flex;align-items:center;justify-content:center;flex-shrink:0;opacity:.85;}
+.chat-ctx-item.chat-ctx-danger{color:#ef4444;}
+.chat-ctx-item.chat-ctx-danger:hover{background:rgba(239,68,68,.12);}
+@media(prefers-reduced-motion:reduce){.chat-ctx-menu{transition:none;}}
+@media(prefers-color-scheme:light){
+  .chat-ctx-menu{background:rgba(255,255,255,.82);border-color:rgba(0,0,0,.08);box-shadow:0 16px 40px rgba(0,0,0,.16);}
+  .chat-ctx-item:hover{background:rgba(0,0,0,.05);}
+}
+
 /* Thinking */
 .thinking{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text2);padding:4px 0;}
 .thinking.think-text{font-weight:500;letter-spacing:.01em;}
@@ -994,7 +1014,7 @@ button:active,.model-pill:active,.send-btn:active{
       <div class="topbar-model-pill" id="topbarModelPill" onclick="toggleModelDrop(event)">
         <span class="pill-name" id="pillName">Adanatos</span>
       </div>
-      <div class="topbar-training-pill" id="topbarTrainingPill" onclick="exitTraining()" title="Выйти из режима обучения" style="display:none">
+      <div class="topbar-training-pill" id="topbarTrainingPill" style="display:none;cursor:default;">
         <span>🎓 Обучение</span>
       </div>
       <div style="display:flex;align-items:center;gap:4px;">
@@ -1033,10 +1053,9 @@ button:active,.model-pill:active,.send-btn:active{
           </div>
           <div class="bar-right">
             <!-- Training pill (shown instead of model pill while in Обучение) -->
-            <div class="model-pill" id="trainingPill" onclick="exitTraining()" title="Выйти из режима обучения" style="display:none">
+            <div class="model-pill" id="trainingPill" style="display:none;cursor:default;">
               <span class="pill-name">🎓</span>
               <span class="pill-mode">Обучение</span>
-              <span class="pill-caret">▾</span>
             </div>
             <!-- Model pill (desktop only — на мобильном кнопка модели находится в топбаре) -->
             <div class="model-pill desktop-only-pill" id="modelPill" onclick="toggleModelDrop(event)">
@@ -1198,6 +1217,57 @@ let sidebarExpanded=false;
 let curModel='lite',curMode='low',thinkOn=false,dropOpen=false,modeSubOpen=false,modelsSubOpen=false;
 let chatHistory=[],pendingAttachments=[],recentAttachmentDocs=[],curChatId=null;
 let chats=[];
+const CHAT_META_PREFIX='harmonyai_chat_meta_v1_';
+function chatMetaKey(){return CHAT_META_PREFIX+(curUser?.id||'guest');}
+function getChatMeta(){
+  try{
+    const raw=localStorage.getItem(chatMetaKey());
+    return raw?JSON.parse(raw):{};
+  }catch(e){return {};}
+}
+function setChatMeta(meta){
+  try{localStorage.setItem(chatMetaKey(),JSON.stringify(meta));}catch(e){console.warn('Chat meta save failed',e);}
+}
+function getChatMetaFor(id){
+  const meta=getChatMeta();
+  return meta[id]||{};
+}
+function updateChatMetaFor(id,patch){
+  const meta=getChatMeta();
+  meta[id]=Object.assign({},meta[id]||{},patch);
+  setChatMeta(meta);
+}
+function removeChatMetaFor(id){
+  const meta=getChatMeta();
+  delete meta[id];
+  setChatMeta(meta);
+}
+function pinChat(id){
+  updateChatMetaFor(id,{pinnedAt:Date.now()});
+  renderChatList();
+}
+function unpinChat(id){
+  updateChatMetaFor(id,{pinnedAt:null});
+  renderChatList();
+}
+function isChatPinned(id){
+  return !!getChatMetaFor(id).pinnedAt;
+}
+function applyChatMetaToList(list){
+  const meta=getChatMeta();
+  return list
+    .filter(c=>!meta[c.id]||!meta[c.id].deleted)
+    .map(c=>Object.assign({},c,{
+      title:(meta[c.id]&&meta[c.id].title)?meta[c.id].title:c.title,
+      pinnedAt:(meta[c.id]&&meta[c.id].pinnedAt)?meta[c.id].pinnedAt:null
+    }))
+    .sort((a,b)=>{
+      if(a.pinnedAt&&b.pinnedAt)return b.pinnedAt-a.pinnedAt;
+      if(a.pinnedAt)return -1;
+      if(b.pinnedAt)return 1;
+      return 0;
+    });
+}
 let abcCounter=0;
 let authHydrationPromise=null,authHydratedUserId='';
 let knowledgeDocs=[];
@@ -1207,7 +1277,19 @@ const STREAM_STALL_MS=110000;
 const PRIMARY_API_ORIGIN='https://harmonyai-zeta.vercel.app';
 const KB_GLOBAL_KEY='harmonyai_global_kb_v1';
 const KB_USER_PREFIX='harmonyai_user_kb_v1_';
+const LOCAL_NICK_PREFIX='harmonyai_local_nickname_';
 const MAX_ATTACHMENTS_PER_SEND=20;
+function getLocalNickname(uid){
+  if(!uid)return null;
+  try{
+    const v=localStorage.getItem(LOCAL_NICK_PREFIX+uid);
+    return v&&v.trim()?v:null;
+  }catch(e){return null;}
+}
+function setLocalNickname(uid,val){
+  if(!uid)return;
+  try{localStorage.setItem(LOCAL_NICK_PREFIX+uid,val);}catch(e){console.warn('Local nickname save failed',e);}
+}
 
 /* marked setup */
 if(typeof marked!=='undefined') marked.setOptions({breaks:true,gfm:true});
@@ -1341,8 +1423,7 @@ async function saveNicknameModal(){
   if(!curUser){return;}
   btn.disabled=true;btn.textContent='Сохраняем...';
   try{
-    const {error}=await sb.from('profiles').upsert({id:curUser.id,nickname:val},{onConflict:'id'});
-    if(error)throw error;
+    setLocalNickname(curUser.id,val);
     curUser.nickname=val;
     curUser.needsNickname=false;
     updateUserUI();
@@ -1580,10 +1661,14 @@ async function loadProfile(uid,email){
   try{
     const {data,error}=await sb.from('profiles').select('*').eq('id',uid).maybeSingle();
     if(error)throw error;
-    curUser={id:uid,email,nickname:data?.nickname||email.split('@')[0],role:data?.role||'user',settings:data?.settings||{},needsNickname:!data?.nickname};
+    const localNick=getLocalNickname(uid);
+    const remoteNick=data?.nickname||null;
+    const nickname=localNick||remoteNick||email.split('@')[0];
+    curUser={id:uid,email,nickname,role:data?.role||'user',settings:data?.settings||{},needsNickname:!localNick&&!remoteNick};
   }catch(e){
     console.warn('Profile load failed, using fallback user shell',e);
-    curUser={id:uid,email,nickname:(email||'').split('@')[0]||'Пользователь',role:'user',settings:{},needsNickname:false};
+    const localNick=getLocalNickname(uid);
+    curUser={id:uid,email,nickname:localNick||(email||'').split('@')[0]||'Пользователь',role:'user',settings:{},needsNickname:!localNick};
   }
   loadKnowledgeDocs();
   await loadKnowledgeDocsFromSupabase();
@@ -2016,13 +2101,150 @@ async function loadChats(){
 function renderChatList(){
   const el=document.getElementById('sbChatList');if(!el)return;
   el.innerHTML='';
-  chats.forEach(c=>{
+  const list=applyChatMetaToList(chats);
+  list.forEach(c=>{
     const d=document.createElement('div');
-    d.className='sb-chat-item'+(c.id===curChatId?' active':'');
-    d.textContent=c.title||'Новый чат';
+    d.className='sb-chat-item'+(c.id===curChatId?' active':'')+(c.pinnedAt?' pinned':'');
+    d.dataset.chatId=c.id;
+    const label=document.createElement('span');
+    label.className='sb-chat-item-label';
+    label.textContent=c.title||'Новый чат';
+    d.appendChild(label);
+    if(c.pinnedAt){
+      const pin=document.createElement('span');
+      pin.className='sb-chat-pin-ic';
+      pin.innerHTML='<svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M14.5 3.5l6 6-3 3-1-1-3.5 3.5.5 4-1.5 1.5-4-4-4 4-1.5-1.5 4-4-4-4L4 9.5l4 .5 3.5-3.5-1-1 3-3z" fill="currentColor"/></svg>';
+      d.appendChild(pin);
+    }
     d.onclick=()=>openChat(c.id);
+    attachChatLongPress(d,c.id);
     el.appendChild(d);
   });
+}
+let _chatLongPressTimer=null,_chatLongPressFired=false,_chatLongPressStartXY=null;
+function attachChatLongPress(el,chatId){
+  const LONG_PRESS_MS=480;
+  const MOVE_TOLERANCE=10;
+  const start=(x,y)=>{
+    _chatLongPressFired=false;
+    _chatLongPressStartXY={x,y};
+    clearTimeout(_chatLongPressTimer);
+    _chatLongPressTimer=setTimeout(()=>{
+      _chatLongPressFired=true;
+      if(navigator.vibrate)try{navigator.vibrate(8);}catch(e){}
+      openChatContextMenu(chatId,el);
+    },LONG_PRESS_MS);
+  };
+  const cancel=()=>{clearTimeout(_chatLongPressTimer);};
+  const move=(x,y)=>{
+    if(!_chatLongPressStartXY)return;
+    const dx=Math.abs(x-_chatLongPressStartXY.x),dy=Math.abs(y-_chatLongPressStartXY.y);
+    if(dx>MOVE_TOLERANCE||dy>MOVE_TOLERANCE)cancel();
+  };
+  el.addEventListener('touchstart',e=>{const t=e.touches[0];start(t.clientX,t.clientY);},{passive:true});
+  el.addEventListener('touchmove',e=>{const t=e.touches[0];move(t.clientX,t.clientY);},{passive:true});
+  el.addEventListener('touchend',cancel);
+  el.addEventListener('touchcancel',cancel);
+  el.addEventListener('mousedown',e=>{if(e.button!==0)return;start(e.clientX,e.clientY);});
+  el.addEventListener('mousemove',e=>{if(_chatLongPressStartXY)move(e.clientX,e.clientY);});
+  el.addEventListener('mouseup',cancel);
+  el.addEventListener('mouseleave',cancel);
+  el.addEventListener('contextmenu',e=>{e.preventDefault();openChatContextMenu(chatId,el);});
+  el.addEventListener('click',e=>{if(_chatLongPressFired){e.preventDefault();e.stopPropagation();_chatLongPressFired=false;}});
+}
+function openChatContextMenu(chatId,anchorEl){
+  closeChatContextMenu();
+  const meta=getChatMetaFor(chatId);
+  const pinned=!!meta.pinnedAt;
+  const menu=document.createElement('div');
+  menu.className='chat-ctx-menu';
+  menu.id='chatCtxMenu';
+  menu.innerHTML=`
+    <div class="chat-ctx-item" data-act="pin">
+      <span class="chat-ctx-ic">${pinned?'<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M14.5 3.5l6 6-3 3-1-1-3.5 3.5.5 4-1.5 1.5-4-4-4 4-1.5-1.5 4-4-4-4L4 9.5l4 .5 3.5-3.5-1-1 3-3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M3 21l5-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>':'<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M14.5 3.5l6 6-3 3-1-1-3.5 3.5.5 4-1.5 1.5-4-4-4 4-1.5-1.5 4-4-4-4L4 9.5l4 .5 3.5-3.5-1-1 3-3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>'}</span>
+      <span>${pinned?'Открепить':'Закрепить'}</span>
+    </div>
+    <div class="chat-ctx-item" data-act="rename">
+      <span class="chat-ctx-ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span>Переименовать</span>
+    </div>
+    <div class="chat-ctx-item chat-ctx-danger" data-act="delete">
+      <span class="chat-ctx-ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7V4.8c0-.44.36-.8.8-.8h4.4c.44 0 .8.36.8.8V7M6.5 7l1 13.2c.05.6.55 1.05 1.15 1.05h6.7c.6 0 1.1-.45 1.15-1.05L17.5 7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span>Удалить</span>
+    </div>`;
+  document.body.appendChild(menu);
+  positionChatCtxMenu(menu,anchorEl);
+  requestAnimationFrame(()=>menu.classList.add('open'));
+  menu.querySelector('[data-act="pin"]').onclick=()=>{
+    pinned?unpinChat(chatId):pinChat(chatId);
+    closeChatContextMenu();
+  };
+  menu.querySelector('[data-act="rename"]').onclick=()=>{
+    closeChatContextMenu();
+    openRenameChatModal(chatId);
+  };
+  menu.querySelector('[data-act="delete"]').onclick=()=>{
+    closeChatContextMenu();
+    deleteChatConfirmed(chatId);
+  };
+  setTimeout(()=>{
+    document.addEventListener('mousedown',_chatCtxOutsideHandler,{capture:true});
+    document.addEventListener('touchstart',_chatCtxOutsideHandler,{capture:true});
+  },0);
+}
+function _chatCtxOutsideHandler(e){
+  const menu=document.getElementById('chatCtxMenu');
+  if(menu&&!menu.contains(e.target))closeChatContextMenu();
+}
+function closeChatContextMenu(){
+  const menu=document.getElementById('chatCtxMenu');
+  if(menu)menu.remove();
+  document.removeEventListener('mousedown',_chatCtxOutsideHandler,{capture:true});
+  document.removeEventListener('touchstart',_chatCtxOutsideHandler,{capture:true});
+}
+function positionChatCtxMenu(menu,anchorEl){
+  const r=anchorEl.getBoundingClientRect();
+  const mw=menu.offsetWidth||190,mh=menu.offsetHeight||140;
+  let top=r.bottom+6,left=r.left;
+  if(top+mh>window.innerHeight-12)top=Math.max(8,r.top-mh-6);
+  if(left+mw>window.innerWidth-12)left=window.innerWidth-mw-12;
+  if(left<8)left=8;
+  menu.style.top=top+'px';
+  menu.style.left=left+'px';
+}
+let _renameChatId=null;
+function openRenameChatModal(chatId){
+  _renameChatId=chatId;
+  const meta=getChatMetaFor(chatId);
+  const cur=chats.find(c=>c.id===chatId);
+  const curTitle=meta.title||cur?.title||'Новый чат';
+  const ov=document.getElementById('renameChatOverlay');
+  const inp=document.getElementById('renameChatInp');
+  if(inp)inp.value=curTitle;
+  if(ov)ov.classList.add('show');
+  setTimeout(()=>{if(inp){inp.focus();inp.select();}},150);
+}
+function closeRenameChatModal(){
+  const ov=document.getElementById('renameChatOverlay');
+  if(ov)ov.classList.remove('show');
+  _renameChatId=null;
+}
+function confirmRenameChat(){
+  const inp=document.getElementById('renameChatInp');
+  const val=(inp?.value||'').trim();
+  if(!val||!_renameChatId){closeRenameChatModal();return;}
+  updateChatMetaFor(_renameChatId,{title:val});
+  closeRenameChatModal();
+  renderChatList();
+}
+function deleteChatConfirmed(chatId){
+  updateChatMetaFor(chatId,{deleted:true});
+  if(curChatId===chatId)newChat();
+  else renderChatList();
+  if(curUser)sb.from('chats').delete().eq('id',chatId).eq('user_id',curUser.id).then(()=>{
+    chats=chats.filter(c=>c.id!==chatId);
+    removeChatMetaFor(chatId);
+  }).catch(()=>{});
 }
 async function openChat(id){
   closeSidebar();
@@ -3390,14 +3612,19 @@ function renderSettingsMain(){
     <div class="s-sect s-sect-help">
       <div class="s-sect-label">Помощь</div>
       <div class="s-rows">
-        <div class="s-row" onclick="renderReportProblem()">
-          <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 3v18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M5 4h11l-2.2 3.5L16 11H5V4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></div>
-          <div class="s-row-text">Сообщить о проблеме в приложении</div>
-          <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-        </div>
         <div class="s-row" onclick="renderAbout()">
           <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 11v5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 8h.01" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></div>
           <div class="s-row-text">Сведения</div>
+          <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+        </div>
+        <div class="s-row" onclick="openSupportChat()">
+          <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M9.2 9.3a2.8 2.8 0 115.1 1.9c-.5.8-1.3 1.1-1.8 1.7-.4.5-.5.9-.5 1.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 17h.01" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></div>
+          <div class="s-row-text">Помощь</div>
+          <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+        </div>
+        <div class="s-row" onclick="renderReportProblem()">
+          <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 3v18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M5 4h11l-2.2 3.5L16 11H5V4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></div>
+          <div class="s-row-text">Сообщить о проблеме в приложении</div>
           <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
         </div>
       </div>
@@ -3408,6 +3635,21 @@ function renderSettingsMain(){
     </div>`;
 }
 function goToDynatos(){}
+function openSupportChat(){
+  const tgUrl='tg://resolve?domain=harmonyaisupport_bot';
+  const fallbackUrl='https://t.me/harmonyaisupport_bot';
+  try{
+    const ifr=document.createElement('iframe');
+    ifr.style.display='none';
+    ifr.src=tgUrl;
+    document.body.appendChild(ifr);
+    setTimeout(()=>{ifr.remove();},800);
+  }catch(e){}
+  window.location.href=tgUrl;
+  setTimeout(()=>{
+    if(document.hasFocus())window.open(fallbackUrl,'_blank');
+  },900);
+}
 
 
 function renderSettingsMemory(){
@@ -3459,8 +3701,7 @@ async function saveSettingsName(){
   if(!curUser)return;
   btn.disabled=true;btn.textContent='Сохраняем...';
   try{
-    const {error}=await sb.from('profiles').upsert({id:curUser.id,nickname:val},{onConflict:'id'});
-    if(error)throw error;
+    setLocalNickname(curUser.id,val);
     curUser.nickname=val;
     curUser.needsNickname=false;
     updateUserUI();
@@ -3770,6 +4011,18 @@ async function saveSetting(key,val){
     <div class="auth-error" id="nickModalErr" style="display:none;"></div>
     <div class="fb-actions">
       <button class="fb-btn-send" id="nickModalBtn" style="flex:1;" onclick="saveNicknameModal()">Продолжить</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== RENAME CHAT MODAL ===== -->
+<div class="fb-overlay" id="renameChatOverlay" onclick="if(event.target===this)closeRenameChatModal()">
+  <div class="fb-modal" style="gap:16px;">
+    <div class="fb-title">Переименовать чат</div>
+    <input class="fb-qa-input" id="renameChatInp" placeholder="Название чата.." maxlength="60" onkeydown="if(event.key==='Enter')confirmRenameChat()" />
+    <div class="fb-actions">
+      <button class="fb-btn-cancel" onclick="closeRenameChatModal()">Отмена</button>
+      <button class="fb-btn-send" onclick="confirmRenameChat()">Сохранить</button>
     </div>
   </div>
 </div>
