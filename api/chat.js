@@ -7,7 +7,7 @@ export const config = {
 const MODEL_CHAINS = {
   adanatos: [
     process.env.ADANATOS_MODEL || 'gpt-5.4',
-    process.env.ADANATOS_FALLBACK || 'gpt-5.4'
+    process.env.ADANATOS_FALLBACK || 'gpt-5.4-mini'
   ],
   dynatos: [
     process.env.DYNATOS_MODEL || 'gpt-5.5',
