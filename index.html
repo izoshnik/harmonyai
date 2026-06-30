@@ -4,6 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>HarmonyAI</title>
+<script>
+// Применяем сохранённую тему ДО отрисовки, чтобы не было "вспышки" неправильной темы.
+// Если тема не выбрана (или выбрана "system") — поведение НЕ меняется: мобильная тёмная,
+// десктопная светлая (как было). data-theme="light"/"dark" — новые явные темы поверх них.
+try{
+  var __t=localStorage.getItem('hai_theme');
+  if(__t==='light'||__t==='dark')document.documentElement.setAttribute('data-theme',__t);
+}catch(e){}
+</script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230d0f14'/%3E%3Cpath d='M18 14h8v18h12V14h8v36h-8V39H26v11h-8z' fill='%23ffffff'/%3E%3C/svg%3E">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
@@ -63,6 +72,58 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans
 }
 
 body{background:var(--bg);color:var(--text);}
+
+/* ===================== НОВОЕ: явные темы поверх дефолтных (мобильная-тёмная / десктоп-светлая) =====================
+   Эти блоки ничего не убирают и не меняют — они лишь ДОБАВЛЯЮТ возможность выбрать
+   светлую тему на мобильной версии и тёмную на десктопной (через Настройки → Внешний вид).
+   Применяются через атрибут html[data-theme], который ставится в JS (selectAppearance). */
+html[data-theme="dark"]{
+  --bg:#0a0a0c;
+  --bg2:#121214;
+  --bg3:rgba(255,255,255,0.06);
+  --text:#ffffff;
+  --text2:#888892;
+  --text-ai:#e8e8ec;
+  --border:rgba(255,255,255,0.10);
+  --border2:rgba(255,255,255,0.06);
+  --send-bg:#ffffff;
+  --send-txt:#0a0a0c;
+  --user-bg:#1e1e24;
+  --user-txt:#ffffff;
+  --input-bg:rgba(255,255,255,0.06);
+  --hover:rgba(255,255,255,0.06);
+  --active:rgba(255,255,255,0.10);
+  --drop-bg:#1a1a1f;
+  --drop-shadow:0 8px 32px rgba(0,0,0,0.5);
+  --check:#22c55e;
+}
+html[data-theme="light"]{
+  --bg:#fafaf9;
+  --bg2:#f0efea;
+  --bg3:rgba(0,0,0,0.03);
+  --text:#1a1a1a;
+  --text2:#6b6b6b;
+  --text-ai:#1a1a1a;
+  --border:rgba(0,0,0,0.10);
+  --border2:rgba(0,0,0,0.06);
+  --send-bg:#1a1a1a;
+  --send-txt:#ffffff;
+  --user-bg:#1a1a1a;
+  --user-txt:#ffffff;
+  --input-bg:rgba(0,0,0,0.03);
+  --hover:rgba(0,0,0,0.04);
+  --active:rgba(0,0,0,0.07);
+  --drop-bg:#ffffff;
+  --drop-shadow:0 8px 32px rgba(0,0,0,0.10);
+  --check:#16a34a;
+}
+/* Десктопная пилюля модели в топбаре (мобильной шапке) раньше была захардкожена тёмным цветом —
+   на новой светлой мобильной теме делаем её согласованной с переменными. */
+@media(max-width:768px){
+  html[data-theme="light"] .topbar-model-pill{background:var(--bg2);border-color:var(--border);}
+  html[data-theme="light"] .topbar-model-pill .pill-name{color:#6a4dff;}
+  html[data-theme="light"] .topbar-training-pill{background:var(--bg3);}
+}
 
 /* ===================== ПЛАВНЫЕ АНИМАЦИИ КНОПОК (ощущение "живого" интерфейса) ===================== */
 /* Группа A: элементы без своего layout-transform — им безопасно давать scale() на нажатии. */
@@ -271,7 +332,7 @@ button:active,.model-pill:active,.send-btn:active{
 .sb-chat-list{flex:1;overflow-y:auto;margin-top:8px;display:none;}
 .sb-chat-list::-webkit-scrollbar{width:3px;}
 .sb-chat-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
-.sb-chat-item{padding:8px 10px;border-radius:8px;font-size:13px;color:var(--text);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.75;transition:background .12s;margin-bottom:2px;}
+.sb-chat-item{padding:8px 10px;border-radius:8px;font-size:13px;color:var(--text);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.75;transition:background .12s;margin-bottom:2px;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;}
 .sb-chat-item:hover,.sb-chat-item.active{background:var(--active);opacity:1;}
 @media(max-width:768px){.sb-chat-list{display:block!important;}}
 @media(min-width:769px){
@@ -465,7 +526,7 @@ button:active,.model-pill:active,.send-btn:active{
 
 /* Chat sidebar item label + pin indicator */
 .sb-chat-item{display:flex;align-items:center;gap:6px;}
-.sb-chat-item-label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sb-chat-item-label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;}
 .sb-chat-pin-ic{flex-shrink:0;opacity:.55;color:var(--text2);display:flex;align-items:center;transform:rotate(0deg);}
 .sb-chat-item.pinned{opacity:1;}
 
@@ -938,7 +999,7 @@ button:active,.model-pill:active,.send-btn:active{
       <div class="auth-h1">Думает быстро,<br>результат быстрее</div>
       <div class="auth-sub">ИИ для учеников музыкальной школы. Подходит не только для музыки — он умеет всё!</div>
       <button class="auth-btn-primary" onclick="goToEmail()">Продолжить с Email</button>
-      <div class="auth-tos">Продолжая, вы соглашаетесь с <a href="./HarmonyAI-Privacy-Policy.docx" target="_blank" rel="noopener noreferrer">Политикой конфиденциальности</a>.</div>
+      <div class="auth-tos">Продолжая, вы соглашаетесь с нашей <a href="./legal/privacy.html" target="_blank" rel="noopener noreferrer">Политикой Конфиденциальности</a> и <a href="./legal/terms.html" target="_blank" rel="noopener noreferrer">Условиями Пользования</a>.</div>
       <div class="auth-beta">beta version 1.0</div>
     </div>
     <!-- Экран 2: Email -->
@@ -1296,6 +1357,7 @@ if(typeof marked!=='undefined') marked.setOptions({breaks:true,gfm:true});
 function isDesktop(){return window.innerWidth>=769;}
 function isDeveloper(){return curUser?.role==='developer';}
 function hasTrainingAccess(){return Boolean(curUser&&(curUser.role==='developer'||curUser.role==='admin'));}
+function hasModeratorAccess(){return Boolean(curUser&&(curUser.role==='developer'||curUser.role==='moderator'||curUser.role==='admin'));}
 let trainingMode=false;
 function withTimeout(promise,ms,message){
   let timer;
@@ -1670,6 +1732,7 @@ async function loadProfile(uid,email){
     const localNick=getLocalNickname(uid);
     curUser={id:uid,email,nickname:localNick||(email||'').split('@')[0]||'Пользователь',role:'user',settings:{},needsNickname:!localNick};
   }
+  if(curUser?.settings?.appearance)applyTheme(curUser.settings.appearance);
   loadKnowledgeDocs();
   await loadKnowledgeDocsFromSupabase();
 }
@@ -3627,6 +3690,12 @@ function renderSettingsMain(){
           <div class="s-row-text">Сообщить о проблеме в приложении</div>
           <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
         </div>
+        ${hasModeratorAccess()?`
+        <div class="s-row" onclick="renderReportsInbox()">
+          <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 6l9 6 9-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2"/></svg></div>
+          <div class="s-row-text">Сообщения о проблемах</div>
+          <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+        </div>`:''}
       </div>
       <div class="logout-row mobile-only" onclick="logOut()">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -3743,11 +3812,22 @@ function renderSettingsAppearance(){
       </div>
     </div>`;
 }
+function applyTheme(val){
+  // val: 'system' | 'dark' | 'light'. 'system' = старое поведение (мобильная тёмная/десктоп светлая) — не трогаем.
+  if(val==='dark'||val==='light'){
+    document.documentElement.setAttribute('data-theme',val);
+    try{localStorage.setItem('hai_theme',val);}catch(e){}
+  }else{
+    document.documentElement.removeAttribute('data-theme');
+    try{localStorage.removeItem('hai_theme');}catch(e){}
+  }
+}
 function selectAppearance(val){
   ['system','dark','light'].forEach(k=>{
     const el=document.getElementById('appearCk-'+k);
     if(el)el.classList.toggle('on',k===val);
   });
+  applyTheme(val);
   saveSetting('appearance',val);
 }
 
@@ -3793,6 +3873,51 @@ async function submitReportProblem(){
   }
 }
 
+/* ===== СООБЩЕНИЯ О ПРОБЛЕМАХ (только developer/moderator/admin) ===== */
+async function renderReportsInbox(){
+  const el=document.getElementById('settingsContent');
+  if(!hasModeratorAccess()){renderSettingsMain();return;}
+  el.innerHTML=`
+    <div class="sth sth-with-close">
+      <div class="sth-back desktop-only" onclick="renderSettingsMain()">
+        <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="sth-title">Сообщения о проблемах</div>
+      <button class="sth-close mobile-only" onclick="renderSettingsMain()" aria-label="Закрыть">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="mem-rows" id="reportsInboxList" style="padding:14px;display:flex;flex-direction:column;gap:10px;">
+      <div style="font-size:13px;color:var(--text2);">Загрузка...</div>
+    </div>`;
+  try{
+    const r=await fetch(`/api/reports?userId=${encodeURIComponent(curUser.id)}`);
+    const data=await r.json();
+    const list=document.getElementById('reportsInboxList');
+    if(!r.ok){
+      list.innerHTML=`<div style="font-size:13px;color:#ef4444;">${(data?.error?.message)||'Не удалось загрузить сообщения'}</div>`;
+      return;
+    }
+    const reports=data?.reports||[];
+    if(!reports.length){
+      list.innerHTML=`<div style="font-size:13px;color:var(--text2);">Сообщений пока нет.</div>`;
+      return;
+    }
+    list.innerHTML=reports.map(rep=>`
+      <div style="border:1px solid var(--border);border-radius:14px;padding:12px 14px;background:var(--bg2);">
+        <div style="display:flex;justify-content:space-between;gap:10px;font-size:12.5px;color:var(--text2);margin-bottom:6px;">
+          <span>${esc(rep.name||'Без имени')} · ${esc(rep.email||'нет email')}</span>
+          <span>${rep.createdAt?new Date(rep.createdAt).toLocaleString('ru-RU'):''}</span>
+        </div>
+        <div style="font-size:14px;color:var(--text);white-space:pre-wrap;line-height:1.5;">${esc(rep.message||'')}</div>
+      </div>`).join('');
+  }catch(e){
+    const list=document.getElementById('reportsInboxList');
+    if(list)list.innerHTML=`<div style="font-size:13px;color:#ef4444;">Ошибка загрузки: ${esc(e.message||'')}</div>`;
+  }
+}
+function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
 /* ===== СВЕДЕНИЯ ===== */
 function renderAbout(){
   const el=document.getElementById('settingsContent');
@@ -3815,8 +3940,8 @@ function renderAbout(){
         <div class="about-app-ver">Версия 1.0 (beta)</div>
       </div>
       <div class="about-rows">
-        <div class="about-row"><div class="about-row-label">Политика конфиденциальности</div><div class="about-row-val"><a href="#" onclick="return false;">Открыть</a></div></div>
-        <div class="about-row"><div class="about-row-label">Условия использования</div><div class="about-row-val"><a href="#" onclick="return false;">Открыть</a></div></div>
+        <div class="about-row"><div class="about-row-label">Политика конфиденциальности</div><div class="about-row-val"><a href="./legal/privacy.html" target="_blank" rel="noopener noreferrer">Открыть</a></div></div>
+        <div class="about-row"><div class="about-row-label">Условия использования</div><div class="about-row-val"><a href="./legal/terms.html" target="_blank" rel="noopener noreferrer">Открыть</a></div></div>
       </div>
       <div class="about-foot">HarmonyAI — ИИ-помощник для учеников музыкальной школы.<br>© ${new Date().getFullYear()} HarmonyAI. Все права защищены.</div>
     </div>`;
