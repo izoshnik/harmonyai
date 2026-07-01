@@ -434,8 +434,10 @@ async function callGemini(apiKey, modelName, body, timeoutMs = 35000) {
   return { response, data };
 }
 
-async function callOpenAI(apiKey, modelName, messages, timeoutMs = 35000) {
+async function callOpenAI(apiKey, modelName, messages, timeoutMs = 35000, maxTokens = 0) {
   const baseUrl = String(readEnv('OPENAI_BASE_URL') || 'https://api.codex-api.online/v1').replace(/\/+$/, '');
+  const body = { model: modelName, messages };
+  if (maxTokens > 0) body.max_tokens = maxTokens;
   const response = await withTimeout(
     fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
@@ -443,10 +445,7 @@ async function callOpenAI(apiKey, modelName, messages, timeoutMs = 35000) {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${apiKey}`
       },
-      body: JSON.stringify({
-        model: modelName,
-        messages
-      })
+      body: JSON.stringify(body)
     }),
     timeoutMs,
     `OpenAI request timed out for ${modelName}`
@@ -460,8 +459,10 @@ async function callOpenAI(apiKey, modelName, messages, timeoutMs = 35000) {
   return { response, data };
 }
 
-async function callOpenAIStream(apiKey, modelName, messages, timeoutMs = 65000) {
+async function callOpenAIStream(apiKey, modelName, messages, timeoutMs = 65000, maxTokens = 0) {
   const baseUrl = String(readEnv('OPENAI_BASE_URL') || 'https://api.codex-api.online/v1').replace(/\/+$/, '');
+  const body = { model: modelName, messages, stream: true };
+  if (maxTokens > 0) body.max_tokens = maxTokens;
   return await withTimeout(
     fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
@@ -469,11 +470,7 @@ async function callOpenAIStream(apiKey, modelName, messages, timeoutMs = 65000) 
         'Content-Type': 'application/json',
         Authorization: `Bearer ${apiKey}`
       },
-      body: JSON.stringify({
-        model: modelName,
-        messages,
-        stream: true
-      })
+      body: JSON.stringify(body)
     }),
     timeoutMs,
     `OpenAI stream timed out for ${modelName}`
@@ -585,7 +582,7 @@ function writeSseEvent(res, payload) {
 // Модель просят сначала писать реальные рассуждения, затем этот маркер, затем сам ответ.
 const REASONING_DELIMITER = '===ОТВЕТ===';
 
-async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs, query, largeContext = false, captureReasoning = false) {
+async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs, query, largeContext = false, captureReasoning = false, maxTokens = 0) {
   let fullText = '';
   let gotAnyDelta = false;
   let headersSent = false;
@@ -616,8 +613,8 @@ async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs,
     // На первой попытке не душим апстрим коротким таймаутом классификации запроса (low/quick) —
     // 8-12с было недостаточно даже просто на установление соединения и первый токен под нагрузкой.
     // На "тихих" попытках продолжения тоже даём адекватное время на старт ответа.
-    const connectTimeoutMs = attempt === 0 ? Math.max(timeoutMs, 20000) : 30000;
-    const upstream = await callOpenAIStream(apiKey, modelName, currentMessages, connectTimeoutMs);
+    const connectTimeoutMs = attempt === 0 ? Math.max(timeoutMs, 45000) : 45000;
+    const upstream = await callOpenAIStream(apiKey, modelName, currentMessages, connectTimeoutMs, maxTokens);
 
     if (!upstream.ok) {
       if (attempt === 0) {
@@ -748,8 +745,35 @@ async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs,
   }
 
   if (!gotAnyDelta && !fullText.trim()) {
-    writeSseEvent(res, { type: 'error', message: 'Потоковый ответ прервался слишком рано. Попробуйте ещё раз.' });
-    res.end();
+    // Стриминг не выдал ни одного токена (частая причина «Модель отвечает слишком долго»).
+    // Прежде чем сдаваться — пробуем один обычный (нестримовый) запрос: он надёжнее под нагрузкой,
+    // и если он успевает — пользователь всё равно получает ответ, а не ошибку.
+    try {
+      const { response, data } = await callOpenAI(apiKey, modelName, messages, Math.max(timeoutMs, 45000), maxTokens);
+      const raw = data?.choices?.[0]?.message?.content || '';
+      if (response.ok && !data?.error && raw.trim()) {
+        const finalRaw = captureReasoning ? stripReasoningPrefix(raw) : raw;
+        const finalText = await repairNotationReplyIfNeeded(apiKey, modelName, query, finalRaw);
+        if (!headersSent) {
+          res.statusCode = 200;
+          res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+          res.setHeader('Cache-Control', 'no-cache, no-transform');
+          res.setHeader('Connection', 'keep-alive');
+          if (typeof res.flushHeaders === 'function') res.flushHeaders();
+          headersSent = true;
+        }
+        writeSseEvent(res, { type: 'delta', text: finalText });
+        writeSseEvent(res, { type: 'done', text: finalText, truncated: false });
+        res.end();
+        return { ok: true, text: finalText, model: modelName, truncated: false };
+      }
+    } catch (fallbackErr) {
+      // игнорируем — ниже вернём стандартную ошибку, дадим шанс следующей модели в цепочке
+    }
+    if (headersSent) {
+      writeSseEvent(res, { type: 'error', message: 'Потоковый ответ прервался слишком рано. Попробуйте ещё раз.' });
+      res.end();
+    }
     return {
       ok: false,
       status: 504,
@@ -870,20 +894,33 @@ export default async function handler(req, res) {
     // реальная глубина рассуждений, а не скорость.
     let modelTimeoutMs;
     if (think || effort === 'max') {
-      modelTimeoutMs = wantsStaff ? 45000 : 60000;
+      modelTimeoutMs = wantsStaff ? 60000 : 75000;
     } else if (isQuick && !isLargeContext) {
-      modelTimeoutMs = 8000;
+      // Простые вопросы, не связанные с пользователем: быстрый путь без Supabase.
+      // Потолок ожидания поднят, чтобы апстрим-модель успевала выдать первый токен под нагрузкой,
+      // а не фейлилась ложным «слишком долго» ещё до начала ответа.
+      modelTimeoutMs = 30000;
     } else if (wantsStaff) {
-      modelTimeoutMs = 20000;
+      modelTimeoutMs = 40000;
     } else if (wantsContext) {
-      modelTimeoutMs = 18000;
+      modelTimeoutMs = 38000;
     } else if (isNotationHeavy) {
-      modelTimeoutMs = 16000;
+      modelTimeoutMs = 36000;
     } else {
-      modelTimeoutMs = 12000;
+      modelTimeoutMs = 32000;
     }
     // Для большого контекста (документ 300к+ символов) модели нужно больше времени
     if (isLargeContext) modelTimeoutMs = Math.max(modelTimeoutMs, 90000);
+    // Ограничиваем длину ответа, чтобы простые вопросы отвечались быстро и не «висели».
+    // Сложные режимы (думать/max/нотация/большой контекст) получают большой потолок.
+    let maxTokens;
+    if (think || effort === 'max' || isLargeContext || wantsStaff || isNotationHeavy) {
+      maxTokens = 0; // без ограничения — нужна полная глубина
+    } else if (isQuick) {
+      maxTokens = 800; // короткий быстрый ответ на простой вопрос
+    } else {
+      maxTokens = 2048;
+    }
     const mergedSystem = appendServerContext(systemText, [
       profile ? `Профиль пользователя: role=${profile.role || 'user'}, plan=${profile.plan || 'free'}` : '',
       think ? buildThinkInstruction() : '',
@@ -898,7 +935,7 @@ export default async function handler(req, res) {
       const openAiMessages = mapMessagesForOpenAI(messages, mergedSystem);
       for (const modelName of route.models) {
         if (stream) {
-          const streamResult = await streamOpenAIToClient(res, route.apiKey, modelName, openAiMessages, modelTimeoutMs, query, isLargeContext, Boolean(think));
+          const streamResult = await streamOpenAIToClient(res, route.apiKey, modelName, openAiMessages, modelTimeoutMs, query, isLargeContext, Boolean(think), maxTokens);
           if (streamResult.ok) return;
           lastError = {
             status: streamResult.status || 500,
@@ -929,7 +966,7 @@ export default async function handler(req, res) {
           }
           continue;
         }
-        const { response, data } = await callOpenAI(route.apiKey, modelName, openAiMessages, modelTimeoutMs);
+        const { response, data } = await callOpenAI(route.apiKey, modelName, openAiMessages, modelTimeoutMs, maxTokens);
         const errorMessage = data?.error?.message || '';
         if (!response.ok || data.error) {
           lastError = { status: response.status || 500, message: errorMessage || `Ошибка модели ${modelName}`, model: modelName };
