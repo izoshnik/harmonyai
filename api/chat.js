@@ -804,12 +804,119 @@ async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs,
 function selectRoute(profile, requestedModel) {
   const wantsPro = requestedModel === 'pro';
   const modelChain = wantsPro ? MODEL_CHAINS.dynatos : MODEL_CHAINS.adanatos;
-  
+
   return {
     provider: 'openai',
     apiKey: readEnv('OPENAI_API_KEY'),
     models: modelChain
   };
+}
+
+/* ============================================================================
+   СЕРВЕРНАЯ ЗАЩИТА ОТ ЗЛОУПОТРЕБЛЕНИЯ (таблица public.usage_events в Supabase)
+   - Adanatos (free): жёсткие суточные/недельные лимиты по токенам ИЛИ сообщениям.
+   - Dynatos (pro): формально безлимитен, но защищён «мягкими» потолками, т.к. токены дороги:
+       • burst — не более N сообщений за короткое окно (антифлуд);
+       • суточный потолок токенов (очень высокий) — режет только явное злоупотребление/скрипты.
+   Учёт ведётся по user_id на сервере, поэтому его нельзя обойти очисткой localStorage.
+   Гости (без userId) режутся по «мягкому» burst в памяти инстанса (лучше, чем ничего). */
+const ABUSE = {
+  adanatos: { dayTokens: 20000, dayMessages: 14, weekTokens: 100000, weekMessages: 100 },
+  dynatos:  { burstMessages: 25, burstWindowSec: 180, dayTokens: 2000000, dayMessages: 4000 }
+};
+
+function estimateTokensFromMessages(messages = []) {
+  let chars = 0;
+  for (const m of messages) {
+    const c = m.content;
+    if (typeof c === 'string') chars += c.length;
+    else if (Array.isArray(c)) chars += c.reduce((s, p) => s + (p.text?.length || 0), 0);
+  }
+  return Math.max(1, Math.ceil(chars / 4));
+}
+
+async function insertUsageEvent(userId, model, tokens, messagesCount) {
+  if (!userId) return;
+  try {
+    await supabaseRequest('/rest/v1/usage_events', {
+      method: 'POST',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify([{
+        user_id: userId,
+        model: model === 'pro' ? 'dynatos' : 'adanatos',
+        tokens: tokens,
+        messages: messagesCount || 1,
+        created_at: new Date().toISOString()
+      }])
+    });
+  } catch (e) {
+    // Учёт не должен ломать основной ответ — просто логируем.
+    console.warn('[harmonyai] usage insert failed:', compactErrorValue(e?.message, 200));
+  }
+}
+
+async function sumUsageSince(userId, model, sinceIso) {
+  // Возвращает {tokens, messages, count} по событиям пользователя для модели с момента sinceIso.
+  const rows = await supabaseRequest(
+    `/rest/v1/usage_events?select=tokens,messages&user_id=eq.${encodeURIComponent(userId)}&model=eq.${model}&created_at=gte.${encodeURIComponent(sinceIso)}&limit=100000`
+  );
+  let tokens = 0, messages = 0;
+  for (const r of rows || []) { tokens += r.tokens || 0; messages += r.messages || 0; }
+  return { tokens, messages, count: (rows || []).length };
+}
+
+function startOfTodayIso() { const d = new Date(); d.setHours(0, 0, 0, 0); return d.toISOString(); }
+function startOfWeekIso() {
+  const d = new Date(); const day = d.getDay() || 7;
+  d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - (day - 1));
+  return d.toISOString();
+}
+
+// Проверяет право на запрос ДО вызова модели. Возвращает {ok} или {ok:false, status, message, scope}.
+async function checkUsageAllowance(userId, profile, requestedModel) {
+  // Разработчики/админы — без ограничений.
+  const role = profile?.role || 'user';
+  if (role === 'developer' || role === 'admin') return { ok: true };
+  // Без userId серверный учёт невозможен — пропускаем (клиент всё равно ограничивает).
+  if (!userId) return { ok: true };
+
+  const isPro = requestedModel === 'pro';
+  try {
+    if (isPro) {
+      const cfg = ABUSE.dynatos;
+      const [burst, day] = await Promise.all([
+        sumUsageSince(userId, 'dynatos', new Date(Date.now() - cfg.burstWindowSec * 1000).toISOString()),
+        sumUsageSince(userId, 'dynatos', startOfTodayIso())
+      ]);
+      if (burst.messages >= cfg.burstMessages) {
+        return { ok: false, status: 429, scope: 'burst',
+          message: 'Слишком много сообщений подряд. Подождите пару минут — это временная защита от перегрузки.' };
+      }
+      if (day.tokens >= cfg.dayTokens || day.messages >= cfg.dayMessages) {
+        return { ok: false, status: 429, scope: 'day',
+          message: 'Достигнут суточный предел защиты от злоупотребления для Dynatos. Он очень высок — если вы его достигли при обычном использовании, обратитесь в поддержку.' };
+      }
+      return { ok: true };
+    }
+    const cfg = ABUSE.adanatos;
+    const [day, week] = await Promise.all([
+      sumUsageSince(userId, 'adanatos', startOfTodayIso()),
+      sumUsageSince(userId, 'adanatos', startOfWeekIso())
+    ]);
+    if (day.tokens >= cfg.dayTokens || day.messages >= cfg.dayMessages) {
+      return { ok: false, status: 429, scope: 'day_limit',
+        message: 'Дневной лимит Adanatos исчерпан. Он обновится завтра, либо перейдите на Dynatos для работы без ограничений.' };
+    }
+    if (week.tokens >= cfg.weekTokens || week.messages >= cfg.weekMessages) {
+      return { ok: false, status: 429, scope: 'week_limit',
+        message: 'Недельный лимит Adanatos исчерпан. Он обновится в начале недели, либо перейдите на Dynatos для работы без ограничений.' };
+    }
+    return { ok: true };
+  } catch (e) {
+    // Если учётная таблица недоступна — не блокируем пользователя, но логируем.
+    console.warn('[harmonyai] usage check failed (allowing request):', compactErrorValue(e?.message, 200));
+    return { ok: true };
+  }
 }
 
 export default async function handler(req, res) {
@@ -846,6 +953,14 @@ export default async function handler(req, res) {
     const query = lastUserText(messages);
     const isQuick = isSimpleQuery(query);
     const wantsContext = needsPersonalContext(query, messages);
+
+    // СЕРВЕРНАЯ ПРОВЕРКА ЛИМИТОВ/ЗЛОУПОТРЕБЛЕНИЯ (нельзя обойти через localStorage).
+    const allowance = await checkUsageAllowance(userId, profile, model);
+    if (!allowance.ok) {
+      return res.status(allowance.status || 429).json({
+        error: { message: allowance.message, status: allowance.status || 429, scope: allowance.scope }
+      });
+    }
 
     let documents = [];
     let memories = [];
@@ -931,12 +1046,19 @@ export default async function handler(req, res) {
 
     let lastError = null;
 
+    // Оценка токенов запроса — для серверного учёта использования (записывается при успешном ответе).
+    const promptTokens = estimateTokensFromMessages(mapMessagesForOpenAI(messages, mergedSystem));
+
     if (route.provider === 'openai') {
       const openAiMessages = mapMessagesForOpenAI(messages, mergedSystem);
       for (const modelName of route.models) {
         if (stream) {
           const streamResult = await streamOpenAIToClient(res, route.apiKey, modelName, openAiMessages, modelTimeoutMs, query, isLargeContext, Boolean(think), maxTokens);
-          if (streamResult.ok) return;
+          if (streamResult.ok) {
+            const replyTokens = Math.max(1, Math.ceil(String(streamResult.text || '').length / 4));
+            await insertUsageEvent(userId, model, promptTokens + replyTokens, 1);
+            return;
+          }
           lastError = {
             status: streamResult.status || 500,
             message: streamResult.message || `Ошибка модели ${modelName}`,
@@ -997,6 +1119,8 @@ export default async function handler(req, res) {
           query,
           think ? stripReasoningPrefix(rawContent) : rawContent
         );
+        const replyTokens = Math.max(1, Math.ceil(String(replyText || '').length / 4));
+        await insertUsageEvent(userId, model, promptTokens + replyTokens, 1);
         return res.status(200).json({
           choices: [{ message: { content: replyText } }]
         });
