@@ -98,31 +98,135 @@ html[data-theme="dark"]{
   --check:#22c55e;
 }
 html[data-theme="light"]{
-  --bg:#fafaf9;
-  --bg2:#f0efea;
-  --bg3:rgba(0,0,0,0.03);
-  --text:#1a1a1a;
-  --text2:#6b6b6b;
-  --text-ai:#1a1a1a;
-  --border:rgba(0,0,0,0.10);
-  --border2:rgba(0,0,0,0.06);
-  --send-bg:#1a1a1a;
+  --bg:#f7f6f3;
+  --bg2:#f0eee9;
+  --bg3:rgba(20,18,12,0.04);
+  --text:#26241f;
+  --text2:#7a766c;
+  --text-ai:#26241f;
+  --border:rgba(20,18,12,0.10);
+  --border2:rgba(20,18,12,0.06);
+  --send-bg:#2c2a24;
   --send-txt:#ffffff;
-  --user-bg:#1a1a1a;
-  --user-txt:#ffffff;
-  --input-bg:rgba(0,0,0,0.03);
-  --hover:rgba(0,0,0,0.04);
-  --active:rgba(0,0,0,0.07);
+  --user-bg:#ffffff;
+  --user-txt:#26241f;
+  --input-bg:rgba(20,18,12,0.04);
+  --hover:rgba(20,18,12,0.045);
+  --active:rgba(20,18,12,0.07);
   --drop-bg:#ffffff;
-  --drop-shadow:0 8px 32px rgba(0,0,0,0.10);
+  --drop-shadow:0 8px 32px rgba(20,18,12,0.12);
   --check:#16a34a;
 }
-/* Десктопная пилюля модели в топбаре (мобильной шапке) раньше была захардкожена тёмным цветом —
-   на новой светлой мобильной теме делаем её согласованной с переменными. */
+/* ============================================================================
+   МОБИЛЬНАЯ СВЕТЛАЯ ТЕМА (liquid glass, спокойные светлые цвета)
+   Раньше десятки мобильных правил жёстко задавали тёмные цвета (тёмные панели,
+   почти-белый текст) — на светлой теме это давало странный, слишком контрастный
+   вид и невидимые надписи/кнопки. Ниже — цельная светлая тема: мягкое матовое
+   стекло, спокойная тёплая палитра, все тексты и кнопки читаемы.
+   ============================================================================ */
 @media(max-width:768px){
-  html[data-theme="light"] .topbar-model-pill{background:var(--bg2);border-color:var(--border);}
+  /* Пузырь сообщения пользователя — мягкое белое стекло с тонкой рамкой вместо резкого тёмного */
+  html[data-theme="light"] .msg-user{background:rgba(255,255,255,.82);color:#26241f;border:1px solid rgba(20,18,12,.07);box-shadow:0 6px 18px rgba(20,18,12,.07);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);}
+  html[data-theme="light"] .msg-user-attachment-meta{color:rgba(38,36,31,.6);}
+  html[data-theme="light"] .msg-user-attachment-name{color:#26241f;}
+
+  /* Пилюля модели в шапке */
+  html[data-theme="light"] .topbar-model-pill{background:rgba(255,255,255,.72);border:1px solid rgba(0,0,0,.06);box-shadow:0 4px 16px rgba(20,18,12,.08);}
   html[data-theme="light"] .topbar-model-pill .pill-name{color:#6a4dff;}
-  html[data-theme="light"] .topbar-training-pill{background:var(--bg3);}
+  html[data-theme="light"] .topbar-training-pill{background:rgba(0,0,0,.05);border-color:rgba(0,0,0,.08);box-shadow:0 6px 18px rgba(20,18,12,.10);}
+  html[data-theme="light"] .topbar-logo{color:#26241f;}
+
+  /* Круглые кнопки шапки (три полоски / новый чат) */
+  html[data-theme="light"] .topbar-btn{background:rgba(20,18,12,.045);color:rgba(38,36,31,.72);}
+  html[data-theme="light"] .topbar-btn:hover{background:rgba(20,18,12,.08);}
+
+  /* Фоновые «шары» — мягкие пастельные, чтобы фон был спокойным светлым */
+  html[data-theme="light"] .mobile-glossy .bubble{opacity:.42;}
+  html[data-theme="light"] .mobile-glossy .b1{background:radial-gradient(circle,#e3ddff 0%,transparent 70%);}
+  html[data-theme="light"] .mobile-glossy .b2{background:radial-gradient(circle,#ffe6f0 0%,transparent 70%);}
+  html[data-theme="light"] .mobile-glossy .b3{background:radial-gradient(circle,#dcefff 0%,transparent 70%);}
+  html[data-theme="light"] .mobile-glossy .b4{background:radial-gradient(circle,#e6f7ea 0%,transparent 70%);}
+
+  /* Боковая панель */
+  html[data-theme="light"] .sidebar{background:rgba(247,246,243,.78);border-right:1px solid rgba(20,18,12,.07);box-shadow:18px 0 48px rgba(20,18,12,.12);}
+  html[data-theme="light"] .overlay{background:rgba(20,18,12,.24);}
+  html[data-theme="light"] .sb-user-row{background:rgba(20,18,12,.035);}
+  html[data-theme="light"] .sb-footer{border-top:1px solid rgba(20,18,12,.07);}
+  html[data-theme="light"] .sb-icon-btn:hover,html[data-theme="light"] .sb-chat-item:hover,html[data-theme="light"] .sb-chat-item.active{background:rgba(20,18,12,.05);}
+
+  /* Приветствие и текст ИИ */
+  html[data-theme="light"] .greeting-hint{color:#3a3a42;}
+  html[data-theme="light"] .think-trace{background:rgba(20,18,12,.03);border-color:rgba(20,18,12,.06);border-left:2px solid rgba(20,18,12,.14);color:var(--text2);}
+
+  /* Вложения пользователя/композера */
+  html[data-theme="light"] .msg-user-attachment{background:rgba(255,255,255,.85);border:1px solid rgba(20,18,12,.07);box-shadow:0 10px 20px rgba(20,18,12,.08);}
+  html[data-theme="light"] .composer-attachment{background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(255,255,255,.74));border-color:rgba(20,18,12,.06);box-shadow:0 14px 28px rgba(20,18,12,.10);}
+  html[data-theme="light"] .composer-attachment-name{color:#26241f;}
+  html[data-theme="light"] .composer-attachment-meta{color:#7a766c;}
+
+  /* Поле ввода — светлое матовое стекло */
+  html[data-theme="light"] .input-box{background:linear-gradient(180deg,rgba(255,255,255,.8),rgba(255,255,255,.62));border:1px solid rgba(20,18,12,.06);box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 12px 34px rgba(20,18,12,.1);}
+  html[data-theme="light"] .input-box textarea{color:#26241f;}
+  html[data-theme="light"] .input-box textarea::placeholder{color:rgba(60,58,52,.5);}
+  html[data-theme="light"] .bar-icon{color:rgba(40,38,32,.78);}
+  html[data-theme="light"] .bar-icon:hover{background:rgba(20,18,12,.05);}
+
+  /* Нижний лист выбора модели */
+  html[data-theme="light"] .mm-overlay{background:rgba(20,18,12,.3);}
+  html[data-theme="light"] .mm-sheet{background:rgba(252,251,249,.9);border:1px solid rgba(20,18,12,.08);box-shadow:0 -18px 48px rgba(20,18,12,.16),inset 0 1px 0 rgba(255,255,255,.75);}
+  html[data-theme="light"] .mm-handle{background:rgba(20,18,12,.18);}
+  html[data-theme="light"] .mm-card{background:rgba(255,255,255,.6);border:1px solid rgba(20,18,12,.06);}
+  html[data-theme="light"] .mm-opt-name,html[data-theme="light"] .mm-title,html[data-theme="light"] .mm-think-title{color:#26241f;}
+  html[data-theme="light"] .mm-opt-desc,html[data-theme="light"] .mm-row-title,html[data-theme="light"] .mm-think-sub,html[data-theme="light"] .mm-hint{color:#7a766c;}
+  html[data-theme="light"] .mm-opt-badge{background:rgba(106,77,255,.12);color:#6a4dff;}
+  html[data-theme="light"] .mm-opt-badge.mm-badge-neutral{background:rgba(20,18,12,.06);color:#7a766c;}
+  html[data-theme="light"] .mm-opt-check{color:#6a4dff;}
+  html[data-theme="light"] .mm-divider{background:rgba(20,18,12,.07);}
+  html[data-theme="light"] .mm-close{background:rgba(20,18,12,.05);border-color:rgba(20,18,12,.08);color:#26241f;}
+  html[data-theme="light"] .mm-close:active{background:rgba(20,18,12,.1);}
+
+  /* Настройки и выпадающие панели — светлое матовое стекло */
+  html[data-theme="light"] .settings-overlay{background:rgba(247,246,243,.92);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
+  html[data-theme="light"] .s-rows,html[data-theme="light"] .mem-rows,html[data-theme="light"] .pers-card,html[data-theme="light"] .appear-rows,html[data-theme="light"] .about-rows{background:rgba(255,255,255,.66);border:1px solid rgba(20,18,12,.05);backdrop-filter:blur(18px) saturate(140%);-webkit-backdrop-filter:blur(18px) saturate(140%);box-shadow:0 8px 24px rgba(20,18,12,.06);}
+  html[data-theme="light"] .more-menu,html[data-theme="light"] .model-drop,html[data-theme="light"] .mode-sub,html[data-theme="light"] .fb-modal,html[data-theme="light"] .pers-drop-sheet{background:rgba(252,251,249,.9);border:1px solid rgba(20,18,12,.08);backdrop-filter:blur(22px) saturate(150%);-webkit-backdrop-filter:blur(22px) saturate(150%);}
+  html[data-theme="light"] .s-row:hover,html[data-theme="light"] .appear-row:hover,html[data-theme="light"] .mmp-opt:hover{background:rgba(20,18,12,.04);}
+  html[data-theme="light"] .s-row+.s-row,html[data-theme="light"] .appear-row+.appear-row,html[data-theme="light"] .about-row+.about-row,html[data-theme="light"] .mem-row+.mem-row{border-top:1px solid rgba(20,18,12,.06);}
+  html[data-theme="light"] .logout-row{color:#dc2626;background:rgba(220,38,38,.06);}
+  html[data-theme="light"] .sth-close{background:rgba(20,18,12,.05);color:var(--text);}
+  html[data-theme="light"] .sth-close:hover{background:rgba(20,18,12,.09);}
+  html[data-theme="light"] .sth.sth-with-close .sth-back{background:rgba(20,18,12,.05);}
+  html[data-theme="light"] .report-textarea{background:rgba(20,18,12,.05);color:#26241f;}
+  html[data-theme="light"] .report-submit{background:#2c2a24;color:#fff;}
+  html[data-theme="light"] .prof-ava{background:#6a4dff;color:#fff;}
+  html[data-theme="light"] .prof-ava-edit{background:#fff;border-color:#f7f6f3;color:#26241f;}
+  html[data-theme="light"] .about-app-icon{background:linear-gradient(150deg,#2c2a24,#141310);}
+
+  /* Контекстное меню чата (долгое нажатие) */
+  html[data-theme="light"] .chat-ctx-menu{background:rgba(252,251,249,.92);border-color:rgba(20,18,12,.08);box-shadow:0 16px 40px rgba(20,18,12,.16);}
+  html[data-theme="light"] .chat-ctx-item{color:var(--text);}
+  html[data-theme="light"] .chat-ctx-item:hover{background:rgba(20,18,12,.05);}
+
+  /* Liquid glass материал: тёплое светлое преломление вместо белого «на тёмном» */
+  html[data-theme="light"] .bg-liquid-glass::before,
+  html[data-theme="light"] .sidebar::before,html[data-theme="light"] .settings-box::before,html[data-theme="light"] .mobile-model-drop::before,html[data-theme="light"] .input-box::before,html[data-theme="light"] .pers-drop-sheet::before,
+  html[data-theme="light"] .s-rows::before,html[data-theme="light"] .mem-rows::before,html[data-theme="light"] .pers-card::before,html[data-theme="light"] .more-menu::before,html[data-theme="light"] .model-drop::before,html[data-theme="light"] .mode-sub::before,html[data-theme="light"] .fb-modal::before{
+    backdrop-filter:blur(20px) saturate(150%) brightness(1.02);
+    -webkit-backdrop-filter:blur(20px) saturate(150%) brightness(1.02);
+    background:
+      radial-gradient(120% 90% at 50% 8%,rgba(255,255,255,0.55),rgba(255,255,255,0.14) 55%,rgba(20,18,12,0.03) 100%),
+      linear-gradient(180deg,rgba(255,255,255,0.42),rgba(255,255,255,0.12) 45%,rgba(20,18,12,0.04) 100%);
+  }
+  html[data-theme="light"] .bg-liquid-glass::after,
+  html[data-theme="light"] .sidebar::after,html[data-theme="light"] .settings-box::after,html[data-theme="light"] .mobile-model-drop::after,html[data-theme="light"] .input-box::after,html[data-theme="light"] .pers-drop-sheet::after,
+  html[data-theme="light"] .s-rows::after,html[data-theme="light"] .mem-rows::after,html[data-theme="light"] .pers-card::after,html[data-theme="light"] .more-menu::after,html[data-theme="light"] .model-drop::after,html[data-theme="light"] .mode-sub::after,html[data-theme="light"] .fb-modal::after{
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.85),
+      inset 0 0 0 1px rgba(20,18,12,0.05),
+      inset 0 -14px 30px -22px rgba(20,18,12,0.14),
+      0 1px 2px rgba(20,18,12,0.05);
+    background:linear-gradient(125deg,rgba(255,255,255,0.5) 0%,rgba(255,255,255,0) 30%,rgba(255,255,255,0) 70%,rgba(255,255,255,0.25) 100%);
+    mix-blend-mode:normal;opacity:.7;
+  }
 }
 
 /* ===================== ПЛАВНЫЕ АНИМАЦИИ КНОПОК (ощущение "живого" интерфейса) ===================== */
@@ -303,11 +407,19 @@ button:active,.model-pill:active,.send-btn:active{
   .overlay.show{opacity:1;visibility:visible;}
   .main{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative;z-index:1;}
   .topbar{display:flex;align-items:center;justify-content:space-between;padding:calc(env(safe-area-inset-top,0px) + 14px) 16px 2px;gap:10px;position:relative;z-index:2;}
+  /* Боковые кнопки топбара помещаем в контейнеры фиксированной высоты 38px и центрируем по ним,
+     чтобы «три полоски», «новый чат» и абсолютно спозиционированная пилюля модели стояли на одной
+     горизонтали (раньше из-за нижнего паддинга 2px флекс-центрирование смещало кнопки вниз). */
+  .topbar>div{display:flex;align-items:center;height:38px;}
   .topbar-logo{font-size:21px;font-weight:800;color:var(--text);position:absolute;left:50%;transform:translateX(-50%);}
-  .topbar-model-pill{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;padding:10px 22px;border-radius:999px;background:#1c1c20;border:1px solid rgba(255,255,255,.06);cursor:pointer;user-select:none;transition:background .12s,transform .12s;}
-  .topbar-model-pill:active{transform:translate(-50%,-50%) scale(.95);}
+  /* Кнопка модели выровнена по той же горизонтали, что и «три полоски» и «новый чат»:
+     она стоит в контентной строке топбара (top = верхний паддинг), одинаковой высоты 38px
+     с боковыми кнопками, а не центрируется по всему паддинг-боксу (из-за большого верхнего
+     safe-area паддинга и 2px снизу раньше пилюля «съезжала» и была не параллельна кнопкам). */
+  .topbar-model-pill{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 14px);transform:translateX(-50%);height:38px;display:flex;align-items:center;justify-content:center;padding:0 22px;border-radius:999px;background:#1c1c20;border:1px solid rgba(255,255,255,.06);cursor:pointer;user-select:none;transition:background .12s,transform .12s;}
+  .topbar-model-pill:active{transform:translateX(-50%) scale(.95);}
   .topbar-model-pill .pill-name{font-size:16px;font-weight:800;color:#7c4dff;letter-spacing:-.2px;}
-  .topbar-training-pill{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;padding:9px 18px;border-radius:999px;background:rgba(255,255,255,0.08);border:1px solid var(--border);box-shadow:0 6px 18px rgba(0,0,0,.22);cursor:pointer;user-select:none;font-size:14px;font-weight:700;color:var(--text);}
+  .topbar-training-pill{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 14px);transform:translateX(-50%);height:38px;display:flex;align-items:center;justify-content:center;padding:0 18px;border-radius:999px;background:rgba(255,255,255,0.08);border:1px solid var(--border);box-shadow:0 6px 18px rgba(0,0,0,.22);cursor:pointer;user-select:none;font-size:14px;font-weight:700;color:var(--text);}
 }
 @media(min-width:769px){
   .app{flex-direction:row;}
@@ -429,9 +541,38 @@ button:active,.model-pill:active,.send-btn:active{
 @keyframes streamCursorBlink{0%,100%{opacity:1;}50%{opacity:0.25;}}
 .msg-ai.is-streaming{caret-color:transparent;}
 .msg-ai{font-size:var(--font-base);line-height:1.7;color:var(--text-ai);word-break:normal;overflow-wrap:anywhere;white-space:pre-wrap;hyphens:none;}
-/* Force AI text visible - dark on mobile, dark on desktop */
+/* Force AI text visible - light on dark bg, dark on light bg */
 @media(max-width:768px){.msg-ai{color:#e2e2e6;}}
 @media(min-width:769px){.msg-ai{color:#1a1a1a;}}
+/* Явная тёмная тема (в т.ч. десктоп): раньше текст ИИ оставался #1a1a1a и был нечитаем на тёмном фоне. */
+html[data-theme="dark"] .msg-ai{color:#e8e8ec;}
+html[data-theme="light"] .msg-ai{color:#1a1a1a;}
+
+/* ===================== ДЕСКТОП — ТЁМНАЯ ТЕМА: точечная читаемость и ровность =====================
+   Светлая (дефолтная) десктоп-тема НЕ трогается. Ниже — только правки для явной тёмной темы на
+   десктопе, где часть надписей/поверхностей раньше наследовала светлые значения и была нечитаема
+   или выглядела «грязно». */
+@media(min-width:769px){
+  /* Пилюля выбора модели: имя — сиреневым, режим «lite · low» — серым, но с достаточным контрастом */
+  html[data-theme="dark"] .model-pill{background:#1a1a1f;border-color:rgba(255,255,255,.10);color:var(--text);}
+  html[data-theme="dark"] .model-pill:hover{background:#22222a;}
+  html[data-theme="dark"] .model-pill .pill-mode{color:#a9a9b6;}
+  html[data-theme="dark"] .model-pill .pill-caret{color:#a9a9b6;}
+  /* Выпадающие меню моделей — тёмный фон, светлый текст, читаемые подписи */
+  html[data-theme="dark"] .desktop-model-drop,
+  html[data-theme="dark"] .desktop-sub-drop{background:#17171c;border-color:rgba(255,255,255,.10);box-shadow:0 18px 40px rgba(0,0,0,.5);}
+  html[data-theme="dark"] .desktop-copy span,
+  html[data-theme="dark"] .desktop-mini{color:#a9a9b6;}
+  html[data-theme="dark"] .desktop-row:hover,
+  html[data-theme="dark"] .desktop-option:hover{background:rgba(255,255,255,.06);}
+  /* Приветствие, дисклеймер и подсказки — не должны тонуть в тёмном фоне */
+  html[data-theme="dark"] .greeting-sub,
+  html[data-theme="dark"] .greeting-hint{color:#b7b7c0;}
+  html[data-theme="dark"] .disclaimer{color:#8a8a94;}
+  /* Ползунок «Думать»: во включённом состоянии фон белый — точка должна быть тёмной для контраста уже есть */
+  /* Иконка «Сведения» и аватар нормально читаются на тёмном; правок не требуется */
+}
+
 
 /* Markdown in AI */
 .msg-ai h1,.msg-ai h2,.msg-ai h3{font-weight:700;margin:14px 0 6px;color:inherit;}
@@ -587,6 +728,8 @@ button:active,.model-pill:active,.send-btn:active{
   .composer-attachment{min-width:96px;max-width:116px;padding:8px 8px 10px;border-radius:18px;background:linear-gradient(180deg,#ffffff,#f4f2ed);box-shadow:0 10px 24px rgba(0,0,0,.06);}
   .composer-file-icon,.composer-thumb{width:60px;height:60px;border-radius:14px;}
   .composer-attachment-name{font-size:12px;}
+  /* Тёмная десктоп-тема: белые карточки вложений выглядели инородно — приводим к тёмному стеклу. */
+  html[data-theme="dark"] .composer-attachment{background:linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.03));border-color:var(--border);box-shadow:0 10px 24px rgba(0,0,0,.28);}
 }
 
 /* ===================== INPUT BAR ===================== */
@@ -613,7 +756,12 @@ button:active,.model-pill:active,.send-btn:active{
 .pill-caret{font-size:10px;color:var(--text2);margin-left:1px;}
 @media(max-width:768px){.model-pill{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.12);}}
 @media(min-width:769px){
-  .model-pill{padding:6px 12px;border-radius:12px;background:#fff;box-shadow:0 4px 14px rgba(0,0,0,.04);}
+  /* Раньше фон был захардкожен белым (#fff) — на тёмной десктопной теме это давало белый
+     текст на белом фоне, и «выбор модели» был нечитаем. var(--drop-bg) = белый на светлой
+     теме (внешне без изменений) и тёмный на тёмной — надпись всегда читается. */
+  .model-pill{padding:6px 12px;border-radius:12px;background:var(--drop-bg);box-shadow:0 4px 14px rgba(0,0,0,.04);}
+  html[data-theme="dark"] .model-pill{border-color:var(--border);box-shadow:0 4px 14px rgba(0,0,0,.28);}
+  html[data-theme="dark"] .model-pill .pill-name{color:#b9a3ff;}
 }
 
 /* Send */
@@ -643,7 +791,7 @@ button:active,.model-pill:active,.send-btn:active{
 .md-think-label{font-size:13px;font-weight:600;color:var(--text);}
 .md-think-sub{font-size:11px;color:var(--text2);}
 .sw{width:38px;height:22px;border-radius:11px;background:var(--border);cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;}
-.sw.on{background:var(--text);}
+.sw.on{background:var(--check);}
 .sw::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.25);}
 .sw.on::after{transform:translateX(16px);}
 
@@ -825,6 +973,41 @@ button:active,.model-pill:active,.send-btn:active{
 .appear-row-text{flex:1;font-size:15px;font-weight:500;color:var(--text);}
 .appear-check{color:var(--check);opacity:0;font-size:15px;}
 .appear-check.on{opacity:1;}
+
+/* ===== ЭКРАН «ЛИМИТЫ» ===== */
+.limits-screen{display:flex;flex-direction:column;gap:16px;}
+.limits-plan-badge{display:inline-flex;align-items:center;gap:8px;align-self:flex-start;padding:7px 14px;border-radius:999px;background:var(--bg3);border:1px solid var(--border);font-size:13px;font-weight:700;color:var(--text);}
+.limits-plan-badge .lp-dot{width:8px;height:8px;border-radius:50%;background:var(--check);}
+.limits-plan-badge.pro .lp-dot{background:#7c4dff;}
+.limits-card{background:var(--bg2);border:1px solid var(--border);border-radius:18px;overflow:hidden;}
+@media(max-width:768px){.limits-card{background:rgba(255,255,255,.055);border:none;}}
+html[data-theme="light"] .limits-card{background:rgba(255,255,255,.66);border:1px solid rgba(20,18,12,.05);}
+.limits-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px 8px;}
+.limits-card-title{font-size:14px;font-weight:700;color:var(--text);}
+.limits-reset{font-size:12px;color:var(--text2);}
+.limits-metric{padding:8px 16px 14px;}
+.limits-metric+.limits-metric{border-top:1px solid var(--border2);padding-top:14px;}
+.limits-metric-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:8px;}
+.limits-metric-label{font-size:13px;font-weight:600;color:var(--text);}
+.limits-metric-val{font-size:13px;color:var(--text2);font-variant-numeric:tabular-nums;}
+.limits-metric-val b{color:var(--text);font-weight:700;}
+.limits-bar{height:8px;border-radius:999px;background:rgba(127,127,140,.18);overflow:hidden;}
+.limits-bar-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#22c55e,#16a34a);transition:width .4s cubic-bezier(.22,.61,.36,1);}
+.limits-bar-fill.warn{background:linear-gradient(90deg,#f59e0b,#ea580c);}
+.limits-bar-fill.full{background:linear-gradient(90deg,#ef4444,#dc2626);}
+.limits-bar-fill.pro{background:linear-gradient(90deg,#a855f7,#6366f1);}
+.limits-infinite{font-size:22px;font-weight:800;color:#7c4dff;line-height:1;}
+.limits-note{font-size:12.5px;color:var(--text2);line-height:1.55;padding:0 4px;}
+.limits-note strong{color:var(--text);font-weight:700;}
+
+/* Плашка «Лимит исчерпан» в чате */
+.limit-reached{align-self:stretch;display:flex;gap:12px;padding:14px 16px;border-radius:16px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.22);color:var(--text);margin:4px 0;}
+html[data-theme="light"] .limit-reached{background:rgba(239,68,68,.07);border-color:rgba(239,68,68,.2);}
+.limit-reached-ic{flex-shrink:0;color:#ef4444;margin-top:1px;}
+.limit-reached-body{display:flex;flex-direction:column;gap:4px;min-width:0;}
+.limit-reached-title{font-size:14px;font-weight:700;color:var(--text);}
+.limit-reached-text{font-size:13px;color:var(--text2);line-height:1.5;}
+.limit-reached-text b{color:var(--text);}
 
 /* ===== TRAINING (Обучение) SCREEN ===== */
 .training-greeting{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 20px;width:100%;}
@@ -1350,6 +1533,93 @@ function getLocalNickname(uid){
 function setLocalNickname(uid,val){
   if(!uid)return;
   try{localStorage.setItem(LOCAL_NICK_PREFIX+uid,val);}catch(e){console.warn('Local nickname save failed',e);}
+}
+
+/* ===== ЛИМИТЫ ИСПОЛЬЗОВАНИЯ =====
+   Adanatos (free): дневной и недельный лимит по токенам ИЛИ сообщениям (что наступит раньше).
+   Dynatos (pro): без лимитов, но с мягкой защитой от злоупотребления (burst-rate), т.к. токены дороги.
+   Учёт ведётся локально (localStorage) на пользователя, с автосбросом по дню/неделе. */
+const LIMITS={
+  adanatos:{ daily:{tokens:20000,messages:14}, weekly:{tokens:100000,messages:100} },
+  // Dynatos формально безлимитен; защита — не более ~40 сообщений за 3 минуты подряд.
+  dynatos:{ burst:{messages:40,windowMs:180000} }
+};
+const USAGE_PREFIX='harmonyai_usage_v1_';
+function usageKey(){return USAGE_PREFIX+(curUser?.id||'guest');}
+function todayKey(d=new Date()){return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();}
+function weekKey(d=new Date()){
+  // ISO-подобный ключ недели: год + номер недели (понедельник — начало)
+  const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  const day=t.getUTCDay()||7;
+  t.setUTCDate(t.getUTCDate()+4-day);
+  const yStart=new Date(Date.UTC(t.getUTCFullYear(),0,1));
+  const wk=Math.ceil((((t-yStart)/86400000)+1)/7);
+  return t.getUTCFullYear()+'-W'+wk;
+}
+function readUsage(){
+  try{const raw=localStorage.getItem(usageKey());return raw?JSON.parse(raw):{};}catch(e){return {};}
+}
+function writeUsage(u){try{localStorage.setItem(usageKey(),JSON.stringify(u));}catch(e){}}
+function getUsage(){
+  const u=readUsage();
+  const dk=todayKey(),wk=weekKey();
+  if(u.dayKey!==dk){u.dayKey=dk;u.dayTokens=0;u.dayMessages=0;}
+  if(u.weekKey!==wk){u.weekKey=wk;u.weekTokens=0;u.weekMessages=0;}
+  u.dayTokens=u.dayTokens||0;u.dayMessages=u.dayMessages||0;
+  u.weekTokens=u.weekTokens||0;u.weekMessages=u.weekMessages||0;
+  u.burst=Array.isArray(u.burst)?u.burst:[];
+  return u;
+}
+// Грубая оценка токенов по тексту (≈4 символа на токен) — для локального учёта достаточно.
+function estimateTokens(text){return Math.max(1,Math.ceil(String(text||'').length/4));}
+function recordUsage(promptText,replyText){
+  if(curModel==='pro'){ // Dynatos — учитываем только burst для защиты
+    const u=getUsage();
+    u.burst.push(Date.now());
+    u.burst=u.burst.filter(t=>Date.now()-t<LIMITS.dynatos.burst.windowMs);
+    writeUsage(u);
+    return;
+  }
+  const u=getUsage();
+  const tok=estimateTokens(promptText)+estimateTokens(replyText);
+  u.dayTokens+=tok;u.weekTokens+=tok;
+  u.dayMessages+=1;u.weekMessages+=1;
+  writeUsage(u);
+}
+// Возвращает {blocked, scope, reason} — можно ли отправлять сообщение.
+function checkLimit(){
+  if(hasTrainingAccess())return {blocked:false}; // разработчики/админы без ограничений
+  if(curModel==='pro'){
+    const u=getUsage();
+    const recent=u.burst.filter(t=>Date.now()-t<LIMITS.dynatos.burst.windowMs);
+    if(recent.length>=LIMITS.dynatos.burst.messages){
+      return {blocked:true,scope:'burst',reason:'Слишком много сообщений подряд. Подождите пару минут — это временная защита от перегрузки.'};
+    }
+    return {blocked:false};
+  }
+  const u=getUsage();
+  const L=LIMITS.adanatos;
+  if(u.dayTokens>=L.daily.tokens||u.dayMessages>=L.daily.messages){
+    return {blocked:true,scope:'day'};
+  }
+  if(u.weekTokens>=L.weekly.tokens||u.weekMessages>=L.weekly.messages){
+    return {blocked:true,scope:'week'};
+  }
+  return {blocked:false};
+}
+// Время сброса дневного лимита — ближайшая полночь; недельного — ближайший понедельник 00:00.
+function nextDailyReset(){const d=new Date();d.setHours(24,0,0,0);return d;}
+function nextWeeklyReset(){const d=new Date();const day=d.getDay()||7;d.setHours(24,0,0,0);d.setDate(d.getDate()+(8-day-1));return d;}
+function fmtTime(d){return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
+function fmtResetHuman(d){
+  const now=new Date();
+  const sameDay=d.getDate()===now.getDate()&&d.getMonth()===now.getMonth();
+  const t=fmtTime(d);
+  if(sameDay)return 'сегодня в '+t;
+  const days=['вс','пн','вт','ср','чт','пт','сб'];
+  const tomorrow=new Date(now);tomorrow.setDate(now.getDate()+1);
+  if(d.getDate()===tomorrow.getDate()&&d.getMonth()===tomorrow.getMonth())return 'завтра в '+t;
+  return days[d.getDay()]+', '+String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+' в '+t;
 }
 
 /* marked setup */
@@ -3503,11 +3773,41 @@ async function requestChatReplyLive(msgEl,actionsEl,extraMessages=[],prefixText=
 }
 
 /* ===== SEND ===== */
+function limitMessageHtml(check){
+  let title,text;
+  if(check.scope==='burst'){
+    title='Слишком часто';
+    text=check.reason||'Слишком много сообщений подряд. Подождите пару минут.';
+  }else{
+    const isDay=check.scope==='day';
+    const reset=isDay?fmtResetHuman(nextDailyReset()):fmtResetHuman(nextWeeklyReset());
+    title=isDay?'Дневной лимит исчерпан':'Недельный лимит исчерпан';
+    text=`Вы использовали весь ${isDay?'ежедневный':'еженедельный'} лимит модели <b>Adanatos</b>. Обновление лимита — <b>${reset}</b>. Перейдите на <b>Dynatos</b>, чтобы продолжить без ограничений.`;
+  }
+  return `<div class="limit-reached">
+    <div class="limit-reached-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 7v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="16.5" r="1.1" fill="currentColor"/></svg></div>
+    <div class="limit-reached-body">
+      <div class="limit-reached-title">${title}</div>
+      <div class="limit-reached-text">${text}</div>
+    </div>
+  </div>`;
+}
+function showLimitReached(check){
+  const inner=document.getElementById('chatInner');
+  const g=document.getElementById('greetingWrap');if(g)g.style.display='none';
+  const d=document.createElement('div');
+  d.innerHTML=limitMessageHtml(check);
+  inner.appendChild(d.firstElementChild);
+  scrollChat();
+}
 async function sendMsg(){
   if(isGenerating){stopGeneration();return;}
   const ta=document.getElementById('msgTa');
   const text=ta.value.trim();
   if(!text&&!pendingAttachments.length)return;
+  // Проверка лимитов до отправки
+  const limit=checkLimit();
+  if(limit.blocked){showLimitReached(limit);return;}
   ta.value='';ta.style.height='auto';
 
   const imageAttachments=pendingAttachments.filter(item=>item.kind==='image');
@@ -3555,7 +3855,7 @@ async function sendMsg(){
 
   try{
     const result=await requestChatReplyLive(aiShell.msg,aiShell.actions);
-    if(result?.text)chatHistory.push({role:'assistant',content:result.text});
+    if(result?.text){chatHistory.push({role:'assistant',content:result.text});recordUsage(displayText,result.text);}
     await saveChat();
     await autoContinueIfNeeded(result,aiShell.wrap,aiShell.msg,aiShell.actions);
   }catch(e){
@@ -3654,6 +3954,11 @@ function renderSettingsMain(){
           <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="5" stroke="currentColor" stroke-width="2"/><path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
           <div class="s-row-text">Подписка</div>
           <div class="s-row-val">Free</div>
+        </div>
+        <div class="s-row" onclick="renderSettingsLimits()">
+          <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3.5 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="s-row-text">Лимиты</div>
+          <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
         </div>
         <div class="s-row s-row-accent" onclick="goToDynatos()">
           <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3l1.6 5.2L19 10l-5.4 1.8L12 17l-1.6-5.2L5 10l5.4-1.8L12 3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
@@ -3944,6 +4249,100 @@ function renderAbout(){
         <div class="about-row"><div class="about-row-label">Условия использования</div><div class="about-row-val"><a href="./legal/terms.html" target="_blank" rel="noopener noreferrer">Открыть</a></div></div>
       </div>
       <div class="about-foot">HarmonyAI — ИИ-помощник для учеников музыкальной школы.<br>© ${new Date().getFullYear()} HarmonyAI. Все права защищены.</div>
+    </div>`;
+}
+
+/* ===== ЭКРАН «ЛИМИТЫ» ===== */
+function limitBar(used,total){
+  const pct=Math.min(100,Math.round((used/total)*100));
+  const cls=pct>=100?'full':(pct>=80?'warn':'');
+  return `<div class="limits-bar"><div class="limits-bar-fill ${cls}" style="width:${pct}%"></div></div>`;
+}
+function renderSettingsLimits(){
+  const el=document.getElementById('settingsContent');
+  const isPro=curModel==='pro';
+  const u=getUsage();
+  const L=LIMITS.adanatos;
+  const dailyReset=fmtResetHuman(nextDailyReset());
+  const weeklyReset=fmtResetHuman(nextWeeklyReset());
+  const unlimited=isPro||hasTrainingAccess();
+
+  const adanatosCard=`
+    <div class="limits-plan-badge"><span class="lp-dot"></span>Adanatos · Free</div>
+    <div class="limits-card">
+      <div class="limits-card-head">
+        <div class="limits-card-title">Ежедневный лимит</div>
+        <div class="limits-reset">сброс ${dailyReset}</div>
+      </div>
+      <div class="limits-metric">
+        <div class="limits-metric-row"><span class="limits-metric-label">Токены</span><span class="limits-metric-val"><b>${Math.min(u.dayTokens,L.daily.tokens).toLocaleString('ru-RU')}</b> / ${L.daily.tokens.toLocaleString('ru-RU')}</span></div>
+        ${limitBar(u.dayTokens,L.daily.tokens)}
+      </div>
+      <div class="limits-metric">
+        <div class="limits-metric-row"><span class="limits-metric-label">Сообщения</span><span class="limits-metric-val"><b>${Math.min(u.dayMessages,L.daily.messages)}</b> / ${L.daily.messages}</span></div>
+        ${limitBar(u.dayMessages,L.daily.messages)}
+      </div>
+    </div>
+    <div class="limits-card">
+      <div class="limits-card-head">
+        <div class="limits-card-title">Еженедельный лимит</div>
+        <div class="limits-reset">сброс ${weeklyReset}</div>
+      </div>
+      <div class="limits-metric">
+        <div class="limits-metric-row"><span class="limits-metric-label">Токены</span><span class="limits-metric-val"><b>${Math.min(u.weekTokens,L.weekly.tokens).toLocaleString('ru-RU')}</b> / ${L.weekly.tokens.toLocaleString('ru-RU')}</span></div>
+        ${limitBar(u.weekTokens,L.weekly.tokens)}
+      </div>
+      <div class="limits-metric">
+        <div class="limits-metric-row"><span class="limits-metric-label">Сообщения</span><span class="limits-metric-val"><b>${Math.min(u.weekMessages,L.weekly.messages)}</b> / ${L.weekly.messages}</span></div>
+        ${limitBar(u.weekMessages,L.weekly.messages)}
+      </div>
+    </div>
+    <div class="limits-note">Лимит считается по токенам <strong>или</strong> сообщениям — что закончится раньше. Перейдите на <strong>Dynatos</strong>, чтобы снять ограничения.</div>`;
+
+  const dynatosCard=`
+    <div class="limits-plan-badge pro"><span class="lp-dot"></span>Dynatos · Pro</div>
+    <div class="limits-card">
+      <div class="limits-card-head">
+        <div class="limits-card-title">Ежедневный лимит</div>
+        <div class="limits-reset">без сброса</div>
+      </div>
+      <div class="limits-metric">
+        <div class="limits-metric-row"><span class="limits-metric-label">Токены</span><span class="limits-infinite">∞</span></div>
+        <div class="limits-bar"><div class="limits-bar-fill pro" style="width:100%"></div></div>
+      </div>
+      <div class="limits-metric">
+        <div class="limits-metric-row"><span class="limits-metric-label">Сообщения</span><span class="limits-infinite">∞</span></div>
+        <div class="limits-bar"><div class="limits-bar-fill pro" style="width:100%"></div></div>
+      </div>
+    </div>
+    <div class="limits-card">
+      <div class="limits-card-head">
+        <div class="limits-card-title">Еженедельный лимит</div>
+        <div class="limits-reset">без сброса</div>
+      </div>
+      <div class="limits-metric">
+        <div class="limits-metric-row"><span class="limits-metric-label">Токены</span><span class="limits-infinite">∞</span></div>
+        <div class="limits-bar"><div class="limits-bar-fill pro" style="width:100%"></div></div>
+      </div>
+      <div class="limits-metric">
+        <div class="limits-metric-row"><span class="limits-metric-label">Сообщения</span><span class="limits-infinite">∞</span></div>
+        <div class="limits-bar"><div class="limits-bar-fill pro" style="width:100%"></div></div>
+      </div>
+    </div>
+    <div class="limits-note">Безлимитные токены и сообщения. Действует мягкая <strong>защита от злоупотребления</strong> (ограничение на очень частые запросы подряд), так как токены дороги.</div>`;
+
+  el.innerHTML=`
+    <div class="sth sth-with-close">
+      <div class="sth-back desktop-only" onclick="renderSettingsMain()">
+        <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="sth-title">Лимиты</div>
+      <button class="sth-close mobile-only" onclick="renderSettingsMain()" aria-label="Закрыть">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="limits-screen">
+      ${unlimited?dynatosCard:adanatosCard}
     </div>`;
 }
 
