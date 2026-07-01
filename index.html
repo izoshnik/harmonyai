@@ -24,6 +24,10 @@ try{
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 html,body{height:100%;overflow:hidden;}
 body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;}
+/* Инлайновая <svg> сидит на текстовом baseline и оставляет несколько пикселей снизу —
+   из-за этого иконки в круглых/квадратных кнопках выглядят смещёнными («криво»).
+   Делаем svg блочными во всех иконочных кнопках, тогда flex-центрирование ставит их ровно. */
+.send-btn svg,.mm-close svg,.topbar-btn svg,.mac-btn svg,.sth-back svg,.sth-close svg,.bar-icon svg,.sb-icon-btn svg{display:block;}
 
 /* ===================== МОБИЛЬНАЯ — ТЁМНАЯ (по умолчанию) ===================== */
 :root{
@@ -742,8 +746,11 @@ html[data-theme="light"] .msg-ai{color:#1a1a1a;}
 .input-box textarea::placeholder{color:var(--text2);}
 .input-bar-row{display:flex;align-items:center;justify-content:space-between;margin-top:8px;}
 .bar-left{display:flex;align-items:center;gap:4px;}
-.bar-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);border:none;background:transparent;transition:background .12s,color .12s;}
+.bar-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);border:none;background:transparent;transition:background .12s,color .12s;padding:0;}
 .bar-icon:hover{background:var(--hover);color:var(--text);}
+/* SVG внутри круглых/квадратных кнопок панели ввода центрируем как блок, чтобы иконка
+   (плюс/скрепка) не «съезжала» из-за baseline-пробела инлайновой svg и правил .mobile-only/.desktop-only. */
+.bar-icon svg{display:block;}
 .bar-right{display:flex;align-items:center;gap:6px;}
 .mobile-only{display:block!important;}
 .desktop-only{display:none!important;}
@@ -879,8 +886,9 @@ html[data-theme="light"] .msg-ai{color:#1a1a1a;}
   #settingsContent{display:flex;flex-direction:column;flex:1;width:100%;min-height:0;}
 }
 .sth{display:flex;align-items:center;gap:10px;margin-bottom:24px;}
-.sth-back{width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text);flex-shrink:0;}
+.sth-back{width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text);flex-shrink:0;padding:0;font:inherit;-webkit-appearance:none;appearance:none;line-height:0;}
 .sth-back:hover{background:var(--hover);}
+.sth-back svg{display:block;}
 .sth-title{font-size:17px;font-weight:700;color:var(--text);flex:1;}
 
 /* Settings sections */
@@ -899,7 +907,8 @@ html[data-theme="light"] .msg-ai{color:#1a1a1a;}
 @media(max-width:768px){
   .settings-box{padding:18px 16px calc(28px + env(safe-area-inset-bottom,0px));position:relative;}
   /* Шапка: крестик закрытия в правом верхнем углу, без заголовка/назад на главном экране настроек */
-  .sth-close{position:absolute;top:18px;right:16px;width:34px;height:34px;border-radius:50%;border:none;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text);flex-shrink:0;z-index:2;}
+  .sth-close{position:absolute;top:18px;right:16px;width:34px;height:34px;border-radius:50%;border:none;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text);flex-shrink:0;z-index:2;padding:0;-webkit-appearance:none;appearance:none;line-height:0;}
+  .sth-close svg{display:block;}
   .sth-close:hover{background:rgba(255,255,255,.13);}
   .sth.sth-with-close{margin-bottom:18px;}
   .sth.sth-with-close .sth-back{background:rgba(255,255,255,.08);border:none;}
@@ -1541,8 +1550,9 @@ function setLocalNickname(uid,val){
    Учёт ведётся локально (localStorage) на пользователя, с автосбросом по дню/неделе. */
 const LIMITS={
   adanatos:{ daily:{tokens:20000,messages:14}, weekly:{tokens:100000,messages:100} },
-  // Dynatos формально безлимитен; защита — не более ~40 сообщений за 3 минуты подряд.
-  dynatos:{ burst:{messages:40,windowMs:180000} }
+  // Dynatos формально безлимитен; клиентская защита совпадает с серверной (см. api/chat.js ABUSE.dynatos):
+  // не более 25 сообщений за 3 минуты подряд. Сервер — авторитетный источник, это лишь быстрый барьер.
+  dynatos:{ burst:{messages:25,windowMs:180000} }
 };
 const USAGE_PREFIX='harmonyai_usage_v1_';
 function usageKey(){return USAGE_PREFIX+(curUser?.id||'guest');}
@@ -3700,6 +3710,13 @@ async function requestChatReplyLive(msgEl,actionsEl,extraMessages=[],prefixText=
       if(!res.ok){
         let data=null;
         try{data=await res.json();}catch(e){data=null;}
+        // Серверный лимит/защита от злоупотребления — отдаём как специальную ошибку,
+        // чтобы показать красивую плашку, а не обычный текст ошибки.
+        if(res.status===429&&data?.error?.scope){
+          const le=new Error(data.error.message||'Достигнут лимит');
+          le.limitScope=data.error.scope;
+          throw le;
+        }
         throw new Error(tChatErr(data?.error?.message||`Ошибка сервера (${res.status})`));
       }
       if(type.includes('text/event-stream')&&res.body){
@@ -3860,7 +3877,15 @@ async function sendMsg(){
     await autoContinueIfNeeded(result,aiShell.wrap,aiShell.msg,aiShell.actions);
   }catch(e){
     hideTyping();
-    if(e.message!=='Генерация остановлена'){
+    if(e.limitScope){
+      // Серверный лимит/защита — показываем плашку вместо текста ошибки.
+      const scopeMap={burst:'burst',day:'burst',day_limit:'day',week_limit:'week'};
+      const check={scope:scopeMap[e.limitScope]||'day',reason:e.message};
+      const holder=document.createElement('div');
+      holder.innerHTML=limitMessageHtml(check);
+      aiShell.wrap.replaceWith(holder.firstElementChild);
+      scrollChat();
+    }else if(e.message!=='Генерация остановлена'){
       renderMd(aiShell.msg,'Ошибка: '+e.message);
       setMessageActionsVisible(aiShell.actions,false);
     }
