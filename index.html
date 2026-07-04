@@ -708,6 +708,118 @@ html[data-theme="light"] .msg-ai{color:#1a1a1a;}
 @keyframes thinkSpin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
 .think-trace-body{opacity:.92;}
 
+/* ===================== WEB SEARCH ===================== */
+/* Кнопка «Поиск» над строкой ввода (появляется, когда пользователь включил поиск) */
+.search-chip-wrap{width:100%;max-width:720px;display:none;justify-content:center;position:relative;margin-bottom:6px;}
+.search-chip-wrap.open{display:flex;animation:dropMenuIn .18s cubic-bezier(.22,.61,.36,1) both;}
+.search-chip{position:relative;display:inline-flex;align-items:center;gap:8px;padding:9px 16px 9px 14px;border-radius:20px;background:var(--drop-bg);border:1px solid var(--border);box-shadow:var(--drop-shadow);font-size:15px;font-weight:600;color:#4da3ff;cursor:default;user-select:none;max-width:90vw;}
+.search-chip-ic{width:15px;height:15px;color:#0a84ff;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.search-chip-ic svg{width:100%;height:100%;display:block;}
+.search-chip-txt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+/* Крестик справа в углу, немного выпирая за рамки кнопки «Поиск» */
+.search-chip-x{position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;background:var(--bg2);border:1.5px solid var(--border);color:var(--text2);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .12s,color .12s,transform .12s;box-shadow:0 2px 6px rgba(0,0,0,.22);z-index:2;}
+.search-chip-x:hover{background:var(--hover);color:var(--text);transform:scale(1.06);}
+.search-chip-x:active{transform:scale(.94);}
+.search-chip-x svg{width:10px;height:10px;display:block;}
+@media(max-width:768px){
+  .search-chip-wrap{max-width:100%;}
+  .search-chip{background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.16);backdrop-filter:blur(16px) saturate(150%);-webkit-backdrop-filter:blur(16px) saturate(150%);box-shadow:0 6px 18px rgba(0,0,0,.22);}
+  html[data-theme="light"] .search-chip{background:rgba(255,255,255,.92);border-color:rgba(20,18,12,.10);}
+  .search-chip-x{background:#1c1c22;border-color:rgba(255,255,255,.22);color:rgba(255,255,255,.92);}
+  html[data-theme="light"] .search-chip-x{background:#fff;border-color:rgba(20,18,12,.14);color:#5a574f;}
+}
+
+/* Меню кнопки "+" (новый «+»: файл/фото + поиск в интернете) */
+.plus-drop{position:absolute;bottom:calc(100% + 8px);left:0;background:var(--drop-bg);border:1px solid var(--border);border-radius:14px;padding:6px;box-shadow:var(--drop-shadow);display:none;z-index:200;min-width:220px;animation:none;}
+.plus-drop.open{display:block;animation:dropMenuIn .15s cubic-bezier(.22,.61,.36,1) both;}
+.pd-item{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;cursor:pointer;transition:background .12s;}
+.pd-item:hover{background:var(--hover);}
+.pd-icon{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.pd-icon.attach{background:linear-gradient(135deg,#0a84ff,#3b82f6);color:#fff;}
+.pd-icon.search{background:linear-gradient(135deg,#10b981,#059669);color:#fff;}
+.pd-icon svg{width:18px;height:18px;display:block;}
+.pd-copy{display:flex;flex-direction:column;gap:1px;min-width:0;}
+.pd-title{font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;}
+.pd-desc{font-size:11px;color:var(--text2);}
+.pd-check{margin-left:auto;color:var(--check);font-size:14px;opacity:0;flex-shrink:0;}
+.pd-item.on .pd-check{opacity:1;}
+.pd-divider{height:1px;background:var(--border);margin:4px 0;}
+@media(max-width:768px){
+  .plus-drop{left:6px;min-width:230px;background:rgba(28,28,34,.92);backdrop-filter:blur(20px) saturate(150%);-webkit-backdrop-filter:blur(20px) saturate(150%);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:7px;box-shadow:0 14px 34px rgba(0,0,0,.34);}
+  html[data-theme="light"] .plus-drop{background:rgba(255,255,255,.94);border-color:rgba(20,18,12,.10);}
+}
+
+/* ===== PLUS BOTTOM-SHEET (iOS-style: размышление / поиск в сети / добавить файлы) ===== */
+.attach-overlay{position:fixed;inset:0;z-index:680;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.5);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);opacity:0;visibility:hidden;transition:opacity .22s,visibility .22s;}
+.attach-overlay.open{opacity:1;visibility:visible;}
+.attach-sheet{width:100%;max-width:560px;background:rgba(24,24,29,.72);backdrop-filter:blur(28px) saturate(160%);-webkit-backdrop-filter:blur(28px) saturate(160%);border:1px solid rgba(255,255,255,.10);border-top-left-radius:28px;border-top-right-radius:28px;box-shadow:0 -18px 48px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.06);padding:10px 18px 28px;transform:translateY(16px);transition:transform .25s cubic-bezier(.2,.9,.3,1.1);}
+.attach-overlay.open .attach-sheet{transform:translateY(0);}
+@media(min-width:769px){
+  .attach-overlay{align-items:center;}
+  .attach-sheet{max-width:420px;border-radius:24px;}
+}
+html[data-theme="light"] .attach-sheet{background:rgba(255,255,255,.94);border-color:rgba(20,18,12,.10);box-shadow:0 -18px 48px rgba(0,0,0,.12),inset 0 1px 0 rgba(255,255,255,.6);}
+.attach-handle{width:36px;height:5px;border-radius:3px;background:rgba(255,255,255,.22);margin:6px auto 14px;}
+html[data-theme="light"] .attach-handle{background:rgba(20,18,12,.16);}
+.attach-options{display:flex;flex-direction:column;gap:2px;}
+.attach-opt{display:flex;align-items:center;gap:18px;padding:16px 12px;border-radius:14px;cursor:pointer;transition:background .12s;user-select:none;}
+.attach-opt:hover{background:rgba(255,255,255,.06);}
+html[data-theme="light"] .attach-opt:hover{background:rgba(20,18,12,.05);}
+.attach-opt:active{background:rgba(255,255,255,.10);}
+.attach-opt-ic{flex-shrink:0;color:var(--text);display:flex;align-items:center;justify-content:center;}
+.attach-opt-txt{font-size:19px;font-weight:500;color:var(--text);}
+.attach-opt-hint{font-size:13px;color:var(--text2);margin-left:auto;}
+.attach-opt-state{margin-left:auto;font-size:13px;color:var(--text2);}
+.attach-opt-sw{margin-left:auto;}
+.attach-opt.on .attach-opt-state{color:#0a84ff;font-weight:600;}
+
+/* Блок «размышления ИИ» при поиске: «Просмотрел N сайтов, думаю над ответом» + стрелочка */
+.search-trace{align-self:stretch;font-size:13px;line-height:1.5;color:var(--text2);background:rgba(10,132,255,.07);border:1px solid var(--border2);border-left:2px solid #0a84ff;border-radius:12px;padding:10px 12px;margin-bottom:6px;overflow-wrap:anywhere;max-height:1600px;overflow:hidden;transition:max-height .35s ease,opacity .35s ease;}
+.search-trace.collapsed{max-height:34px;cursor:pointer;opacity:.72;}
+.search-trace.collapsed:hover{opacity:1;background:rgba(10,132,255,.10);}
+.search-trace-label{display:flex;align-items:center;gap:7px;font-size:11.5px;font-weight:700;color:#0a84ff;text-transform:uppercase;letter-spacing:.04em;margin-bottom:7px;cursor:pointer;user-select:none;}
+.search-trace-label svg{flex-shrink:0;opacity:.85;}
+.search-trace.live .search-trace-label .st-spin{animation:thinkSpin 1.6s linear infinite;}
+.search-trace-body{font-size:13px;line-height:1.55;color:var(--text2);white-space:pre-wrap;opacity:.95;}
+/* Стрелочка справа в лейбле: появляется, когда ИИ просмотрел сайты и думает над ответом */
+.st-arrow{margin-left:auto;display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;flex-shrink:0;opacity:0;transform:translateX(-4px);transition:opacity .2s,transform .2s;}
+.search-trace.thinking .st-arrow{opacity:.9;transform:translateX(0);}
+.st-arrow svg{width:16px;height:16px;display:block;}
+/* Анимированные точки перед текстом «Ищу в интернете…» / «Смотрю host…» / «Просмотрел N сайтов…» */
+.st-dots{display:inline-flex;align-items:center;gap:3px;flex-shrink:0;}
+.st-dots span{width:5px;height:5px;border-radius:50%;background:#0a84ff;display:inline-block;animation:stDotPulse 1.2s ease-in-out infinite;}
+.st-dots span:nth-child(2){animation-delay:.18s;}
+.st-dots span:nth-child(3){animation-delay:.36s;}
+@keyframes stDotPulse{0%,100%{opacity:.3;transform:scale(.8);}50%{opacity:1;transform:scale(1.1);}}
+/* В свёрнутом (завершённом) блоке точки не нужны — ответ уже готов. */
+.search-trace.collapsed .st-dots{display:none;}
+@media(max-width:768px){
+  .search-trace{background:rgba(10,132,255,.12);border-color:rgba(255,255,255,.14);}
+  html[data-theme="light"] .search-trace{background:rgba(10,132,255,.06);border-color:rgba(20,18,12,.10);}
+}
+
+/* Попап со списком просмотренных сайтов */
+.src-overlay{position:fixed;inset:0;z-index:640;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);opacity:0;visibility:hidden;transition:opacity .2s,visibility .2s;}
+.src-overlay.show{opacity:1;visibility:visible;}
+.src-modal{background:var(--drop-bg);border:1px solid var(--border);border-radius:20px;padding:20px;width:min(92vw,460px);max-height:78vh;overflow-y:auto;box-shadow:var(--drop-shadow);display:flex;flex-direction:column;gap:12px;transform:translateY(10px) scale(.98);transition:transform .2s;}
+.src-overlay.show .src-modal{transform:none;}
+.src-head{display:flex;align-items:center;gap:9px;}
+.src-head-ic{width:24px;height:24px;border-radius:7px;background:linear-gradient(135deg,#10b981,#059669);display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;}
+.src-head-ic svg{width:15px;height:15px;display:block;}
+.src-title{font-size:16px;font-weight:700;color:var(--text);letter-spacing:-.3px;}
+.src-count{font-size:12px;color:var(--text2);margin-top:1px;}
+.src-close{margin-left:auto;width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--text2);cursor:pointer;border:none;background:transparent;transition:background .12s,color .12s;flex-shrink:0;}
+.src-close:hover{background:var(--hover);color:var(--text);}
+.src-close svg{width:14px;height:14px;display:block;}
+.src-list{display:flex;flex-direction:column;gap:8px;}
+.src-item{display:flex;flex-direction:column;gap:5px;padding:11px 12px;border-radius:12px;background:var(--bg2);border:1px solid var(--border2);text-decoration:none;transition:background .12s,border-color .12s;cursor:pointer;}
+.src-item:hover{background:var(--hover);border-color:var(--border);}
+.src-item-title{font-size:13px;font-weight:600;color:var(--text);line-height:1.35;display:flex;align-items:center;gap:6px;}
+.src-item-host{font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.src-item-snippet{font-size:12px;color:var(--text2);line-height:1.45;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;line-clamp:2;-webkit-box-orient:vertical;}
+.src-empty{font-size:13px;color:var(--text2);text-align:center;padding:18px 0;}
+
+
 /* Composer attachments */
 .composer-attachments{width:100%;max-width:720px;display:none;align-items:flex-start;justify-content:flex-start;flex-wrap:wrap;gap:10px;}
 .composer-attachments.has-items{display:flex;}
@@ -755,6 +867,13 @@ html[data-theme="light"] .msg-ai{color:#1a1a1a;}
 .mobile-only{display:block!important;}
 .desktop-only{display:none!important;}
 @media(min-width:769px){.mobile-only{display:none!important;}.desktop-only{display:block!important;}}
+/* Кнопки-иконки в шапке настроек (крестик/назад) используют утилиты .mobile-only/.desktop-only,
+   которые форсируют display:block!important и ломали flex-центрирование svg — иконка съезжала
+   в угол («кривой крестик»). Возвращаем им flex-центрирование, когда они ВИДИМЫ. */
+.sth-close.mobile-only,.sth-back.mobile-only{display:none!important;}
+.sth-back.desktop-only{display:none!important;}
+@media(max-width:768px){.sth-close.mobile-only,.sth-back.mobile-only{display:flex!important;}}
+@media(min-width:769px){.sth-back.desktop-only{display:flex!important;}}
 
 /* Model pill */
 .model-pill{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:9px;background:var(--bg);border:1px solid var(--border);font-size:13px;font-weight:600;color:var(--text);cursor:pointer;position:relative;user-select:none;transition:background .12s;}
@@ -1192,7 +1311,7 @@ html[data-theme="light"] .limit-reached{background:rgba(239,68,68,.07);border-co
       <div class="auth-sub">ИИ для учеников музыкальной школы. Подходит не только для музыки — он умеет всё!</div>
       <button class="auth-btn-primary" onclick="goToEmail()">Продолжить с Email</button>
       <div class="auth-tos">Продолжая, вы соглашаетесь с нашей <a href="./legal/privacy.html" target="_blank" rel="noopener noreferrer">Политикой Конфиденциальности</a> и <a href="./legal/terms.html" target="_blank" rel="noopener noreferrer">Условиями Пользования</a>.</div>
-      <div class="auth-beta">beta version 1.0</div>
+      <div class="auth-beta">beta version 1.4</div>
     </div>
     <!-- Экран 2: Email -->
     <div class="auth-screen" id="authS2">
@@ -1202,7 +1321,7 @@ html[data-theme="light"] .limit-reached{background:rgba(239,68,68,.07);border-co
       <div class="auth-error" id="emailErr"></div>
       <button class="auth-btn-primary" id="btnSend" onclick="sendOTP()">Продолжить</button>
       <button class="auth-btn-secondary" onclick="showAuthS(1)">← Назад</button>
-      <div class="auth-beta">beta version 1.0</div>
+      <div class="auth-beta">beta version 1.4</div>
     </div>
     <!-- Экран 3: OTP -->
     <div class="auth-screen" id="authS3">
@@ -1220,7 +1339,7 @@ html[data-theme="light"] .limit-reached{background:rgba(239,68,68,.07);border-co
       <button class="auth-btn-primary" id="btnVerify" onclick="verifyOTP()">Подтвердить</button>
       <div class="auth-resend" id="btnResend" onclick="resendOTP()">Не приходит код? Отправить снова</div>
       <button class="auth-btn-secondary" onclick="showAuthS(2)">← Изменить email</button>
-      <div class="auth-beta">beta version 1.0</div>
+      <div class="auth-beta">beta version 1.4</div>
     </div>
   </div>
 </div>
@@ -1291,6 +1410,16 @@ html[data-theme="light"] .limit-reached{background:rgba(239,68,68,.07);border-co
     </div>
 
     <div class="input-wrap">
+      <!-- Кнопка «Поиск» над строкой ввода: появляется, когда пользователь включил поиск в интернете -->
+      <div class="search-chip-wrap" id="searchChipWrap">
+        <div class="search-chip" id="searchChip">
+          <span class="search-chip-ic"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <span class="search-chip-txt">Поиск</span>
+          <button class="search-chip-x" id="searchChipX" onclick="toggleWebSearch('off');event.stopPropagation();" title="Выключить поиск" aria-label="Выключить поиск">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M5 5l14 14M19 5L5 19" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+      </div>
       <div class="composer-attachments" id="composerAttachments" aria-live="polite"></div>
       <div class="input-box" id="inputBox">
         <textarea id="msgTa" placeholder="Спросить HarmonyAI" rows="1"
@@ -1298,10 +1427,13 @@ html[data-theme="light"] .limit-reached{background:rgba(239,68,68,.07);border-co
           onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg();}"></textarea>
         <div class="input-bar-row">
           <div class="bar-left">
-            <button class="bar-icon" onclick="document.getElementById('fileInp').click()" title="Добавить файл или фото">
-              <svg class="bar-icon-clip desktop-only" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M16.5 6.5L9 14a3.5 3.5 0 105 5l8-8a5.5 5.5 0 00-7.78-7.78l-8.7 8.7a7.5 7.5 0 1010.6 10.6l7.4-7.4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              <svg class="bar-icon-plus mobile-only" width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></svg>
-            </button>
+            <!-- Кнопка «+»: открывает меню (файл/фото + поиск в интернете) -->
+            <div class="plus-btn-wrap" style="position:relative;">
+              <button class="bar-icon" onclick="togglePlusDrop(event)" title="Добавить файл/фото или поиск" aria-label="Меню добавления">
+                <svg class="bar-icon-clip desktop-only" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M16.5 6.5L9 14a3.5 3.5 0 105 5l8-8a5.5 5.5 0 00-7.78-7.78l-8.7 8.7a7.5 7.5 0 1010.6 10.6l7.4-7.4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <svg class="bar-icon-plus mobile-only" width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></svg>
+              </button>
+            </div>
             <input type="file" id="fileInp" accept="image/*,.pdf,.md,.markdown,.txt,.docx" multiple style="display:none" onchange="handleFile(this)" aria-label="Выбрать файл или фотографию">
           </div>
           <div class="bar-right">
@@ -1444,6 +1576,30 @@ html[data-theme="light"] .limit-reached{background:rgba(239,68,68,.07);border-co
   </div>
 </div>
 
+<!-- ===================== PLUS BOTTOM-SHEET (меню кнопки «+»: размышление / поиск в сети / добавить файлы) ===================== -->
+<div class="attach-overlay" id="attachOverlay" onclick="if(event.target===this)closePlusDrop()">
+  <div class="attach-sheet" id="attachSheet" onclick="event.stopPropagation()">
+    <div class="attach-handle"></div>
+    <div class="attach-options">
+      <div class="attach-opt" id="attachThink" onclick="attachChoose('think',event)">
+        <span class="attach-opt-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 3a7 7 0 00-4 12.7V18h8v-2.3A7 7 0 0012 3z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="6" cy="21" r="1" fill="currentColor"/><circle cx="4" cy="18" r="0.8" fill="currentColor"/></svg></span>
+        <span class="attach-opt-txt">Размышление</span>
+        <span class="attach-opt-sw sw" id="attachThinkSw"></span>
+      </div>
+      <div class="attach-opt" id="attachSearch" onclick="attachChoose('search',event)">
+        <span class="attach-opt-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M3 12h18M12 3a14 14 0 010 18M12 3a14 14 0 000 18" stroke="currentColor" stroke-width="1.8"/></svg></span>
+        <span class="attach-opt-txt">Поиск в сети</span>
+        <span class="attach-opt-state" id="attachSearchState">ИИ сам решит</span>
+      </div>
+      <div class="attach-opt" onclick="attachChoose('files',event)">
+        <span class="attach-opt-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M8 12l6-6a3 3 0 114 4l-8 8a5 5 0 01-7-7l8-8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="attach-opt-txt">Добавить файлы</span>
+        <span class="attach-opt-hint">PDF, DOCX, TXT, изображения</span>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ===================== SETTINGS ===================== -->
 <div class="settings-overlay" id="settingsOverlay" onclick="if(event.target===this)closeSettings()">
   <div class="settings-box" id="settingsBox">
@@ -1468,6 +1624,9 @@ if(window.pdfjsLib)window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.
 let curUser=null,curEmail='',resendTimer=null,resendLeft=0;
 let sidebarExpanded=false;
 let curModel='lite',curMode='low',thinkOn=false,dropOpen=false,modeSubOpen=false,modelsSubOpen=false;
+// Поиск в интернете: 'auto' — ИИ сама решает; 'on' — принудительно включён; 'off' — выключен.
+// plusDropOpen — открыто ли новое меню кнопки «+».
+let webSearchMode='auto',plusDropOpen=false,lastSearchSources=[];
 let chatHistory=[],pendingAttachments=[],recentAttachmentDocs=[],curChatId=null;
 let chats=[];
 const CHAT_META_PREFIX='harmonyai_chat_meta_v1_';
@@ -1532,6 +1691,17 @@ const KB_GLOBAL_KEY='harmonyai_global_kb_v1';
 const KB_USER_PREFIX='harmonyai_user_kb_v1_';
 const LOCAL_NICK_PREFIX='harmonyai_local_nickname_';
 const MAX_ATTACHMENTS_PER_SEND=20;
+// Чтобы тяжёлые запросы (фото + файлы) не падали с «Load failed», изображения сжимаются
+// на клиенте перед отправкой: длинная сторона до MAX_IMAGE_DIM px, JPEG качества IMAGE_QUALITY.
+// 4 фото после сжатия весят ~0.5–1 МБ вместо 10–20 МБ — это укладывается в лимит тела запроса
+// серверной функции Vercel и не заставляет долго ждать загрузки.
+const MAX_IMAGE_DIM=1280;
+const IMAGE_QUALITY=0.82;
+// Сколько символов документа вкладывать прямо в сообщение модели. Раньше вкладывался ВЕСЬ
+// документ «без ограничений» — это раздувало токены и замедляло ответ, а при больших файлах
+// переполняло лимит тела запроса. Теперь даём начало текста с пометкой об обрезке, остальное
+// модель при необходимости уточняет у пользователя (см. инструкцию про «ДОКУМЕНТ ОБРЕЗАН»).
+const INLINE_DOC_CHAR_LIMIT=60000;
 function getLocalNickname(uid){
   if(!uid)return null;
   try{
@@ -2328,10 +2498,22 @@ function renderUserAttachmentsMarkup(attachments=[]){
   if(!attachments.length)return '';
   return `<div class="msg-user-attachments">`+attachments.map(item=>{
     if(item.kind==='image'){
+      // Если есть dataUrl — показываем само фото; иначе (история перезагружена из базы в
+      // облегчённом виде) показываем карточку-заглушку с именем файла вместо битой картинки.
+      if(item.dataUrl){
+        return `
+          <div class="msg-user-attachment image">
+            <img src="${item.dataUrl}" alt="${escapeHtml(item.name||'Изображение')}">
+            <div class="msg-user-attachment-name" title="${escapeHtml(item.name||'Изображение')}">${escapeHtml(item.name||'Изображение')}</div>
+          </div>
+        `;
+      }
+      const meta=item.meta||fileExtLabel(item.name||'image');
       return `
         <div class="msg-user-attachment image">
-          <img src="${item.dataUrl}" alt="${escapeHtml(item.name||'Изображение')}">
+          <div class="msg-user-file-icon">${attachmentFileIcon(item.name||'Фото')}</div>
           <div class="msg-user-attachment-name" title="${escapeHtml(item.name||'Изображение')}">${escapeHtml(item.name||'Изображение')}</div>
+          <div class="msg-user-attachment-meta">${escapeHtml(meta)}</div>
         </div>
       `;
     }
@@ -2392,6 +2574,39 @@ async function parseDocxFile(file){
 }
 async function parseTextFile(file){
   return await file.text();
+}
+// Сжимает изображение через canvas: длинная сторона <= MAX_IMAGE_DIM, JPEG качества IMAGE_QUALITY.
+// Возвращает data URL (image/jpeg) гораздо меньшего размера, чем оригинал.
+// Оригинал остаётся только для локального превью (previewUrl), в сеть уходит сжатая версия.
+async function compressImageFile(file){
+  const dataUrl=await new Promise((resolve,reject)=>{
+    const r=new FileReader();
+    r.onload=e=>resolve(String(e.target?.result||''));
+    r.onerror=()=>reject(new Error('Не удалось прочитать изображение'));
+    r.readAsDataURL(file);
+  });
+  try{
+    const img=await new Promise((resolve,reject)=>{
+      const im=new Image();
+      im.onload=()=>resolve(im);
+      im.onerror=()=>reject(new Error('Не удалось декодировать изображение'));
+      im.src=dataUrl;
+    });
+    let {width,height}=img;
+    const scale=Math.min(1,MAX_IMAGE_DIM/Math.max(width,height));
+    if(scale>=1&&/jpe?g$/i.test(file.type))return {dataUrl,mime:'image/jpeg'};
+    const w=Math.max(1,Math.round(width*scale));
+    const h=Math.max(1,Math.round(height*scale));
+    const canvas=document.createElement('canvas');
+    canvas.width=w;canvas.height=h;
+    const ctx=canvas.getContext('2d');
+    ctx.drawImage(img,0,0,w,h);
+    const out=canvas.toDataURL('image/jpeg',IMAGE_QUALITY);
+    return {dataUrl:out,mime:'image/jpeg'};
+  }catch(e){
+    // Если canvas по какой-то причине не сработал — отдаём оригинал (лучше медленно, чем никак).
+    return {dataUrl,mime:file.type||'image/jpeg'};
+  }
 }
 async function parseGenericFile(file){
   const name=(file.name||'').toLowerCase();
@@ -2680,13 +2895,18 @@ function newChat(){
 }
 async function saveChat(title){
   if(!curUser||chatHistory.length===0)return;
+  // В базу сохраняем ОБЛЕГЧЁННУЮ историю: фото — как текстовые метки, длинные тексты/файлы —
+  // обрезаны. Иначе каждая запись таскала бы мегабайты base64 и полный текст документов,
+  // что раздувало строки Supabase и замедляло перезагрузку чата. Локально chatHistory
+  // остаётся полным (для отображения превью), в сеть и в базу уходит только «худой» вариант.
+  const slimHistory=toWireHistory(chatHistory);
   if(!curChatId){
     curChatId='chat_'+Date.now();
     const t=title||'Новый чат';
-    const {error}=await sb.from('chats').insert({id:curChatId,user_id:curUser.id,title:t,history:chatHistory,updated_at:new Date().toISOString()});
+    const {error}=await sb.from('chats').insert({id:curChatId,user_id:curUser.id,title:t,history:slimHistory,updated_at:new Date().toISOString()});
     if(!error){chats.unshift({id:curChatId,title:t});renderChatList();}
   }else{
-    await sb.from('chats').update({history:chatHistory,updated_at:new Date().toISOString()}).eq('id',curChatId);
+    await sb.from('chats').update({history:slimHistory,updated_at:new Date().toISOString()}).eq('id',curChatId);
   }
 }
 
@@ -2708,6 +2928,7 @@ function toggleModelDrop(e){
     dropOpen=!dropOpen;
     document.getElementById('desktopModelWrap')?.classList.toggle('open',dropOpen);
     if(!dropOpen)closeDesktopSubs();
+    if(dropOpen)closePlusDrop();
     return;
   }
   openMobileModelSheet();
@@ -2764,6 +2985,110 @@ function toggleThink(e){
   thinkOn=!thinkOn;
   refreshModelUI();
 }
+
+/* ===== WEB SEARCH UI ===== */
+// Закрытие bottom-sheet кнопки «+».
+function closePlusDrop(){
+  plusDropOpen=false;
+  document.getElementById('attachOverlay')?.classList.remove('open');
+}
+// Открытие/закрытие bottom-sheet кнопки «+» (размышление / поиск в сети / добавить файлы).
+function togglePlusDrop(e){
+  if(e){e.stopPropagation();}
+  // Закрываем прочие выпадающие меню, чтобы не накладывались.
+  closeModelMenus();
+  plusDropOpen=!plusDropOpen;
+  const ov=document.getElementById('attachOverlay');
+  if(ov)ov.classList.toggle('open',plusDropOpen);
+  if(plusDropOpen)refreshAttachSheet();
+}
+// Синхронизирует состояние переключателей внутри bottom-sheet с актуальными настройками.
+function refreshAttachSheet(){
+  const thinkSw=document.getElementById('attachThinkSw');
+  if(thinkSw)thinkSw.classList.toggle('on',thinkOn);
+  const searchOpt=document.getElementById('attachSearch');
+  const searchState=document.getElementById('attachSearchState');
+  if(searchOpt)searchOpt.classList.toggle('on',webSearchMode==='on');
+  if(searchState){
+    searchState.textContent = webSearchMode==='on' ? 'Включён'
+      : webSearchMode==='off' ? 'Выключен'
+      : 'ИИ сам решит';
+  }
+}
+// Выбор пункта в bottom-sheet: 'think' | 'search' | 'files'.
+function attachChoose(kind,e){
+  if(e)e.stopPropagation();
+  if(kind==='think'){
+    toggleThink({stopPropagation:()=>{}});
+    refreshAttachSheet();
+    // Переключатель — sheet не закрываем, можно включить/выключить и выбрать ещё.
+  }else if(kind==='search'){
+    toggleWebSearchFromMenu(null);
+    refreshAttachSheet();
+    // Поиск — тоже оставляем sheet открытым (цикл auto → on → off), чтобы видеть состояние.
+    if(webSearchMode==='on')closePlusDrop();
+  }else if(kind==='files'){
+    triggerFileInput();
+  }
+}
+function triggerFileInput(){
+  closePlusDrop();
+  document.getElementById('fileInp').click();
+}
+// Переключение режима поиска: 'auto' (ИИ сама) | 'on' (включить) | 'off' (выключить).
+function toggleWebSearch(mode){
+  webSearchMode=(mode==='on'||mode==='off')?mode:'auto';
+  refreshWebSearchUI();
+  if(webSearchMode!=='on')closePlusDrop();
+}
+// По клику на пункт «Поиск в сети» в bottom-sheet: цикл auto → on → off → auto.
+function toggleWebSearchFromMenu(e){
+  if(e)e.stopPropagation();
+  if(webSearchMode==='auto')webSearchMode='on';
+  else if(webSearchMode==='on')webSearchMode='off';
+  else webSearchMode='auto';
+  refreshWebSearchUI();
+  if(webSearchMode!=='on')closePlusDrop();
+}
+// Обновляет все индикаторы поиска: кнопку «Поиск» над инпутом + пункт в bottom-sheet.
+function refreshWebSearchUI(){
+  const wrap=document.getElementById('searchChipWrap');
+  if(wrap)wrap.classList.toggle('open',webSearchMode==='on');
+  const searchOpt=document.getElementById('attachSearch');
+  if(searchOpt)searchOpt.classList.toggle('on',webSearchMode==='on');
+  const searchState=document.getElementById('attachSearchState');
+  if(searchState){
+    searchState.textContent = webSearchMode==='on' ? 'Включён'
+      : webSearchMode==='off' ? 'Выключен'
+      : 'ИИ сам решит';
+  }
+}
+// Открытие попапа со списком просмотренных сайтов.
+function openSourcesPopup(sources){
+  const list=sources||(lastSearchSources&&lastSearchSources.length?lastSearchSources:[]);
+  const overlay=document.getElementById('srcOverlay');
+  const listEl=document.getElementById('srcList');
+  const countEl=document.getElementById('srcCount');
+  if(!overlay||!listEl)return;
+  if(!list.length){
+    listEl.innerHTML='<div class="src-empty">ИИ пока не просматривал сайты по этому ответу.</div>';
+    if(countEl)countEl.textContent='0 источников';
+  }else{
+    listEl.innerHTML=list.map(s=>{
+      const title=escapeHtml(s.title||s.url||'Источник');
+      let host='';
+      try{host=new URL(s.url).hostname.replace(/^www\./,'');}catch(e){host=s.url;}
+      host=escapeHtml(host);
+      const snip=s.snippet?escapeHtml(s.snippet):'';
+      return `<a class="src-item" href="${escapeHtml(s.url)}" target="_blank" rel="noopener noreferrer"><div class="src-item-title"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="flex-shrink:0;color:#0a84ff;"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2"/><path d="M4.5 9h15M4.5 15h15" stroke="currentColor" stroke-width="1.6"/></svg>${title}</div><div class="src-item-host">${host}</div>${snip?`<div class="src-item-snippet">${snip}</div>`:''}</a>`;
+    }).join('');
+    if(countEl)countEl.textContent=list.length+(list.length===1?' источник':' источников');
+  }
+  overlay.classList.add('show');
+}
+function closeSourcesPopup(){
+  document.getElementById('srcOverlay')?.classList.remove('show');
+}
 function toggleClass(id,className,value){
   const el=document.getElementById(id);
   if(el)el.classList.toggle(className,value);
@@ -2789,6 +3114,7 @@ function refreshModelUI(){
   toggleClass('thinkSw','on',thinkOn);
   toggleClass('desktopThinkSw','on',thinkOn);
   toggleClass('mmThinkSw','on',thinkOn);
+  toggleClass('attachThinkSw','on',thinkOn);
   toggleClass('desktopCkLite','on',curModel==='lite');
   toggleClass('desktopCkPro','on',curModel==='pro');
   toggleClass('desktopCkLow','on',curMode==='low');
@@ -2803,7 +3129,8 @@ function refreshModelUI(){
   setOpacity('mmCheckMax',curMode==='max'?'1':'0');
 }
 refreshModelUI();
-window.addEventListener('resize',()=>{closeModelMenus();refreshModelUI();});
+refreshWebSearchUI();
+window.addEventListener('resize',()=>{closeModelMenus();refreshModelUI();closePlusDrop();});
 
 document.addEventListener('click',e=>{
   if(dropOpen&&isDesktop()&&!e.target.closest('#modelPill')){
@@ -2909,6 +3236,20 @@ function buildSystem(){
   sys+=buildKnowledgeContext(currentQuery);
   sys+=buildPendingDocContext(currentQuery);
   sys+=buildRecentAttachmentContext(currentQuery);
+  // Когда к сообщению приложены фото и/или файлы — модель должна сначала проанализировать,
+  // что именно от неё хотят (учитывая и текст, и вложения), и только потом отвечать.
+  // Это делает ответы «умными» вместо того, чтобы воспринимать тяжёлые вложения как простой запрос.
+  if(lastUserHasAttachments()){
+    sys+='\nАНАЛИЗ ВЛОЖЕНИЙ (строго обязательно): ты получил вместе с вопросом фото и/или файлы. '
+      +'Не воспринимай их как «просто запрос». Сначала пойми, что именно нужно пользователю, '
+      +'сопоставляя ТЕКСТ вопроса + содержимое ФАЙЛОВ + то, что на ФОТО. Если текст вопроса '
+      +'не привязан к вложениям — определи по содержимому, что с ним делать (разобрать, '
+      +'объяснить, найти тему в учебнике, распознать ноты с фото и т.п.). Если что-то '
+      +'неоднозначно — в 1 предложении укажи, что именно ты понял, и ответь; при реально '
+      +'необходимом уточнении задай короткий вопрос. Не пересказывай файл дословно — работай '
+      +'с его содержимым по существу запроса. Если видишь пометку «ДОКУМЕНТ ОБРЕЗАН» — честно '
+      +'работай только с видимой частью и при необходимости попроси уточнить раздел.';
+  }
   if(s.customInstructions)sys+='\nДОПОЛНИТЕЛЬНО от пользователя: '+s.customInstructions;
   return sys;
 }
@@ -2924,16 +3265,13 @@ async function handleFile(inp){
     for(const f of files){
       const parsed=await parseGenericFile(f);
       if(parsed.kind==='image'){
-        const dataUrl=await new Promise((resolve,reject)=>{
-          const r=new FileReader();
-          r.onload=e=>resolve(String(e.target?.result||''));
-          r.onerror=()=>reject(new Error('Не удалось прочитать изображение'));
-          r.readAsDataURL(f);
-        });
+        // Сжимаем фото под отправку — оригинал идёт только в локальное превью (previewUrl),
+        // в сеть уходит сжатый dataUrl. Это убирает «Load failed» на больших/многих фото.
+        const {dataUrl,mime}=await compressImageFile(f);
         pendingAttachments.push({
           kind:'image',
           name:f.name||'Изображение',
-          mime:f.type||'image/jpeg',
+          mime:mime||'image/jpeg',
           size:f.size||0,
           dataUrl,
           base64:dataUrl.split(',')[1]||'',
@@ -3481,7 +3819,7 @@ async function performContinuation(msgEl,actionsEl,priorText){
   if(chatHistory.length&&chatHistory[chatHistory.length-1].role==='assistant'){
     chatHistory[chatHistory.length-1].content=priorText;
   }
-  return await requestChatReplyLive(msgEl,actionsEl,[{role:'user',content:CONTINUE_GEN_INSTRUCTION}],priorText);
+  return await requestChatReplyLive(msgEl,actionsEl,[{role:'user',content:CONTINUE_GEN_INSTRUCTION}],priorText,{noSearch:true});
 }
 // Если ответ оборвался (truncated), сначала пытаемся незаметно для пользователя "дотолкать"
 // генерацию автоматически (несколько попыток), и только если это не помогло — показываем
@@ -3547,6 +3885,7 @@ async function regenMsg(item){
   removeContinueButton(wrap);
   if(chatHistory.length&&chatHistory[chatHistory.length-1].role==='assistant')chatHistory.pop();
   msgEl.innerHTML='';msgEl.style.whiteSpace='pre-wrap';msgEl._segCache=[];
+  wrap.querySelectorAll('.search-trace,.think-trace').forEach(el=>el.remove());
   showTyping('regen');
   setGeneratingState(true);
   try{
@@ -3562,6 +3901,80 @@ async function regenMsg(item){
     activeStreamStop=null;
     setGeneratingState(false);
   }
+}
+/* ===== WEB SEARCH TRACE (блок «Ищу в интернете → просмотрел N сайтов → думаю над ответом») ===== */
+const ST_ARROW_SVG='<svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const ST_GLOBE_SVG='<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2"/><path d="M4.5 9h15M4.5 15h15" stroke="currentColor" stroke-width="1.6"/></svg>';
+function ensureSearchTrace(msgEl){
+  const wrap=msgEl.closest('.msg-ai-wrap');
+  if(!wrap)return null;
+  let trace=wrap.querySelector('.search-trace');
+  if(!trace){
+    trace=document.createElement('div');
+    trace.className='search-trace live';
+    trace.innerHTML=`<div class="search-trace-label"><span class="st-spin">${ST_GLOBE_SVG}</span><span class="st-dots"><span></span><span></span><span></span></span><span class="st-label-txt">Ищу в интернете…</span><span class="st-arrow">${ST_ARROW_SVG}</span></div><div class="search-trace-body"></div>`;
+    wrap.insertBefore(trace,msgEl);
+    // Клик по лейблу открывает попап со списком просмотренных сайтов (когда они уже есть).
+    trace.querySelector('.search-trace-label').addEventListener('click',()=>{
+      const sources=msgEl._searchSources||lastSearchSources;
+      if(sources&&sources.length)openSourcesPopup(sources);
+    });
+    // Клик по свёрнутому блоку — разворачивает его.
+    trace.addEventListener('click',()=>{
+      if(trace.classList.contains('collapsed'))trace.classList.remove('collapsed');
+    });
+  }
+  return trace;
+}
+// phase: 'query' (ИИ ищет) | 'sources' (просмотрел сайты). Для 'sources' показываем счётчик.
+function showSearchTrace(msgEl,phase,query,browsed,total){
+  const trace=ensureSearchTrace(msgEl);
+  if(!trace)return;
+  const label=trace.querySelector('.st-label-txt');
+  const body=trace.querySelector('.search-trace-body');
+  if(phase==='query'){
+    if(label)label.textContent='Ищу в интернете…';
+    if(body&&query)body.textContent='Запрос: '+query;
+    trace.classList.add('live');
+    trace.classList.remove('thinking');
+  }else if(phase==='browse'){
+    // ИИ читает конкретный сайт: «Смотрю <host>…» (query здесь = host).
+    if(label)label.textContent='Смотрю '+(query||'сайты')+'…';
+    trace.classList.add('live');
+    trace.classList.remove('thinking');
+  }else if(phase==='sources'){
+    const n=browsed||total||0;
+    if(label)label.textContent=n?'Просмотрел '+n+' '+(sourcesWord(n))+', думаю как лучше ответить…':'Просмотрел сайты, думаю как лучше ответить…';
+    trace.classList.remove('live');
+    trace.classList.add('thinking');
+  }
+  scrollChat();
+}
+function markSearchTraceThinking(msgEl){
+  const wrap=msgEl.closest('.msg-ai-wrap');
+  const trace=wrap&&wrap.querySelector('.search-trace');
+  if(!trace)return;
+  trace.classList.remove('live');
+  trace.classList.add('thinking');
+}
+function finalizeSearchTrace(msgEl){
+  const wrap=msgEl.closest('.msg-ai-wrap');
+  const trace=wrap&&wrap.querySelector('.search-trace');
+  if(!trace)return;
+  trace.classList.remove('live','thinking');
+  // Если источников нет — блок не имеет смысла (поиск ничего не дал), убираем его.
+  const sources=msgEl._searchSources||[];
+  if(!sources.length){trace.remove();return;}
+  const label=trace.querySelector('.st-label-txt');
+  if(label)label.textContent='Просмотрел '+sources.length+' '+(sourcesWord(sources.length))+' · нажмите, чтобы развернуть';
+  trace.classList.add('collapsed');
+}
+// Правильное склонение слова «сайт» для счётчика.
+function sourcesWord(n){
+  const n10=n%10,n100=n%100;
+  if(n10===1&&n100!==11)return'сайт';
+  if(n10>=2&&n10<=4&&(n100<10||n100>=20))return'сайта';
+  return'сайтов';
 }
 function ensureReasoningTrace(msgEl){
   const wrap=msgEl.closest('.msg-ai-wrap');
@@ -3636,10 +4049,81 @@ function buildApiCandidates(){
   endpoints.push(`${liveBase}/api/chat`);
   return [...new Set(endpoints)];
 }
+// Бюджет символов на ОДИН текстовый фрагмент ПРЕДЫДУЩЕГО хода истории при отправке модели.
+// Текущий (последний) ход пользователя отправляется полностью (фото + начало документа),
+// а все предыдущие ходы «худеют»: фото заменяются короткой текстовой меткой, длинные
+// тексты/документы обрезаются. Так каждый запрос к модели остаётся лёгким независимо от того,
+// сколько фото/файлов уже было в чате — повторные вопросы не таскают за собой мегабайты.
+const PRIOR_TURN_TEXT_BUDGET=6000;
+function capLongText(text,budget){
+  const s=String(text||'');
+  if(s.length<=budget)return s;
+  return s.slice(0,budget)+`\n\n[…ранее отправленный длинный текст/файл сокращён до ${budget} символов…]`;
+}
+function slimPriorContent(content){
+  if(typeof content==='string')return capLongText(content,PRIOR_TURN_TEXT_BUDGET);
+  if(Array.isArray(content)){
+    const out=[];let imgIdx=0;
+    for(const part of content){
+      if(part.type==='image_url'){
+        imgIdx++;
+        out.push({type:'text',text:`[ранее было отправлено фото ${imgIdx}]`});
+      }else if(part.type==='text'){
+        out.push({type:'text',text:capLongText(part.text||'',PRIOR_TURN_TEXT_BUDGET)});
+      }else{
+        out.push(part);
+      }
+    }
+    return out;
+  }
+  return content;
+}
+// Возвращает версию истории для отправки в API и сохранения в базу: последний ход
+// пользователя — целиком (со сжатыми фото и обрезанным документом), все более ранние ходы —
+// в облегчённом виде. attachments сохраняются, но БЕЗ тяжёлых dataUrl/base64 — только
+// метаданные для отображения карточки файла/фото при перезагрузке чата.
+function slimAttachments(attachments){
+  if(!Array.isArray(attachments))return attachments;
+  return attachments.map(att=>{
+    if(att.kind==='image'){
+      return {kind:'image',name:att.name||'Изображение',mime:att.mime||'image/jpeg',size:att.size||0,meta:att.meta||fileExtLabel(att.name||att.mime||'image')};
+    }
+    return {kind:'document',name:att.name||'Файл',size:att.size||0,mime:att.mime||'application/octet-stream',ext:att.ext||fileExtLabel(att.name||'Файл')};
+  });
+}
+function toWireHistory(history){
+  let lastUserIdx=-1;
+  for(let i=history.length-1;i>=0;i--){if(history[i].role==='user'){lastUserIdx=i;break;}}
+  return history.map((m,i)=>{
+    const base={role:m.role};
+    if(m.role==='user'&&i===lastUserIdx){
+      base.content=m.content;
+      base.attachments=slimAttachments(m.attachments);
+      return base;
+    }
+    base.content=slimPriorContent(m.content);
+    if(m.role==='user')base.attachments=slimAttachments(m.attachments);
+    return base;
+  });
+}
+// Определяет, есть ли в последнем ходе пользователя прикреплённые фото или файлы —
+// используется, чтобы дать модели инструкцию «сначала проанализируй, потом ответь».
+function lastUserHasAttachments(){
+  for(let i=chatHistory.length-1;i>=0;i--){
+    const m=chatHistory[i];
+    if(m.role!=='user')continue;
+    if(Array.isArray(m.content)){
+      return m.content.some(p=>p.type==='image_url'||(p.type==='text'&&/^\[ФАЙЛ \d+:/.test(p.text||'')));
+    }
+    if(typeof m.content==='string')return /\[ФАЙЛ \d+:/.test(m.content);
+    return false;
+  }
+  return false;
+}
 async function requestChatReply(){
   activeAbortController=new AbortController();
   const payload={
-    messages:[{role:'system',content:buildSystem()},...chatHistory],
+    messages:[{role:'system',content:buildSystem()},...toWireHistory(chatHistory)],
     model:curModel,
     effort:curMode,
     think:thinkOn,
@@ -3684,14 +4168,17 @@ async function requestChatReply(){
   }
   throw lastError||new Error('Не удалось получить ответ от сервера');
 }
-async function requestChatReplyLive(msgEl,actionsEl,extraMessages=[],prefixText=''){
+async function requestChatReplyLive(msgEl,actionsEl,extraMessages=[],prefixText='',opts={}){
   activeAbortController=new AbortController();
   const payload={
-    messages:[{role:'system',content:buildSystem()},...chatHistory,...extraMessages],
+    messages:[{role:'system',content:buildSystem()},...toWireHistory(chatHistory),...extraMessages],
     model:curModel,
     effort:curMode,
     think:thinkOn,
     stream:true,
+    // При тихом авто-продолжении оборванного ответа поиск не запускаем повторно,
+    // чтобы не вставлять новый блок «Просмотрел сайты» в середину ответа.
+    webSearch:opts.noSearch?'off':webSearchMode,
     trainingMode:Boolean(trainingMode&&hasTrainingAccess()),
     userId:curUser?.id||null,
     userEmail:curUser?.email||null
@@ -3726,6 +4213,7 @@ async function requestChatReplyLive(msgEl,actionsEl,extraMessages=[],prefixText=
         let buffer='';
         let gotDelta=false;
         let gotReasoning=false;
+        let gotSearchTrace=false;
         let streamFinished=false;
         while(true){
           const {done,value}=await withTimeout(reader.read(),STREAM_STALL_MS,'Сервер слишком долго отвечает');
@@ -3739,15 +4227,40 @@ async function requestChatReplyLive(msgEl,actionsEl,extraMessages=[],prefixText=
               const raw=line.slice(5).trim();
               if(!raw)continue;
               const payloadChunk=JSON.parse(raw);
-              if(payloadChunk.type==='reasoning'){
+              if(payloadChunk.type==='search_query'){
+                // ИИ начала поиск: показываем блок размышления «Ищу в интернете…»
+                if(!gotSearchTrace){hideTyping();gotSearchTrace=true;}
+                showSearchTrace(msgEl,'query',payloadChunk.query||'');
+              }else if(payloadChunk.type==='search_browse'){
+                // ИИ читает конкретный сайт: «Смотрю <host>…»
+                if(!gotSearchTrace){hideTyping();gotSearchTrace=true;}
+                showSearchTrace(msgEl,'browse',payloadChunk.host||'');
+              }else if(payloadChunk.type==='search_sources'){
+                // ИИ просмотрела сайты: обновляем блок «Просмотрел N сайтов, думаю над ответом».
+                // Сохраняем источники, чтобы пользователь мог открыть попап по клику.
+                const sources=Array.isArray(payloadChunk.sources)?payloadChunk.sources:[];
+                lastSearchSources=sources;
+                msgEl._searchSources=sources;
+                showSearchTrace(msgEl,'sources',null,payloadChunk.browsed||sources.length,sources.length);
+              }else if(payloadChunk.type==='search_done'){
+                // Поиск завершён — ИИ теперь думает над ответом (появляется стрелочка).
+                markSearchTraceThinking(msgEl);
+              }else if(payloadChunk.type==='reasoning'){
                 if(!gotReasoning){hideTyping();gotReasoning=true;}
+                if(gotSearchTrace)markSearchTraceThinking(msgEl);
                 appendReasoningChunk(msgEl,payloadChunk.text||'');
               }else if(payloadChunk.type==='delta'){
-                if(!gotDelta){hideTyping();if(gotReasoning)finalizeReasoningTrace(msgEl);gotDelta=true;}
+                if(!gotDelta){
+                  hideTyping();
+                  if(gotSearchTrace)finalizeSearchTrace(msgEl);
+                  if(gotReasoning)finalizeReasoningTrace(msgEl);
+                  gotDelta=true;
+                }
                 typer.push(payloadChunk.text||'');
               }else if(payloadChunk.type==='done'){
                 streamFinished=true;
                 hideTyping();
+                if(gotSearchTrace)finalizeSearchTrace(msgEl);
                 if(gotReasoning)finalizeReasoningTrace(msgEl);
                 const fullFinal=prefixText+normalizeReplyNotation(payloadChunk.text||'');
                 const finalText=await typer.complete(fullFinal);
@@ -3760,6 +4273,7 @@ async function requestChatReplyLive(msgEl,actionsEl,extraMessages=[],prefixText=
           }
         }
         hideTyping();
+        if(gotSearchTrace)finalizeSearchTrace(msgEl);
         const fallbackText=normalizeReplyNotation(msgEl.dataset.raw||msgEl.textContent||'');
         const finalText=await typer.complete(fallbackText);
         setMessageActionsVisible(actionsEl,true);
@@ -3838,8 +4352,12 @@ async function sendMsg(){
   function buildDocInlineText(att,idx){
     const chunks=att.doc?.chunks||[];
     if(!chunks.length)return `[ФАЙЛ ${idx+1}: ${att.name}]\n(текст не удалось извлечь)`;
-    // Отправляем весь документ без ограничений — контекстное окно модели управляет размером
-    return `[ФАЙЛ ${idx+1}: ${att.name}]\n${chunks.join('\n\n')}`;
+    // Ограничиваем объём вкладываемого текста, иначе большие документы раздували токены,
+    // замедляли ответ и переполняли лимит тела запроса. Даём начало документа с пометкой об обрезке.
+    const full=chunks.join('\n\n');
+    if(full.length<=INLINE_DOC_CHAR_LIMIT)return `[ФАЙЛ ${idx+1}: ${att.name}]\n${full}`;
+    const head=full.slice(0,INLINE_DOC_CHAR_LIMIT);
+    return `[ФАЙЛ ${idx+1}: ${att.name}]\n${head}\n\n⚠️ ДОКУМЕНТ ОБРЕЗАН — показана только первая часть (${INLINE_DOC_CHAR_LIMIT} символов из ${full.length}). Для разделов вне этого фрагмента попроси пользователя уточнить раздел.`;
   }
   let userContent;
   if(imageAttachments.length){
@@ -4267,7 +4785,7 @@ function renderAbout(){
           <svg width="30" height="30" viewBox="0 0 64 64"><path d="M18 14h8v18h12V14h8v36h-8V39H26v11h-8z" fill="#fff"/></svg>
         </div>
         <div class="about-app-name">HarmonyAI</div>
-        <div class="about-app-ver">Версия 1.0 (beta)</div>
+        <div class="about-app-ver">Версия 1.4 (beta)</div>
       </div>
       <div class="about-rows">
         <div class="about-row"><div class="about-row-label">Политика конфиденциальности</div><div class="about-row-val"><a href="./legal/privacy.html" target="_blank" rel="noopener noreferrer">Открыть</a></div></div>
@@ -4573,6 +5091,23 @@ async function saveSetting(key,val){
       <button class="fb-btn-cancel" onclick="closeRenameChatModal()">Отмена</button>
       <button class="fb-btn-send" onclick="confirmRenameChat()">Сохранить</button>
     </div>
+  </div>
+</div>
+
+<!-- Попап со списком сайтов, которые ИИ просмотрел при поиске -->
+<div class="src-overlay" id="srcOverlay" onclick="if(event.target===this)closeSourcesPopup()">
+  <div class="src-modal" onclick="event.stopPropagation()">
+    <div class="src-head">
+      <div class="src-head-ic"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.2-3.2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+      <div>
+        <div class="src-title">Просмотренные сайты</div>
+        <div class="src-count" id="srcCount">0 источников</div>
+      </div>
+      <button class="src-close" onclick="closeSourcesPopup()" aria-label="Закрыть" title="Закрыть">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M5 5l14 14M19 5L5 19" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="src-list" id="srcList"></div>
   </div>
 </div>
 
