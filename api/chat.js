@@ -300,6 +300,207 @@ function wantsRenderedStaff(query = '') {
   return /(нотн(ый|ую|ом|ыми)?\s*стан|нотами|на нотах|запиши\s+нот|изобрази\s+нот|нарисуй\s+нот|покажи\s+нот|abc[-\s]?нотаци|сыграй|сочини\s+(мелоди|пьес|гамм)|напиши\s+(мелоди|пьес|гамм)|придумай\s+(мелоди|пьес|гамм)|построй\s+гамм|партитур)/.test(clean);
 }
 
+/* ============================================================================
+   ПОИСК В ИНТЕРНЕТЕ
+   - Решение «нужен ли поиск» принимает сама ИИ (эвристика): актуальные факты, цены,
+     новости, текущие события, конкретные онлайн-ресурсы → нужен. Музыкальная теория,
+     творческие задания, личный контекст, общение → не нужен.
+   - Источник поиска — DuckDuckGo HTML (не требует ключа). Берём первые результаты,
+     вытягиваем текст страницы по паре ссылок, чтобы дать модели реальный контекст.
+   - В поток клиенту шлём специальные события: search_query / search_browse /
+     search_sources / search_done, которые фронтенд показывает как «размышление
+     ИИ: смотрит сайты → просмотрел N сайтов → думаю над ответом». */
+
+const SEARCH_MAX_RESULTS = 6;
+const SEARCH_MAX_PAGES_TO_FETCH = 3;
+const SEARCH_PAGE_TIMEOUT_MS = 9000;
+const SEARCH_PAGE_MAX_CHARS = 6000;
+
+// Эвристика: явно ли пользователь просит свежую/внешнюю информацию из интернета.
+function isExplicitWebRequest(query = '') {
+  const clean = normalizeText(query).toLowerCase();
+  return /(в интернете|в сети|поищи|поиск(а|и)?\s*(в интернете|в сети|онлайн)|найди\s+(в интернете|онлайн|в сети)|загугли|погугли|нагугли|поисковик|актуальн(ая|ые|ый|ое)|сегодня|сейчас\s+(только|только что)?|на сегодня|на этот год|в этом году|в\s+20\d\d|новост|курс(а|ы)?\s+(валют|доллар|рубл)|цена|цены|стоимость|рейтинг|прогноз|погода|расписани|афиш|концерт\s+\d|выпуск\s+\d|обзор\s+нов|последни(е|й|х)\s)/.test(clean);
+}
+
+// Эвристика: запрос точно НЕ требует интернета — общение, музыкальная теория,
+// творческие задания, личный контекст пользователя. ИИ сама решает, нужен ли поиск,
+// но эти случаи отсекаем сразу, чтобы не мучать поиском теорию и творчество.
+function isDefinitelyOfflineQuery(query = '') {
+  const clean = normalizeText(query).toLowerCase();
+  if (!clean) return true;
+  // Приветствия / короткие нейтральные фразы
+  if (isSimpleQuery(clean)) return true;
+  // Музыкальная теория / творчество / ноты — всё это «домашние» знания ИИ
+  if (wantsRenderedStaff(clean)) return true;
+  if (/(гамм|аккорд|тональност|интервал|сольфеджи|нот(ы|ный|ная|ное)|аппликатур|ритм|такт(ы)?|размер\s+\d|трезвучи|септаккорд|обращени|импровиз|аранжир|транспони|темп\b|динамик(а|и)|штрих\b|фразировк|слух|диктовк)/.test(clean)) return true;
+  if (/(сочини|сгенерируй|придумай|напиши\s+(мелоди|пьес|песн|гамм|этюд)|создай\s+(мелоди|пьес|песн|гамм|этюд)|построй\s+гамм)/.test(clean)) return true;
+  // Личный контекст пользователя
+  if (/(помнишь|как обычно|мо[йяюе]\s|я говорил|я просил|настрой|профил|прикреп|загрузил)/.test(clean)) return true;
+  return false;
+}
+
+// Финальное решение: нужен ли поиск. Учитывает явный запрос пользователя,
+// характер вопроса (факты/актуальность) и исключения.
+function decideWebSearch({ query = '', searchEnabled = 'auto' } = {}) {
+  // searchEnabled: 'auto' (ИИ решает сама) | 'on' (принудительно) | 'off'
+  if (searchEnabled === 'on') return Boolean(query && query.trim());
+  if (searchEnabled === 'off') return false;
+  // auto
+  if (!query || !query.trim()) return false;
+  if (isDefinitelyOfflineQuery(query)) return false;
+  if (isExplicitWebRequest(query)) return true;
+  // Промежуточный случай: длинный фактологический вопрос без признаков теории/творчества —
+  // даём шанс поискать, если вопрос снаружи выходит за музыкальную базу знаний.
+  const clean = normalizeText(query).toLowerCase();
+  if (clean.length > 90 && /(кто\s+(такой|такая|такое|это)|что\s+(такое|это)|когда\s+(состоится|выйдет|начнётся|пройдёт)|где\s+(можно|найти|купить|посмотреть)|сколько\s+(стоит|стоит|стоит)|как\s+(узнать|получить|найти)|почему\s+\w|откуда\s+\w|из\s+какого|в\s+каком\s+году|в\s+каком\s+город)/.test(clean)) {
+    return true;
+  }
+  return false;
+}
+
+function stripHtml(html = '') {
+  return String(html || '')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// Достаём список результатов из HTML-страницы DuckDuckGo (html.duckduckgo.com/html/).
+function parseDuckDuckGoResults(html = '') {
+  const results = [];
+  const seen = new Set();
+  const re = /<a[^>]+class="result__a"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<a[^>]+class="result__snippet"[^>]*>([\s\S]*?)<\/a>/gi;
+  let match;
+  while ((match = re.exec(html)) !== null && results.length < SEARCH_MAX_RESULTS) {
+    let rawHref = match[1] || '';
+    // DDG отдаёт редирект-ссылку вида //duckduckgo.com/l/?uddg=<закодированный url>
+    const uddgMatch = rawHref.match(/[?&]uddg=([^&]+)/);
+    let url = rawHref;
+    if (uddgMatch) {
+      try { url = decodeURIComponent(uddgMatch[1]); } catch (e) { url = rawHref; }
+    }
+    if (url.startsWith('//')) url = 'https:' + url;
+    if (!/^https?:\/\//i.test(url)) continue;
+    if (seen.has(url)) continue;
+    seen.add(url);
+    const title = stripHtml(match[2] || '');
+    const snippet = stripHtml(match[3] || '');
+    if (!title && !snippet) continue;
+    results.push({ url, title: title || url, snippet });
+  }
+  return results;
+}
+
+async function webSearchResults(query) {
+  const cleanQuery = normalizeText(query);
+  if (!cleanQuery) return [];
+  const ddgUrl = 'https://html.duckduckgo.com/html/?q=' + encodeURIComponent(cleanQuery);
+  try {
+    const resp = await withTimeout(
+      fetch(ddgUrl, {
+        method: 'GET',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; HarmonyAIBot/1.4; +https://harmonyai.app)',
+          'Accept': 'text/html,application/xhtml+xml',
+          'Accept-Language': 'ru-RU,ru;q=0.9,en;q=0.8'
+        }
+      }),
+      12000,
+      'Web search timed out'
+    );
+    if (!resp.ok) return [];
+    const html = await resp.text();
+    return parseDuckDuckGoResults(html);
+  } catch (e) {
+    console.warn('[harmonyai] web search failed:', compactErrorValue(e?.message, 200));
+    return [];
+  }
+}
+
+// Вытягиваем читаемый текст со страницы результата (без скриптов/стилей), ограничивая объём.
+async function fetchPageText(url) {
+  try {
+    const resp = await withTimeout(
+      fetch(url, {
+        method: 'GET',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; HarmonyAIBot/1.4; +https://harmonyai.app)',
+          'Accept': 'text/html,application/xhtml+xml'
+        },
+        redirect: 'follow'
+      }),
+      SEARCH_PAGE_TIMEOUT_MS,
+      'Page fetch timed out'
+    );
+    if (!resp.ok) return '';
+    const ct = (resp.headers.get('content-type') || '').toLowerCase();
+    if (!ct.includes('text/html') && !ct.includes('text/plain') && !ct.includes('application/xhtml')) return '';
+    const html = await resp.text();
+    let text = stripHtml(html);
+    if (text.length > SEARCH_PAGE_MAX_CHARS) text = text.slice(0, SEARCH_PAGE_MAX_CHARS) + '…';
+    return text;
+  } catch (e) {
+    return '';
+  }
+}
+
+// Собираем итоговый контекст из найденных источников: для каждого источника —
+// заголовок, ссылка и вытянутый текст (если получилось) или сниппет.
+async function buildWebSearchContext(query, res) {
+  const results = await webSearchResults(query);
+  if (!results.length) return { context: '', sources: [], browsed: 0 };
+
+  const sources = results.map((r) => ({ url: r.url, title: r.title, snippet: r.snippet }));
+  // Тянем полный текст с нескольких первых страниц. Делаем это последовательно,
+  // чтобы посылать клиенту событие search_browse («Смотрю <host>…») перед каждым
+  // запросом — пользователь видит, какой конкретно сайт сейчас читает ИИ.
+  const toFetch = results.slice(0, SEARCH_MAX_PAGES_TO_FETCH);
+  const fetched = [];
+  for (const r of toFetch) {
+    if (res) {
+      try {
+        const host = new URL(r.url).hostname.replace(/^www\./, '');
+        writeSseEvent(res, { type: 'search_browse', host });
+      } catch (e) { /* некорректный URL — просто пропускаем событие */ }
+    }
+    fetched.push({ url: r.url, title: r.title, text: await fetchPageText(r.url) });
+  }
+
+  const browsed = fetched.filter((f) => f.text && f.text.length > 120).length;
+  const parts = [];
+  for (let i = 0; i < results.length; i += 1) {
+    const r = results[i];
+    const full = fetched.find((f) => f.url === r.url);
+    const body = (full && full.text) || r.snippet || '';
+    if (!body) continue;
+    parts.push(`[Веб-источник ${i + 1}: ${r.title}]\nURL: ${r.url}\n${body}`);
+  }
+  const context = parts.length
+    ? '\nНАЙДЕННОЕ В ИНТЕРНЕТЕ (используй эти данные для ответа, при необходимости упоминай источники):\n' + parts.join('\n\n')
+    : '';
+  return { context, sources, browsed };
+}
+
+// Составляем «инструкцию про источники», чтобы модель вела себя как «посмотрел сайты — теперь думаю».
+function buildWebSearchInstruction(sources) {
+  if (!sources || !sources.length) return '';
+  const list = sources.slice(0, 6).map((s, i) => `${i + 1}. ${s.title} — ${s.url}`).join('\n');
+  return [
+    '',
+    'Ты ТОЛЬКО ЧТО просмотрел сайты в интернете по запросу пользователя. Список просмотренных источников:',
+    list,
+    'Опирайся на найденные данные. Если данные противоречат твоим знаниям — предпочти свежие данные из источников. Не выдумывай ссылки — используй только те, что даны выше.'
+  ].join('\n');
+}
+
 async function maybeSaveDeveloperNote(profile, queryText, trainingMode = false) {
   if (!profile || (profile.role !== 'developer' && profile.role !== 'admin')) return;
   const clean = normalizeText(queryText);
@@ -582,10 +783,10 @@ function writeSseEvent(res, payload) {
 // Модель просят сначала писать реальные рассуждения, затем этот маркер, затем сам ответ.
 const REASONING_DELIMITER = '===ОТВЕТ===';
 
-async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs, query, largeContext = false, captureReasoning = false, maxTokens = 0) {
+async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs, query, largeContext = false, captureReasoning = false, maxTokens = 0, headersAlreadySent = false) {
   let fullText = '';
   let gotAnyDelta = false;
-  let headersSent = false;
+  let headersSent = Boolean(headersAlreadySent);
   let buffer = '';
 
   // Состояние разбора рассуждений в реальном времени (только если captureReasoning=true)
@@ -944,7 +1145,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { messages, model, userId, think = false, effort = 'low', stream = false, trainingMode = false } = req.body || {};
+    const { messages, model, userId, think = false, effort = 'low', stream = false, trainingMode = false, webSearch = 'auto' } = req.body || {};
     if (!Array.isArray(messages) || messages.length === 0) {
       return res.status(400).json({ error: { message: 'Пустой запрос к модели' } });
     }
@@ -953,6 +1154,10 @@ export default async function handler(req, res) {
     const query = lastUserText(messages);
     const isQuick = isSimpleQuery(query);
     const wantsContext = needsPersonalContext(query, messages);
+
+    // РЕШЕНИЕ О ПОИСКЕ В ИНТЕРНЕТЕ: ИИ сама определяет, нужен ли поиск, если webSearch='auto'.
+    // Пользователь может принудительно включить ('on') или выключить ('off') через кнопку «Поиск».
+    const shouldSearch = decideWebSearch({ query, searchEnabled: webSearch });
 
     // СЕРВЕРНАЯ ПРОВЕРКА ЛИМИТОВ/ЗЛОУПОТРЕБЛЕНИЯ (нельзя обойти через localStorage).
     const allowance = await checkUsageAllowance(userId, profile, model);
@@ -1036,12 +1241,48 @@ export default async function handler(req, res) {
     } else {
       maxTokens = 2048;
     }
+    // Если поиск в интернете нужен — выполняем его ДО вызова модели и сразу стримим
+    // клиенту события «размышления ИИ»: какой запрос ищу → какие сайты просмотрел →
+    // отдаю источники (фронт показывает стрелочку и попап со ссылками).
+    let webContext = '';
+    let webSources = [];
+    let webBrowsed = 0;
+    let webHeadersSent = false;
+    if (shouldSearch) {
+      if (stream) {
+        // Открываем SSE-поток заранее, чтобы отправлять события поиска до ответа модели.
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-cache, no-transform');
+        res.setHeader('Connection', 'keep-alive');
+        if (typeof res.flushHeaders === 'function') res.flushHeaders();
+        webHeadersSent = true;
+        writeSseEvent(res, { type: 'search_query', query: normalizeText(query) });
+      }
+      const searchResult = await buildWebSearchContext(query, stream ? res : null);
+      webContext = searchResult.context;
+      webSources = searchResult.sources;
+      webBrowsed = searchResult.browsed;
+      if (stream) {
+        // Сообщаем клиенту, какие сайты просмотрены, и отдаём список источников для попапа.
+        writeSseEvent(res, {
+          type: 'search_sources',
+          browsed: webBrowsed,
+          total: webSources.length,
+          sources: webSources.map((s) => ({ url: s.url, title: s.title, snippet: s.snippet }))
+        });
+        writeSseEvent(res, { type: 'search_done' });
+      }
+    }
+
     const mergedSystem = appendServerContext(systemText, [
       profile ? `Профиль пользователя: role=${profile.role || 'user'}, plan=${profile.plan || 'free'}` : '',
       think ? buildThinkInstruction() : '',
       buildMemoryContext(memories, query),
       buildFeedbackContext(feedbackRows, query),
-      buildKnowledgeContext(documents, chunks, query)
+      buildKnowledgeContext(documents, chunks, query),
+      webContext,
+      webSources.length ? buildWebSearchInstruction(webSources) : ''
     ]);
 
     let lastError = null;
@@ -1053,7 +1294,7 @@ export default async function handler(req, res) {
       const openAiMessages = mapMessagesForOpenAI(messages, mergedSystem);
       for (const modelName of route.models) {
         if (stream) {
-          const streamResult = await streamOpenAIToClient(res, route.apiKey, modelName, openAiMessages, modelTimeoutMs, query, isLargeContext, Boolean(think), maxTokens);
+          const streamResult = await streamOpenAIToClient(res, route.apiKey, modelName, openAiMessages, modelTimeoutMs, query, isLargeContext, Boolean(think), maxTokens, webHeadersSent);
           if (streamResult.ok) {
             const replyTokens = Math.max(1, Math.ceil(String(streamResult.text || '').length / 4));
             await insertUsageEvent(userId, model, promptTokens + replyTokens, 1);
