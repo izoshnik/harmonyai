@@ -729,6 +729,33 @@ html[data-theme="light"] .msg-ai{color:#1a1a1a;}
   html[data-theme="light"] .search-chip-x{background:#fff;border-color:rgba(20,18,12,.14);color:#5a574f;}
 }
 
+/* Мини-окно «Изображение» над строкой ввода — клон .search-chip, с акцентом под фото.
+   Появляется, когда пользователь включил режим генерации изображения кнопкой в «+». */
+.img-chip-wrap{width:100%;max-width:720px;display:none;justify-content:center;position:relative;margin-bottom:6px;}
+.img-chip-wrap.open{display:flex;animation:dropMenuIn .18s cubic-bezier(.22,.61,.36,1) both;}
+.img-chip{position:relative;display:inline-flex;align-items:center;gap:8px;padding:9px 16px 9px 14px;border-radius:20px;background:var(--drop-bg);border:1px solid var(--border);box-shadow:var(--drop-shadow);font-size:15px;font-weight:600;color:#a472ff;cursor:default;user-select:none;max-width:90vw;}
+.img-chip-ic{width:15px;height:15px;color:#8b5cf6;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.img-chip-ic svg{width:100%;height:100%;display:block;}
+.img-chip-txt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.img-chip-x{position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;background:var(--bg2);border:1.5px solid var(--border);color:var(--text2);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .12s,color .12s,transform .12s;box-shadow:0 2px 6px rgba(0,0,0,.22);z-index:2;}
+.img-chip-x:hover{background:var(--hover);color:var(--text);transform:scale(1.06);}
+.img-chip-x:active{transform:scale(.94);}
+.img-chip-x svg{width:10px;height:10px;display:block;}
+@media(max-width:768px){
+  .img-chip-wrap{max-width:100%;}
+  .img-chip{background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.16);backdrop-filter:blur(16px) saturate(150%);-webkit-backdrop-filter:blur(16px) saturate(150%);box-shadow:0 6px 18px rgba(0,0,0,.22);}
+  html[data-theme="light"] .img-chip{background:rgba(255,255,255,.92);border-color:rgba(20,18,12,.10);}
+  .img-chip-x{background:#1c1c22;border-color:rgba(255,255,255,.22);color:rgba(255,255,255,.92);}
+  html[data-theme="light"] .img-chip-x{background:#fff;border-color:rgba(20,18,12,.14);color:#5a574f;}
+}
+
+/* Картинка в бабле ассистента (сгенерированное изображение). */
+.msg-ai-img{max-width:100%;border-radius:14px;display:block;margin:4px 0;box-shadow:0 6px 18px rgba(0,0,0,.18);cursor:zoom-in;}
+@media(max-width:768px){
+  .msg-ai-img{border-radius:16px;box-shadow:0 8px 22px rgba(0,0,0,.28);}
+}
+html[data-theme="light"] .msg-ai-img{box-shadow:0 6px 16px rgba(20,18,12,.12);}
+
 /* Меню кнопки "+" (новый «+»: файл/фото + поиск в интернете) */
 .plus-drop{position:absolute;bottom:calc(100% + 8px);left:0;background:var(--drop-bg);border:1px solid var(--border);border-radius:14px;padding:6px;box-shadow:var(--drop-shadow);display:none;z-index:200;min-width:220px;animation:none;}
 .plus-drop.open{display:block;animation:dropMenuIn .15s cubic-bezier(.22,.61,.36,1) both;}
@@ -1420,6 +1447,17 @@ html[data-theme="light"] .limit-reached{background:rgba(239,68,68,.07);border-co
           </button>
         </div>
       </div>
+      <!-- Мини-окно «Изображение»: появляется при включении режима генерации фото кнопкой в «+».
+           Крестик убирает окно и выключает режим. -->
+      <div class="img-chip-wrap" id="imgChipWrap">
+        <div class="img-chip" id="imgChip">
+          <span class="img-chip-ic"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.8"/><circle cx="8.5" cy="8.5" r="1.6" fill="currentColor"/><path d="M21 15l-5-5L5 21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span class="img-chip-txt">Изображение</span>
+          <button class="img-chip-x" id="imgChipX" onclick="setImageMode(false);event.stopPropagation();" title="Выключить режим изображения" aria-label="Выключить режим изображения">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M5 5l14 14M19 5L5 19" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+      </div>
       <div class="composer-attachments" id="composerAttachments" aria-live="polite"></div>
       <div class="input-box" id="inputBox">
         <textarea id="msgTa" placeholder="Спросить HarmonyAI" rows="1"
@@ -1596,6 +1634,11 @@ html[data-theme="light"] .limit-reached{background:rgba(239,68,68,.07);border-co
         <span class="attach-opt-txt">Добавить файлы</span>
         <span class="attach-opt-hint">PDF, DOCX, TXT, изображения</span>
       </div>
+      <div class="attach-opt" id="attachImage" onclick="attachChoose('image',event)">
+        <span class="attach-opt-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.8"/><circle cx="8.5" cy="8.5" r="1.6" fill="currentColor"/><path d="M21 15l-5-5L5 21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="attach-opt-txt">Сгенерировать изображение</span>
+        <span class="attach-opt-hint">По вашему описанию</span>
+      </div>
     </div>
   </div>
 </div>
@@ -1627,6 +1670,13 @@ let curModel='lite',curMode='low',thinkOn=false,dropOpen=false,modeSubOpen=false
 // Поиск в интернете: 'auto' — ИИ сама решает; 'on' — принудительно включён; 'off' — выключен.
 // plusDropOpen — открыто ли новое меню кнопки «+».
 let webSearchMode='auto',plusDropOpen=false,lastSearchSources=[];
+// Режим генерации изображения: включается кнопкой «Сгенерировать изображение» в «+».
+// При активации над полем ввода появляется мини-окно «Изображение» с крестиком.
+// После отправки флаг сбрасывается, чтобы следующее обычное сообщение не ушло как запрос на картинку.
+let imageGenModeActive=false;
+// Ключевые слова-триггеры автоопределения запроса на генерацию картинки (регистронезависимо).
+const IMAGE_KEYWORDS=['нарисуй','нарисовать','сгенерируй картинку','сгенерируй изображение','сгенерируй мне','создай изображение','создай картинку','сделай картинку','сделай изображение','нарисуй мне','draw','generate image','generate a picture','generate a picture of'];
+function isImageRequest(text){const low=String(text||'').toLowerCase();if(!low)return false;return IMAGE_KEYWORDS.some(kw=>low.includes(kw));}
 let chatHistory=[],pendingAttachments=[],recentAttachmentDocs=[],curChatId=null;
 let chats=[];
 const CHAT_META_PREFIX='harmonyai_chat_meta_v1_';
@@ -1787,6 +1837,60 @@ function checkLimit(){
   }
   return {blocked:false};
 }
+
+/* ===== ЛИМИТЫ ГЕНЕРАЦИИ ИЗОБРАЖЕНИЙ (клиентский барьер, сервер — авторитетный) =====
+   free: 7 в день, 23 в неделю, 50 в месяц.
+   pro:  burst (15 за 3 мин) + суточный потолок 200 — защита от злоупотребления.
+   Учёт отдельный от чата (свой ключ localStorage), чтобы не смешивать с расходом сообщений. */
+const IMG_LIMITS={
+  adanatos:{daily:7,weekly:23,monthly:50},
+  dynatos:{burst:{images:15,windowMs:180000},daily:200}
+};
+const IMG_USAGE_PREFIX='harmonyai_img_v1_';
+function imgUsageKey(){return IMG_USAGE_PREFIX+(curUser?.id||'guest');}
+function monthKey(d=new Date()){return d.getFullYear()+'-'+(d.getMonth()+1);}
+function readImgUsage(){try{const raw=localStorage.getItem(imgUsageKey());return raw?JSON.parse(raw):{};}catch(e){return {};}}
+function writeImgUsage(u){try{localStorage.setItem(imgUsageKey(),JSON.stringify(u));}catch(e){}}
+function getImgUsage(){
+  const u=readImgUsage();
+  const dk=todayKey(),wk=weekKey(),mk=monthKey();
+  if(u.dayKey!==dk){u.dayKey=dk;u.dayImages=0;}
+  if(u.weekKey!==wk){u.weekKey=wk;u.weekImages=0;}
+  if(u.monthKey!==mk){u.monthKey=mk;u.monthImages=0;}
+  u.dayImages=u.dayImages||0;u.weekImages=u.weekImages||0;u.monthImages=u.monthImages||0;
+  u.burst=Array.isArray(u.burst)?u.burst:[];
+  return u;
+}
+function recordImageUsage(){
+  const u=getImgUsage();
+  u.burst.push(Date.now());
+  u.burst=u.burst.filter(t=>Date.now()-t<IMG_LIMITS.dynatos.burst.windowMs);
+  u.dayImages+=1;u.weekImages+=1;u.monthImages+=1;
+  writeImgUsage(u);
+}
+// Возвращает {blocked, scope, reason} — можно ли генерировать изображение.
+function checkImageLimit(){
+  if(hasTrainingAccess())return {blocked:false}; // разработчики/админы без ограничений
+  if(curModel==='pro'){
+    const u=getImgUsage();
+    const recent=u.burst.filter(t=>Date.now()-t<IMG_LIMITS.dynatos.burst.windowMs);
+    if(recent.length>=IMG_LIMITS.dynatos.burst.images){
+      return {blocked:true,scope:'burst',reason:'Слишком много изображений подряд. Подождите пару минут — это временная защита от перегрузки.'};
+    }
+    if(u.dayImages>=IMG_LIMITS.dynatos.daily){
+      return {blocked:true,scope:'day',reason:'Суточный предел защиты от злоупотребления для генерации изображений достигнут. Он очень высок — обратитесь в поддержку, если это обычное использование.'};
+    }
+    return {blocked:false};
+  }
+  const u=getImgUsage();
+  const L=IMG_LIMITS.adanatos;
+  if(u.dayImages>=L.daily)return {blocked:true,scope:'day'};
+  if(u.weekImages>=L.weekly)return {blocked:true,scope:'week'};
+  if(u.monthImages>=L.monthly)return {blocked:true,scope:'month'};
+  return {blocked:false};
+}
+// Время сброса месячного лимита — 1-е число следующего месяца 00:00.
+function nextMonthlyReset(){const d=new Date();d.setHours(24,0,0,0);d.setDate(1);d.setMonth(d.getMonth()+1);return d;}
 // Время сброса дневного лимита — ближайшая полночь; недельного — ближайший понедельник 00:00.
 function nextDailyReset(){const d=new Date();d.setHours(24,0,0,0);return d;}
 function nextWeeklyReset(){const d=new Date();const day=d.getDay()||7;d.setHours(24,0,0,0);d.setDate(d.getDate()+(8-day-1));return d;}
@@ -2816,7 +2920,11 @@ async function openChat(id){
   chatHistory.forEach(m=>{
     const txt=typeof m.content==='string'?m.content:(Array.isArray(m.content)?m.content.find(c=>c.type==='text')?.text:'[фото]');
     if(m.role==='user')addUserBubble(txt,m.attachments||[]);
-    else addAiBubble(normalizeReplyNotation(txt||''),false);
+    else if(m.image){
+      // Сообщение с сгенерированной картинкой — рендерим <img> по URL из Storage.
+      const shell=createAiBubbleShell({showActions:false});
+      appendImageToShell(shell.msg,m.image);
+    }else addAiBubble(normalizeReplyNotation(txt||''),false);
   });
   updateTrainingPillUI();
   renderChatList();
@@ -2899,7 +3007,9 @@ async function saveChat(title){
   // обрезаны. Иначе каждая запись таскала бы мегабайты base64 и полный текст документов,
   // что раздувало строки Supabase и замедляло перезагрузку чата. Локально chatHistory
   // остаётся полным (для отображения превью), в сеть и в базу уходит только «худой» вариант.
-  const slimHistory=toWireHistory(chatHistory);
+  // keepImage:true — сохраняем URL сгенерированных картинок (не base64), чтобы восстановить их
+  // при открытии чата; в модель URL не уходит (см. toWireHistory без флага в requestChatReplyLive).
+  const slimHistory=toWireHistory(chatHistory,{keepImage:true});
   if(!curChatId){
     curChatId='chat_'+Date.now();
     const t=title||'Новый чат';
@@ -3029,6 +3139,8 @@ function attachChoose(kind,e){
     if(webSearchMode==='on')closePlusDrop();
   }else if(kind==='files'){
     triggerFileInput();
+  }else if(kind==='image'){
+    setImageMode(true);
   }
 }
 function triggerFileInput(){
@@ -3062,6 +3174,20 @@ function refreshWebSearchUI(){
       : webSearchMode==='off' ? 'Выключен'
       : 'ИИ сам решит';
   }
+}
+/* ===== РЕЖИМ ГЕНЕРАЦИИ ИЗОБРАЖЕНИЯ ===== */
+// Включает/выключает режим. При включении закрываем меню «+» и показываем мини-окно над инпутом.
+function setImageMode(on){
+  imageGenModeActive=Boolean(on);
+  refreshImageChipUI();
+  if(imageGenModeActive)closePlusDrop();
+}
+// Синхронизирует видимость мини-окна «Изображение» и подсветку пункта в «+».
+function refreshImageChipUI(){
+  const wrap=document.getElementById('imgChipWrap');
+  if(wrap)wrap.classList.toggle('open',imageGenModeActive);
+  const opt=document.getElementById('attachImage');
+  if(opt)opt.classList.toggle('on',imageGenModeActive);
 }
 // Открытие попапа со списком просмотренных сайтов.
 function openSourcesPopup(sources){
@@ -3130,6 +3256,7 @@ function refreshModelUI(){
 }
 refreshModelUI();
 refreshWebSearchUI();
+refreshImageChipUI();
 window.addEventListener('resize',()=>{closeModelMenus();refreshModelUI();closePlusDrop();});
 
 document.addEventListener('click',e=>{
@@ -4015,7 +4142,7 @@ function showTyping(kind='text',steps=[]){
     d.classList.add('think-text');
     d.innerHTML=`<div class="think-dots"><span></span><span></span><span></span></div><span style="font-size:14px;color:var(--text2)">Думаю над ответом..</span>`;
   }else{
-    const labelMap={file:'Читаю файл..', photo:'Смотрю фото..'};
+    const labelMap={file:'Читаю файл..', photo:'Смотрю фото..', image:'Рисую изображение..'};
     const label=labelMap[kind]||'';
     d.innerHTML=`<div class="think-dots"><span></span><span></span><span></span></div>${label?`<span style="font-size:14px;color:var(--text2)">${label}</span>`:''}`;
   }
@@ -4047,6 +4174,17 @@ function buildApiCandidates(){
     endpoints.push('/api/chat');
   }
   endpoints.push(`${liveBase}/api/chat`);
+  return [...new Set(endpoints)];
+}
+// Кандидаты-эндпоинты для генерации изображения — зеркало buildApiCandidates, но /api/generate-image.
+function buildImageApiCandidates(){
+  const liveBase=PRIMARY_API_ORIGIN.replace(/\/$/,'');
+  const isLiveHost=window.location.hostname==='harmonyai-zeta.vercel.app';
+  const endpoints=[];
+  if(window.location.protocol!=='file:'&&isLiveHost){
+    endpoints.push('/api/generate-image');
+  }
+  endpoints.push(`${liveBase}/api/generate-image`);
   return [...new Set(endpoints)];
 }
 // Бюджет символов на ОДИН текстовый фрагмент ПРЕДЫДУЩЕГО хода истории при отправке модели.
@@ -4091,7 +4229,8 @@ function slimAttachments(attachments){
     return {kind:'document',name:att.name||'Файл',size:att.size||0,mime:att.mime||'application/octet-stream',ext:att.ext||fileExtLabel(att.name||'Файл')};
   });
 }
-function toWireHistory(history){
+function toWireHistory(history,opts={}){
+  const keepImage=Boolean(opts.keepImage);
   let lastUserIdx=-1;
   for(let i=history.length-1;i>=0;i--){if(history[i].role==='user'){lastUserIdx=i;break;}}
   return history.map((m,i)=>{
@@ -4103,6 +4242,9 @@ function toWireHistory(history){
     }
     base.content=slimPriorContent(m.content);
     if(m.role==='user')base.attachments=slimAttachments(m.attachments);
+    // Для модели URL картинки не нужен — только текстовая метка в content.
+    // При сохранении в базу (keepImage=true) сохраняем URL, чтобы восстановить картинку при открытии чата.
+    if(keepImage&&m.image)base.image=m.image;
     return base;
   });
 }
@@ -4309,11 +4451,15 @@ function limitMessageHtml(check){
   if(check.scope==='burst'){
     title='Слишком часто';
     text=check.reason||'Слишком много сообщений подряд. Подождите пару минут.';
+  }else if(check.scope==='month'){
+    const reset=fmtResetHuman(nextMonthlyReset());
+    title='Месячный лимит исчерпан';
+    text=check.reason||`Вы использовали весь месячный лимит генерации изображений. Обновление — <b>${reset}</b>. Перейдите на <b>Dynatos</b>, чтобы продолжить без ограничений.`;
   }else{
     const isDay=check.scope==='day';
     const reset=isDay?fmtResetHuman(nextDailyReset()):fmtResetHuman(nextWeeklyReset());
     title=isDay?'Дневной лимит исчерпан':'Недельный лимит исчерпан';
-    text=`Вы использовали весь ${isDay?'ежедневный':'еженедельный'} лимит модели <b>Adanatos</b>. Обновление лимита — <b>${reset}</b>. Перейдите на <b>Dynatos</b>, чтобы продолжить без ограничений.`;
+    text=check.reason||`Вы использовали весь ${isDay?'ежедневный':'еженедельный'} лимит модели <b>Adanatos</b>. Обновление лимита — <b>${reset}</b>. Перейдите на <b>Dynatos</b>, чтобы продолжить без ограничений.`;
   }
   return `<div class="limit-reached">
     <div class="limit-reached-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 7v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="16.5" r="1.1" fill="currentColor"/></svg></div>
@@ -4331,11 +4477,109 @@ function showLimitReached(check){
   inner.appendChild(d.firstElementChild);
   scrollChat();
 }
+/* ===== ГЕНЕРАЦИЯ ИЗОБРАЖЕНИЯ (Cloudflare Workers AI, отдельный путь) ===== */
+// Вставляет <img> в бабл ассистента по URL из Storage.
+function appendImageToShell(msgEl,src){
+  if(!msgEl)return;
+  msgEl.innerHTML=`<img class="msg-ai-img" src="${escapeHtml(src)}" alt="Сгенерированное изображение" loading="lazy">`;
+  scrollChat();
+}
+// Показывает плашку лимита фото (переиспользует стиль limitMessageHtml).
+function showImageLimitReached(check){
+  const inner=document.getElementById('chatInner');
+  const g=document.getElementById('greetingWrap');if(g)g.style.display='none';
+  const d=document.createElement('div');
+  d.innerHTML=limitMessageHtml(check);
+  inner.appendChild(d.firstElementChild);
+  scrollChat();
+}
+// Основной обработчик генерации: показывает индикатор, дергает /api/generate-image,
+// рендерит картинку в чат и сохраняет метку+URL в историю.
+async function handleImageGeneration(promptText){
+  const limit=checkImageLimit();
+  if(limit.blocked){showImageLimitReached(limit);return;}
+  showTyping('image');
+  setGeneratingState(true);
+  activeAbortController=new AbortController();
+  const shell=createAiBubbleShell({showActions:false});
+  const endpoints=buildImageApiCandidates();
+  const payload={prompt:promptText,userId:curUser?.id||null,model:curModel};
+  let lastError=null;
+  try{
+    for(let i=0;i<endpoints.length;i++){
+      const endpoint=endpoints[i];
+      try{
+        const res=await withTimeout(
+          fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),cache:'no-store',credentials:'omit',signal:activeAbortController.signal}),
+          CHAT_TIMEOUT_MS,
+          'Сервер слишком долго отвечает'
+        );
+        let data=null;try{data=await res.json();}catch(e){data=null;}
+        if(!res.ok||data?.error){
+          // Серверный лимит (429 со scope) — красивая плашка вместо текста ошибки.
+          if(res.status===429&&data?.error?.scope){
+            hideTyping();
+            const scopeMap={burst:'burst',day:'day',week:'week',month:'month'};
+            const check={scope:scopeMap[data.error.scope]||'day',reason:data.error.message};
+            const holder=document.createElement('div');
+            holder.innerHTML=limitMessageHtml(check);
+            shell.wrap.replaceWith(holder.firstElementChild);
+            scrollChat();
+            return;
+          }
+          throw new Error(data?.error?.message||`Ошибка сервера (${res.status})`);
+        }
+        if(!data?.image)throw new Error('Сервер не вернул изображение');
+        hideTyping();
+        appendImageToShell(shell.msg,data.image);
+        recordImageUsage();
+        chatHistory.push({role:'assistant',content:'[Сгенерировано изображение по запросу: «'+promptText+'»]',image:data.image});
+        await saveChat();
+        return;
+      }catch(e){
+        if(e?.name==='AbortError')throw new Error('Генерация остановлена');
+        lastError=e;
+        const msg=String(e?.message||'').toLowerCase();
+        if(i<endpoints.length-1&&(msg.includes('failed to fetch')||msg.includes('load failed')||msg.includes('network'))){
+          continue;
+        }
+        throw e;
+      }
+    }
+    throw lastError||new Error('Не удалось сгенерировать изображение');
+  }catch(e){
+    hideTyping();
+    if(e.message==='Генерация остановлена'){
+      shell.wrap.remove();
+    }else{
+      renderMd(shell.msg,'Не удалось сгенерировать изображение: '+tChatErr(e.message));
+    }
+  }finally{
+    activeAbortController=null;
+    activeStreamStop=null;
+    setGeneratingState(false);
+  }
+}
+
 async function sendMsg(){
   if(isGenerating){stopGeneration();return;}
   const ta=document.getElementById('msgTa');
   const text=ta.value.trim();
   if(!text&&!pendingAttachments.length)return;
+
+  // МАРШРУТИЗАЦИЯ НА ГЕНЕРАЦИЮ ИЗОБРАЖЕНИЯ:
+  // либо включён режим кнопкой, либо текст содержит триггер-слово И нет прикреплённого фото
+  // (иначе «нарисуй ...» с приложенным скриншотом — это анализ фото, обычный путь Codex).
+  const wantsImage=imageGenModeActive||(isImageRequest(text)&&!pendingAttachments.some(a=>a.kind==='image'));
+  if(wantsImage&&text){
+    ta.value='';ta.style.height='auto';
+    clearPendingAttachments();renderComposerAttachments();updateComposerPlaceholder();
+    setImageMode(false); // сброс режима, чтобы следующее обычное сообщение ушло как текст
+    addUserBubble(text,[]);
+    await handleImageGeneration(text);
+    return;
+  }
+
   // Проверка лимитов до отправки
   const limit=checkLimit();
   if(limit.blocked){showLimitReached(limit);return;}
