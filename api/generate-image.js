@@ -24,7 +24,7 @@ function readEnv(name) {
 
 function isPlaceholderValue(value = '') {
   const low = String(value || '').trim().toLowerCase();
-  return !low || low === 'undefined' || low === 'null' || low === 'your_key_here';
+  return !low || low === 'undefined' || low === 'null' || low === 'cfut_icTzeJWWO30mizQ1WlTPyqpKXa6knjOufukyGUP600979c48';
 }
 
 function normalizeText(text = '') {
