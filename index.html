@@ -1297,6 +1297,148 @@ html[data-theme="light"] .limit-reached{background:rgba(239,68,68,.07);border-co
 .mm-think-card{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;}
 .mm-think-title{font-size:15px;font-weight:700;color:var(--text);}
 .mm-think-sub{font-size:12.5px;color:var(--text2);margin-top:2px;}
+
+/* ============================================================================
+   ДЕСКТОПНЫЙ ПРОСМОТРЩИК СГЕНЕРИРОВАННОГО ФОТО (модальное окно).
+   Не на весь экран, как мобильный, а компактная модалка поверх чата с блюром фона.
+   Две темы через html[data-theme] — тот же механизм, что и во всём проекте.
+   Скругления «liquid glass», анимация opacity + лёгкий scale 150–200ms. */
+.pv-overlay{
+  position:fixed;inset:0;z-index:720;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.5);
+  backdrop-filter:blur(14px) saturate(140%);
+  -webkit-backdrop-filter:blur(14px) saturate(140%);
+  opacity:0;visibility:hidden;
+  transition:opacity .18s cubic-bezier(.22,.61,.36,1),visibility .18s;
+  padding:24px;
+}
+.pv-overlay.open{opacity:1;visibility:visible;}
+.pv-window{
+  position:relative;display:flex;flex-direction:column;
+  max-width:min(92vw,900px);max-height:min(90vh,760px);
+  border-radius:24px;overflow:hidden;
+  background:#141416;border:1px solid rgba(255,255,255,.10);
+  box-shadow:0 30px 80px rgba(0,0,0,.55);
+  transform:scale(.96);opacity:0;
+  transition:transform .18s cubic-bezier(.22,.61,.36,1),opacity .18s cubic-bezier(.22,.61,.36,1);
+}
+.pv-overlay.open .pv-window{transform:scale(1);opacity:1;}
+/* Верхняя панель: крестик слева, три точки справа */
+.pv-topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 12px;flex-shrink:0;
+  background:rgba(28,28,32,.72);
+  border-bottom:1px solid rgba(255,255,255,.06);
+}
+.pv-icon-btn{
+  width:36px;height:36px;border-radius:50%;border:none;
+  background:rgba(255,255,255,.07);color:#e8e8ec;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  transition:background .12s,transform .12s;
+}
+.pv-icon-btn:hover{background:rgba(255,255,255,.14);}
+.pv-icon-btn:active{transform:scale(.92);}
+.pv-icon-btn svg{width:18px;height:18px;display:block;}
+.pv-menu-wrap{position:relative;}
+/* Меню «три точки» */
+.pv-menu{
+  position:absolute;top:42px;right:0;min-width:180px;
+  padding:6px;border-radius:14px;
+  background:rgba(28,28,32,.92);
+  border:1px solid rgba(255,255,255,.10);
+  backdrop-filter:blur(22px) saturate(150%);
+  -webkit-backdrop-filter:blur(22px) saturate(150%);
+  box-shadow:0 16px 40px rgba(0,0,0,.45);
+  opacity:0;transform:translateY(-6px) scale(.96);transform-origin:top right;
+  transition:opacity .16s cubic-bezier(.22,.61,.36,1),transform .16s cubic-bezier(.22,.61,.36,1);
+  pointer-events:none;z-index:5;
+}
+.pv-menu.open{opacity:1;transform:translateY(0) scale(1);pointer-events:auto;}
+.pv-menu-item{
+  display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:10px;
+  font-size:14px;font-weight:600;color:#e8e8ec;cursor:pointer;transition:background .12s;
+}
+.pv-menu-item:hover{background:rgba(255,255,255,.08);}
+.pv-menu-item.pv-danger{color:#ef4444;}
+.pv-menu-item.pv-danger:hover{background:rgba(239,68,68,.12);}
+.pv-menu-item svg{width:16px;height:16px;flex-shrink:0;opacity:.9;}
+/* Центр — само фото */
+.pv-stage{
+  flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;
+  background:#0d0d0d;padding:14px;overflow:hidden;
+}
+.pv-stage img{
+  max-width:100%;max-height:100%;object-fit:contain;
+  border-radius:12px;display:block;
+  box-shadow:0 8px 28px rgba(0,0,0,.4);
+}
+/* Низ — три круглые кнопки: Скачать / Поделиться / Редактировать */
+.pv-actions{
+  display:flex;align-items:center;justify-content:center;gap:18px;
+  padding:14px 12px calc(14px + env(safe-area-inset-bottom,0px));flex-shrink:0;
+  background:rgba(28,28,32,.72);
+  border-top:1px solid rgba(255,255,255,.06);
+}
+.pv-action{
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  background:none;border:none;cursor:pointer;color:#c9c9d2;
+  font-size:11px;font-weight:600;transition:color .12s,transform .12s;
+}
+.pv-action:hover{color:#fff;}
+.pv-action:active{transform:scale(.92);}
+.pv-action-circle{
+  width:48px;height:48px;border-radius:50%;
+  background:rgba(255,255,255,.08);
+  display:flex;align-items:center;justify-content:center;
+  transition:background .12s;
+}
+.pv-action:hover .pv-action-circle{background:rgba(255,255,255,.16);}
+.pv-action-circle svg{width:22px;height:22px;display:block;}
+/* Светлая тема: светлый фон окна, тёмные иконки/текст, светло-серые кнопки */
+html[data-theme="light"] .pv-overlay{background:rgba(20,18,12,.32);}
+html[data-theme="light"] .pv-window{
+  background:#fbfaf8;border:1px solid rgba(20,18,12,.08);
+  box-shadow:0 30px 80px rgba(20,18,12,.28);
+}
+html[data-theme="light"] .pv-topbar{background:rgba(252,251,249,.9);border-bottom-color:rgba(20,18,12,.07);}
+html[data-theme="light"] .pv-icon-btn{background:rgba(20,18,12,.05);color:#26241f;}
+html[data-theme="light"] .pv-icon-btn:hover{background:rgba(20,18,12,.1);}
+html[data-theme="light"] .pv-menu{
+  background:rgba(252,251,249,.94);border-color:rgba(20,18,12,.08);
+  box-shadow:0 16px 40px rgba(20,18,12,.16);
+}
+html[data-theme="light"] .pv-menu-item{color:#26241f;}
+html[data-theme="light"] .pv-menu-item:hover{background:rgba(20,18,12,.05);}
+html[data-theme="light"] .pv-menu-item.pv-danger{color:#dc2626;}
+html[data-theme="light"] .pv-menu-item.pv-danger:hover{background:rgba(220,38,38,.08);}
+html[data-theme="light"] .pv-stage{background:#f1efe9;}
+html[data-theme="light"] .pv-stage img{box-shadow:0 8px 24px rgba(20,18,12,.16);}
+html[data-theme="light"] .pv-actions{background:rgba(252,251,249,.9);border-top-color:rgba(20,18,12,.07);}
+html[data-theme="light"] .pv-action{color:#5a574f;}
+html[data-theme="light"] .pv-action:hover{color:#26241f;}
+html[data-theme="light"] .pv-action-circle{background:rgba(20,18,12,.06);}
+html[data-theme="light"] .pv-action:hover .pv-action-circle{background:rgba(20,18,12,.12);}
+/* Мобильные/узкие экраны: модалка занимает больше места, кнопки крупнее */
+@media(max-width:768px){
+  .pv-overlay{padding:0;}
+  .pv-window{max-width:100vw;max-height:100vh;border-radius:0;border:none;}
+  .pv-action-circle{width:52px;height:52px;}
+  .pv-action-circle svg{width:24px;height:24px;}
+}
+@media(prefers-reduced-motion:reduce){
+  .pv-overlay,.pv-window,.pv-menu,.pv-icon-btn,.pv-action,.pv-action-circle{transition:none!important;}
+}
+/* Заглушка удалённого фото: неактивное (некликабельное) сообщение в чате. */
+.msg-ai-wrap.photo-deleted{opacity:.6;pointer-events:none;}
+.photo-deleted-msg{
+  font-style:italic;color:var(--text2);font-size:14px;
+  padding:10px 14px;border-radius:14px;
+  background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.12);
+}
+html[data-theme="light"] .photo-deleted-msg{
+  background:rgba(20,18,12,.04);border-color:rgba(20,18,12,.12);
+}
 </style>
 </head>
 <body>
@@ -1610,6 +1752,45 @@ html[data-theme="light"] .limit-reached{background:rgba(239,68,68,.07);border-co
         </div>
         <div class="sw" id="mmThinkSw" onclick="toggleThink(event)"></div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== PHOTO VIEWER (десктопная модалка просмотра сгенерированного фото) ===================== -->
+<div class="pv-overlay" id="photoViewerOverlay" onclick="if(event.target===this)closePhotoViewer()">
+  <div class="pv-window" id="photoViewerWindow" onclick="event.stopPropagation()">
+    <div class="pv-topbar">
+      <button class="pv-icon-btn" id="pvCloseBtn" onclick="closePhotoViewer()" title="Закрыть" aria-label="Закрыть">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M5 5l14 14M19 5L5 19" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+      </button>
+      <div class="pv-menu-wrap">
+        <button class="pv-icon-btn" id="pvMenuBtn" onclick="togglePhotoViewerMenu(event)" title="Меню" aria-label="Меню" aria-haspopup="true">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="5" r="1.8" fill="currentColor"/><circle cx="12" cy="12" r="1.8" fill="currentColor"/><circle cx="12" cy="19" r="1.8" fill="currentColor"/></svg>
+        </button>
+        <div class="pv-menu" id="pvMenu" onclick="event.stopPropagation()">
+          <div class="pv-menu-item pv-danger" id="pvDeleteBtn">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7V4.8c0-.44.36-.8.8-.8h4.4c.44 0 .8.36.8.8V7M6.5 7l1 13.2c.05.6.55 1.05 1.15 1.05h6.7c.6 0 1.1-.45 1.15-1.05L17.5 7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>Удалить фото</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pv-stage">
+      <img id="pvImage" src="" alt="Сгенерированное изображение">
+    </div>
+    <div class="pv-actions">
+      <button class="pv-action" id="pvDownloadBtn" title="Скачать" aria-label="Скачать">
+        <span class="pv-action-circle"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0l-4.5-4.5M12 15l4.5-4.5M4 20h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span>Скачать</span>
+      </button>
+      <button class="pv-action" id="pvShareBtn" title="Поделиться" aria-label="Поделиться">
+        <span class="pv-action-circle"><svg viewBox="0 0 24 24" fill="none"><path d="M12 15V3m0 0L8 7m4-4l4 4M5 13v6a2 2 0 002 2h10a2 2 0 002-2v-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span>Поделиться</span>
+      </button>
+      <button class="pv-action" id="pvEditBtn" title="Редактировать" aria-label="Редактировать">
+        <span class="pv-action-circle"><svg viewBox="0 0 24 24" fill="none"><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span>Редактировать</span>
+      </button>
     </div>
   </div>
 </div>
@@ -4187,6 +4368,67 @@ function buildImageApiCandidates(){
   endpoints.push(`${liveBase}/api/generate-image`);
   return [...new Set(endpoints)];
 }
+// Кандидаты-эндпоинты для intent-классификатора (api/intent.js) — отдельный лёгкий путь.
+function buildIntentApiCandidates(){
+  const liveBase=PRIMARY_API_ORIGIN.replace(/\/$/,'');
+  const isLiveHost=window.location.hostname==='harmonyai-zeta.vercel.app';
+  const endpoints=[];
+  if(window.location.protocol!=='file:'&&isLiveHost){
+    endpoints.push('/api/intent');
+  }
+  endpoints.push(`${liveBase}/api/intent`);
+  return [...new Set(endpoints)];
+}
+// Двухэтапная генерация: сначала спрашиваем intent-классификатор (api/intent.js),
+// нужно ли вообще генерировать и хватает ли деталей. Возвращает:
+//   {need_image, clarify, image_prompt, clarify_question}
+// При любой ошибке/недоступности — fail-open: если режим включён (forceImage) — отдаём
+// генерацию с сырым текстом, иначе обычный текстовый путь (need_image:false).
+async function classifyImageIntent(text,forceImage){
+  const payload={
+    message:text,
+    history:toWireHistory(chatHistory),
+    forceImage:Boolean(forceImage),
+    userId:curUser?.id||null
+  };
+  let lastError=null;
+  const endpoints=buildIntentApiCandidates();
+  for(let i=0;i<endpoints.length;i++){
+    const endpoint=endpoints[i];
+    try{
+      const res=await withTimeout(
+        fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),cache:'no-store',credentials:'omit'}),
+        22000,
+        'Классификатор намерений слишком долго отвечает'
+      );
+      let data=null;try{data=await res.json();}catch(e){data=null;}
+      if(!res.ok||data?.error){
+        const msg=String(data?.error?.message||'').toLowerCase();
+        if(i<endpoints.length-1&&(msg.includes('failed to fetch')||msg.includes('load failed')||msg.includes('network')))continue;
+        // Нестрого: классификатор не должен рвать отправку — откатываемся к эвристике.
+        return forceImage
+          ?{need_image:true,clarify:false,image_prompt:text.slice(0,1000),clarify_question:''}
+          :{need_image:false,clarify:false,image_prompt:'',clarify_question:''};
+      }
+      return {
+        need_image:Boolean(data?.need_image),
+        clarify:Boolean(data?.clarify),
+        image_prompt:String(data?.image_prompt||'').slice(0,1200),
+        clarify_question:String(data?.clarify_question||'').slice(0,600)
+      };
+    }catch(e){
+      lastError=e;
+      const msg=String(e?.message||'').toLowerCase();
+      if(i<endpoints.length-1&&(msg.includes('failed to fetch')||msg.includes('load failed')||msg.includes('network')))continue;
+      return forceImage
+        ?{need_image:true,clarify:false,image_prompt:text.slice(0,1000),clarify_question:''}
+        :{need_image:false,clarify:false,image_prompt:'',clarify_question:''};
+    }
+  }
+  return forceImage
+    ?{need_image:true,clarify:false,image_prompt:text.slice(0,1000),clarify_question:''}
+    :{need_image:false,clarify:false,image_prompt:'',clarify_question:''};
+}
 // Бюджет символов на ОДИН текстовый фрагмент ПРЕДЫДУЩЕГО хода истории при отправке модели.
 // Текущий (последний) ход пользователя отправляется полностью (фото + начало документа),
 // а все предыдущие ходы «худеют»: фото заменяются короткой текстовой меткой, длинные
@@ -4481,10 +4723,199 @@ function showLimitReached(check){
 // Вставляет <img> в бабл ассистента по URL из Storage.
 function appendImageToShell(msgEl,src){
   if(!msgEl)return;
-  msgEl.innerHTML=`<img class="msg-ai-img" src="${escapeHtml(src)}" alt="Сгенерированное изображение" loading="lazy">`;
+  // data-src хранит URL для просмотрщика; клик по фото на десктопе открывает модалку,
+  // на мобильном пока остаётся старое поведение (zoom-in курсор, без модалки —
+  // полноэкранный просмотрщик мобильной версии не входит в эту задачу).
+  msgEl.innerHTML=`<img class="msg-ai-img" src="${escapeHtml(src)}" data-src="${escapeHtml(src)}" alt="Сгенерированное изображение" loading="lazy">`;
+  const img=msgEl.querySelector('.msg-ai-img');
+  if(img){
+    img.addEventListener('click',()=>openPhotoViewer(src,img));
+  }
   scrollChat();
 }
-// Показывает плашку лимита фото (переиспользует стиль limitMessageHtml).
+
+/* ===== ДЕСКТОПНЫЙ ПРОСМОТРЩИК ФОТО (модалка) ===== */
+// Текущее состояние модалки: URL картинки и ссылка на <img> в чате, чтобы
+// кнопка «Удалить» знала, какое именно сообщение заменить заглушкой.
+let _pvState={url:null,imgEl:null,savedOverflow:null};
+
+function openPhotoViewer(url,imgEl){
+  if(!url)return;
+  _pvState={url,imgEl:imgEl||null,savedOverflow:document.body.style.overflow};
+  const ov=document.getElementById('photoViewerOverlay');
+  const img=document.getElementById('pvImage');
+  if(!ov||!img)return;
+  img.src=url;
+  // Блокируем скролл фона, пока окно открыто.
+  document.body.style.overflow='hidden';
+  ov.classList.add('open');
+  closePhotoViewerMenu();
+  // Фокус на крестик — чтобы Esc работал сразу и была доступна клавиатурой.
+  setTimeout(()=>document.getElementById('pvCloseBtn')?.focus(),50);
+  document.addEventListener('keydown',_pvKeyHandler);
+}
+function closePhotoViewer(){
+  const ov=document.getElementById('photoViewerOverlay');
+  if(!ov||!ov.classList.contains('open'))return;
+  ov.classList.remove('open');
+  document.body.style.overflow=_pvState.savedOverflow||'';
+  _pvState.url=null;_pvState.imgEl=null;_pvState.savedOverflow=null;
+  closePhotoViewerMenu();
+  document.removeEventListener('keydown',_pvKeyHandler);
+  // Очищаем src, чтобы не мигала прошлая картинка при следующем открытии.
+  const img=document.getElementById('pvImage');
+  if(img)img.src='';
+}
+function _pvKeyHandler(e){
+  if(e.key==='Escape'){
+    // Если открыто меню «три точки» — сначала закрываем его, потом саму модалку.
+    const menu=document.getElementById('pvMenu');
+    if(menu&&menu.classList.contains('open')){closePhotoViewerMenu();return;}
+    closePhotoViewer();
+  }
+}
+function togglePhotoViewerMenu(e){
+  e?.stopPropagation();
+  const menu=document.getElementById('pvMenu');
+  if(!menu)return;
+  menu.classList.toggle('open');
+}
+function closePhotoViewerMenu(){
+  document.getElementById('pvMenu')?.classList.remove('open');
+}
+// Скачивание: тянем blob по URL (чтобы имя файла было осмысленным, а не хеш Storage),
+// отдаём через временный <a download>. На кросс-домене fetch может быть запрещён —
+// тогда откатываемся к прямому открытию URL в новой вкладке.
+async function pvDownload(){
+  const url=_pvState.url;if(!url)return;
+  try{
+    const res=await fetch(url,{credentials:'omit',cache:'no-store'});
+    if(!res.ok)throw new Error('fetch not ok');
+    const blob=await res.blob();
+    const objUrl=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=objUrl;
+    a.download='harmonyai-'+(Date.now())+'.png';
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(objUrl),4000);
+  }catch(e){
+    // Запрет CORS на Storage — откатываемся к открытию в новой вкладке (пользователь
+    // сохранит сам через контекстное меню браузера).
+    window.open(url,'_blank','noopener');
+  }
+}
+// Поделиться: Web Share API с файлом, если поддерживается; иначе с URL;
+// иначе — копирование URL в буфер обмена.
+async function pvShare(){
+  const url=_pvState.url;if(!url)return;
+  // Пытаемся поделиться файлом (мобильные/десктоп-Safari с поддержкой navigator.canShare).
+  try{
+    if(navigator.canShare){
+      try{
+        const res=await fetch(url,{credentials:'omit',cache:'no-store'});
+        if(res.ok){
+          const blob=await res.blob();
+          const file=new File([blob],'harmonyai-image.png',{type:blob.type||'image/png'});
+          if(navigator.canShare({files:[file]})){
+            await navigator.share({files:[file],title:'HarmonyAI — изображение'});
+            return;
+          }
+        }
+      }catch(e){/* CORS/не поддерживается — пробуем URL ниже */}
+      if(navigator.share){
+        await navigator.share({title:'HarmonyAI — изображение',url});
+        return;
+      }
+    }
+  }catch(e){/* пользователь отменил share — молча выходим, это не ошибка */}
+  // Фолбэк: копируем URL в буфер обмена.
+  try{
+    await navigator.clipboard.writeText(url);
+    pvToast('Ссылка на изображение скопирована');
+  }catch(e){
+    pvToast('Не удалось поделиться — скопируйте ссылку вручную');
+  }
+}
+// Редактировать: закрываем окно и прикрепляем это фото к полю ввода как attachment-чип.
+// Следующее отправленное сообщение считается правкой к этому фото, пока пользователь
+// не открепит фото крестиком на чипе.
+async function pvEdit(){
+  const url=_pvState.url;if(!url)return;
+  closePhotoViewer();
+  try{
+    const res=await fetch(url,{credentials:'omit',cache:'no-store'});
+    if(!res.ok)throw new Error('fetch not ok');
+    const blob=await res.blob();
+    const file=new File([blob],'harmonyai-image.png',{type:blob.type||'image/png'});
+    // Переиспользуем существующий путь загрузки файла (handleFile), чтобы чип
+    // появился в composer-attachments и дальше ушёл в sendMsg как обычно.
+    const dt=new DataTransfer();
+    dt.items.add(file);
+    const inp=document.getElementById('fileInp');
+    if(inp){
+      // handleFile читает inp.files — подменяем через DataTransfer.
+      Object.defineProperty(inp,'files',{value:dt.files,writable:false,configurable:true});
+      await handleFile(inp);
+    }
+  }catch(e){
+    pvToast('Не удалось прикрепить фото для правки');
+  }
+}
+// Удалить фото из истории чата: на месте картинки остаётся неактивное сообщение
+// «Фото удалено». Сохраняем обновлённую историю в базу.
+function pvDelete(){
+  const imgEl=_pvState.imgEl;if(!imgEl){closePhotoViewer();return;}
+  // Поднимаемся до бабла ассистента (.msg-ai-wrap) и заменяем содержимое заглушкой.
+  const wrap=imgEl.closest('.msg-ai-wrap');
+  if(wrap){
+    wrap.classList.add('photo-deleted');
+    wrap.innerHTML=`<div class="msg-ai photo-deleted-msg">Фото удалено</div>`;
+  }
+  // Обновляем chatHistory: ищем запись с image===url и заменяем на текстовую метку.
+  const url=_pvState.url;
+  for(let i=chatHistory.length-1;i>=0;i--){
+    const m=chatHistory[i];
+    if(m&&m.role==='assistant'&&m.image===url){
+      m.content='[Фото удалено]';delete m.image;
+      break;
+    }
+  }
+  saveChat().catch(()=>{});
+  closePhotoViewer();
+}
+// Маленький тост-индикатор для фолбэков share/редактирования (без отдельной системы тостов).
+function pvToast(text){
+  let t=document.getElementById('pvToast');
+  if(!t){
+    t=document.createElement('div');
+    t.id='pvToast';
+    t.style.cssText='position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:rgba(20,20,24,.92);color:#fff;padding:11px 18px;border-radius:12px;font-size:14px;font-weight:600;z-index:800;opacity:0;transition:opacity .18s;pointer-events:none;box-shadow:0 10px 30px rgba(0,0,0,.4);';
+    document.body.appendChild(t);
+  }
+  t.textContent=text;
+  requestAnimationFrame(()=>{t.style.opacity='1';});
+  clearTimeout(t._timer);
+  t._timer=setTimeout(()=>{t.style.opacity='0';},2200);
+}
+// Привязываем кнопки один раз после загрузки DOM.
+(function initPhotoViewerBindings(){
+  function bind(){
+    document.getElementById('pvDownloadBtn')?.addEventListener('click',pvDownload);
+    document.getElementById('pvShareBtn')?.addEventListener('click',pvShare);
+    document.getElementById('pvEditBtn')?.addEventListener('click',pvEdit);
+    document.getElementById('pvDeleteBtn')?.addEventListener('click',pvDelete);
+    // Клик вне меню «три точки» — закрываем меню.
+    document.addEventListener('mousedown',(e)=>{
+      const menu=document.getElementById('pvMenu');
+      const btn=document.getElementById('pvMenuBtn');
+      if(menu&&menu.classList.contains('open')&&!menu.contains(e.target)&&!(btn&&btn.contains(e.target))){
+        closePhotoViewerMenu();
+      }
+    });
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind);
+  else bind();
+})();
 function showImageLimitReached(check){
   const inner=document.getElementById('chatInner');
   const g=document.getElementById('greetingWrap');if(g)g.style.display='none';
@@ -4574,11 +5005,92 @@ async function sendMsg(){
   if(wantsImage&&text){
     ta.value='';ta.style.height='auto';
     clearPendingAttachments();renderComposerAttachments();updateComposerPlaceholder();
+    const prevImageMode=imageGenModeActive;
     setImageMode(false); // сброс режима, чтобы следующее обычное сообщение ушло как текст
     addUserBubble(text,[]);
-    await handleImageGeneration(text);
+    // Сообщение пользователя фиксируем в истории сразу — даже если классификатор решит,
+    // что генерация не нужна, текстовый ответ модели должен видеть этот ход.
+    chatHistory.push({role:'user',content:text,attachments:[]});
+    if(chatHistory.length===1)await saveChat(text.slice(0,40));
+    else await saveChat();
+    // Двухэтапный пайплайн: сначала intent-классификатор решает, действительно ли нужна
+    // картинка и хватает ли деталей. forceImage=true только если режим был включён кнопкой
+    // (тогда пользователь явно хочет генерацию — классификатору остаётся только уточнить детали).
+    showTyping('image');
+    setGeneratingState(true);
+    let intent;
+    try{
+      intent=await classifyImageIntent(text,prevImageMode);
+    }finally{
+      hideTyping();
+      setGeneratingState(false);
+    }
+    if(!intent.need_image){
+      // Классификатор решил, что генерация не нужна — показываем обычный текстовый ответ
+      // ассистента (через стандартный путь), а не генерируем картинку.
+      await runAssistantReply(text);
+      return;
+    }
+    if(intent.clarify&&intent.clarify_question){
+      // Деталей маловато — ассистент задаёт уточняющий вопрос вместо немедленной генерации.
+      const shell=createAiBubbleShell({showActions:true,hiddenActions:false});
+      renderMd(shell.msg,intent.clarify_question);
+      chatHistory.push({role:'assistant',content:intent.clarify_question});
+      await saveChat();
+      return;
+    }
+    // need_image=true, clarify=false — генерируем с развитым промптом из классификатора
+    // (а не с сырым текстом пользователя).
+    await handleImageGeneration(intent.image_prompt||text);
     return;
   }
+
+  await handleTextReply();
+}
+
+// Собственно запрос текстового ответа модели и его стриминг в бабл ассистента.
+// Предполагается, что пользовательский ход УЖЕ добавлен в chatHistory и сохранён.
+// displayText — текст для учёта usage/индикатора; attachments уже учтены в history.
+async function runAssistantReply(displayText){
+  const hasImg=chatHistory.length>1&&Array.isArray(chatHistory[chatHistory.length-1]?.attachments)&&chatHistory[chatHistory.length-1].attachments.some(a=>a.kind==='image');
+  const hasDoc=chatHistory.length>1&&Array.isArray(chatHistory[chatHistory.length-1]?.attachments)&&chatHistory[chatHistory.length-1].attachments.some(a=>a.kind==='document');
+  const typKind=hasImg&&hasDoc?'photo':hasImg?'photo':hasDoc?'file':'text';
+  showTyping(typKind);
+  setGeneratingState(true);
+  const aiShell=createAiBubbleShell({showActions:true,hiddenActions:true});
+  try{
+    const result=await requestChatReplyLive(aiShell.msg,aiShell.actions);
+    if(result?.text){chatHistory.push({role:'assistant',content:result.text});recordUsage(displayText,result.text);}
+    await saveChat();
+    await autoContinueIfNeeded(result,aiShell.wrap,aiShell.msg,aiShell.actions);
+  }catch(e){
+    hideTyping();
+    if(e.limitScope){
+      // Серверный лимит/защита — показываем плашку вместо текста ошибки.
+      const scopeMap={burst:'burst',day:'burst',day_limit:'day',week_limit:'week'};
+      const check={scope:scopeMap[e.limitScope]||'day',reason:e.message};
+      const holder=document.createElement('div');
+      holder.innerHTML=limitMessageHtml(check);
+      aiShell.wrap.replaceWith(holder.firstElementChild);
+      scrollChat();
+    }else if(e.message!=='Генерация остановлена'){
+      renderMd(aiShell.msg,'Ошибка: '+e.message);
+      setMessageActionsVisible(aiShell.actions,false);
+    }
+  }finally{
+    activeAbortController=null;
+    activeStreamStop=null;
+    setGeneratingState(false);
+  }
+}
+
+// Обычный текстовый путь отправки: лимиты, вложения, фиксация пользовательского хода
+// в истории, затем стриминг ответа модели Codex. Вынесен отдельно, чтобы intent-классификатор
+// мог провалиться сюда (через runAssistantReply), если решит, что генерация изображения не нужна.
+async function handleTextReply(){
+  const ta=document.getElementById('msgTa');
+  const text=ta.value.trim();
+  if(!text&&!pendingAttachments.length)return;
 
   // Проверка лимитов до отправки
   const limit=checkLimit();
@@ -4625,37 +5137,8 @@ async function sendMsg(){
   chatHistory.push({role:'user',content:userContent,attachments:historyAttachments});
   if(chatHistory.length===1)await saveChat(displayText.slice(0,40));
   else await saveChat();
-  // Контекстный индикатор загрузки
-  const hasImg=imageAttachments.length>0, hasDoc=docAttachments.length>0;
-  const typKind=hasImg&&hasDoc?'photo':hasImg?'photo':hasDoc?'file':'text';
-  showTyping(typKind);
-  setGeneratingState(true);
-  const aiShell=createAiBubbleShell({showActions:true,hiddenActions:true});
 
-  try{
-    const result=await requestChatReplyLive(aiShell.msg,aiShell.actions);
-    if(result?.text){chatHistory.push({role:'assistant',content:result.text});recordUsage(displayText,result.text);}
-    await saveChat();
-    await autoContinueIfNeeded(result,aiShell.wrap,aiShell.msg,aiShell.actions);
-  }catch(e){
-    hideTyping();
-    if(e.limitScope){
-      // Серверный лимит/защита — показываем плашку вместо текста ошибки.
-      const scopeMap={burst:'burst',day:'burst',day_limit:'day',week_limit:'week'};
-      const check={scope:scopeMap[e.limitScope]||'day',reason:e.message};
-      const holder=document.createElement('div');
-      holder.innerHTML=limitMessageHtml(check);
-      aiShell.wrap.replaceWith(holder.firstElementChild);
-      scrollChat();
-    }else if(e.message!=='Генерация остановлена'){
-      renderMd(aiShell.msg,'Ошибка: '+e.message);
-      setMessageActionsVisible(aiShell.actions,false);
-    }
-  }finally{
-    activeAbortController=null;
-    activeStreamStop=null;
-    setGeneratingState(false);
-  }
+  await runAssistantReply(displayText);
 }
 
 /* ===== SETTINGS ===== */
