@@ -553,6 +553,27 @@ function appendServerContext(systemText, additions) {
   return [systemText || '', ...additions.filter(Boolean)].join('\n');
 }
 
+// Текущая дата и время сервера (Europe/Moscow). Вызывается на каждый запрос — НЕ кэшируется,
+// чтобы модель всегда знала «сегодня» как точку отсчёта. Модели Codex не имеют встроенного
+// чувства времени и могут отвечать устаревшей информацией, если не дать им явный ориентир.
+function buildCurrentDateTimeContext() {
+  try {
+    const now = new Date();
+    const currentDateString = now.toLocaleDateString('ru-RU', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+      timeZone: 'Europe/Moscow'
+    });
+    const currentTimeString = now.toLocaleTimeString('ru-RU', {
+      hour: '2-digit', minute: '2-digit',
+      timeZone: 'Europe/Moscow'
+    });
+    return `Текущая дата: ${currentDateString}, время: ${currentTimeString} (МСК). Используй эту дату как точку отсчёта "сегодня" при ответах.`;
+  } catch (e) {
+    // Подстраховка: если Intl/таймзона недоступны в рантайме — отдаём UTC-строку.
+    return `Текущая дата (UTC): ${new Date().toUTCString()}. Используй эту дату как точку отсчёта "сегодня" при ответах.`;
+  }
+}
+
 function isOverloaded(status, message = '') {
   const text = String(message).toLowerCase();
   return status === 429 || status === 503 || text.includes('high demand') || text.includes('resource exhausted') || text.includes('overloaded');
@@ -1276,6 +1297,7 @@ export default async function handler(req, res) {
     }
 
     const mergedSystem = appendServerContext(systemText, [
+      buildCurrentDateTimeContext(),
       profile ? `Профиль пользователя: role=${profile.role || 'user'}, plan=${profile.plan || 'free'}` : '',
       think ? buildThinkInstruction() : '',
       buildMemoryContext(memories, query),
