@@ -6,8 +6,8 @@ export const config = {
 // Режимы low/max НЕ меняют модель, они меняют только таймаут/глубину (см. selectRoute/handler).
 const MODEL_CHAINS = {
   adanatos: [
-    process.env.ADANATOS_MODEL || 'gpt-5.4',
-    process.env.ADANATOS_FALLBACK || 'gpt-5.4'
+    process.env.ADANATOS_MODEL || 'claude-haiku-4-5-20251001',
+    process.env.ADANATOS_FALLBACK || 'claude-haiku-4-5-20251001'
   ],
   dynatos: [
     process.env.DYNATOS_MODEL || 'gpt-5.5',
