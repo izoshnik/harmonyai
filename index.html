@@ -1277,6 +1277,57 @@ html[data-theme="light"] .limit-reached{background:rgba(239,68,68,.07);border-co
 .mm-opt.pro-locked::after,.mm-think-card.pro-locked::after{position:absolute;right:14px;top:14px;}
 .attach-opt.pro-locked::after{margin-left:auto;}
 
+/* ===== КНОПКА «РАСПОЗНАТЬ МУЗЫКУ» (слева от send) ===== */
+.mic-btn{width:38px;height:38px;border-radius:50%;background:var(--input-bg);color:var(--text2);border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;transition:background .12s,color .12s,transform .1s;flex-shrink:0;margin-right:6px;}
+.mic-btn:hover{background:var(--hover);color:var(--text);}
+.mic-btn:active{transform:scale(.94);}
+.mic-btn.recording{background:#ef4444;color:#fff;border-color:#ef4444;animation:micPulse 1.4s ease-in-out infinite;}
+@keyframes micPulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.55);}50%{box-shadow:0 0 0 8px rgba(239,68,68,0);}}
+@media(max-width:768px){.mic-btn{width:42px;height:42px;}}
+
+/* ===== МОДАЛКА РАСПОЗНАВАНИЯ ===== */
+.rec-overlay{position:fixed;inset:0;z-index:720;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.5);backdrop-filter:blur(6px);opacity:0;visibility:hidden;transition:opacity .2s,visibility .2s;padding:16px;}
+.rec-overlay.open{opacity:1;visibility:visible;}
+.rec-modal{width:min(440px,100%);background:rgba(24,24,29,.92);backdrop-filter:blur(28px) saturate(160%);-webkit-backdrop-filter:blur(28px) saturate(160%);border:1px solid rgba(255,255,255,.10);border-radius:22px;padding:22px 22px 20px;box-shadow:0 22px 60px rgba(0,0,0,.44);transform:translateY(10px) scale(.98);transition:transform .22s ease-out;}
+html[data-theme="light"] .rec-modal{background:rgba(252,251,249,.96);border-color:rgba(20,18,12,.08);}
+.rec-overlay.open .rec-modal{transform:none;}
+.rec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:10px;}
+.rec-title{font-size:17px;font-weight:700;color:var(--text);letter-spacing:-.2px;}
+.rec-close{width:30px;height:30px;border-radius:8px;background:transparent;border:none;cursor:pointer;color:var(--text2);display:flex;align-items:center;justify-content:center;transition:background .12s,color .12s;}
+.rec-close:hover{background:var(--hover);color:var(--text);}
+.rec-modes{display:flex;gap:8px;margin-bottom:16px;padding:4px;background:var(--bg3);border-radius:12px;}
+.rec-mode{flex:1;padding:10px 12px;font-size:13px;font-weight:600;color:var(--text2);background:transparent;border:none;border-radius:9px;cursor:pointer;font-family:inherit;transition:background .12s,color .12s;}
+.rec-mode.active{background:var(--drop-bg);color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,.14);}
+.rec-desc{font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:16px;}
+.rec-actions{display:flex;flex-direction:column;gap:10px;}
+.rec-record-btn{width:100%;padding:14px;border-radius:14px;background:#0a84ff;color:#fff;font-size:15px;font-weight:600;border:none;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .15s;}
+.rec-record-btn:hover{background:#3395ff;}
+.rec-record-btn.stop{background:#ef4444;}
+.rec-record-btn.stop:hover{background:#dc2626;}
+.rec-file-btn{width:100%;padding:12px;border-radius:12px;background:var(--bg3);color:var(--text);font-size:14px;font-weight:600;border:1px solid var(--border);cursor:pointer;font-family:inherit;transition:background .12s;}
+.rec-file-btn:hover{background:var(--hover);}
+.rec-status{font-size:12.5px;color:var(--text2);text-align:center;margin-top:6px;min-height:16px;font-style:italic;}
+.rec-timer{font-size:26px;font-weight:800;color:var(--text);text-align:center;letter-spacing:.02em;font-variant-numeric:tabular-nums;margin:8px 0 4px;}
+.rec-timer.recording{color:#ef4444;}
+
+/* ===== КАРТОЧКА РЕЗУЛЬТАТА РАСПОЗНАВАНИЯ ===== */
+.reco-card{align-self:stretch;background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:14px 16px;margin:4px 0;display:flex;flex-direction:column;gap:8px;}
+.reco-badge{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;align-self:flex-start;}
+.reco-badge.match{background:rgba(34,197,94,.14);color:#22c55e;}
+.reco-badge.guess{background:rgba(164,114,255,.14);color:#a472ff;}
+.reco-work{font-size:16px;font-weight:700;color:var(--text);letter-spacing:-.2px;}
+.reco-meta{font-size:13px;color:var(--text2);line-height:1.45;}
+.reco-conf{font-size:12px;color:var(--text2);}
+.reco-conf b{color:var(--text);}
+.reco-reasoning{font-size:13px;color:var(--text2);line-height:1.55;border-top:1px solid var(--border2);padding-top:8px;margin-top:2px;}
+.reco-abc-edit{margin-top:8px;padding:8px 12px;border-radius:10px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:12.5px;font-weight:600;cursor:pointer;align-self:flex-start;font-family:inherit;}
+.reco-abc-edit:hover{background:var(--hover);}
+.reco-abc-textarea{width:100%;min-height:120px;padding:10px 12px;border-radius:10px;background:var(--input-bg);border:1px solid var(--border);color:var(--text);font-family:'SF Mono',Menlo,Consolas,monospace;font-size:12.5px;line-height:1.5;resize:vertical;outline:none;margin-top:8px;}
+.reco-abc-textarea:focus{border-color:var(--text);}
+.reco-abc-actions{display:flex;gap:8px;margin-top:8px;}
+.reco-abc-save{padding:8px 14px;border-radius:10px;background:#0a84ff;color:#fff;font-size:12.5px;font-weight:600;border:none;cursor:pointer;font-family:inherit;}
+.reco-abc-cancel{padding:8px 14px;border-radius:10px;background:transparent;color:var(--text2);font-size:12.5px;font-weight:600;border:1px solid var(--border);cursor:pointer;font-family:inherit;}
+
 /* ===== КОМПАКТНЫЕ INLINE-СТРОКИ «Думаю…» / «Смотрю сайт…» ===== */
 /* Одна строка серого 13px italic, курсор pointer, hover — лёгкое подчёркивание. */
 .trace-line{align-self:stretch;font-size:13px;line-height:1.5;color:var(--text2);font-style:italic;padding:2px 2px 4px;margin:0 0 4px;cursor:pointer;user-select:none;display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap;transition:opacity .15s;}
@@ -1731,6 +1782,10 @@ html[data-theme="light"] .photo-deleted-msg{
                 </div>
               </div>
             </div>
+            <!-- Кнопка «Распознать музыку» — слева от отправки. Для не-Pro — апселл. -->
+            <button class="mic-btn" id="micBtn" onclick="openRecognizeModal()" title="Распознать музыку" aria-label="Распознать музыку">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="9" y="3" width="6" height="12" rx="3" stroke="currentColor" stroke-width="1.9"/><path d="M5 11a7 7 0 0014 0M12 18v3M8 21h8" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+            </button>
             <button class="send-btn" id="sendBtn" onclick="sendMsg()" title="Отправить">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
@@ -1744,6 +1799,33 @@ html[data-theme="light"] .photo-deleted-msg{
 
 <!-- ===================== ПРОМО-УВЕДОМЛЕНИЯ (появляются над строкой ввода) ===================== -->
 <div class="notif-host" id="notifHost" aria-live="polite"></div>
+
+<!-- ===================== МОДАЛКА РАСПОЗНАВАНИЯ МУЗЫКИ ===================== -->
+<div class="rec-overlay" id="recOverlay" onclick="if(event.target===this)closeRecognizeModal()">
+  <div class="rec-modal" onclick="event.stopPropagation()">
+    <div class="rec-head">
+      <div class="rec-title">Распознать музыку</div>
+      <button class="rec-close" onclick="closeRecognizeModal()" aria-label="Закрыть">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 5l14 14M19 5L5 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="rec-modes">
+      <button class="rec-mode active" id="recModeIdentify" onclick="setRecognizeMode('identify')">Что за произведение</button>
+      <button class="rec-mode" id="recModeDictation" onclick="setRecognizeMode('dictation')">Нотный диктант</button>
+    </div>
+    <div class="rec-desc" id="recDesc">Приложение послушает запись (до 25 секунд) и определит произведение, автора и период.</div>
+    <div class="rec-timer" id="recTimer">00:00</div>
+    <div class="rec-actions">
+      <button class="rec-record-btn" id="recRecordBtn" onclick="toggleRecognizeRecord()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="6" fill="currentColor"/></svg>
+        <span id="recRecordLabel">Начать запись</span>
+      </button>
+      <button class="rec-file-btn" onclick="document.getElementById('recFileInp').click()">Загрузить аудиофайл</button>
+      <input type="file" id="recFileInp" accept="audio/*" style="display:none" onchange="handleRecognizeFile(this)">
+    </div>
+    <div class="rec-status" id="recStatus"></div>
+  </div>
+</div>
 
 <!-- ===================== МИНИ-ОКНО «Размышление модели» ===================== -->
 <div class="trace-popover" id="thinkPopover" role="dialog" aria-label="Размышление модели">
@@ -5269,6 +5351,317 @@ async function handleImageGeneration(promptText){
     activeStreamStop=null;
     setGeneratingState(false);
   }
+}
+
+/* ============================================================================
+   РАСПОЗНАВАНИЕ МУЗЫКИ / НОТНЫЙ ДИКТАНТ (Pro-only)
+   Path A (identify): AudD API на сервере, точное совпадение записи.
+   Path B (identify + dictation): basic-pitch (TF.js через CDN) → MIDI ноты →
+     - для diktation: MIDI → ABC, рендер через abcjs (уже подключён);
+     - для identify: короткое текстовое описание мелодии → gpt-5.5 (сервер).
+   ========================================================================== */
+let _rec={mode:'identify',mediaRecorder:null,chunks:[],startedAt:0,timerId:null,recording:false,stream:null};
+const REC_MAX_MS=25000; // AudD стандартный тариф: до ~25 сек / 10 МБ.
+
+function openRecognizeModal(){
+  // Pro-гейт: обычному пользователю показываем апселл, ничего не открываем.
+  if(!isProUser()){showNotification('promo_limits',1);return;}
+  document.getElementById('recOverlay')?.classList.add('open');
+  setRecognizeMode(_rec.mode||'identify');
+  setRecStatus('');
+  setRecTimer(0);
+}
+function closeRecognizeModal(){
+  if(_rec.recording)stopRecognizeRecord(true);
+  document.getElementById('recOverlay')?.classList.remove('open');
+}
+function setRecognizeMode(mode){
+  _rec.mode=mode;
+  document.getElementById('recModeIdentify')?.classList.toggle('active',mode==='identify');
+  document.getElementById('recModeDictation')?.classList.toggle('active',mode==='dictation');
+  const desc=document.getElementById('recDesc');
+  if(desc){
+    desc.textContent=mode==='dictation'
+      ? 'Сыграйте или спойте мелодию — приложение расшифрует её в нотный стан (двухголосие поддерживается).'
+      : 'Приложение послушает запись (до 25 секунд) и определит произведение, автора и период.';
+  }
+}
+function setRecStatus(text){const el=document.getElementById('recStatus');if(el)el.textContent=text||'';}
+function setRecTimer(ms){
+  const s=Math.max(0,Math.floor(ms/1000));
+  const mm=String(Math.floor(s/60)).padStart(2,'0');
+  const ss=String(s%60).padStart(2,'0');
+  const t=document.getElementById('recTimer');
+  if(t){t.textContent=mm+':'+ss;t.classList.toggle('recording',_rec.recording);}
+}
+
+async function toggleRecognizeRecord(){
+  if(_rec.recording){stopRecognizeRecord();return;}
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    _rec.stream=stream;
+    const mime=MediaRecorder.isTypeSupported('audio/webm;codecs=opus')?'audio/webm;codecs=opus':'audio/webm';
+    _rec.mediaRecorder=new MediaRecorder(stream,{mimeType:mime});
+    _rec.chunks=[];
+    _rec.mediaRecorder.ondataavailable=e=>{if(e.data&&e.data.size)_rec.chunks.push(e.data);};
+    _rec.mediaRecorder.onstop=()=>{
+      const blob=new Blob(_rec.chunks,{type:mime});
+      _rec.stream?.getTracks().forEach(t=>t.stop());
+      _rec.stream=null;
+      _rec.recording=false;
+      updateRecordBtn();
+      stopRecTimer();
+      processRecognitionAudio(blob);
+    };
+    _rec.mediaRecorder.start();
+    _rec.recording=true;
+    _rec.startedAt=Date.now();
+    updateRecordBtn();
+    startRecTimer();
+    document.getElementById('micBtn')?.classList.add('recording');
+    setRecStatus('Записываю…');
+  }catch(e){
+    setRecStatus('Не удалось получить доступ к микрофону: '+(e?.message||''));
+  }
+}
+function stopRecognizeRecord(silent){
+  if(!_rec.mediaRecorder)return;
+  try{_rec.mediaRecorder.stop();}catch(e){}
+  stopRecTimer();
+  document.getElementById('micBtn')?.classList.remove('recording');
+  if(silent){_rec.stream?.getTracks().forEach(t=>t.stop());_rec.stream=null;_rec.chunks=[];_rec.recording=false;updateRecordBtn();}
+}
+function updateRecordBtn(){
+  const btn=document.getElementById('recRecordBtn');
+  const label=document.getElementById('recRecordLabel');
+  if(!btn||!label)return;
+  btn.classList.toggle('stop',_rec.recording);
+  label.textContent=_rec.recording?'Остановить':'Начать запись';
+}
+function startRecTimer(){
+  stopRecTimer();
+  _rec.timerId=setInterval(()=>{
+    const dt=Date.now()-_rec.startedAt;
+    setRecTimer(dt);
+    if(dt>=REC_MAX_MS)stopRecognizeRecord();
+  },200);
+}
+function stopRecTimer(){if(_rec.timerId){clearInterval(_rec.timerId);_rec.timerId=null;}}
+
+async function handleRecognizeFile(inp){
+  const file=inp.files&&inp.files[0];
+  if(!file)return;
+  inp.value='';
+  // AudD ограничивает файлы до ~10 МБ / 25 сек — предупреждаем пользователя, но не режем
+  // (сервер сам обрежет / откажется, если что).
+  if(file.size>12*1024*1024){setRecStatus('Файл больше 12 МБ — попробуйте более короткую запись.');return;}
+  await processRecognitionAudio(file);
+}
+
+async function processRecognitionAudio(blob){
+  const mode=_rec.mode;
+  setRecStatus(mode==='dictation'?'Анализирую ноты…':'Распознаю…');
+  const btn=document.getElementById('recRecordBtn');
+  if(btn)btn.disabled=true;
+  try{
+    const audioBase64=await blobToBase64(blob);
+    let melodyDescription='';
+    let abcNotation='';
+    // Для диктанта и как fallback для identify — прогоняем через basic-pitch.
+    // Модель ~40 МБ, загружается один раз с CDN, кешируется браузером.
+    if(mode==='dictation'){
+      try{
+        const {abc,description}=await transcribeAudioToAbc(blob);
+        abcNotation=abc;melodyDescription=description;
+      }catch(e){
+        setRecStatus('Не удалось расшифровать мелодию: '+(e?.message||''));
+        return;
+      }
+    }
+    const payload={mode,audioBase64,melodyDescription,userId:curUser?.id||null};
+    const res=await withTimeout(fetch(getRecognizeEndpoint(),{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload),
+      cache:'no-store',
+      credentials:'omit'
+    }),60000,'Сервер распознавания слишком долго отвечает');
+    let data=null;try{data=await res.json();}catch(e){data=null;}
+    if(!res.ok){
+      throw new Error(data?.error?.message||'Ошибка сервера ('+res.status+')');
+    }
+    closeRecognizeModal();
+    renderRecognitionResult({mode,result:data,abc:abcNotation});
+  }catch(e){
+    setRecStatus('Ошибка: '+(e?.message||''));
+  }finally{
+    if(btn)btn.disabled=false;
+  }
+}
+
+function getRecognizeEndpoint(){
+  const liveBase=PRIMARY_API_ORIGIN.replace(/\/$/,'');
+  const isLiveHost=window.location.hostname==='harmonyai-zeta.vercel.app';
+  if(window.location.protocol!=='file:'&&isLiveHost)return '/api/recognize';
+  return liveBase+'/api/recognize';
+}
+
+function blobToBase64(blob){
+  return new Promise((resolve,reject)=>{
+    const r=new FileReader();
+    r.onload=()=>{const s=String(r.result||'');const i=s.indexOf(',');resolve(i>=0?s.slice(i+1):s);};
+    r.onerror=()=>reject(new Error('Не удалось прочитать аудио'));
+    r.readAsDataURL(blob);
+  });
+}
+
+/* --- basic-pitch: аудио → MIDI-события → ABC-нотация (клиент, TF.js CDN) --- */
+let _bpModulePromise=null;
+async function loadBasicPitch(){
+  if(_bpModulePromise)return _bpModulePromise;
+  _bpModulePromise=(async()=>{
+    // TF.js обязателен как зависимость basic-pitch.
+    if(!window.tf){
+      await import('https://esm.sh/@tensorflow/tfjs@4.20.0').then(m=>{window.tf=m;});
+    }
+    const bp=await import('https://esm.sh/@spotify/basic-pitch@1.0.1');
+    return bp;
+  })();
+  return _bpModulePromise;
+}
+async function transcribeAudioToAbc(blob){
+  const bp=await loadBasicPitch();
+  const arrayBuffer=await blob.arrayBuffer();
+  const AC=window.AudioContext||window.webkitAudioContext;
+  const ac=new AC({sampleRate:22050});
+  const audioBuffer=await ac.decodeAudioData(arrayBuffer.slice(0));
+  // basic-pitch API: new BasicPitch(modelUrl), evaluateModel(audio, ...).
+  const modelUrl='https://cdn.jsdelivr.net/npm/@spotify/basic-pitch@1.0.1/model/model.json';
+  const model=new bp.BasicPitch(modelUrl);
+  const frames=[],onsets=[],contours=[];
+  await model.evaluateModel(audioBuffer.getChannelData(0),(f,o,c)=>{
+    frames.push(...f);onsets.push(...o);contours.push(...c);
+  },()=>{});
+  const notes=bp.noteFramesToTime(bp.outputToNotesPoly(frames,onsets,0.25,0.25,5)||[]);
+  const abc=midiEventsToAbc(notes||[]);
+  const description=describeMelody(notes||[]);
+  return {abc,description};
+}
+function midiEventsToAbc(events){
+  if(!events||!events.length){return 'X:1\nT:Диктант\nM:4/4\nL:1/8\nK:C\n(пусто)';}
+  events=events.slice().sort((a,b)=>a.startTimeSeconds-b.startTimeSeconds);
+  // Простая эвристика темпа: медиана длительности → BPM.
+  const durs=events.map(e=>Math.max(0.05,e.durationSeconds));
+  const medDur=durs.slice().sort((a,b)=>a-b)[Math.floor(durs.length/2)]||0.5;
+  const bpm=Math.max(60,Math.min(180,Math.round(60/medDur)));
+  const secPerEighth=60/bpm/2;
+  // Тональность: гистограмма pitch class → выбираем C-мажор / a-минор по умолчанию.
+  const pcHist=new Array(12).fill(0);
+  events.forEach(e=>{pcHist[e.pitchMidi%12]++;});
+  const keyName=guessKey(pcHist);
+  const midiToAbc=(m)=>{
+    const names=['C','^C','D','^D','E','F','^F','G','^G','A','^A','B'];
+    const oct=Math.floor(m/12)-1;
+    let base=names[m%12];
+    if(oct>=5){base=base.toLowerCase();for(let i=6;i<=oct;i++)base+="'";}
+    else if(oct<=3){for(let i=oct;i<3;i++)base+=',';}
+    return base;
+  };
+  const parts=[];
+  events.forEach(e=>{
+    const len=Math.max(1,Math.round(e.durationSeconds/secPerEighth));
+    parts.push(midiToAbc(e.pitchMidi)+len);
+  });
+  // Разбиваем на такты по 8 восьмых.
+  const measures=[];let acc=0,cur=[];
+  parts.forEach(p=>{
+    const num=parseInt(p.replace(/[^0-9]/g,''),10)||1;
+    cur.push(p);acc+=num;
+    if(acc>=8){measures.push(cur.join(' '));cur=[];acc=0;}
+  });
+  if(cur.length)measures.push(cur.join(' '));
+  const body=measures.join(' | ')+' ||';
+  return `X:1\nT:Нотный диктант\nM:4/4\nL:1/8\nQ:1/4=${bpm}\nK:${keyName}\n${body}`;
+}
+function guessKey(pcHist){
+  // Крамхэнсл-подобный простой профиль (мажор).
+  const majProfile=[6.35,2.23,3.48,2.33,4.38,4.09,2.52,5.19,2.39,3.66,2.29,2.88];
+  const noteNames=['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B'];
+  let best=0,bestScore=-Infinity;
+  for(let k=0;k<12;k++){
+    let s=0;
+    for(let i=0;i<12;i++)s+=pcHist[(i+k)%12]*majProfile[i];
+    if(s>bestScore){bestScore=s;best=k;}
+  }
+  return noteNames[best];
+}
+function describeMelody(events){
+  if(!events.length)return 'пустая запись';
+  const pcNames=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  const seq=events.slice(0,60).map(e=>pcNames[e.pitchMidi%12]+Math.floor(e.pitchMidi/12-1)).join(' ');
+  return `Ноты (по времени): ${seq}. Всего ${events.length} нот.`;
+}
+
+/* --- Рендер результата в чате --- */
+function renderRecognitionResult({mode,result,abc}){
+  const inner=getChatInner();
+  const g=document.getElementById('greetingWrap');if(g)g.style.display='none';
+  const holder=document.createElement('div');
+  holder.className='msg-ai-wrap';
+  const card=document.createElement('div');
+  card.className='reco-card';
+  const pathA=result?.source==='fingerprint';
+  const badge=pathA?'<span class="reco-badge match">✓ Точное совпадение</span>':'<span class="reco-badge guess">≈ Предположение модели</span>';
+  const work=escapeHtml(result?.workGuess||result?.title||'Не удалось определить произведение');
+  const composer=escapeHtml(result?.composerGuess||result?.artist||'');
+  const period=escapeHtml(result?.periodGuess||result?.year||'');
+  const conf=result?.confidence?`<div class="reco-conf">Уверенность: <b>${escapeHtml(result.confidence)}</b></div>`:'';
+  const meta=[composer,period].filter(Boolean).join(' · ');
+  const reasoning=result?.reasoning?`<div class="reco-reasoning">${escapeHtml(result.reasoning)}</div>`:'';
+  card.innerHTML=`${badge}<div class="reco-work">${work}</div>${meta?`<div class="reco-meta">${meta}</div>`:''}${conf}${reasoning}`;
+  holder.appendChild(card);
+  // Для диктанта — рендерим ABC через существующий рендер (renderAbc / abcjs).
+  if(mode==='dictation'&&abc){
+    const abcHolder=document.createElement('div');
+    abcHolder.className='reco-abc-holder';
+    abcHolder.dataset.abc=abc;
+    holder.appendChild(abcHolder);
+    if(window.ABCJS){
+      const id='reco-abc-'+(++abcCounter);
+      abcHolder.id=id;
+      try{window.ABCJS.renderAbc(id,abc,{responsive:'resize'});}catch(e){abcHolder.textContent=abc;}
+    }else{
+      abcHolder.innerHTML='<pre style="font-family:monospace;font-size:12px;color:var(--text2);white-space:pre-wrap;">'+escapeHtml(abc)+'</pre>';
+    }
+    // Кнопка «редактировать вручную» — открывает textarea, позволяет перерендерить ABC.
+    const editBtn=document.createElement('button');
+    editBtn.className='reco-abc-edit';
+    editBtn.textContent='Редактировать ноты вручную';
+    editBtn.onclick=()=>openAbcEditor(holder,abcHolder,abc);
+    card.appendChild(editBtn);
+  }
+  inner.appendChild(holder);
+  scrollChat();
+}
+function openAbcEditor(holder,abcHolder,abc){
+  if(holder.querySelector('.reco-abc-textarea'))return;
+  const ta=document.createElement('textarea');
+  ta.className='reco-abc-textarea';
+  ta.value=abc;
+  const actions=document.createElement('div');
+  actions.className='reco-abc-actions';
+  const save=document.createElement('button');save.className='reco-abc-save';save.textContent='Применить';
+  const cancel=document.createElement('button');cancel.className='reco-abc-cancel';cancel.textContent='Отмена';
+  save.onclick=()=>{
+    const newAbc=ta.value;
+    abcHolder.dataset.abc=newAbc;
+    if(window.ABCJS&&abcHolder.id){try{window.ABCJS.renderAbc(abcHolder.id,newAbc,{responsive:'resize'});}catch(e){}}
+    ta.remove();actions.remove();
+  };
+  cancel.onclick=()=>{ta.remove();actions.remove();};
+  actions.appendChild(save);actions.appendChild(cancel);
+  holder.appendChild(ta);holder.appendChild(actions);
+  ta.focus();
 }
 
 async function sendMsg(){
