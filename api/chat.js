@@ -1023,14 +1023,26 @@ async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs,
   return { ok: true, text: finalText, model: modelName, truncated: stalled };
 }
 
+// Роли, у которых есть доступ к Pro-функциям (Dynatos, Max, Думать).
+// Клиент прячет опции для user, но серверная проверка тоже нужна:
+// нельзя обойти гейт, послав model:'pro' в обход UI.
+function isProRole(profile){
+  const r=String(profile?.role||'').toLowerCase();
+  const p=String(profile?.plan||'').toLowerCase();
+  return r==='pro'||r==='developer'||r==='admin'||r==='moderator'||p==='pro';
+}
+
 function selectRoute(profile, requestedModel) {
   const wantsPro = requestedModel === 'pro';
-  const modelChain = wantsPro ? MODEL_CHAINS.dynatos : MODEL_CHAINS.adanatos;
+  // Если запрошена Pro-модель, но роль не Pro — тихо откатываемся на Adanatos.
+  const allowedPro = wantsPro && isProRole(profile);
+  const modelChain = allowedPro ? MODEL_CHAINS.dynatos : MODEL_CHAINS.adanatos;
 
   return {
     provider: 'openai',
     apiKey: readEnv('OPENAI_API_KEY'),
-    models: modelChain
+    models: modelChain,
+    proDowngraded: wantsPro && !allowedPro
   };
 }
 
@@ -1166,12 +1178,19 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { messages, model, userId, think = false, effort = 'low', stream = false, trainingMode = false, webSearch = 'auto' } = req.body || {};
+    let { messages, model, userId, think = false, effort = 'low', stream = false, trainingMode = false, webSearch = 'auto' } = req.body || {};
     if (!Array.isArray(messages) || messages.length === 0) {
       return res.status(400).json({ error: { message: 'Пустой запрос к модели' } });
     }
 
     const profile = await fetchProfile(userId);
+    // Серверный Pro-гейт: если роль не Pro, тихо снимаем Max и Думать
+    // (клиент их и так не даст включить, но защищаемся от прямых запросов к API).
+    if (!isProRole(profile)) {
+      if (effort === 'max') effort = 'low';
+      if (think) think = false;
+      if (model === 'pro') model = 'lite';
+    }
     const query = lastUserText(messages);
     const isQuick = isSimpleQuery(query);
     const wantsContext = needsPersonalContext(query, messages);
