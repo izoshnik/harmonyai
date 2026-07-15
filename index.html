@@ -689,14 +689,14 @@ html[data-theme="light"] .msg-ai{color:#1a1a1a;}
   .chat-ctx-item:hover{background:rgba(0,0,0,.05);}
 }
 
-/* Thinking */
-.thinking{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text2);padding:4px 0;}
-.thinking.think-text{font-weight:500;letter-spacing:.01em;}
-.think-dots{display:flex;gap:4px;}
-.think-dots span{width:5px;height:5px;border-radius:50%;background:var(--text2);animation:bop 1.2s infinite;}
+/* Thinking (typing indicator) — компактно: одна строка серого текста 13px italic. */
+.thinking{display:flex;align-items:center;gap:6px;font-size:13px;font-style:italic;color:var(--text2);padding:2px 0 4px;}
+.thinking.think-text{font-weight:500;letter-spacing:.01em;font-style:italic;}
+.think-dots{display:flex;gap:3px;}
+.think-dots span{width:3px;height:3px;border-radius:50%;background:var(--text2);animation:bop 1.2s infinite;}
 .think-dots span:nth-child(2){animation-delay:.2s;}
 .think-dots span:nth-child(3){animation-delay:.4s;}
-@keyframes bop{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+@keyframes bop{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-3px)}}
 @keyframes thinkStepIn{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:translateY(0);}}
 .think-step{display:inline-block;animation:thinkStepIn .3s cubic-bezier(.22,.61,.36,1) both;}
 .think-trace{align-self:stretch;font-size:13px;line-height:1.55;color:var(--text2);background:rgba(255,255,255,0.035);border:1px solid var(--border2);border-left:2px solid rgba(255,255,255,0.16);border-radius:12px;padding:10px 12px;margin-bottom:6px;white-space:pre-wrap;overflow-wrap:anywhere;max-height:1600px;overflow:hidden;transition:max-height .35s ease,opacity .35s ease,padding .35s ease;}
@@ -749,12 +749,14 @@ html[data-theme="light"] .msg-ai{color:#1a1a1a;}
   html[data-theme="light"] .img-chip-x{background:#fff;border-color:rgba(20,18,12,.14);color:#5a574f;}
 }
 
-/* Картинка в бабле ассистента (сгенерированное изображение). */
-.msg-ai-img{max-width:100%;border-radius:14px;display:block;margin:4px 0;box-shadow:0 6px 18px rgba(0,0,0,.18);cursor:zoom-in;}
+/* Картинка в бабле ассистента (сгенерированное изображение).
+   Ограничение по ширине: 320px на десктопе / 220px на мобильном.
+   object-fit:contain — сохраняем пропорции, не вылезая за пузырь. */
+.msg-ai-img{max-width:320px;width:100%;height:auto;object-fit:contain;border-radius:12px;display:block;margin:4px 0;box-shadow:0 2px 12px rgba(0,0,0,.15);cursor:zoom-in;}
 @media(max-width:768px){
-  .msg-ai-img{border-radius:16px;box-shadow:0 8px 22px rgba(0,0,0,.28);}
+  .msg-ai-img{max-width:220px;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.15);}
 }
-html[data-theme="light"] .msg-ai-img{box-shadow:0 6px 16px rgba(20,18,12,.12);}
+html[data-theme="light"] .msg-ai-img{box-shadow:0 2px 12px rgba(20,18,12,.10);}
 
 /* Меню кнопки "+" (новый «+»: файл/фото + поиск в интернете) */
 .plus-drop{position:absolute;bottom:calc(100% + 8px);left:0;background:var(--drop-bg);border:1px solid var(--border);border-radius:14px;padding:6px;box-shadow:var(--drop-shadow);display:none;z-index:200;min-width:220px;animation:none;}
@@ -776,14 +778,17 @@ html[data-theme="light"] .msg-ai-img{box-shadow:0 6px 16px rgba(20,18,12,.12);}
   html[data-theme="light"] .plus-drop{background:rgba(255,255,255,.94);border-color:rgba(20,18,12,.10);}
 }
 
-/* ===== PLUS BOTTOM-SHEET (iOS-style: размышление / поиск в сети / добавить файлы) ===== */
-.attach-overlay{position:fixed;inset:0;z-index:680;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.5);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);opacity:0;visibility:hidden;transition:opacity .22s,visibility .22s;}
+/* ===== PLUS BOTTOM-SHEET (iOS-style: размышление / поиск в сети / добавить файлы) =====
+   На десктопе — прикреплён к нижней части экрана (как iOS share sheet или меню
+   прикрепления в Telegram Desktop): slide-up 200ms, backdrop blur 6px + rgba(0,0,0,.25). */
+.attach-overlay{position:fixed;inset:0;z-index:680;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.25);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);opacity:0;visibility:hidden;transition:opacity .2s ease-out,visibility .2s ease-out;}
 .attach-overlay.open{opacity:1;visibility:visible;}
-.attach-sheet{width:100%;max-width:560px;background:rgba(24,24,29,.72);backdrop-filter:blur(28px) saturate(160%);-webkit-backdrop-filter:blur(28px) saturate(160%);border:1px solid rgba(255,255,255,.10);border-top-left-radius:28px;border-top-right-radius:28px;box-shadow:0 -18px 48px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.06);padding:10px 18px 28px;transform:translateY(16px);transition:transform .25s cubic-bezier(.2,.9,.3,1.1);}
+.attach-sheet{width:100%;max-width:560px;background:rgba(24,24,29,.86);backdrop-filter:blur(28px) saturate(160%);-webkit-backdrop-filter:blur(28px) saturate(160%);border:1px solid rgba(255,255,255,.10);border-top-left-radius:28px;border-top-right-radius:28px;box-shadow:0 -18px 48px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.06);padding:10px 18px 28px;transform:translateY(100%);transition:transform .2s ease-out;}
 .attach-overlay.open .attach-sheet{transform:translateY(0);}
 @media(min-width:769px){
-  .attach-overlay{align-items:center;}
-  .attach-sheet{max-width:420px;border-radius:24px;}
+  /* Десктоп: sheet прижат к низу поверх строки ввода, ширина ограничена. */
+  .attach-overlay{align-items:flex-end;background:rgba(0,0,0,.25);}
+  .attach-sheet{max-width:520px;margin:0 auto 12px;border-radius:22px;box-shadow:0 -12px 42px rgba(0,0,0,.28);}
 }
 html[data-theme="light"] .attach-sheet{background:rgba(255,255,255,.94);border-color:rgba(20,18,12,.10);box-shadow:0 -18px 48px rgba(0,0,0,.12),inset 0 1px 0 rgba(255,255,255,.6);}
 .attach-handle{width:36px;height:5px;border-radius:3px;background:rgba(255,255,255,.22);margin:6px auto 14px;}
@@ -1264,6 +1269,62 @@ html[data-theme="light"] .limit-reached{background:rgba(239,68,68,.07);border-co
   .send-btn svg{width:22px!important;height:22px!important;}
 }
 
+/* Заблокированные Pro-опции для роли user: приглушаем и показываем «замочек».
+   Клики по ним не пропускаются в selectModel/selectMode/toggleThink — там гейт. */
+.pro-locked{opacity:.55;position:relative;}
+.pro-locked::after{content:'PRO';font-size:9px;font-weight:800;letter-spacing:.06em;color:#a472ff;background:rgba(164,114,255,.12);border:1px solid rgba(164,114,255,.28);border-radius:6px;padding:2px 5px;margin-left:6px;flex-shrink:0;}
+.desktop-option.pro-locked::after,.desktop-think.pro-locked::after{margin-left:auto;}
+.mm-opt.pro-locked::after,.mm-think-card.pro-locked::after{position:absolute;right:14px;top:14px;}
+.attach-opt.pro-locked::after{margin-left:auto;}
+
+/* ===== КОМПАКТНЫЕ INLINE-СТРОКИ «Думаю…» / «Смотрю сайт…» ===== */
+/* Одна строка серого 13px italic, курсор pointer, hover — лёгкое подчёркивание. */
+.trace-line{align-self:stretch;font-size:13px;line-height:1.5;color:var(--text2);font-style:italic;padding:2px 2px 4px;margin:0 0 4px;cursor:pointer;user-select:none;display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap;transition:opacity .15s;}
+.trace-line:hover{opacity:.85;}
+.trace-line:hover .trace-line-txt{text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px;}
+.trace-line .trace-line-icon{flex-shrink:0;}
+.trace-line .trace-line-arrow{margin-left:2px;opacity:.7;}
+
+/* ===== МИНИ-ОКНА (Размышление / Веб-поиск) — стеклянный попап сверху чата ===== */
+.trace-popover{position:fixed;left:50%;top:70px;transform:translateX(-50%) translateY(-10px);width:min(420px,92vw);max-height:420px;z-index:720;background:rgba(24,24,29,.86);backdrop-filter:blur(28px) saturate(160%);-webkit-backdrop-filter:blur(28px) saturate(160%);border:1px solid rgba(255,255,255,.10);border-radius:20px;box-shadow:0 22px 60px rgba(0,0,0,.44);padding:16px 16px 14px;opacity:0;visibility:hidden;transition:opacity .18s ease-out,transform .18s ease-out,visibility .18s;display:flex;flex-direction:column;}
+html[data-theme="light"] .trace-popover{background:rgba(252,251,249,.95);border-color:rgba(20,18,12,.08);box-shadow:0 22px 60px rgba(20,18,12,.18);}
+.trace-popover.open{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0);}
+.trace-popover-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;flex-shrink:0;}
+.trace-popover-title{font-size:14px;font-weight:700;color:var(--text);letter-spacing:-.2px;}
+.trace-popover-close{width:28px;height:28px;border-radius:8px;background:transparent;border:none;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;transition:background .12s,color .12s;}
+.trace-popover-close:hover{background:var(--hover);color:var(--text);}
+.trace-popover-body{font-size:13px;line-height:1.6;color:var(--text2);overflow-y:auto;max-height:320px;white-space:pre-wrap;overflow-wrap:anywhere;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Inter',sans-serif;padding-right:4px;}
+.trace-popover-body:empty::before{content:'Модель ещё не начала размышления…';opacity:.6;}
+/* Список источников веб-поиска в мини-окне */
+.trace-src-list{display:flex;flex-direction:column;gap:6px;}
+.trace-src-item{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);text-decoration:none;color:var(--text);font-size:12.5px;line-height:1.35;transition:background .12s;}
+html[data-theme="light"] .trace-src-item{background:rgba(20,18,12,.03);border-color:rgba(20,18,12,.06);}
+.trace-src-item:hover{background:rgba(255,255,255,.07);}
+.trace-src-fav{width:16px;height:16px;flex-shrink:0;border-radius:3px;background:rgba(255,255,255,.06);object-fit:contain;}
+.trace-src-info{flex:1;min-width:0;}
+.trace-src-title{font-size:12.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.trace-src-host{font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.trace-src-status{font-size:11px;flex-shrink:0;opacity:.7;}
+.trace-src-status.done{color:#22c55e;}
+.trace-src-status.live{color:#0a84ff;}
+
+/* ===== ПРОМО-УВЕДОМЛЕНИЯ (появляются над строкой ввода) ===== */
+.notif-host{position:fixed;left:0;right:0;bottom:0;z-index:750;pointer-events:none;display:flex;justify-content:center;padding:0 12px calc(90px + env(safe-area-inset-bottom,0px));}
+@media(min-width:769px){.notif-host{padding-bottom:110px;}}
+.notif-card{pointer-events:auto;width:100%;max-width:420px;background:var(--drop-bg);border:1px solid var(--border);border-radius:20px;padding:18px 18px 18px 20px;position:relative;box-shadow:0 12px 34px rgba(0,0,0,.30);animation:notifSlideUp .35s cubic-bezier(.34,1.56,.64,1) both;}
+@media(max-width:768px){.notif-card{background:rgba(28,28,32,.92);backdrop-filter:blur(22px) saturate(160%);-webkit-backdrop-filter:blur(22px) saturate(160%);border-color:rgba(255,255,255,.10);}}
+html[data-theme="light"] .notif-card{background:#fff;border-color:rgba(20,18,12,.08);box-shadow:0 12px 34px rgba(20,18,12,.14);}
+@keyframes notifSlideUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+@keyframes notifSlideDown{from{opacity:1;transform:translateY(0);}to{opacity:0;transform:translateY(10px);}}
+.notif-card.leaving{animation:notifSlideDown .22s ease both;}
+.notif-close{position:absolute;top:12px;right:12px;background:none;border:none;cursor:pointer;color:var(--text2);font-size:20px;line-height:1;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:color .15s,background .15s;padding:0;}
+.notif-close:hover{color:var(--text);background:var(--hover);}
+.notif-title{font-size:16px;font-weight:700;color:var(--text);line-height:1.3;padding-right:32px;margin-bottom:6px;}
+.notif-body{font-size:13.5px;color:var(--text2);line-height:1.5;margin-bottom:14px;padding-right:8px;}
+.notif-btn{display:block;width:100%;padding:12px;background:#1d6bf3;border:none;border-radius:12px;color:#fff;font-size:15px;font-weight:600;text-align:center;cursor:pointer;font-family:inherit;transition:background .15s,transform .1s;}
+.notif-btn:hover{background:#2575ff;}
+.notif-btn:active{transform:scale(.98);background:#1557d4;}
+
 /* ===== Mobile model bottom-sheet (liquid glass) ===== */
 .mm-overlay{position:fixed;inset:0;z-index:700;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.5);backdrop-filter:blur(6px);opacity:0;visibility:hidden;transition:opacity .22s,visibility .22s;}
 .mm-overlay.open{opacity:1;visibility:visible;}
@@ -1681,6 +1742,31 @@ html[data-theme="light"] .photo-deleted-msg{
   </div>
 </div>
 
+<!-- ===================== ПРОМО-УВЕДОМЛЕНИЯ (появляются над строкой ввода) ===================== -->
+<div class="notif-host" id="notifHost" aria-live="polite"></div>
+
+<!-- ===================== МИНИ-ОКНО «Размышление модели» ===================== -->
+<div class="trace-popover" id="thinkPopover" role="dialog" aria-label="Размышление модели">
+  <div class="trace-popover-head">
+    <div class="trace-popover-title">Размышление модели</div>
+    <button class="trace-popover-close" onclick="closeThinkPopover()" aria-label="Закрыть">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 5l14 14M19 5L5 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+  <div class="trace-popover-body" id="thinkPopoverBody"></div>
+</div>
+
+<!-- ===================== МИНИ-ОКНО «Веб-поиск» ===================== -->
+<div class="trace-popover" id="searchPopover" role="dialog" aria-label="Веб-поиск">
+  <div class="trace-popover-head">
+    <div class="trace-popover-title">Веб-поиск</div>
+    <button class="trace-popover-close" onclick="closeSearchPopover()" aria-label="Закрыть">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 5l14 14M19 5L5 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+  <div class="trace-popover-body" id="searchPopoverBody"><div class="trace-src-list" id="searchPopoverList"></div></div>
+</div>
+
 <!-- ===================== MOBILE MODEL BOTTOM-SHEET ===================== -->
 <div class="mm-overlay" id="mmOverlay" onclick="if(event.target===this)closeMobileModelSheet()">
   <div class="mm-sheet" id="mmSheet" onclick="event.stopPropagation()">
@@ -2090,9 +2176,76 @@ function fmtResetHuman(d){
 /* marked setup */
 if(typeof marked!=='undefined') marked.setOptions({breaks:true,gfm:true});
 function isDesktop(){return window.innerWidth>=769;}
+
+/* ===== ПРОМО-УВЕДОМЛЕНИЯ =====
+   Три ID (promo_img / promo_quality / promo_limits) с разными вероятностями.
+   Не показываются повторно в одной сессии (sessionStorage) и не показываются
+   пользователям с Pro-ролями. Автозакрытие через 8 секунд. */
+const NOTIF_TEXTS={
+  promo_img:{title:'Получите более детальные изображения с Pro',body:'Улучшенное разрешение, насыщенные цвета и глубокая проработка деталей.',cta:'Обновить'},
+  promo_quality:{title:'Улучшите качество ответов с Pro',body:'Более умная модель, ответы быстрее и точнее, работа с длинным контекстом.',cta:'Обновить'},
+  promo_limits:{title:'Получите безграничные лимиты с Pro',body:'С Pro-подпиской доступны более умные модели без ограничений по лимитам.',cta:'Обновить'}
+};
+function shouldShowNotification(id,probability){
+  if(!id||!NOTIF_TEXTS[id])return false;
+  // Pro-роли не должны видеть промо.
+  if(typeof isProUser==='function'&&isProUser())return false;
+  try{if(sessionStorage.getItem('notif_shown_'+id))return false;}catch(e){}
+  if(Math.random()>probability)return false;
+  try{sessionStorage.setItem('notif_shown_'+id,'1');}catch(e){}
+  return true;
+}
+function dismissNotification(el){
+  if(!el||el._dismissed)return;
+  el._dismissed=true;
+  if(el._autoTimer)clearTimeout(el._autoTimer);
+  el.classList.add('leaving');
+  setTimeout(()=>el.remove(),220);
+}
+function renderNotification(id){
+  const host=document.getElementById('notifHost');
+  const t=NOTIF_TEXTS[id];
+  if(!host||!t)return;
+  // Одно уведомление в момент времени — если уже что-то показано, снимаем прошлое.
+  host.querySelectorAll('.notif-card').forEach(dismissNotification);
+  const card=document.createElement('div');
+  card.className='notif-card';
+  card.setAttribute('data-notif-id',id);
+  card.innerHTML=`
+    <button class="notif-close" aria-label="Закрыть">×</button>
+    <div class="notif-title">${t.title}</div>
+    <div class="notif-body">${t.body}</div>
+    <button class="notif-btn">${t.cta}</button>`;
+  card.querySelector('.notif-close').addEventListener('click',()=>dismissNotification(card));
+  card.querySelector('.notif-btn').addEventListener('click',()=>{
+    dismissNotification(card);
+    // CTA пока просто закрывает уведомление; переход на экран Pro при желании
+    // можно повесить сюда позже (openSettings() + вкладка лимитов).
+  });
+  card._autoTimer=setTimeout(()=>dismissNotification(card),8000);
+  host.appendChild(card);
+}
+// Публичный API: показать уведомление, если пройдёт вероятность и не Pro и не показывалось.
+function showNotification(id,probability){
+  if(!shouldShowNotification(id,probability))return false;
+  renderNotification(id);
+  return true;
+}
+
 function isDeveloper(){return curUser?.role==='developer';}
 function hasTrainingAccess(){return Boolean(curUser&&(curUser.role==='developer'||curUser.role==='admin'));}
 function hasModeratorAccess(){return Boolean(curUser&&(curUser.role==='developer'||curUser.role==='moderator'||curUser.role==='admin'));}
+/* Доступ к Pro-функциям (Dynatos, Max, Думать) — только у ролей pro/developer/admin/moderator.
+   Обычный User видит опции задизейбленными с тултипом «Доступно в Pro». */
+function isProUser(){
+  const r=curUser?.role;
+  return Boolean(curUser&&(r==='pro'||r==='developer'||r==='admin'||r==='moderator'));
+}
+function requireProOr(callback){
+  if(isProUser()){callback&&callback();return true;}
+  if(typeof showNotification==='function'){showNotification('promo_limits',1);}
+  return false;
+}
 let trainingMode=false;
 function withTimeout(promise,ms,message){
   let timer;
@@ -2198,6 +2351,11 @@ async function hydrateSignedInState(session){
     updateUserUI();
     renderChatList();
     maybeShowNicknameModal();
+    // Промо при входе в приложение. Пробуем показать оба, но реально появится одно
+    // (renderNotification вытесняет предыдущее, вероятности мешают одновременному показу).
+    setTimeout(()=>{
+      if(!showNotification('promo_quality',3/11))showNotification('promo_limits',1/8);
+    },600);
   })().finally(()=>{
     authHydrationPromise=null;
   });
@@ -3243,6 +3401,11 @@ function backToMobileModelScreen(){
   document.getElementById('mmScreenModel')?.classList.add('active');
 }
 function selectModel(m){
+  // Dynatos (pro) — только для роли pro/developer/admin/moderator.
+  if(m==='pro'&&!isProUser()){
+    if(typeof showNotification==='function')showNotification('promo_limits',1);
+    return;
+  }
   curModel=m;
   refreshModelUI();
   closeModelMenus();
@@ -3267,12 +3430,22 @@ function openModelsSub(e){
   document.getElementById('desktopModeSub')?.classList.remove('open');
 }
 function selectMode(m){
+  // Режим Max — только Pro-роли.
+  if(m==='max'&&!isProUser()){
+    if(typeof showNotification==='function')showNotification('promo_limits',1);
+    return;
+  }
   curMode=m;
   refreshModelUI();
   closeModelMenus();
 }
 function toggleThink(e){
-  e.stopPropagation();
+  if(e&&e.stopPropagation)e.stopPropagation();
+  // Режим Думать — только Pro-роли.
+  if(!thinkOn&&!isProUser()){
+    if(typeof showNotification==='function')showNotification('promo_limits',1);
+    return;
+  }
   thinkOn=!thinkOn;
   refreshModelUI();
 }
@@ -3434,6 +3607,18 @@ function refreshModelUI(){
   setOpacity('mmCheckPro',curModel==='pro'?'1':'0');
   setOpacity('mmCheckLow',curMode==='low'?'1':'0');
   setOpacity('mmCheckMax',curMode==='max'?'1':'0');
+  /* Pro-гейт: помечаем недоступные для User опции классом .locked с tooltip. */
+  const locked=!isProUser();
+  const proTip='Доступно в Pro';
+  ['desktopCkPro','desktopCkMax','desktopThinkSw','mmOptPro','mmOptMax','mmThinkSw','attachThinkSw'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    el.classList.toggle('locked',locked);
+    // Тултип на самой опции (родителе), чтобы hover срабатывал по всей строке.
+    const host=el.closest('.desktop-option,.desktop-think,.mm-opt,.mm-think-card,.attach-opt')||el;
+    if(locked){host.setAttribute('title',proTip);host.classList.add('pro-locked');}
+    else{host.removeAttribute('title');host.classList.remove('pro-locked');}
+  });
 }
 refreshModelUI();
 refreshWebSearchUI();
@@ -3446,6 +3631,29 @@ document.addEventListener('click',e=>{
   }
   if(!e.target.closest('.mac-btn'))
     document.querySelectorAll('.more-menu.open').forEach(x=>x.classList.remove('open'));
+});
+// Закрытие мини-окон Размышления/Веб-поиска по клику вне.
+document.addEventListener('click',e=>{
+  const thinkPop=document.getElementById('thinkPopover');
+  if(thinkPop&&thinkPop.classList.contains('open')&&!e.target.closest('#thinkPopover')&&!e.target.closest('.trace-line.think')){
+    closeThinkPopover();
+  }
+  const searchPop=document.getElementById('searchPopover');
+  if(searchPop&&searchPop.classList.contains('open')&&!e.target.closest('#searchPopover')&&!e.target.closest('.trace-line.search')){
+    closeSearchPopover();
+  }
+});
+// Escape закрывает открытые попапы (меню «+», bottom-sheet моделей).
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Escape')return;
+  if(plusDropOpen)closePlusDrop();
+  if(dropOpen)closeModelMenus();
+  const mm=document.getElementById('mmOverlay');
+  if(mm&&mm.classList.contains('open'))closeMobileModelSheet();
+  const thinkPop=document.getElementById('thinkPopover');
+  if(thinkPop&&thinkPop.classList.contains('open'))closeThinkPopover();
+  const searchPop=document.getElementById('searchPopover');
+  if(searchPop&&searchPop.classList.contains('open'))closeSearchPopover();
 });
 
 /* ===== SYSTEM PROMPT ===== */
@@ -4210,122 +4418,188 @@ async function regenMsg(item){
     setGeneratingState(false);
   }
 }
-/* ===== WEB SEARCH TRACE (блок «Ищу в интернете → просмотрел N сайтов → думаю над ответом») ===== */
-const ST_ARROW_SVG='<svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-const ST_GLOBE_SVG='<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2"/><path d="M4.5 9h15M4.5 15h15" stroke="currentColor" stroke-width="1.6"/></svg>';
-function ensureSearchTrace(msgEl){
-  const wrap=msgEl.closest('.msg-ai-wrap');
-  if(!wrap)return null;
-  let trace=wrap.querySelector('.search-trace');
-  if(!trace){
-    trace=document.createElement('div');
-    trace.className='search-trace live';
-    trace.innerHTML=`<div class="search-trace-label"><span class="st-spin">${ST_GLOBE_SVG}</span><span class="st-dots"><span></span><span></span><span></span></span><span class="st-label-txt">Ищу в интернете…</span><span class="st-arrow">${ST_ARROW_SVG}</span></div><div class="search-trace-body"></div>`;
-    wrap.insertBefore(trace,msgEl);
-    // Клик по лейблу открывает попап со списком просмотренных сайтов (когда они уже есть).
-    trace.querySelector('.search-trace-label').addEventListener('click',()=>{
-      const sources=msgEl._searchSources||lastSearchSources;
-      if(sources&&sources.length)openSourcesPopup(sources);
-    });
-    // Клик по свёрнутому блоку — разворачивает его.
-    trace.addEventListener('click',()=>{
-      if(trace.classList.contains('collapsed'))trace.classList.remove('collapsed');
-    });
-  }
-  return trace;
-}
-// phase: 'query' (ИИ ищет) | 'sources' (просмотрел сайты). Для 'sources' показываем счётчик.
-function showSearchTrace(msgEl,phase,query,browsed,total){
-  const trace=ensureSearchTrace(msgEl);
-  if(!trace)return;
-  const label=trace.querySelector('.st-label-txt');
-  const body=trace.querySelector('.search-trace-body');
-  if(phase==='query'){
-    if(label)label.textContent='Ищу в интернете…';
-    if(body&&query)body.textContent='Запрос: '+query;
-    trace.classList.add('live');
-    trace.classList.remove('thinking');
-  }else if(phase==='browse'){
-    // ИИ читает конкретный сайт: «Смотрю <host>…» (query здесь = host).
-    if(label)label.textContent='Смотрю '+(query||'сайты')+'…';
-    trace.classList.add('live');
-    trace.classList.remove('thinking');
-  }else if(phase==='sources'){
-    const n=browsed||total||0;
-    if(label)label.textContent=n?'Просмотрел '+n+' '+(sourcesWord(n))+', думаю как лучше ответить…':'Просмотрел сайты, думаю как лучше ответить…';
-    trace.classList.remove('live');
-    trace.classList.add('thinking');
-  }
-  scrollChat();
-}
-function markSearchTraceThinking(msgEl){
-  const wrap=msgEl.closest('.msg-ai-wrap');
-  const trace=wrap&&wrap.querySelector('.search-trace');
-  if(!trace)return;
-  trace.classList.remove('live');
-  trace.classList.add('thinking');
-}
-function finalizeSearchTrace(msgEl){
-  const wrap=msgEl.closest('.msg-ai-wrap');
-  const trace=wrap&&wrap.querySelector('.search-trace');
-  if(!trace)return;
-  trace.classList.remove('live','thinking');
-  // Если источников нет — блок не имеет смысла (поиск ничего не дал), убираем его.
-  const sources=msgEl._searchSources||[];
-  if(!sources.length){trace.remove();return;}
-  const label=trace.querySelector('.st-label-txt');
-  if(label)label.textContent='Просмотрел '+sources.length+' '+(sourcesWord(sources.length))+' · нажмите, чтобы развернуть';
-  trace.classList.add('collapsed');
-}
-// Правильное склонение слова «сайт» для счётчика.
+/* ===== КОМПАКТНЫЕ ИНДИКАТОРЫ ПОИСКА И РАЗМЫШЛЕНИЯ (одна строка + мини-окно) =====
+   Раньше была многострочная «карточка» .search-trace / .think-trace.
+   Теперь — одна серая строка италиком в потоке чата; полный текст открывается
+   в мини-окне сверху (позиция ~ модалка выбора модели). */
+
+// --- WEB SEARCH ---
 function sourcesWord(n){
   const n10=n%10,n100=n%100;
   if(n10===1&&n100!==11)return'сайт';
   if(n10>=2&&n10<=4&&(n100<10||n100>=20))return'сайта';
   return'сайтов';
 }
-function ensureReasoningTrace(msgEl){
+function ensureSearchTraceLine(msgEl){
   const wrap=msgEl.closest('.msg-ai-wrap');
   if(!wrap)return null;
-  let trace=wrap.querySelector('.think-trace');
-  if(!trace){
-    trace=document.createElement('div');
-    trace.className='think-trace live';
-    trace.innerHTML=`<div class="think-trace-label"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Размышляю</span></div><div class="think-trace-body"></div>`;
-    wrap.insertBefore(trace,msgEl);
-    trace.addEventListener('click',()=>{
-      if(trace.classList.contains('collapsed'))trace.classList.remove('collapsed');
-    });
+  let line=wrap.querySelector('.trace-line.search');
+  if(!line){
+    line=document.createElement('div');
+    line.className='trace-line search live';
+    // Хранилище истории «Смотрю host…» — используется в мини-окне пока поиск идёт.
+    line._browsed=[];
+    line._sources=[];
+    line._done=false;
+    line.innerHTML=`<span class="trace-line-icon">🌐</span><span class="trace-line-txt">Ищу в интернете…</span><span class="trace-line-arrow">›</span>`;
+    wrap.insertBefore(line,msgEl);
+    line.addEventListener('click',()=>openSearchPopover(line));
   }
-  return trace;
+  return line;
+}
+function setSearchLineText(line,text){
+  const t=line?.querySelector('.trace-line-txt');
+  if(t)t.textContent=text;
+}
+function showSearchTrace(msgEl,phase,query,browsed,total){
+  const line=ensureSearchTraceLine(msgEl);
+  if(!line)return;
+  if(phase==='query'){
+    setSearchLineText(line,'Ищу в интернете…');
+    line._lastQuery=query||'';
+  }else if(phase==='browse'){
+    const host=query||'сайт';
+    setSearchLineText(line,'Смотрю '+host+'… Думаю');
+    if(!line._browsed.includes(host))line._browsed.push(host);
+  }else if(phase==='sources'){
+    const n=browsed||total||0;
+    setSearchLineText(line,n?('Просмотрел '+n+' '+sourcesWord(n)):'Просмотрел сайты');
+  }
+  // Если попап открыт — синхронно обновляем его содержимое.
+  refreshSearchPopover(line);
+  scrollChat();
+}
+function markSearchTraceThinking(msgEl){
+  // Ничего специально не делаем: строка уже показывает актуальный статус.
+  const wrap=msgEl.closest('.msg-ai-wrap');
+  const line=wrap&&wrap.querySelector('.trace-line.search');
+  if(line)line.classList.add('thinking');
+}
+function finalizeSearchTrace(msgEl){
+  const wrap=msgEl.closest('.msg-ai-wrap');
+  const line=wrap&&wrap.querySelector('.trace-line.search');
+  if(!line)return;
+  line._done=true;
+  line.classList.remove('live');
+  const sources=line._sources.length?line._sources:(msgEl._searchSources||[]);
+  if(!sources.length){line.remove();return;}
+  setSearchLineText(line,'Просмотрел '+sources.length+' '+sourcesWord(sources.length));
+  refreshSearchPopover(line);
+}
+
+// Открытие/закрытие мини-окна веб-поиска.
+let _searchPopoverLine=null;
+function openSearchPopover(line){
+  _searchPopoverLine=line;
+  refreshSearchPopover(line);
+  document.getElementById('searchPopover')?.classList.add('open');
+}
+function closeSearchPopover(){
+  _searchPopoverLine=null;
+  document.getElementById('searchPopover')?.classList.remove('open');
+}
+function refreshSearchPopover(line){
+  if(!_searchPopoverLine||_searchPopoverLine!==line)return;
+  const listEl=document.getElementById('searchPopoverList');
+  if(!listEl)return;
+  const sources=line._sources.length?line._sources:[];
+  const browsedHosts=line._browsed||[];
+  // Если готовых источников ещё нет — показываем текущие «Смотрю host…».
+  if(!sources.length&&browsedHosts.length){
+    listEl.innerHTML=browsedHosts.map(host=>{
+      const fav='https://www.google.com/s2/favicons?domain='+encodeURIComponent(host)+'&sz=32';
+      return `<div class="trace-src-item"><img class="trace-src-fav" src="${escapeHtml(fav)}" onerror="this.style.visibility='hidden'"><div class="trace-src-info"><div class="trace-src-title">${escapeHtml(host)}</div><div class="trace-src-host">${escapeHtml(host)}</div></div><span class="trace-src-status live">🔄 в процессе</span></div>`;
+    }).join('');
+    return;
+  }
+  if(!sources.length){
+    listEl.innerHTML='<div style="font-size:13px;color:var(--text2);padding:14px 4px;text-align:center;opacity:.7;">Пока сайтов нет…</div>';
+    return;
+  }
+  listEl.innerHTML=sources.map(s=>{
+    let host='';
+    try{host=new URL(s.url).hostname.replace(/^www\./,'');}catch(e){host=s.url||'';}
+    const fav='https://www.google.com/s2/favicons?domain='+encodeURIComponent(host)+'&sz=32';
+    const title=escapeHtml(s.title||host||'Источник');
+    return `<a class="trace-src-item" href="${escapeHtml(s.url)}" target="_blank" rel="noopener noreferrer"><img class="trace-src-fav" src="${escapeHtml(fav)}" onerror="this.style.visibility='hidden'"><div class="trace-src-info"><div class="trace-src-title">${title}</div><div class="trace-src-host">${escapeHtml(host)}</div></div><span class="trace-src-status done">✓ просмотрен</span></a>`;
+  }).join('');
+}
+
+// --- REASONING (Думать) ---
+function fmtThinkDuration(ms){
+  const s=Math.max(1,Math.round(ms/1000));
+  if(s<60)return s+'с';
+  const m=Math.floor(s/60),rem=s%60;
+  return m+'м '+rem+'с';
+}
+function ensureReasoningLine(msgEl){
+  const wrap=msgEl.closest('.msg-ai-wrap');
+  if(!wrap)return null;
+  let line=wrap.querySelector('.trace-line.think');
+  if(!line){
+    line=document.createElement('div');
+    line.className='trace-line think live';
+    line._text='';
+    line._startedAt=Date.now();
+    line._done=false;
+    line.innerHTML=`<span class="trace-line-icon">💭</span><span class="trace-line-txt">Думаю…</span><span class="trace-line-arrow">›</span>`;
+    // Если параллельно есть search-line, ставим think-строку после неё, иначе перед msgEl.
+    const searchLine=wrap.querySelector('.trace-line.search');
+    if(searchLine)searchLine.after(line);
+    else wrap.insertBefore(line,msgEl);
+    line.addEventListener('click',()=>openThinkPopover(line));
+  }
+  return line;
 }
 function appendReasoningChunk(msgEl,text){
   if(!text)return;
-  const trace=ensureReasoningTrace(msgEl);
-  if(!trace)return;
-  const body=trace.querySelector('.think-trace-body');
-  body.textContent+=text;
+  const line=ensureReasoningLine(msgEl);
+  if(!line)return;
+  line._text+=text;
+  // Если параллельно есть web-search строка — префикс «🌐 Смотрю site… » мы уже даём в ней,
+  // а эта строка отвечает конкретно за размышление модели.
+  if(_thinkPopoverLine===line){
+    const body=document.getElementById('thinkPopoverBody');
+    if(body){body.textContent=line._text;body.scrollTop=body.scrollHeight;}
+  }
   scrollChat();
 }
 function finalizeReasoningTrace(msgEl){
   const wrap=msgEl.closest('.msg-ai-wrap');
-  const trace=wrap&&wrap.querySelector('.think-trace');
-  if(!trace)return;
-  trace.classList.remove('live');
-  const label=trace.querySelector('.think-trace-label span');
-  if(label)label.textContent='Ход рассуждений · нажмите, чтобы развернуть';
-  trace.classList.add('collapsed');
+  const line=wrap&&wrap.querySelector('.trace-line.think');
+  if(!line)return;
+  if(!line._text&&!line._done){line.remove();return;}
+  line._done=true;
+  line._durationMs=Date.now()-(line._startedAt||Date.now());
+  line.classList.remove('live');
+  const t=line.querySelector('.trace-line-txt');
+  if(t)t.textContent='Думал на протяжении '+fmtThinkDuration(line._durationMs);
+}
+
+// Мини-окно с полным текстом размышления.
+let _thinkPopoverLine=null;
+function openThinkPopover(line){
+  _thinkPopoverLine=line;
+  const body=document.getElementById('thinkPopoverBody');
+  if(body)body.textContent=line._text||'';
+  document.getElementById('thinkPopover')?.classList.add('open');
+  // Прокручиваем в самый низ, если размышление ещё стримится.
+  if(body)requestAnimationFrame(()=>{body.scrollTop=body.scrollHeight;});
+}
+function closeThinkPopover(){
+  _thinkPopoverLine=null;
+  document.getElementById('thinkPopover')?.classList.remove('open');
 }
 function showTyping(kind='text',steps=[]){
   const inner=getChatInner();
   const d=document.createElement('div');d.className='thinking';d.id='typEl';
   if(thinkOn){
     d.classList.add('think-text');
-    d.innerHTML=`<div class="think-dots"><span></span><span></span><span></span></div><span style="font-size:14px;color:var(--text2)">Думаю над ответом..</span>`;
+    d.innerHTML=`<div class="think-dots"><span></span><span></span><span></span></div><span>Думаю…</span>`;
   }else{
-    const labelMap={file:'Читаю файл..', photo:'Смотрю фото..', image:'Рисую изображение..'};
+    const labelMap={file:'Читаю файл…', photo:'Смотрю фото…', image:'Рисую изображение…'};
     const label=labelMap[kind]||'';
-    d.innerHTML=`<div class="think-dots"><span></span><span></span><span></span></div>${label?`<span style="font-size:14px;color:var(--text2)">${label}</span>`:''}`;
+    d.innerHTML=`<div class="think-dots"><span></span><span></span><span></span></div>${label?`<span>${label}</span>`:''}`;
   }
   inner.appendChild(d);scrollChat();
 }
@@ -4620,11 +4894,14 @@ async function requestChatReplyLive(msgEl,actionsEl,extraMessages=[],prefixText=
                 if(!gotSearchTrace){hideTyping();gotSearchTrace=true;}
                 showSearchTrace(msgEl,'browse',payloadChunk.host||'');
               }else if(payloadChunk.type==='search_sources'){
-                // ИИ просмотрела сайты: обновляем блок «Просмотрел N сайтов, думаю над ответом».
+                // ИИ просмотрела сайты: обновляем строку «Просмотрел N сайтов».
                 // Сохраняем источники, чтобы пользователь мог открыть попап по клику.
                 const sources=Array.isArray(payloadChunk.sources)?payloadChunk.sources:[];
                 lastSearchSources=sources;
                 msgEl._searchSources=sources;
+                const wrap=msgEl.closest('.msg-ai-wrap');
+                const searchLine=wrap&&wrap.querySelector('.trace-line.search');
+                if(searchLine)searchLine._sources=sources;
                 showSearchTrace(msgEl,'sources',null,payloadChunk.browsed||sources.length,sources.length);
               }else if(payloadChunk.type==='search_done'){
                 // Поиск завершён — ИИ теперь думает над ответом (появляется стрелочка).
@@ -4964,6 +5241,8 @@ async function handleImageGeneration(promptText){
         hideTyping();
         appendImageToShell(shell.msg,data.image);
         recordImageUsage();
+        // Промо-уведомление после каждой генерации (~78% для не-Pro, не чаще 1 раза за сессию).
+        showNotification('promo_img',7/9);
         chatHistory.push({role:'assistant',content:'[Сгенерировано изображение по запросу: «'+promptText+'»]',image:data.image});
         await saveChat();
         return;
@@ -4998,10 +5277,34 @@ async function sendMsg(){
   const text=ta.value.trim();
   if(!text&&!pendingAttachments.length)return;
 
+  // ПРОМО-УВЕДОМЛЕНИЕ после первого сообщения в сессии (~12% для не-Pro).
+  if(!window._firstMsgSent){window._firstMsgSent=true;setTimeout(()=>showNotification('promo_limits',1/8),400);}
+
   // МАРШРУТИЗАЦИЯ НА ГЕНЕРАЦИЮ ИЗОБРАЖЕНИЯ:
   // либо включён режим кнопкой, либо текст содержит триггер-слово И нет прикреплённого фото
   // (иначе «нарисуй ...» с приложенным скриншотом — это анализ фото, обычный путь Codex).
   const wantsImage=imageGenModeActive||(isImageRequest(text)&&!pendingAttachments.some(a=>a.kind==='image'));
+
+  // Нотный стан в режиме «Изображение»: генерацию картинок нот блокируем — качество
+  // получится плохое. Отключаем image-режим и уходим в обычный текстовый путь (ABC-нотация).
+  if(wantsImage&&text&&isNotationRequest(text)){
+    setImageMode(false);
+    const staffNote='Генерацию нотного стана в виде изображения поддержать не могу — качество будет неприемлемым. Покажу ноты в текстовом формате (ABC-нотация).\n\n';
+    addUserBubble(text,pendingAttachments.slice());
+    chatHistory.push({role:'user',content:text,attachments:pendingAttachments.map(cloneAttachmentForHistory)});
+    if(chatHistory.length===1)await saveChat(text.slice(0,40));
+    else await saveChat();
+    const ta2=document.getElementById('msgTa');if(ta2){ta2.value='';ta2.style.height='auto';}
+    clearPendingAttachments();renderComposerAttachments();updateComposerPlaceholder();
+    await runAssistantReply(text);
+    // Дописываем префикс в самое начало последнего ответа модели (лёгкое пояснение).
+    const last=chatHistory[chatHistory.length-1];
+    if(last&&last.role==='assistant'&&typeof last.content==='string'&&!last.content.startsWith(staffNote)){
+      last.content=staffNote+last.content;
+      await saveChat();
+    }
+    return;
+  }
   if(wantsImage&&text){
     ta.value='';ta.style.height='auto';
     clearPendingAttachments();renderComposerAttachments();updateComposerPlaceholder();
