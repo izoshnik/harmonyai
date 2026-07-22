@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HarmonyAI Pro — Оформление подписки</title>
+<meta name="robots" content="noindex">
+<style>
+  /* ================== LIQUID GLASS — единая система ==================
+     Базовый слой стекла (LiquidGlassSurface): тёмный фон, blur, тонкая
+     граница, внутренний верхний блик (::before) и нижний блик (::after),
+     spring-анимации, SVG-преломление через filter:url(#lg-refract).
+     Без готовых UI-библиотек, без «молочного» стекла. */
+  :root{
+    --bg:#08080b;
+    --text:#f4f4f8;
+    --text2:rgba(235,235,245,.62);
+    --accent:#7c4dff;
+    --accent2:#5b8cff;
+    --spring:cubic-bezier(.2,.8,.2,1);
+    --glass-bg:rgba(255,255,255,.022);
+    --glass-border:rgba(255,255,255,.08);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;min-height:100%;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:
+      radial-gradient(1100px 700px at 78% -8%,rgba(124,77,255,.20),transparent 60%),
+      radial-gradient(900px 640px at 12% 108%,rgba(91,140,255,.16),transparent 58%),
+      var(--bg);
+    color:var(--text);
+    min-height:100dvh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:32px 18px;
+    overflow-x:hidden;
+  }
+
+  /* Единая стеклянная поверхность */
+  .lg{position:relative;overflow:hidden;border-radius:26px;background:var(--glass-bg);
+    -webkit-backdrop-filter:blur(11px) saturate(150%);backdrop-filter:blur(11px) saturate(150%);
+    border:1px solid var(--glass-border);
+    box-shadow:0 12px 35px rgba(0,0,0,.42);
+    isolation:isolate;}
+  .lg::before{content:"";position:absolute;inset:0;pointer-events:none;z-index:1;
+    background:linear-gradient(150deg,rgba(255,255,255,.30),rgba(255,255,255,.05) 35%,transparent 70%);}
+  .lg::after{content:"";position:absolute;left:0;right:0;bottom:0;height:42%;pointer-events:none;z-index:1;
+    background:linear-gradient(to top,rgba(255,255,255,.05),transparent);}
+  .lg>*{position:relative;z-index:2;}
+
+  /* SVG-преломление применяем к декоративному слою, не к тексту (иначе «дёшево»). */
+  .lg-refract{position:absolute;inset:0;z-index:0;pointer-events:none;opacity:.5;
+    filter:url(#lg-refract);
+    background:linear-gradient(120deg,rgba(124,77,255,.08),rgba(91,140,255,.06));}
+
+  .card{width:min(980px,100%);padding:0;display:grid;grid-template-columns:1.05fr .95fr;}
+  .pane{padding:40px 40px 36px;}
+  .pane-left{border-right:1px solid rgba(255,255,255,.06);}
+
+  .brand{display:flex;align-items:center;gap:11px;margin-bottom:30px;}
+  .brand-logo{width:38px;height:38px;border-radius:12px;
+    background:linear-gradient(150deg,var(--accent),var(--accent2));
+    display:flex;align-items:center;justify-content:center;font-weight:800;font-size:19px;
+    box-shadow:0 6px 20px rgba(124,77,255,.4);}
+  .brand-name{font-size:17px;font-weight:800;letter-spacing:-.3px;}
+  .brand-name b{background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent;}
+
+  .pill{display:inline-flex;align-items:center;gap:7px;padding:6px 13px;border-radius:999px;
+    background:rgba(124,77,255,.14);border:1px solid rgba(124,77,255,.28);
+    font-size:12.5px;font-weight:700;color:#c3adff;margin-bottom:18px;letter-spacing:.02em;}
+  .pill .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent);}
+
+  .h1{font-size:31px;font-weight:800;letter-spacing:-.8px;line-height:1.12;margin:0 0 12px;}
+  .lead{font-size:15px;color:var(--text2);line-height:1.55;margin:0 0 26px;max-width:420px;}
+
+  .feat{display:flex;flex-direction:column;gap:15px;margin:0;padding:0;list-style:none;}
+  .feat li{display:flex;align-items:flex-start;gap:13px;font-size:14.5px;line-height:1.4;}
+  .feat .fi{flex-shrink:0;width:26px;height:26px;border-radius:9px;
+    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);
+    display:flex;align-items:center;justify-content:center;color:#c3adff;margin-top:1px;}
+  .feat b{font-weight:700;}
+  .feat span{color:var(--text2);}
+
+  /* Правая панель — чекаут */
+  .pane-right{display:flex;flex-direction:column;}
+  .plan-head{font-size:13px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px;}
+  .price-box{display:flex;align-items:flex-end;gap:8px;margin-bottom:6px;}
+  .price{font-size:52px;font-weight:800;letter-spacing:-2px;line-height:1;
+    background:linear-gradient(90deg,#fff,#c3adff);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .price-per{font-size:15px;color:var(--text2);font-weight:600;margin-bottom:7px;}
+  .price-note{font-size:13px;color:var(--text2);margin-bottom:24px;}
+
+  .divider{height:1px;background:rgba(255,255,255,.07);margin:6px 0 20px;}
+
+  .row{display:flex;align-items:center;justify-content:space-between;font-size:14px;margin-bottom:12px;}
+  .row .muted{color:var(--text2);}
+  .row.total{font-size:16px;font-weight:800;margin-top:4px;}
+
+  /* Стеклянная кнопка оплаты: hover(scale+lift), active(scale down), spring, блик */
+  .pay-btn{position:relative;overflow:hidden;width:100%;margin-top:22px;padding:16px;border:none;cursor:pointer;
+    border-radius:16px;font-family:inherit;font-size:16px;font-weight:800;letter-spacing:.01em;color:#fff;
+    background:linear-gradient(120deg,var(--accent),var(--accent2));
+    box-shadow:0 10px 28px rgba(124,77,255,.4);
+    transition:transform .28s var(--spring),box-shadow .28s var(--spring),filter .2s ease;}
+  .pay-btn::before{content:"";position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(150deg,rgba(255,255,255,.35),rgba(255,255,255,.04) 40%,transparent 68%);}
+  .pay-btn:hover{transform:translateY(-2px) scale(1.02);box-shadow:0 14px 36px rgba(124,77,255,.5);filter:brightness(1.05);}
+  .pay-btn:active{transform:scale(.965);box-shadow:0 8px 20px rgba(124,77,255,.36);}
+  .pay-btn .ripple{position:absolute;border-radius:50%;transform:scale(0);
+    background:rgba(255,255,255,.28);pointer-events:none;animation:rip .6s ease-out;}
+  @keyframes rip{to{transform:scale(3);opacity:0;}}
+
+  .secure{display:flex;align-items:center;justify-content:center;gap:7px;margin-top:16px;
+    font-size:12.5px;color:var(--text2);}
+  .secure svg{opacity:.7;}
+  .methods{display:flex;align-items:center;justify-content:center;gap:9px;margin-top:14px;opacity:.6;}
+  .methods span{font-size:11px;font-weight:700;letter-spacing:.05em;padding:4px 9px;border-radius:7px;
+    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:var(--text2);}
+
+  .back{position:fixed;top:20px;left:20px;z-index:5;display:inline-flex;align-items:center;gap:8px;
+    padding:10px 15px;border-radius:12px;font-size:13.5px;font-weight:600;color:var(--text2);text-decoration:none;
+    background:var(--glass-bg);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+    border:1px solid var(--glass-border);transition:transform .28s var(--spring),color .2s;}
+  .back:hover{color:var(--text);transform:translateX(-2px);}
+
+  /* Появление карточки */
+  @keyframes cardIn{from{opacity:0;transform:scale(.96) translateY(10px);}to{opacity:1;transform:none;}}
+  .card{animation:cardIn .5s var(--spring) both;}
+
+  /* Мобильная адаптация — один столбец */
+  @media(max-width:820px){
+    body{padding:70px 14px 28px;}
+    .card{grid-template-columns:1fr;}
+    .pane{padding:28px 24px;}
+    .pane-left{border-right:none;border-bottom:1px solid rgba(255,255,255,.06);}
+    .h1{font-size:26px;}
+    .price{font-size:44px;}
+  }
+  /* Успех */
+  .done{display:none;text-align:center;padding:14px 4px 2px;}
+  .done.show{display:block;animation:cardIn .4s var(--spring) both;}
+  .done-ic{width:64px;height:64px;border-radius:50%;margin:0 auto 16px;
+    background:rgba(52,199,89,.14);border:1px solid rgba(52,199,89,.3);
+    display:flex;align-items:center;justify-content:center;color:#34c759;}
+  .done h3{font-size:20px;font-weight:800;margin:0 0 8px;}
+  .done p{font-size:14px;color:var(--text2);line-height:1.5;margin:0;}
+</style>
+</head>
+<body>
+
+<!-- Скрытый SVG-фильтр преломления (главный эффект Liquid Glass) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="lg-refract">
+    <feTurbulence type="fractalNoise" baseFrequency="0.012 0.02" numOctaves="2" seed="7" result="noise"/>
+    <feDisplacementMap in="SourceGraphic" in2="noise" scale="6" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+</svg>
+
+<a class="back" href="/" onclick="if(window.opener){window.close();return false;}">
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  Назад
+</a>
+
+<div class="lg card" id="card">
+  <div class="lg-refract"></div>
+
+  <!-- Левая панель: описание тарифа -->
+  <div class="pane pane-left">
+    <div class="brand">
+      <div class="brand-logo">H</div>
+      <div class="brand-name">Harmony<b>AI</b></div>
+    </div>
+    <div class="pill"><span class="dot"></span>PRO · Dynatos</div>
+    <h1 class="h1">Максимум<br>возможностей HarmonyAI</h1>
+    <p class="lead">Умная модель Dynatos, распознавание музыки и нотный диктант, безлимитные ответы и приоритетная обработка.</p>
+    <ul class="feat">
+      <li><span class="fi"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><b>Модель Dynatos</b> — <span>умнее, быстрее, работает с длинным контекстом</span></div></li>
+      <li><span class="fi"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><b>Распознавание музыки</b> — <span>произведение, автор, период и нотный диктант</span></div></li>
+      <li><span class="fi"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><b>Без лимитов</b> — <span>сообщения и генерация изображений без ограничений</span></div></li>
+      <li><span class="fi"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><b>Приоритет</b> — <span>ответы быстрее даже в часы пик</span></div></li>
+    </ul>
+  </div>
+
+  <!-- Правая панель: чекаут -->
+  <div class="pane pane-right">
+    <div id="checkout">
+      <div class="plan-head">Оформление подписки</div>
+      <div class="price-box">
+        <div class="price">299&nbsp;₽</div>
+        <div class="price-per">/ месяц</div>
+      </div>
+      <div class="price-note">Ежемесячное продление. Отмена в любой момент.</div>
+      <div class="divider"></div>
+      <div class="row"><span class="muted">HarmonyAI Pro</span><span>299&nbsp;₽</span></div>
+      <div class="row"><span class="muted">Пробный период</span><span>—</span></div>
+      <div class="row total"><span>Итого сегодня</span><span>299&nbsp;₽</span></div>
+
+      <button class="pay-btn" id="payBtn" onclick="pay(event)">Оплатить 299&nbsp;₽</button>
+
+      <div class="secure">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="4" y="10" width="16" height="10" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 10V7a4 4 0 018 0v3" stroke="currentColor" stroke-width="2"/></svg>
+        Оплата защищена. Данные карты не хранятся.
+      </div>
+      <div class="methods"><span>VISA</span><span>MASTERCARD</span><span>МИР</span><span>SBP</span></div>
+    </div>
+
+    <!-- Экран успеха (заглушка вместо реальной оплаты) -->
+    <div class="done" id="done">
+      <div class="done-ic"><svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <h3>Спасибо!</h3>
+      <p>Это демонстрационная страница — реальная оплата пока не подключена.<br>Здесь появится приём платежа 299&nbsp;₽.</p>
+      <button class="pay-btn" style="margin-top:22px" onclick="if(window.opener){window.close()}else{location.href='/'}">Вернуться в HarmonyAI</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Демонстрационная оплата: ripple + переход на экран «успеха». Без списания средств.
+  function pay(e){
+    const btn=e.currentTarget;
+    const r=document.createElement('span');
+    r.className='ripple';
+    const rect=btn.getBoundingClientRect();
+    const size=Math.max(rect.width,rect.height);
+    r.style.width=r.style.height=size+'px';
+    r.style.left=(e.clientX-rect.left-size/2)+'px';
+    r.style.top=(e.clientY-rect.top-size/2)+'px';
+    btn.appendChild(r);
+    setTimeout(()=>r.remove(),600);
+    btn.disabled=true;btn.textContent='Обработка…';
+    setTimeout(()=>{
+      document.getElementById('checkout').style.display='none';
+      document.getElementById('done').classList.add('show');
+    },900);
+  }
+</script>
+
+</body>
+</html>
