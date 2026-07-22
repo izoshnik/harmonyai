@@ -689,6 +689,77 @@ html[data-theme="light"] .msg-ai{color:#1a1a1a;}
   .chat-ctx-item:hover{background:rgba(0,0,0,.05);}
 }
 
+/* ===== ПОПОВЕР ДЕЙСТВИЙ С ЧАТОМ (кнопка ⋯, правый верх) — liquid glass ===== */
+.chat-menu-pop{position:fixed;z-index:710;top:0;right:0;width:min(272px,calc(100vw - 24px));
+  padding:12px;border-radius:20px;
+  background:rgba(28,28,32,.62);border:1px solid rgba(255,255,255,.10);
+  backdrop-filter:blur(26px) saturate(160%);-webkit-backdrop-filter:blur(26px) saturate(160%);
+  box-shadow:0 18px 48px rgba(0,0,0,.5);
+  transform-origin:top right;opacity:0;visibility:hidden;
+  transform:translateY(-8px) scale(.94);
+  transition:opacity .2s cubic-bezier(.2,.8,.2,1),transform .24s cubic-bezier(.2,.8,.2,1),visibility .24s;}
+.chat-menu-pop.open{opacity:1;visibility:visible;transform:translateY(0) scale(1);}
+.cmp-title{font-size:14px;font-weight:800;color:var(--text);letter-spacing:-.2px;
+  padding:6px 10px 12px;line-height:1.3;word-break:break-word;
+  border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:8px;}
+.cmp-list{display:flex;flex-direction:column;gap:2px;}
+.cmp-item{display:flex;align-items:center;gap:12px;width:100%;padding:11px 11px;border:none;border-radius:12px;
+  background:transparent;color:var(--text);font-family:inherit;font-size:14.5px;font-weight:600;
+  cursor:pointer;text-align:left;transition:background .14s,transform .12s cubic-bezier(.2,.8,.2,1);}
+.cmp-item:hover{background:rgba(255,255,255,.08);}
+.cmp-item:active{transform:scale(.975);}
+.cmp-ic{display:flex;align-items:center;justify-content:center;width:20px;flex-shrink:0;opacity:.9;}
+.cmp-danger{color:#ff5c5c;}
+.cmp-danger:hover{background:rgba(255,92,92,.13);}
+/* Инлайн-поиск */
+.cmp-search{display:none;flex-direction:column;gap:8px;}
+.chat-menu-pop.searching .cmp-title,.chat-menu-pop.searching .cmp-list{display:none;}
+.chat-menu-pop.searching .cmp-search{display:flex;}
+.cmp-search-bar{display:flex;align-items:center;gap:8px;padding:4px 2px 6px;}
+.cmp-search-back{width:30px;height:30px;flex-shrink:0;border:none;border-radius:9px;background:rgba(255,255,255,.06);
+  color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .14s;}
+.cmp-search-back:hover{background:rgba(255,255,255,.12);color:var(--text);}
+.cmp-search-bar input{flex:1;min-width:0;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09);
+  border-radius:11px;padding:9px 12px;color:var(--text);font-family:inherit;font-size:14px;outline:none;
+  transition:border-color .16s,background .16s;}
+.cmp-search-bar input:focus{border-color:rgba(124,77,255,.55);background:rgba(255,255,255,.09);}
+.cmp-search-results{max-height:min(46vh,340px);overflow-y:auto;display:flex;flex-direction:column;gap:4px;
+  margin:0 -4px;padding:0 4px 2px;}
+.cmp-sr-item{padding:9px 11px;border-radius:11px;cursor:pointer;transition:background .14s;}
+.cmp-sr-item:hover{background:rgba(255,255,255,.07);}
+.cmp-sr-role{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--text2);margin-bottom:3px;}
+.cmp-sr-text{font-size:13px;line-height:1.4;color:var(--text);}
+.cmp-sr-text mark{background:rgba(124,77,255,.4);color:#fff;border-radius:3px;padding:0 2px;}
+.cmp-sr-empty{padding:18px 8px;text-align:center;font-size:13px;color:var(--text2);}
+/* Подсветка найденного сообщения при переходе */
+.msg-flash{animation:msgFlash 1.6s ease-out;}
+@keyframes msgFlash{0%,20%{box-shadow:0 0 0 2px rgba(124,77,255,.7),0 0 22px rgba(124,77,255,.35);}100%{box-shadow:0 0 0 0 rgba(124,77,255,0);}}
+/* Подтверждение удаления */
+.cmp-confirm-overlay{position:fixed;inset:0;z-index:730;display:flex;align-items:center;justify-content:center;
+  padding:20px;background:rgba(0,0,0,.5);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  opacity:0;visibility:hidden;transition:opacity .2s,visibility .2s;}
+.cmp-confirm-overlay.show{opacity:1;visibility:visible;}
+.cmp-confirm{width:min(340px,100%);border-radius:22px;padding:22px 22px 18px;
+  background:rgba(28,28,32,.92);border:1px solid rgba(255,255,255,.10);
+  backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);box-shadow:0 22px 60px rgba(0,0,0,.5);
+  transform:scale(.94);transition:transform .24s cubic-bezier(.2,.8,.2,1);}
+.cmp-confirm-overlay.show .cmp-confirm{transform:scale(1);}
+.cmp-confirm-title{font-size:18px;font-weight:800;color:var(--text);margin-bottom:8px;}
+.cmp-confirm-sub{font-size:14px;color:var(--text2);line-height:1.5;margin-bottom:20px;}
+.cmp-confirm-actions{display:flex;gap:10px;}
+.cmp-confirm-btn{flex:1;padding:13px;border-radius:13px;border:none;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;transition:transform .12s cubic-bezier(.2,.8,.2,1),filter .16s,background .16s;}
+.cmp-confirm-btn:active{transform:scale(.96);}
+.cmp-confirm-btn.cancel{background:rgba(255,255,255,.08);color:var(--text);}
+.cmp-confirm-btn.cancel:hover{background:rgba(255,255,255,.13);}
+.cmp-confirm-btn.danger{background:#ef4444;color:#fff;}
+.cmp-confirm-btn.danger:hover{filter:brightness(1.08);}
+html[data-theme="light"] .chat-menu-pop{background:rgba(252,251,249,.9);border-color:rgba(20,18,12,.08);box-shadow:0 18px 48px rgba(20,18,12,.18);}
+html[data-theme="light"] .cmp-item:hover{background:rgba(20,18,12,.05);}
+html[data-theme="light"] .cmp-title{border-color:rgba(20,18,12,.08);}
+html[data-theme="light"] .cmp-search-bar input,html[data-theme="light"] .cmp-search-back{background:rgba(20,18,12,.05);}
+html[data-theme="light"] .cmp-confirm{background:rgba(252,251,249,.96);border-color:rgba(20,18,12,.08);}
+@media(prefers-reduced-motion:reduce){.chat-menu-pop,.cmp-confirm{transition:opacity .15s;}}
+
 /* Thinking (typing indicator) — компактно: одна строка серого текста 13px italic. */
 .thinking{display:flex;align-items:center;gap:6px;font-size:13px;font-style:italic;color:var(--text2);padding:2px 0 4px;}
 .thinking.think-text{font-weight:500;letter-spacing:.01em;font-style:italic;}
@@ -1310,6 +1381,32 @@ html[data-theme="light"] .rec-modal{background:rgba(252,251,249,.96);border-colo
 .rec-timer{font-size:26px;font-weight:800;color:var(--text);text-align:center;letter-spacing:.02em;font-variant-numeric:tabular-nums;margin:8px 0 4px;}
 .rec-timer.recording{color:#ef4444;}
 
+/* ===== ДЕСКТОПНЫЙ ВИД МОДАЛКИ РАСПОЗНАВАНИЯ =====
+   На ПК окно шире, крупнее и «дышит»: увеличенные отступы, крупный таймер,
+   кнопки в ряд, декоративное преломление стекла (в духе Liquid Glass). */
+@media(min-width:769px){
+  .rec-modal{width:min(560px,100%);padding:30px 32px 28px;border-radius:26px;}
+  .rec-head{margin-bottom:22px;}
+  .rec-title{font-size:22px;}
+  .rec-close{width:34px;height:34px;border-radius:10px;}
+  .rec-modes{margin-bottom:22px;padding:5px;border-radius:14px;}
+  .rec-mode{padding:12px 14px;font-size:14px;border-radius:11px;}
+  .rec-desc{font-size:14px;line-height:1.55;margin-bottom:22px;}
+  .rec-timer{font-size:48px;margin:14px 0 18px;letter-spacing:.04em;}
+  .rec-actions{flex-direction:row;gap:12px;}
+  .rec-record-btn{padding:16px;font-size:15.5px;border-radius:16px;
+    box-shadow:0 10px 26px rgba(10,132,255,.34);
+    transition:background .15s,transform .26s cubic-bezier(.2,.8,.2,1),box-shadow .26s;}
+  .rec-record-btn:hover{transform:translateY(-2px) scale(1.015);box-shadow:0 14px 32px rgba(10,132,255,.44);}
+  .rec-record-btn:active{transform:scale(.97);}
+  .rec-record-btn.stop{box-shadow:0 10px 26px rgba(239,68,68,.34);}
+  .rec-file-btn{padding:16px;font-size:14.5px;border-radius:16px;
+    transition:background .14s,transform .26s cubic-bezier(.2,.8,.2,1);}
+  .rec-file-btn:hover{transform:translateY(-2px) scale(1.015);}
+  .rec-file-btn:active{transform:scale(.97);}
+  .rec-status{font-size:13px;margin-top:12px;}
+}
+
 /* ===== КАРТОЧКА РЕЗУЛЬТАТА РАСПОЗНАВАНИЯ ===== */
 .reco-card{align-self:stretch;background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:14px 16px;margin:4px 0;display:flex;flex-direction:column;gap:8px;}
 .reco-badge{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;align-self:flex-start;}
@@ -1671,8 +1768,8 @@ html[data-theme="light"] .photo-deleted-msg{
         <span>🎓 Обучение</span>
       </div>
       <div style="display:flex;align-items:center;gap:4px;">
-        <button class="topbar-btn" onclick="newChat()" title="Новый чат">
-          <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M12 3v2.4M12 18.6V21M3 12h2.4M18.6 12H21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <button class="topbar-btn" id="chatMenuBtn" onclick="toggleChatMenu(event)" title="Действия с чатом" aria-label="Действия с чатом" aria-haspopup="true">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
         </button>
       </div>
     </div>
@@ -1824,6 +1921,47 @@ html[data-theme="light"] .photo-deleted-msg{
       <input type="file" id="recFileInp" accept="audio/*" style="display:none" onchange="handleRecognizeFile(this)">
     </div>
     <div class="rec-status" id="recStatus"></div>
+  </div>
+</div>
+
+<!-- ===================== ПОПОВЕР ДЕЙСТВИЙ С ЧАТОМ (кнопка ⋯) ===================== -->
+<div class="chat-menu-pop" id="chatMenuPop" role="dialog" aria-label="Действия с чатом">
+  <div class="cmp-title" id="cmpTitle">Новый чат</div>
+  <div class="cmp-list" id="cmpList">
+    <button class="cmp-item" id="cmpPin" onclick="chatMenuPin()">
+      <span class="cmp-ic" id="cmpPinIc"></span>
+      <span id="cmpPinLabel">Закрепить</span>
+    </button>
+    <button class="cmp-item" onclick="chatMenuFind()">
+      <span class="cmp-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-3.6-3.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+      <span>Найти в чате</span>
+    </button>
+    <button class="cmp-item cmp-danger" onclick="chatMenuDelete()">
+      <span class="cmp-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7V4.8c0-.44.36-.8.8-.8h4.4c.44 0 .8.36.8.8V7M6.5 7l1 13.2c.05.6.55 1.05 1.15 1.05h6.7c.6 0 1.1-.45 1.15-1.05L17.5 7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span>Удалить</span>
+    </button>
+  </div>
+  <!-- Инлайн-поиск по сообщениям чата -->
+  <div class="cmp-search" id="cmpSearch">
+    <div class="cmp-search-bar">
+      <button class="cmp-search-back" onclick="chatMenuSearchBack()" aria-label="Назад">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <input type="text" id="cmpSearchInp" placeholder="Поиск по сообщениям…" autocomplete="off" oninput="chatMenuSearchRun(this.value)">
+    </div>
+    <div class="cmp-search-results" id="cmpSearchResults"></div>
+  </div>
+</div>
+
+<!-- Подтверждение удаления чата -->
+<div class="cmp-confirm-overlay" id="cmpConfirmOverlay" onclick="if(event.target===this)closeChatDeleteConfirm()">
+  <div class="cmp-confirm">
+    <div class="cmp-confirm-title">Удалить чат?</div>
+    <div class="cmp-confirm-sub">Переписка будет удалена без возможности восстановления.</div>
+    <div class="cmp-confirm-actions">
+      <button class="cmp-confirm-btn cancel" onclick="closeChatDeleteConfirm()">Отмена</button>
+      <button class="cmp-confirm-btn danger" onclick="confirmChatDelete()">Удалить</button>
+    </div>
   </div>
 </div>
 
@@ -3295,6 +3433,148 @@ function positionChatCtxMenu(menu,anchorEl){
   menu.style.top=top+'px';
   menu.style.left=left+'px';
 }
+/* ===== Поповер действий с чатом (кнопка ⋯ в топбаре) ===== */
+function chatMenuTitleText(){
+  if(!curChatId)return TITLE_PLACEHOLDER;
+  const meta=getChatMetaFor(curChatId);
+  const c=chats.find(x=>x.id===curChatId);
+  return meta.title||c?.title||TITLE_PLACEHOLDER;
+}
+function updateChatMenuTitle(){
+  const el=document.getElementById('cmpTitle');
+  if(el)el.textContent=chatMenuTitleText();
+}
+const PIN_ICON_ON='<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M14.5 3.5l6 6-3 3-1-1-3.5 3.5.5 4-1.5 1.5-4-4-4 4-1.5-1.5 4-4-4-4L4 9.5l4 .5 3.5-3.5-1-1 3-3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M3 21l5-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
+const PIN_ICON_OFF='<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M14.5 3.5l6 6-3 3-1-1-3.5 3.5.5 4-1.5 1.5-4-4-4 4-1.5-1.5 4-4-4-4L4 9.5l4 .5 3.5-3.5-1-1 3-3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>';
+function refreshChatMenuPin(){
+  const pinned=curChatId&&isChatPinned(curChatId);
+  const ic=document.getElementById('cmpPinIc');
+  const lbl=document.getElementById('cmpPinLabel');
+  if(ic)ic.innerHTML=pinned?PIN_ICON_ON:PIN_ICON_OFF;
+  if(lbl)lbl.textContent=pinned?'Открепить':'Закрепить';
+}
+function positionChatMenuPop(){
+  const pop=document.getElementById('chatMenuPop');
+  const btn=document.getElementById('chatMenuBtn');
+  if(!pop||!btn)return;
+  const r=btn.getBoundingClientRect();
+  const pw=pop.offsetWidth||272;
+  let right=Math.max(12,window.innerWidth-r.right);
+  let top=r.bottom+8;
+  pop.style.top=top+'px';
+  pop.style.right=right+'px';
+}
+function toggleChatMenu(e){
+  e?.stopPropagation();
+  const pop=document.getElementById('chatMenuPop');
+  if(!pop)return;
+  if(pop.classList.contains('open')){closeChatMenu();return;}
+  // Синхронизируем содержимое (тема + состояние закрепления).
+  pop.classList.remove('searching');
+  updateChatMenuTitle();
+  refreshChatMenuPin();
+  positionChatMenuPop();
+  requestAnimationFrame(()=>{pop.classList.add('open');positionChatMenuPop();});
+  setTimeout(()=>{
+    document.addEventListener('mousedown',_chatMenuOutside,{capture:true});
+    document.addEventListener('touchstart',_chatMenuOutside,{capture:true});
+  },0);
+}
+function _chatMenuOutside(e){
+  const pop=document.getElementById('chatMenuPop');
+  const btn=document.getElementById('chatMenuBtn');
+  if(pop&&!pop.contains(e.target)&&e.target!==btn&&!btn?.contains(e.target))closeChatMenu();
+}
+function closeChatMenu(){
+  const pop=document.getElementById('chatMenuPop');
+  if(pop){pop.classList.remove('open');pop.classList.remove('searching');}
+  document.removeEventListener('mousedown',_chatMenuOutside,{capture:true});
+  document.removeEventListener('touchstart',_chatMenuOutside,{capture:true});
+}
+function chatMenuPin(){
+  if(!curChatId){closeChatMenu();return;}
+  // Закрепляем/открепляем — чат остаётся в списке (не выкидывается).
+  isChatPinned(curChatId)?unpinChat(curChatId):pinChat(curChatId);
+  refreshChatMenuPin();
+}
+function chatMenuDelete(){
+  if(!curChatId){closeChatMenu();return;}
+  _chatDeleteTargetId=curChatId;
+  closeChatMenu();
+  const ov=document.getElementById('cmpConfirmOverlay');
+  if(ov)ov.classList.add('show');
+}
+let _chatDeleteTargetId=null;
+function closeChatDeleteConfirm(){
+  const ov=document.getElementById('cmpConfirmOverlay');
+  if(ov)ov.classList.remove('show');
+  _chatDeleteTargetId=null;
+}
+function confirmChatDelete(){
+  const id=_chatDeleteTargetId;
+  closeChatDeleteConfirm();
+  if(id)deleteChatConfirmed(id);
+}
+/* --- Поиск по сообщениям текущего чата --- */
+function chatMenuFind(){
+  const pop=document.getElementById('chatMenuPop');
+  if(!pop)return;
+  pop.classList.add('searching');
+  const inp=document.getElementById('cmpSearchInp');
+  if(inp){inp.value='';}
+  chatMenuSearchRun('');
+  setTimeout(()=>inp?.focus(),120);
+}
+function chatMenuSearchBack(){
+  const pop=document.getElementById('chatMenuPop');
+  if(pop)pop.classList.remove('searching');
+}
+function chatMenuSearchRun(q){
+  const box=document.getElementById('cmpSearchResults');
+  if(!box)return;
+  const query=(q||'').trim().toLowerCase();
+  if(!query){box.innerHTML='<div class="cmp-sr-empty">Введите слово для поиска по сообщениям чата.</div>';return;}
+  const hits=[];
+  chatHistory.forEach((m,idx)=>{
+    const txt=typeof m.content==='string'?m.content:'';
+    if(!txt)return;
+    const low=txt.toLowerCase();
+    const pos=low.indexOf(query);
+    if(pos>=0)hits.push({idx,txt,pos,role:m.role});
+  });
+  if(!hits.length){box.innerHTML='<div class="cmp-sr-empty">Ничего не найдено.</div>';return;}
+  box.innerHTML=hits.slice(0,40).map(h=>{
+    const start=Math.max(0,h.pos-24);
+    const snippet=(start>0?'…':'')+h.txt.slice(start,h.pos+query.length+40);
+    const roleLabel=h.role==='user'?'Вы':'HarmonyAI';
+    return `<div class="cmp-sr-item" onclick="chatMenuGotoMsg(${h.idx})">
+      <div class="cmp-sr-role">${roleLabel}</div>
+      <div class="cmp-sr-text">${highlightSnippet(snippet,query)}</div>
+    </div>`;
+  }).join('');
+}
+function highlightSnippet(text,query){
+  const esc=escapeHtml(text);
+  // Подсвечиваем совпадение (регистронезависимо), экранируя спецсимволы regexp.
+  const q=query.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  try{return esc.replace(new RegExp('('+escapeHtml(query).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','ig'),'<mark>$1</mark>');}
+  catch(e){return esc;}
+}
+function chatMenuGotoMsg(idx){
+  closeChatMenu();
+  // Сопоставляем индекс в chatHistory с DOM-узлом сообщения (user/ai wrap по порядку).
+  const inner=document.getElementById('chatInner');
+  if(!inner)return;
+  const nodes=inner.querySelectorAll('.msg-user-wrap,.msg-ai-wrap');
+  const node=nodes[idx];
+  if(node){
+    node.scrollIntoView({behavior:'smooth',block:'center'});
+    const target=node.querySelector('.msg-user,.msg-ai')||node;
+    target.classList.remove('msg-flash');
+    void target.offsetWidth;
+    target.classList.add('msg-flash');
+  }
+}
 let _renameChatId=null;
 function openRenameChatModal(chatId){
   _renameChatId=chatId;
@@ -3433,12 +3713,16 @@ async function saveChat(title){
   const slimHistory=toWireHistory(chatHistory,{keepImage:true});
   if(!curChatId){
     curChatId='chat_'+Date.now();
-    const t=title||'Новый чат';
+    // Название чата определяет ИИ по теме (maybeGenerateChatTitle), поэтому при создании
+    // ставим нейтральный placeholder, а не первые слова промпта.
+    const t=title||TITLE_PLACEHOLDER;
     const {error}=await sb.from('chats').insert({id:curChatId,user_id:curUser.id,title:t,history:slimHistory,updated_at:new Date().toISOString()});
     if(!error){chats.unshift({id:curChatId,title:t});renderChatList();}
   }else{
     await sb.from('chats').update({history:slimHistory,updated_at:new Date().toISOString()}).eq('id',curChatId);
   }
+  // Fire-and-forget: после первого обмена ИИ определит тему и переименует чат.
+  maybeGenerateChatTitle();
 }
 
 /* ===== MODEL PICKER ===== */
@@ -4735,6 +5019,62 @@ function buildIntentApiCandidates(){
   endpoints.push(`${liveBase}/api/intent`);
   return [...new Set(endpoints)];
 }
+// Кандидаты-эндпоинты для генератора названия чата (api/title.js).
+function buildTitleApiCandidates(){
+  const liveBase=PRIMARY_API_ORIGIN.replace(/\/$/,'');
+  const isLiveHost=window.location.hostname==='harmonyai-zeta.vercel.app';
+  const endpoints=[];
+  if(window.location.protocol!=='file:'&&isLiveHost){
+    endpoints.push('/api/title');
+  }
+  endpoints.push(`${liveBase}/api/title`);
+  return [...new Set(endpoints)];
+}
+// Название чата определяет ИИ по ТЕМЕ первого обмена (а не по первым словам промпта).
+// Вызывается fire-and-forget из saveChat после первого ответа ассистента.
+const TITLE_PLACEHOLDER='Новый чат';
+let _titleInFlight=false;
+function chatHasAiTitle(id){
+  return !!(getChatMetaFor(id)||{}).aiTitle;
+}
+async function maybeGenerateChatTitle(){
+  // Условия: есть чат, ровно один обмен (user+assistant), тема ещё не определена.
+  const id=curChatId;
+  if(!id||_titleInFlight||chatHasAiTitle(id))return;
+  const firstUser=chatHistory.find(m=>m.role==='user');
+  const firstAsst=chatHistory.find(m=>m.role==='assistant');
+  if(!firstUser||!firstAsst)return;
+  const userText=typeof firstUser.content==='string'?firstUser.content:'';
+  const asstText=typeof firstAsst.content==='string'?firstAsst.content:'';
+  if(!userText.trim())return;
+  _titleInFlight=true;
+  try{
+    const payload={message:userText.slice(0,1500),answer:asstText.slice(0,1200)};
+    const endpoints=buildTitleApiCandidates();
+    let title='';
+    for(const endpoint of endpoints){
+      try{
+        const res=await withTimeout(
+          fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),cache:'no-store',credentials:'omit'}),
+          16000,'Генератор названия слишком долго отвечает'
+        );
+        if(!res.ok)continue;
+        const data=await res.json().catch(()=>null);
+        title=(data&&typeof data.title==='string')?data.title.trim():'';
+        break;
+      }catch(e){/* пробуем следующий кандидат */}
+    }
+    if(!title)return; // fail-open: оставляем текущее «Новый чат»
+    // Сохраняем: локальная мета (приоритетна в списке) + строка chats + Supabase.
+    updateChatMetaFor(id,{title,aiTitle:true});
+    const c=chats.find(x=>x.id===id);if(c)c.title=title;
+    renderChatList();
+    updateChatMenuTitle();
+    if(curUser){sb.from('chats').update({title}).eq('id',id).eq('user_id',curUser.id).then(()=>{}).catch(()=>{});}
+  }finally{
+    _titleInFlight=false;
+  }
+}
 // Двухэтапная генерация: сначала спрашиваем intent-классификатор (api/intent.js),
 // нужно ли вообще генерировать и хватает ли деталей. Возвращает:
 //   {need_image, clarify, image_prompt, clarify_question}
@@ -5685,8 +6025,7 @@ async function sendMsg(){
     const staffNote='Генерацию нотного стана в виде изображения поддержать не могу — качество будет неприемлемым. Покажу ноты в текстовом формате (ABC-нотация).\n\n';
     addUserBubble(text,pendingAttachments.slice());
     chatHistory.push({role:'user',content:text,attachments:pendingAttachments.map(cloneAttachmentForHistory)});
-    if(chatHistory.length===1)await saveChat(text.slice(0,40));
-    else await saveChat();
+    await saveChat();
     const ta2=document.getElementById('msgTa');if(ta2){ta2.value='';ta2.style.height='auto';}
     clearPendingAttachments();renderComposerAttachments();updateComposerPlaceholder();
     await runAssistantReply(text);
@@ -5707,8 +6046,7 @@ async function sendMsg(){
     // Сообщение пользователя фиксируем в истории сразу — даже если классификатор решит,
     // что генерация не нужна, текстовый ответ модели должен видеть этот ход.
     chatHistory.push({role:'user',content:text,attachments:[]});
-    if(chatHistory.length===1)await saveChat(text.slice(0,40));
-    else await saveChat();
+    await saveChat();
     // Двухэтапный пайплайн: сначала intent-классификатор решает, действительно ли нужна
     // картинка и хватает ли деталей. forceImage=true только если режим был включён кнопкой
     // (тогда пользователь явно хочет генерацию — классификатору остаётся только уточнить детали).
@@ -5831,8 +6169,7 @@ async function handleTextReply(){
   clearPendingAttachments();
   addUserBubble(displayText,historyAttachments);
   chatHistory.push({role:'user',content:userContent,attachments:historyAttachments});
-  if(chatHistory.length===1)await saveChat(displayText.slice(0,40));
-  else await saveChat();
+  await saveChat();
 
   await runAssistantReply(displayText);
 }
@@ -5928,7 +6265,7 @@ function renderSettingsMain(){
         </div>
         <div class="s-row s-row-accent" onclick="goToDynatos()">
           <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3l1.6 5.2L19 10l-5.4 1.8L12 17l-1.6-5.2L5 10l5.4-1.8L12 3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
-          <div class="s-row-text">Перейти на Dynatos</div>
+          <div class="s-row-text">Перейти на Pro</div>
           <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
         </div>
       </div>
@@ -5974,7 +6311,10 @@ function renderSettingsMain(){
       </div>
     </div>`;
 }
-function goToDynatos(){}
+function goToDynatos(){
+  // Открываем страницу оформления Pro в НОВОМ окне/вкладке.
+  window.open('https://harmonyai-zeta.vercel.app/subscribe','_blank','noopener,noreferrer');
+}
 function openSupportChat(){
   const tgUrl='tg://resolve?domain=harmonyaisupport_bot';
   const fallbackUrl='https://t.me/harmonyaisupport_bot';
@@ -6594,6 +6934,37 @@ async function submitFbModal(){
     alert('Не удалось сохранить: '+e.message);
   }
 }
+
+/* ============================================================================
+   ЛЁГКАЯ КЛИЕНТСКАЯ ЗАЩИТА (anti-tamper).
+   ВАЖНО: настоящая защита — серверная. Роли/лимиты/Pro-гейты повторно
+   проверяются в api/chat.js и api/recognize.js по Supabase-профилю, поэтому
+   подмена isProUser() в консоли НЕ даёт доступа к платным моделям — сервер
+   всё равно ответит 403. Это лишь поднимает порог для «просто сломать через
+   консоль» и защищает от случайной порчи ключевых функций. */
+(function hardenClient(){
+  try{
+    // 1) Замораживаем критичные функции-гейты, чтобы их нельзя было переопределить
+    //    тривиальным присваиванием (window.isProUser = ()=>true).
+    ['isProUser','hasModeratorAccess','requireProOr','goToDynatos'].forEach(function(name){
+      if(typeof window[name]==='function'){
+        try{Object.defineProperty(window,name,{value:window[name],writable:false,configurable:false});}catch(e){}
+      }
+    });
+    // 2) Защищаем адрес API от подмены (перенаправление запросов на чужой сервер).
+    try{Object.defineProperty(window,'PRIMARY_API_ORIGIN',{value:PRIMARY_API_ORIGIN,writable:false,configurable:false});}catch(e){}
+    // 3) Анти-clickjacking: если приложение открыли внутри чужого iframe — выходим
+    //    в топ-фрейм (совместно с заголовком X-Frame-Options: DENY в vercel.json).
+    if(window.top!==window.self){
+      try{window.top.location=window.self.location.href;}catch(e){document.documentElement.style.display='none';}
+    }
+    // 4) Не даём сторонним скриптам молча заменить fetch на свой (перехват токенов):
+    //    фиксируем ссылку на нативный fetch.
+    if(typeof window.fetch==='function'){
+      try{Object.defineProperty(window,'fetch',{value:window.fetch.bind(window),writable:false,configurable:false});}catch(e){}
+    }
+  }catch(e){/* защита не должна ломать приложение */}
+})();
 </script>
 
 </body>
