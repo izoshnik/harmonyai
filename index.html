@@ -420,7 +420,7 @@ button:active,.model-pill:active,.send-btn:active{
      она стоит в контентной строке топбара (top = верхний паддинг), одинаковой высоты 38px
      с боковыми кнопками, а не центрируется по всему паддинг-боксу (из-за большого верхнего
      safe-area паддинга и 2px снизу раньше пилюля «съезжала» и была не параллельна кнопкам). */
-  .topbar-model-pill{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 14px);transform:translateX(-50%);height:38px;display:flex;align-items:center;justify-content:center;padding:0 22px;border-radius:999px;background:#1c1c20;border:1px solid rgba(255,255,255,.06);cursor:pointer;user-select:none;transition:background .12s,transform .12s;}
+  .topbar-model-pill{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 14px);transform:translateX(-50%);height:38px;display:flex;align-items:center;justify-content:center;padding:0 22px;border-radius:999px;background:#1c1c20;border:1px solid rgba(255,255,255,.06);cursor:pointer;user-select:none;transition:background .12s,transform .12s;max-width:calc(100vw - 120px);overflow:hidden;white-space:nowrap;}
   .topbar-model-pill:active{transform:translateX(-50%) scale(.95);}
   .topbar-model-pill .pill-name{font-size:16px;font-weight:800;color:#7c4dff;letter-spacing:-.2px;}
   .topbar-training-pill{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 14px);transform:translateX(-50%);height:38px;display:flex;align-items:center;justify-content:center;padding:0 18px;border-radius:999px;background:rgba(255,255,255,0.08);border:1px solid var(--border);box-shadow:0 6px 18px rgba(0,0,0,.22);cursor:pointer;user-select:none;font-size:14px;font-weight:700;color:var(--text);}
@@ -664,7 +664,7 @@ html[data-theme="light"] .msg-ai{color:#1a1a1a;}
   .fb-modal{width:100%;border-radius:20px 20px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom,0px));transform:translateY(40px);}
   .fb-overlay.show .fb-modal{transform:none;}
 }
-.more-menu{position:absolute;bottom:34px;right:0;left:auto;background:var(--drop-bg);border:1px solid var(--border);border-radius:12px;padding:5px;display:none;z-index:30;box-shadow:var(--drop-shadow);min-width:150px;}
+.more-menu{position:absolute;bottom:34px;right:0;left:auto;background:var(--drop-bg);border:1px solid var(--border);border-radius:12px;padding:5px;display:none;z-index:30;box-shadow:var(--drop-shadow);min-width:150px;max-width:calc(100vw - 24px);}
 .more-menu.open{display:block;animation:dropMenuIn .15s cubic-bezier(.22,.61,.36,1) both;}
 .more-item{padding:8px 14px;font-size:13px;font-weight:500;color:var(--text);border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:8px;}
 .more-item:hover{background:var(--hover);}
@@ -830,7 +830,7 @@ html[data-theme="light"] .cmp-confirm{background:rgba(252,251,249,.96);border-co
 html[data-theme="light"] .msg-ai-img{box-shadow:0 2px 12px rgba(20,18,12,.10);}
 
 /* Меню кнопки "+" (новый «+»: файл/фото + поиск в интернете) */
-.plus-drop{position:absolute;bottom:calc(100% + 8px);left:0;background:var(--drop-bg);border:1px solid var(--border);border-radius:14px;padding:6px;box-shadow:var(--drop-shadow);display:none;z-index:200;min-width:220px;animation:none;}
+.plus-drop{position:absolute;bottom:calc(100% + 8px);left:0;background:var(--drop-bg);border:1px solid var(--border);border-radius:14px;padding:6px;box-shadow:var(--drop-shadow);display:none;z-index:200;min-width:220px;max-width:calc(100vw - 24px);max-height:calc(100vh - 120px);overflow-y:auto;animation:none;}
 .plus-drop.open{display:block;animation:dropMenuIn .15s cubic-bezier(.22,.61,.36,1) both;}
 .pd-item{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;cursor:pointer;transition:background .12s;}
 .pd-item:hover{background:var(--hover);}
@@ -1001,7 +1001,7 @@ html[data-theme="light"] .attach-opt:hover{background:rgba(20,18,12,.05);}
 .disclaimer{font-size:11px;color:var(--text2);text-align:center;padding:4px 0 0;opacity:.5;}
 
 /* ===================== MODEL DROPDOWN ===================== */
-.model-drop{position:absolute;bottom:calc(100% + 8px);right:0;background:var(--drop-bg);border:1px solid var(--border);border-radius:14px;padding:6px;box-shadow:var(--drop-shadow);display:none;z-index:200;min-width:230px;}
+.model-drop{position:absolute;bottom:calc(100% + 8px);right:0;background:var(--drop-bg);border:1px solid var(--border);border-radius:14px;padding:6px;box-shadow:var(--drop-shadow);display:none;z-index:200;min-width:230px;max-width:calc(100vw - 24px);max-height:calc(100vh - 120px);overflow-y:auto;}
 .model-drop.open{display:block;animation:dropMenuIn .15s cubic-bezier(.22,.61,.36,1) both;}
 .md-option{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;transition:background .12s;}
 .md-option:hover{background:var(--hover);}
@@ -1081,9 +1081,13 @@ html[data-theme="light"] .attach-opt:hover{background:rgba(20,18,12,.05);}
   .desktop-model-current{font-size:13px;font-weight:700;color:var(--text);}
   .desktop-row-title{font-size:13px;font-weight:700;color:var(--text);}
   .desktop-mini{display:flex;align-items:center;gap:8px;color:var(--text2);font-size:12px;}
-  .desktop-sub-drop{position:absolute;top:56px;left:calc(100% + 12px);display:none;min-width:252px;padding:8px;}
+  .desktop-sub-drop{position:absolute;top:56px;left:calc(100% + 12px);display:none;min-width:252px;padding:8px;max-width:min(300px,calc(100vw - 48px));}
   .desktop-sub-drop.open{display:block;animation:dropMenuIn .15s cubic-bezier(.22,.61,.36,1) both;}
   .desktop-sub-drop.models{top:110px;}
+  /* Если подменю выходит за правый край окна — разворачиваем влево от родителя. */
+  .desktop-model-wrap.flip-sub .desktop-sub-drop{left:auto;right:calc(100% + 12px);}
+  /* Если сам дроп модели упирается в верх — открываем вниз, а не только вверх. */
+  .desktop-model-wrap.flip-top{bottom:auto;top:calc(100% + 10px);}
   .desktop-copy{display:flex;flex-direction:column;gap:2px;}
   .desktop-copy strong{font-size:13px;font-weight:700;color:var(--text);}
   .desktop-copy span{font-size:12px;color:var(--text2);}
@@ -1910,7 +1914,7 @@ html[data-theme="light"] .photo-deleted-msg{
       <button class="rec-mode active" id="recModeIdentify" onclick="setRecognizeMode('identify')">Что за произведение</button>
       <button class="rec-mode" id="recModeDictation" onclick="setRecognizeMode('dictation')">Нотный диктант</button>
     </div>
-    <div class="rec-desc" id="recDesc">Приложение послушает запись (до 25 секунд) и определит произведение, автора и период.</div>
+    <div class="rec-desc" id="recDesc">Приложение послушает запись (до 5 минут) и определит произведение, автора и период.</div>
     <div class="rec-timer" id="recTimer">00:00</div>
     <div class="rec-actions">
       <button class="rec-record-btn" id="recRecordBtn" onclick="toggleRecognizeRecord()">
@@ -3457,11 +3461,15 @@ function positionChatMenuPop(){
   const btn=document.getElementById('chatMenuBtn');
   if(!pop||!btn)return;
   const r=btn.getBoundingClientRect();
-  const pw=pop.offsetWidth||272;
+  const ph=pop.offsetHeight||280;
   let right=Math.max(12,window.innerWidth-r.right);
   let top=r.bottom+8;
+  // Если поповер уходит за нижний край окна — прижимаем к низу с отступом 12px.
+  if(top+ph>window.innerHeight-12)top=Math.max(12,window.innerHeight-ph-12);
   pop.style.top=top+'px';
   pop.style.right=right+'px';
+  pop.style.left='auto';
+  pop.style.bottom='auto';
 }
 function toggleChatMenu(e){
   e?.stopPropagation();
@@ -3783,6 +3791,7 @@ function openModeSub(e){
     modelsSubOpen=false;
     document.getElementById('desktopModeSub')?.classList.toggle('open',modeSubOpen);
     document.getElementById('desktopModelsSub')?.classList.remove('open');
+    if(modeSubOpen)requestAnimationFrame(fitDesktopSubs);
     return;
   }
 }
@@ -3793,6 +3802,27 @@ function openModelsSub(e){
   modeSubOpen=false;
   document.getElementById('desktopModelsSub')?.classList.toggle('open',modelsSubOpen);
   document.getElementById('desktopModeSub')?.classList.remove('open');
+  if(modelsSubOpen)requestAnimationFrame(fitDesktopSubs);
+}
+/* Клампим позицию всплывающих подменю модели/режима внутри viewport,
+   чтобы они не заходили за правый край окна и не обрезались. */
+function fitDesktopSubs(){
+  const wrap=document.getElementById('desktopModelWrap');
+  if(!wrap)return;
+  // Сначала сбрасываем флипы, чтобы измерение было чистым.
+  wrap.classList.remove('flip-sub','flip-top');
+  const openSub=wrap.querySelector('.desktop-sub-drop.open');
+  const drop=wrap.querySelector('.desktop-model-drop');
+  if(openSub){
+    const r=openSub.getBoundingClientRect();
+    // Если правая граница подменю за окном — разворачиваем налево.
+    if(r.right>window.innerWidth-12)wrap.classList.add('flip-sub');
+  }
+  if(drop){
+    const r=drop.getBoundingClientRect();
+    // Если верхняя граница ушла за верх окна — открываем вниз.
+    if(r.top<8)wrap.classList.add('flip-top');
+  }
 }
 function selectMode(m){
   // Режим Max — только Pro-роли.
@@ -5700,7 +5730,7 @@ async function handleImageGeneration(promptText){
      - для identify: короткое текстовое описание мелодии → gpt-5.5 (сервер).
    ========================================================================== */
 let _rec={mode:'identify',mediaRecorder:null,chunks:[],startedAt:0,timerId:null,recording:false,stream:null};
-const REC_MAX_MS=25000; // AudD стандартный тариф: до ~25 сек / 10 МБ.
+const REC_MAX_MS=5*60*1000; // До 5 минут записи.
 
 function openRecognizeModal(){
   // Pro-гейт: обычному пользователю показываем апселл, ничего не открываем.
@@ -5722,7 +5752,7 @@ function setRecognizeMode(mode){
   if(desc){
     desc.textContent=mode==='dictation'
       ? 'Сыграйте или спойте мелодию — приложение расшифрует её в нотный стан (двухголосие поддерживается).'
-      : 'Приложение послушает запись (до 25 секунд) и определит произведение, автора и период.';
+      : 'Приложение послушает запись (до 5 минут) и определит произведение, автора и период.';
   }
 }
 function setRecStatus(text){const el=document.getElementById('recStatus');if(el)el.textContent=text||'';}
@@ -5943,28 +5973,34 @@ function describeMelody(events){
 
 /* --- Рендер результата в чате --- */
 function renderRecognitionResult({mode,result,abc}){
-  const inner=getChatInner();
   const g=document.getElementById('greetingWrap');if(g)g.style.display='none';
-  const holder=document.createElement('div');
-  holder.className='msg-ai-wrap';
-  const card=document.createElement('div');
-  card.className='reco-card';
+  // Рендерим ответ распознавания как обычное сообщение ИИ (то же оформление,
+  // что и у чата): markdown-текст в бабле msg-ai + стандартные action-кнопки.
+  const shell=createAiBubbleShell({showActions:true,hiddenActions:false});
   const pathA=result?.source==='fingerprint';
-  const badge=pathA?'<span class="reco-badge match">✓ Точное совпадение</span>':'<span class="reco-badge guess">≈ Предположение модели</span>';
-  const work=escapeHtml(result?.workGuess||result?.title||'Не удалось определить произведение');
-  const composer=escapeHtml(result?.composerGuess||result?.artist||'');
-  const period=escapeHtml(result?.periodGuess||result?.year||'');
-  const conf=result?.confidence?`<div class="reco-conf">Уверенность: <b>${escapeHtml(result.confidence)}</b></div>`:'';
+  const work=result?.workGuess||result?.title||'Не удалось определить произведение';
+  const composer=result?.composerGuess||result?.artist||'';
+  const period=result?.periodGuess||result?.year||'';
+  const conf=result?.confidence?String(result.confidence):'';
+  const reasoning=result?.reasoning||'';
+  // Собираем Markdown — стандартный рендер ИИ (renderMd → marked) справится с форматированием.
+  const lines=[];
+  lines.push(pathA?'**✓ Точное совпадение**':'**≈ Предположение модели**');
+  lines.push('');
+  lines.push('### '+work);
   const meta=[composer,period].filter(Boolean).join(' · ');
-  const reasoning=result?.reasoning?`<div class="reco-reasoning">${escapeHtml(result.reasoning)}</div>`:'';
-  card.innerHTML=`${badge}<div class="reco-work">${work}</div>${meta?`<div class="reco-meta">${meta}</div>`:''}${conf}${reasoning}`;
-  holder.appendChild(card);
-  // Для диктанта — рендерим ABC через существующий рендер (renderAbc / abcjs).
+  if(meta)lines.push('_'+meta+'_');
+  if(conf)lines.push('');
+  if(conf)lines.push('**Уверенность:** '+conf);
+  if(reasoning){lines.push('');lines.push(reasoning);}
+  const md=lines.join('\n');
+  renderMd(shell.msg,md);
+  // Для диктанта дорисовываем нотный стан прямо в баббл, под текстом.
   if(mode==='dictation'&&abc){
     const abcHolder=document.createElement('div');
     abcHolder.className='reco-abc-holder';
     abcHolder.dataset.abc=abc;
-    holder.appendChild(abcHolder);
+    shell.msg.appendChild(abcHolder);
     if(window.ABCJS){
       const id='reco-abc-'+(++abcCounter);
       abcHolder.id=id;
@@ -5972,14 +6008,15 @@ function renderRecognitionResult({mode,result,abc}){
     }else{
       abcHolder.innerHTML='<pre style="font-family:monospace;font-size:12px;color:var(--text2);white-space:pre-wrap;">'+escapeHtml(abc)+'</pre>';
     }
-    // Кнопка «редактировать вручную» — открывает textarea, позволяет перерендерить ABC.
     const editBtn=document.createElement('button');
     editBtn.className='reco-abc-edit';
     editBtn.textContent='Редактировать ноты вручную';
-    editBtn.onclick=()=>openAbcEditor(holder,abcHolder,abc);
-    card.appendChild(editBtn);
+    editBtn.onclick=()=>openAbcEditor(shell.msg,abcHolder,abc);
+    shell.msg.appendChild(editBtn);
   }
-  inner.appendChild(holder);
+  // Сохраняем в историю как обычный ответ ассистента, чтобы контекст был доступен модели.
+  chatHistory.push({role:'assistant',content:md});
+  saveChat().catch(()=>{});
   scrollChat();
 }
 function openAbcEditor(holder,abcHolder,abc){
