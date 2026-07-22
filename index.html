@@ -2513,10 +2513,9 @@ function getSafeRedirectUrl(){
   return undefined;
 }
 function buildOtpSendOptions(email){
-  const redirect=getSafeRedirectUrl();
-  return redirect
-    ? {email,options:{shouldCreateUser:true,emailRedirectTo:redirect}}
-    : {email,options:{shouldCreateUser:true}};
+  // emailRedirectTo не передаём — это заставляло Supabase слать magic link вместо кода.
+  // Без него Supabase шлёт 6-значный OTP-код, который и ждёт экран верификации.
+  return {email,options:{shouldCreateUser:true}};
 }
 function tErr(msg){
   const text=String(msg||'');
