@@ -13,6 +13,31 @@
 
 export const config = { maxDuration: 60 };
 
+// Лёгкая защита: разрешённые источники (Origin/Referer) + rate-limit по IP.
+const ALLOWED_HOSTS = ['harmonyai-zeta.vercel.app', 'localhost', '127.0.0.1'];
+function originAllowed(req) {
+  const origin = String(req.headers.origin || req.headers.referer || '').trim();
+  if (!origin) return true; // некоторые webview не шлют заголовок — не блокируем жёстко
+  try {
+    const host = new URL(origin).hostname;
+    return ALLOWED_HOSTS.some(h => host === h || host.endsWith('.' + h));
+  } catch (e) { return false; }
+}
+const RL_WINDOW_MS = 60 * 1000, RL_MAX = 12; // распознавание тяжелее — не более 12/мин с IP
+const _rlStore = new Map();
+function rateLimited(req) {
+  const ip = String((req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket?.remoteAddress || 'unknown');
+  const now = Date.now();
+  const rec = _rlStore.get(ip);
+  if (!rec || now - rec.start > RL_WINDOW_MS) {
+    _rlStore.set(ip, { start: now, count: 1 });
+    if (_rlStore.size > 5000) { for (const [k, v] of _rlStore) { if (now - v.start > RL_WINDOW_MS) _rlStore.delete(k); } }
+    return false;
+  }
+  rec.count += 1;
+  return rec.count > RL_MAX;
+}
+
 // Разрешаем PRO-функции только этим ролям (то же, что клиентский isProUser).
 function isProRole(profile) {
   const r = String(profile?.role || '').toLowerCase();
@@ -151,8 +176,13 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: { message: 'Method not allowed' } });
+
+  // Лёгкая защита от злоупотребления.
+  if (!originAllowed(req)) return res.status(403).json({ error: { message: 'Недопустимый источник запроса.' } });
+  if (rateLimited(req)) return res.status(429).json({ error: { message: 'Слишком много запросов. Попробуйте через минуту.' } });
 
   try {
     const { mode = 'identify', audioBase64 = '', melodyDescription = '', userId = null } = req.body || {};
