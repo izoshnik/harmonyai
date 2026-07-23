@@ -519,6 +519,24 @@ button:active,.model-pill:active,.send-btn:active{
 /* USER — bubble */
 .msg-user{align-self:flex-end;display:inline-block;max-width:100%;min-width:96px;background:var(--user-bg);color:var(--user-txt);border-radius:18px 18px 4px 18px;padding:11px 16px;font-size:var(--font-base);line-height:1.55;word-break:normal;overflow-wrap:break-word;white-space:pre-wrap;hyphens:none;}
 @media(max-width:768px){.msg-user{border-radius:20px 20px 4px 20px;padding:12px 16px;min-width:96px;}}
+/* Голосовое сообщение в стиле мессенджера: кнопка play, «волна» с прогрессом, время. */
+.msg-user.voice-msg{display:flex;align-items:center;gap:10px;padding:8px 12px;min-width:220px;white-space:normal;}
+.voice-play{width:36px;height:36px;border-radius:50%;flex-shrink:0;border:none;cursor:pointer;
+  background:rgba(255,255,255,.18);color:#fff;display:flex;align-items:center;justify-content:center;
+  transition:background .14s,transform .12s cubic-bezier(.2,.8,.2,1);}
+.voice-play:hover{background:rgba(255,255,255,.26);}
+.voice-play:active{transform:scale(.94);}
+.voice-play svg{margin-left:1px;}
+.voice-wave{flex:1;height:22px;position:relative;display:flex;align-items:center;
+  background:rgba(255,255,255,.14);border-radius:11px;overflow:hidden;min-width:80px;}
+.voice-wave-fill{position:absolute;left:0;top:0;bottom:0;width:0%;background:rgba(255,255,255,.32);transition:width .18s linear;}
+.voice-time{font-size:12.5px;font-weight:600;letter-spacing:.02em;font-variant-numeric:tabular-nums;
+  color:rgba(255,255,255,.85);flex-shrink:0;min-width:44px;text-align:right;}
+html[data-theme="light"] .voice-play{background:rgba(20,18,12,.08);color:#26241f;}
+html[data-theme="light"] .voice-play:hover{background:rgba(20,18,12,.14);}
+html[data-theme="light"] .voice-wave{background:rgba(20,18,12,.08);}
+html[data-theme="light"] .voice-wave-fill{background:rgba(20,18,12,.22);}
+html[data-theme="light"] .voice-time{color:rgba(38,36,31,.72);}
 .msg-user-wrap{align-self:flex-end;max-width:78%;display:flex;flex-direction:column;gap:8px;align-items:flex-end;}
 .msg-user-attachments{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;max-width:min(100%,420px);}
 .msg-user-attachment{position:relative;display:flex;flex-direction:column;gap:6px;min-width:94px;max-width:128px;padding:8px 8px 10px;border-radius:18px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.08);box-shadow:0 10px 20px rgba(0,0,0,.10);}
@@ -3825,8 +3843,8 @@ function openModelsSub(e){
 }
 /* Клампим позицию подменю (Режим / Больше моделей) внутри viewport.
    Подменю открывается справа от главного дропа; если справа не хватает места —
-   переставляем его слева через .flip-sub. Позиция самого дропа контролируется
-   positionDesktopModelDrop (position:fixed). */
+   переставляем его слева через .flip-sub. Если снизу упирается — прижимаем к низу
+   дропа через .pin-sub-bottom. */
 function fitDesktopSubs(){
   const wrap=document.getElementById('desktopModelWrap');
   if(!wrap)return;
@@ -5118,7 +5136,13 @@ async function maybeGenerateChatTitle(){
         break;
       }catch(e){/* пробуем следующий кандидат */}
     }
-    if(!title)return; // fail-open: оставляем текущее «Новый чат»
+    if(!title){
+      // Fail-open: если сервер не ответил, но у нас есть чёткий сигнал что чат про
+      // распознавание музыки — ставим локальный фолбэк вместо «Новый чат».
+      if(/\[голосовое сообщение/i.test(userText)){
+        title='Распознавание музыки';
+      }else return;
+    }
     // Сохраняем: локальная мета (приоритетна в списке) + строка chats + Supabase.
     updateChatMetaFor(id,{title,aiTitle:true});
     const c=chats.find(x=>x.id===id);if(c)c.title=title;
@@ -5803,8 +5827,11 @@ async function toggleRecognizeRecord(){
       _rec.stream?.getTracks().forEach(t=>t.stop());
       _rec.stream=null;
       _rec.recording=false;
+      const wasSilent=_rec.silentStop;_rec.silentStop=false;
       updateRecordBtn();
       stopRecTimer();
+      // При silent-остановке (закрытие окна крестиком) — не отправляем в чат.
+      if(wasSilent)return;
       processRecognitionAudio(blob);
     };
     _rec.mediaRecorder.start();
@@ -5820,6 +5847,7 @@ async function toggleRecognizeRecord(){
 }
 function stopRecognizeRecord(silent){
   if(!_rec.mediaRecorder)return;
+  _rec.silentStop=Boolean(silent);
   try{_rec.mediaRecorder.stop();}catch(e){}
   stopRecTimer();
   document.getElementById('micBtn')?.classList.remove('recording');
@@ -5854,21 +5882,33 @@ async function handleRecognizeFile(inp){
 
 async function processRecognitionAudio(blob){
   const mode=_rec.mode;
-  setRecStatus(mode==='dictation'?'Анализирую ноты…':'Распознаю…');
   const btn=document.getElementById('recRecordBtn');
   if(btn)btn.disabled=true;
+  // Сразу закрываем окно записи — дальнейший процесс (голосовое, распознавание,
+  // ответ ИИ) идёт прямо в чате, как обычная переписка.
+  closeRecognizeModal();
+  // Показываем «голосовое сообщение» от пользователя.
+  const audioUrl=URL.createObjectURL(blob);
+  const durSec=Math.max(1,Math.round((Date.now()-(_rec.startedAt||Date.now()))/1000)) || 0;
+  addVoiceMessageBubble(audioUrl,durSec);
+  // Сообщение пользователя в истории: короткая пометка «голосовое», без base64.
+  chatHistory.push({role:'user',content:'[голосовое сообщение · '+formatVoiceTime(durSec)+']'});
+  await saveChat();
+  // Индикатор «печатает» + ответ ассистента (одним пузырьком).
+  showTyping('text');
+  setGeneratingState(true);
+  const aiShell=createAiBubbleShell({showActions:true,hiddenActions:false});
   try{
     const audioBase64=await blobToBase64(blob);
     let melodyDescription='';
     let abcNotation='';
-    // Для диктанта и как fallback для identify — прогоняем через basic-pitch.
-    // Модель ~40 МБ, загружается один раз с CDN, кешируется браузером.
     if(mode==='dictation'){
       try{
         const {abc,description}=await transcribeAudioToAbc(blob);
         abcNotation=abc;melodyDescription=description;
       }catch(e){
-        setRecStatus('Не удалось расшифровать мелодию: '+(e?.message||''));
+        hideTyping();setGeneratingState(false);
+        renderMd(aiShell.msg,'Не удалось расшифровать мелодию: '+(e?.message||''));
         return;
       }
     }
@@ -5879,18 +5919,60 @@ async function processRecognitionAudio(blob){
       body:JSON.stringify(payload),
       cache:'no-store',
       credentials:'omit'
-    }),60000,'Сервер распознавания слишком долго отвечает');
+    }),90000,'Сервер распознавания слишком долго отвечает');
     let data=null;try{data=await res.json();}catch(e){data=null;}
-    if(!res.ok){
-      throw new Error(data?.error?.message||'Ошибка сервера ('+res.status+')');
-    }
-    closeRecognizeModal();
-    renderRecognitionResult({mode,result:data,abc:abcNotation});
+    if(!res.ok)throw new Error(data?.error?.message||'Ошибка сервера ('+res.status+')');
+    hideTyping();
+    renderRecognitionIntoBubble(aiShell,{mode,result:data,abc:abcNotation});
   }catch(e){
-    setRecStatus('Ошибка: '+(e?.message||''));
+    hideTyping();
+    renderMd(aiShell.msg,'Ошибка: '+(e?.message||''));
   }finally{
+    setGeneratingState(false);
     if(btn)btn.disabled=false;
   }
+}
+
+// Форматирование длительности голосового.
+function formatVoiceTime(s){
+  const m=Math.floor(s/60).toString().padStart(2,'0');
+  const ss=(s%60).toString().padStart(2,'0');
+  return m+':'+ss;
+}
+// Добавляет в чат пузырёк «голосового сообщения» от пользователя с плеером.
+function addVoiceMessageBubble(url,durSec){
+  const g=document.getElementById('greetingWrap');if(g)g.style.display='none';
+  const inner=getChatInner();
+  const wrap=document.createElement('div');wrap.className='msg-user-wrap';
+  const bubble=document.createElement('div');bubble.className='msg-user voice-msg';
+  bubble.innerHTML=
+    '<button class="voice-play" type="button" aria-label="Воспроизвести">'+
+      '<svg class="ic-play" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5v14l12-7z"/></svg>'+
+      '<svg class="ic-pause" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>'+
+    '</button>'+
+    '<div class="voice-wave"><div class="voice-wave-fill"></div></div>'+
+    '<span class="voice-time">'+formatVoiceTime(durSec)+'</span>'+
+    '<audio preload="metadata" src="'+url+'"></audio>';
+  wrap.appendChild(bubble);
+  inner.appendChild(wrap);
+  const audio=bubble.querySelector('audio');
+  const btn=bubble.querySelector('.voice-play');
+  const icPlay=bubble.querySelector('.ic-play');
+  const icPause=bubble.querySelector('.ic-pause');
+  const fill=bubble.querySelector('.voice-wave-fill');
+  const timeEl=bubble.querySelector('.voice-time');
+  btn.onclick=()=>{if(audio.paused)audio.play();else audio.pause();};
+  audio.onplay=()=>{icPlay.style.display='none';icPause.style.display='';};
+  audio.onpause=()=>{icPlay.style.display='';icPause.style.display='none';};
+  audio.ontimeupdate=()=>{
+    if(!audio.duration)return;
+    const p=audio.currentTime/audio.duration;
+    fill.style.width=(p*100)+'%';
+    const remain=Math.max(0,audio.duration-audio.currentTime);
+    timeEl.textContent=formatVoiceTime(Math.round(remain));
+  };
+  audio.onended=()=>{fill.style.width='0%';timeEl.textContent=formatVoiceTime(durSec);};
+  scrollChat();
 }
 
 function getRecognizeEndpoint(){
@@ -5996,31 +6078,32 @@ function describeMelody(events){
   return `Ноты (по времени): ${seq}. Всего ${events.length} нот.`;
 }
 
-/* --- Рендер результата в чате --- */
-function renderRecognitionResult({mode,result,abc}){
-  const g=document.getElementById('greetingWrap');if(g)g.style.display='none';
-  // Рендерим ответ распознавания как обычное сообщение ИИ (то же оформление,
-  // что и у чата): markdown-текст в бабле msg-ai + стандартные action-кнопки.
-  const shell=createAiBubbleShell({showActions:true,hiddenActions:false});
-  const pathA=result?.source==='fingerprint';
-  const work=result?.workGuess||result?.title||'Не удалось определить произведение';
-  const composer=result?.composerGuess||result?.artist||'';
-  const period=result?.periodGuess||result?.year||'';
-  const conf=result?.confidence?String(result.confidence):'';
-  const reasoning=result?.reasoning||'';
-  // Собираем Markdown — стандартный рендер ИИ (renderMd → marked) справится с форматированием.
-  const lines=[];
-  lines.push(pathA?'**✓ Точное совпадение**':'**≈ Предположение модели**');
-  lines.push('');
-  lines.push('### '+work);
-  const meta=[composer,period].filter(Boolean).join(' · ');
-  if(meta)lines.push('_'+meta+'_');
-  if(conf)lines.push('');
-  if(conf)lines.push('**Уверенность:** '+conf);
-  if(reasoning){lines.push('');lines.push(reasoning);}
-  const md=lines.join('\n');
-  renderMd(shell.msg,md);
-  // Для диктанта дорисовываем нотный стан прямо в баббл, под текстом.
+/* --- Рендер результата в существующий пузырёк ИИ (естественный ответ, без упоминания источников) --- */
+function renderRecognitionIntoBubble(shell,{mode,result,abc}){
+  const work=(result?.workGuess||result?.title||'').trim();
+  const composer=(result?.composerGuess||result?.artist||'').trim();
+  const period=(result?.periodGuess||result?.year||'').trim();
+  const description=(result?.description||'').trim();
+  const isConfident=String(result?.confidence||'').trim()==='высокая';
+
+  let text='';
+  if(description){
+    // Сервер уже прислал полностью сформированный естественный ответ — используем его.
+    text=description;
+  }else if(work||composer){
+    // Фолбэк: собираем короткое сообщение сами.
+    const opening=isConfident
+      ? 'Это'+(work?' «'+work+'»':'')+(composer?' — '+composer:'')+(period?', '+period:'')+'.'
+      : 'Скорее всего, это'+(work?' «'+work+'»':' произведение')+(composer?' — '+composer:'')+(period?', '+period:'')+'.';
+    text=opening;
+  }else{
+    text=mode==='dictation'
+      ? 'Расшифровал мелодию — вот нотный стан ниже. Если что-то распозналось неверно, можно поправить вручную.'
+      : 'Не удалось узнать произведение по этой записи. Попробуйте другой фрагмент — чем чище звук и длиннее отрывок, тем лучше.';
+  }
+  renderMd(shell.msg,text);
+
+  // Для диктанта дорисовываем нотный стан.
   if(mode==='dictation'&&abc){
     const abcHolder=document.createElement('div');
     abcHolder.className='reco-abc-holder';
@@ -6039,10 +6122,20 @@ function renderRecognitionResult({mode,result,abc}){
     editBtn.onclick=()=>openAbcEditor(shell.msg,abcHolder,abc);
     shell.msg.appendChild(editBtn);
   }
-  // Сохраняем в историю как обычный ответ ассистента, чтобы контекст был доступен модели.
-  chatHistory.push({role:'assistant',content:md});
+  // Сохраняем в историю как обычный ответ ассистента.
+  chatHistory.push({role:'assistant',content:text});
   saveChat().catch(()=>{});
+  // Триггерим генерацию названия чата, даже если первый ход — голосовое сообщение
+  // (тайтл-эндпоинт возьмёт наш «[голосовое ...]» + ответ, сам решит тему; локальный
+  // фолбэк на «Распознавание музыки» сработает если сервер не ответил).
+  maybeGenerateChatTitle();
   scrollChat();
+}
+/* Совместимость: старая сигнатура — создаёт свой пузырёк. */
+function renderRecognitionResult(opts){
+  const g=document.getElementById('greetingWrap');if(g)g.style.display='none';
+  const shell=createAiBubbleShell({showActions:true,hiddenActions:false});
+  renderRecognitionIntoBubble(shell,opts);
 }
 function openAbcEditor(holder,abcHolder,abc){
   if(holder.querySelector('.reco-abc-textarea'))return;
