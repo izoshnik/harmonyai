@@ -1072,9 +1072,9 @@ html[data-theme="light"] .attach-opt:hover{background:rgba(20,18,12,.05);}
 }
 @media(min-width:769px){
   .mobile-model-drop,.mobile-mode-sub{display:none!important;}
-  /* Дропдаун модели больше не привязан к пилюле position:absolute — используем position:fixed
-     и JS-позиционирование внутри viewport, чтобы окно и подменю не заходили за края экрана. */
-  .desktop-model-wrap{position:fixed;display:none;z-index:520;}
+  /* Оригинальная схема: дроп привязан к пилюле через position:absolute (bottom + right:0).
+     JS-функция fitDesktopSubs только клампит подменю флип-классами, если оно уходит за край. */
+  .desktop-model-wrap{position:absolute;right:0;bottom:calc(100% + 10px);display:none;z-index:520;}
   .desktop-model-wrap.open{display:block;animation:dropMenuIn .15s cubic-bezier(.22,.61,.36,1) both;}
   .desktop-model-drop,.desktop-sub-drop{background:var(--drop-bg);border:1px solid var(--border);border-radius:16px;box-shadow:0 18px 40px rgba(0,0,0,.12);}
   .desktop-model-drop{min-width:274px;max-width:min(320px,calc(100vw - 24px));padding:8px;}
@@ -1089,8 +1089,9 @@ html[data-theme="light"] .attach-opt:hover{background:rgba(20,18,12,.05);}
   .desktop-sub-drop.open{display:block;animation:dropMenuIn .15s cubic-bezier(.22,.61,.36,1) both;}
   .desktop-sub-drop.models{top:110px;}
   .desktop-model-wrap.flip-sub .desktop-sub-drop{left:auto;right:calc(100% + 12px);}
-  /* Если подменю слишком высокое и упирается в низ — прижимаем его к нижнему краю дропа. */
   .desktop-model-wrap.pin-sub-bottom .desktop-sub-drop{top:auto;bottom:0;}
+  /* Если сам дроп упирается в верх окна — открываем его вниз от пилюли. */
+  .desktop-model-wrap.flip-down{bottom:auto;top:calc(100% + 10px);}
   .desktop-copy{display:flex;flex-direction:column;gap:2px;}
   .desktop-copy strong{font-size:13px;font-weight:700;color:var(--text);}
   .desktop-copy span{font-size:12px;color:var(--text2);}
@@ -3753,45 +3754,26 @@ function toggleModelDrop(e){
     dropOpen=!dropOpen;
     const wrap=document.getElementById('desktopModelWrap');
     wrap?.classList.toggle('open',dropOpen);
-    if(!dropOpen)closeDesktopSubs();
+    if(!dropOpen){wrap?.classList.remove('flip-down');closeDesktopSubs();}
     if(dropOpen){
       closePlusDrop();
-      // Позиционируем через fixed внутри viewport — дроп больше не привязан к пилюле,
-      // поэтому не заходит за края экрана независимо от того, где стоит пилюля.
-      requestAnimationFrame(positionDesktopModelDrop);
+      // После открытия проверяем, помещается ли дроп сверху; если нет — открываем вниз.
+      requestAnimationFrame(fitDesktopDropVertical);
     }
     return;
   }
   openMobileModelSheet();
 }
-/* Ставим дропдаун модели над пилюлей (или под ней, если сверху не влезает),
-   выравнивая правый край с пилюлей и не давая уйти за левый край viewport. */
-function positionDesktopModelDrop(){
+// Дроп по умолчанию открывается ВВЕРХ от пилюли (bottom:calc(100% + 10px)).
+// Если сверху не хватает места — переставляем его вниз через .flip-down.
+function fitDesktopDropVertical(){
   const wrap=document.getElementById('desktopModelWrap');
-  const pill=document.getElementById('modelPill');
   const drop=document.getElementById('desktopModelDrop');
-  if(!wrap||!pill||!drop)return;
-  wrap.classList.remove('flip-sub');
-  // Временно поднимаем видимость, чтобы измерить, если дроп ещё не отрисован.
-  const prevVis=wrap.style.visibility;wrap.style.visibility='hidden';
-  const pr=pill.getBoundingClientRect();
-  const dw=drop.offsetWidth||300;
-  const dh=drop.offsetHeight||220;
-  const margin=12;
-  // По вертикали: сначала пробуем над пилюлей.
-  let top=pr.top-dh-10;
-  if(top<margin)top=Math.min(pr.bottom+10,window.innerHeight-dh-margin);
-  // По горизонтали: правый край дропа = правый край пилюли; клампим слева и справа.
-  let left=pr.right-dw;
-  if(left+dw>window.innerWidth-margin)left=window.innerWidth-dw-margin;
-  if(left<margin)left=margin;
-  wrap.style.top=top+'px';
-  wrap.style.left=left+'px';
-  wrap.style.visibility=prevVis||'';
+  if(!wrap||!drop)return;
+  wrap.classList.remove('flip-down');
+  const r=drop.getBoundingClientRect();
+  if(r.top<8)wrap.classList.add('flip-down');
 }
-// Держим дроп на месте при ресайзе/скролле, если он открыт.
-window.addEventListener('resize',()=>{if(dropOpen&&isDesktop())positionDesktopModelDrop();});
-window.addEventListener('scroll',()=>{if(dropOpen&&isDesktop())positionDesktopModelDrop();},true);
 function openMobileModelSheet(){
   dropOpen=true;
   document.getElementById('mmScreenModel')?.classList.add('active');
