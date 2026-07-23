@@ -1072,22 +1072,25 @@ html[data-theme="light"] .attach-opt:hover{background:rgba(20,18,12,.05);}
 }
 @media(min-width:769px){
   .mobile-model-drop,.mobile-mode-sub{display:none!important;}
-  .desktop-model-wrap{position:absolute;right:0;bottom:calc(100% + 10px);display:none;z-index:220;}
+  /* Дропдаун модели больше не привязан к пилюле position:absolute — используем position:fixed
+     и JS-позиционирование внутри viewport, чтобы окно и подменю не заходили за края экрана. */
+  .desktop-model-wrap{position:fixed;display:none;z-index:520;}
   .desktop-model-wrap.open{display:block;animation:dropMenuIn .15s cubic-bezier(.22,.61,.36,1) both;}
   .desktop-model-drop,.desktop-sub-drop{background:var(--drop-bg);border:1px solid var(--border);border-radius:16px;box-shadow:0 18px 40px rgba(0,0,0,.12);}
-  .desktop-model-drop{min-width:274px;padding:8px;}
+  .desktop-model-drop{min-width:274px;max-width:min(320px,calc(100vw - 24px));padding:8px;}
   .desktop-row,.desktop-option{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 14px;border-radius:12px;cursor:pointer;transition:background .12s;}
   .desktop-row:hover,.desktop-option:hover{background:var(--hover);}
   .desktop-model-current{font-size:13px;font-weight:700;color:var(--text);}
   .desktop-row-title{font-size:13px;font-weight:700;color:var(--text);}
   .desktop-mini{display:flex;align-items:center;gap:8px;color:var(--text2);font-size:12px;}
-  .desktop-sub-drop{position:absolute;top:56px;left:calc(100% + 12px);display:none;min-width:252px;padding:8px;max-width:min(300px,calc(100vw - 48px));}
+  /* Подменю по умолчанию открывается справа; JS может переставить его слева через .flip-sub. */
+  .desktop-sub-drop{position:absolute;top:56px;left:calc(100% + 12px);display:none;min-width:232px;padding:8px;
+    max-width:min(300px,calc(100vw - 48px));max-height:calc(100vh - 60px);overflow-y:auto;}
   .desktop-sub-drop.open{display:block;animation:dropMenuIn .15s cubic-bezier(.22,.61,.36,1) both;}
   .desktop-sub-drop.models{top:110px;}
-  /* Если подменю выходит за правый край окна — разворачиваем влево от родителя. */
   .desktop-model-wrap.flip-sub .desktop-sub-drop{left:auto;right:calc(100% + 12px);}
-  /* Если сам дроп модели упирается в верх — открываем вниз, а не только вверх. */
-  .desktop-model-wrap.flip-top{bottom:auto;top:calc(100% + 10px);}
+  /* Если подменю слишком высокое и упирается в низ — прижимаем его к нижнему краю дропа. */
+  .desktop-model-wrap.pin-sub-bottom .desktop-sub-drop{top:auto;bottom:0;}
   .desktop-copy{display:flex;flex-direction:column;gap:2px;}
   .desktop-copy strong{font-size:13px;font-weight:700;color:var(--text);}
   .desktop-copy span{font-size:12px;color:var(--text2);}
@@ -3748,13 +3751,47 @@ function toggleModelDrop(e){
   e?.stopPropagation();
   if(isDesktop()){
     dropOpen=!dropOpen;
-    document.getElementById('desktopModelWrap')?.classList.toggle('open',dropOpen);
+    const wrap=document.getElementById('desktopModelWrap');
+    wrap?.classList.toggle('open',dropOpen);
     if(!dropOpen)closeDesktopSubs();
-    if(dropOpen)closePlusDrop();
+    if(dropOpen){
+      closePlusDrop();
+      // Позиционируем через fixed внутри viewport — дроп больше не привязан к пилюле,
+      // поэтому не заходит за края экрана независимо от того, где стоит пилюля.
+      requestAnimationFrame(positionDesktopModelDrop);
+    }
     return;
   }
   openMobileModelSheet();
 }
+/* Ставим дропдаун модели над пилюлей (или под ней, если сверху не влезает),
+   выравнивая правый край с пилюлей и не давая уйти за левый край viewport. */
+function positionDesktopModelDrop(){
+  const wrap=document.getElementById('desktopModelWrap');
+  const pill=document.getElementById('modelPill');
+  const drop=document.getElementById('desktopModelDrop');
+  if(!wrap||!pill||!drop)return;
+  wrap.classList.remove('flip-sub');
+  // Временно поднимаем видимость, чтобы измерить, если дроп ещё не отрисован.
+  const prevVis=wrap.style.visibility;wrap.style.visibility='hidden';
+  const pr=pill.getBoundingClientRect();
+  const dw=drop.offsetWidth||300;
+  const dh=drop.offsetHeight||220;
+  const margin=12;
+  // По вертикали: сначала пробуем над пилюлей.
+  let top=pr.top-dh-10;
+  if(top<margin)top=Math.min(pr.bottom+10,window.innerHeight-dh-margin);
+  // По горизонтали: правый край дропа = правый край пилюли; клампим слева и справа.
+  let left=pr.right-dw;
+  if(left+dw>window.innerWidth-margin)left=window.innerWidth-dw-margin;
+  if(left<margin)left=margin;
+  wrap.style.top=top+'px';
+  wrap.style.left=left+'px';
+  wrap.style.visibility=prevVis||'';
+}
+// Держим дроп на месте при ресайзе/скролле, если он открыт.
+window.addEventListener('resize',()=>{if(dropOpen&&isDesktop())positionDesktopModelDrop();});
+window.addEventListener('scroll',()=>{if(dropOpen&&isDesktop())positionDesktopModelDrop();},true);
 function openMobileModelSheet(){
   dropOpen=true;
   document.getElementById('mmScreenModel')?.classList.add('active');
@@ -3804,24 +3841,30 @@ function openModelsSub(e){
   document.getElementById('desktopModeSub')?.classList.remove('open');
   if(modelsSubOpen)requestAnimationFrame(fitDesktopSubs);
 }
-/* Клампим позицию всплывающих подменю модели/режима внутри viewport,
-   чтобы они не заходили за правый край окна и не обрезались. */
+/* Клампим позицию подменю (Режим / Больше моделей) внутри viewport.
+   Подменю открывается справа от главного дропа; если справа не хватает места —
+   переставляем его слева через .flip-sub. Позиция самого дропа контролируется
+   positionDesktopModelDrop (position:fixed). */
 function fitDesktopSubs(){
   const wrap=document.getElementById('desktopModelWrap');
   if(!wrap)return;
-  // Сначала сбрасываем флипы, чтобы измерение было чистым.
-  wrap.classList.remove('flip-sub','flip-top');
+  wrap.classList.remove('flip-sub','pin-sub-bottom');
   const openSub=wrap.querySelector('.desktop-sub-drop.open');
+  if(!openSub)return;
+  const subW=openSub.offsetWidth||252;
   const drop=wrap.querySelector('.desktop-model-drop');
-  if(openSub){
-    const r=openSub.getBoundingClientRect();
-    // Если правая граница подменю за окном — разворачиваем налево.
-    if(r.right>window.innerWidth-12)wrap.classList.add('flip-sub');
+  const dr=drop.getBoundingClientRect();
+  const margin=12;
+  // Горизонталь: если справа не хватает места — разворачиваем налево.
+  const rightNeeded=dr.right+12+subW;
+  const leftAvailable=dr.left-12-subW;
+  if(rightNeeded>window.innerWidth-margin&&leftAvailable>=margin){
+    wrap.classList.add('flip-sub');
   }
-  if(drop){
-    const r=drop.getBoundingClientRect();
-    // Если верхняя граница ушла за верх окна — открываем вниз.
-    if(r.top<8)wrap.classList.add('flip-top');
+  // Вертикаль: измеряем повторно после смены left/right, потом клампим по низу.
+  const sr=openSub.getBoundingClientRect();
+  if(sr.bottom>window.innerHeight-margin){
+    wrap.classList.add('pin-sub-bottom');
   }
 }
 function selectMode(m){
