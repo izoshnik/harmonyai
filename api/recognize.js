@@ -107,7 +107,6 @@ async function tryAudD(audioBase64) {
       composerGuess: r.artist || '',
       periodGuess: r.release_date || r.album || '',
       confidence: 'высокая',
-      reasoning: 'Точное совпадение с записью в базе AudD (fingerprint).',
       raw: { title: r.title, artist: r.artist, album: r.album, releaseDate: r.release_date }
     };
   } catch (e) {
@@ -172,6 +171,67 @@ async function tryHeuristic({ mode, melodyDescription }) {
   }
 }
 
+/* -------- Обогащение: естественное описание произведения (без упоминания источников) -------- */
+async function enrichDescription(result) {
+  const apiKey = readEnv('OPENAI_API_KEY');
+  const baseUrl = (readEnv('OPENAI_BASE_URL') || 'https://api.codex-api.online/v1').replace(/\/+$/, '');
+  if (!apiKey) return '';
+  const model = readEnv('RECOGNIZE_MODEL') || readEnv('DYNATOS_MODEL') || 'gpt-5.5';
+  const title = String(result?.workGuess || '').trim();
+  const artist = String(result?.composerGuess || '').trim();
+  const year = String(result?.periodGuess || '').trim();
+  const conf = String(result?.confidence || '').trim();
+  if (!title && !artist) return '';
+
+  const isConfident = conf === 'высокая';
+  const opening = isConfident
+    ? `Это «${title}»${artist ? ' — ' + artist : ''}${year ? ', ' + year : ''}.`
+    : `Скорее всего, это${title ? ' «' + title + '»' : ' произведение'}${artist ? ' — ' + artist : ''}${year ? ', ' + year : ''}.`;
+
+  const system = [
+    'Ты музыковед-ассистент. Тебе дано: название произведения/трека, автор/исполнитель, год.',
+    'Задача: написать естественный ответ пользователю на русском, начиная СТРОГО с фразы, которую даст пользователь (opening).',
+    'Дальше 2–5 предложений с полезным описанием: краткий контекст создания, известные исполнители/интерпретации,',
+    'жанр/стиль/период, инструменты или состав, интересные детали. Пиши как ИИ-ассистент в чате — без markdown-заголовков,',
+    'без списков, без упоминания источников (никаких «AudD», «база данных», «fingerprint», «согласно...»).',
+    'Не выдумывай точные факты — если чего-то не знаешь, обходи общими формулировками.',
+    'Ответ должен звучать как обычное сообщение в чате, а не как справка.'
+  ].join(' ');
+
+  const user = [
+    'Opening (начни ответ ровно с этой фразы):',
+    opening,
+    '',
+    'Данные:',
+    title ? '— Название: ' + title : '',
+    artist ? '— Автор/исполнитель: ' + artist : '',
+    year ? '— Год/период: ' + year : '',
+    '',
+    'Напиши ответ пользователю (2–5 предложений после opening).'
+  ].filter(Boolean).join('\n');
+
+  try {
+    const r = await fetch(`${baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: user }
+        ],
+        temperature: 0.5,
+        max_tokens: 500
+      })
+    });
+    const data = await r.json().catch(() => null);
+    if (!r.ok || !data?.choices?.[0]?.message?.content) return '';
+    return String(data.choices[0].message.content).trim();
+  } catch (e) {
+    return '';
+  }
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -216,8 +276,12 @@ export default async function handler(req, res) {
       pathUsed = result ? 'heuristic' : 'none';
     }
     if (!result) {
-      result = { source: 'heuristic', workGuess: '', composerGuess: '', periodGuess: '', confidence: 'низкая', reasoning: 'Не удалось получить ни fingerprint-совпадение, ни ответ модели.' };
+      result = { source: 'heuristic', workGuess: '', composerGuess: '', periodGuess: '', confidence: 'низкая' };
     }
+    // Обогащаем результат естественным описанием — модель пишет от 1-го лица как ИИ-ассистент,
+    // без упоминания источников (AudD, fingerprint и т.п.).
+    const description = await enrichDescription(result);
+    if (description) result.description = description;
     await logRecognition({ userId, type: 'audio_id', pathUsed, resultJson: result });
     return res.status(200).json(result);
   } catch (e) {
