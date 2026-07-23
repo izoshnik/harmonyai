@@ -210,6 +210,7 @@
       <div class="row total"><span>Итого сегодня</span><span>299&nbsp;₽</span></div>
 
       <button class="pay-btn" id="payBtn" onclick="pay(event)">Оплатить 299&nbsp;₽</button>
+      <div id="payError" style="display:none;margin-top:12px;font-size:13px;color:#ff6b6b;text-align:center;"></div>
 
       <div class="secure">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="4" y="10" width="16" height="10" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 10V7a4 4 0 018 0v3" stroke="currentColor" stroke-width="2"/></svg>
@@ -232,9 +233,18 @@
 <div class="legal-footer">ИНН 781455842468</div>
 
 <script>
-  // Демонстрационная оплата: ripple + переход на экран «успеха». Без списания средств.
-  function pay(e){
-    const btn=e.currentTarget;
+  // При возврате с ЮKassa (?success=1) — сразу показываем экран успеха.
+  (function checkReturn(){
+    const p = new URLSearchParams(location.search);
+    if(p.get('success') === '1'){
+      document.getElementById('checkout').style.display='none';
+      document.getElementById('done').classList.add('show');
+      // Чистим URL без перезагрузки
+      history.replaceState(null,'',location.pathname);
+    }
+  })();
+
+  function addRipple(btn, e){
     const r=document.createElement('span');
     r.className='ripple';
     const rect=btn.getBoundingClientRect();
@@ -244,11 +254,67 @@
     r.style.top=(e.clientY-rect.top-size/2)+'px';
     btn.appendChild(r);
     setTimeout(()=>r.remove(),600);
-    btn.disabled=true;btn.textContent='Обработка…';
-    setTimeout(()=>{
-      document.getElementById('checkout').style.display='none';
-      document.getElementById('done').classList.add('show');
-    },900);
+  }
+
+  async function pay(e){
+    const btn=e.currentTarget;
+    addRipple(btn, e);
+    btn.disabled=true;
+    btn.textContent='Обработка…';
+
+    try {
+      // userId берём из localStorage (ключ совместим с Supabase-сессией в index.html)
+      let userId = null;
+      try {
+        const raw = localStorage.getItem('sb-user') || localStorage.getItem('harmonyai_user');
+        if(raw){ const u=JSON.parse(raw); userId=u?.id||u?.user?.id||null; }
+      } catch{}
+      // Fallback: ищем Supabase session в localStorage по ключу вида sb-*-auth-token
+      if(!userId){
+        for(const k of Object.keys(localStorage)){
+          if(k.includes('auth-token')){
+            try{
+              const s=JSON.parse(localStorage.getItem(k));
+              userId=s?.user?.id || s?.access_token && JSON.parse(atob(s.access_token.split('.')[1]))?.sub || null;
+              if(userId) break;
+            }catch{}
+          }
+        }
+      }
+
+      const email = (() => {
+        try{
+          for(const k of Object.keys(localStorage)){
+            if(k.includes('auth-token')){
+              const s=JSON.parse(localStorage.getItem(k));
+              return s?.user?.email || '';
+            }
+          }
+        }catch{}
+        return '';
+      })();
+
+      const res = await fetch('/api/payment/create', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ userId, email })
+      });
+      const data = await res.json().catch(()=>({}));
+
+      if(!res.ok || !data.confirmationUrl){
+        throw new Error(data.error || 'Ошибка создания платежа');
+      }
+
+      // Редиректим на страницу оплаты ЮKassa
+      location.href = data.confirmationUrl;
+
+    } catch(err){
+      btn.disabled=false;
+      btn.textContent='Оплатить 299 ₽';
+      const note=document.getElementById('payError');
+      if(note){ note.textContent=err.message; note.style.display='block'; }
+      else { alert(err.message); }
+    }
   }
 </script>
 
