@@ -19,6 +19,10 @@ try{
 <script src="https://cdn.jsdelivr.net/npm/abcjs@6.2.3/dist/abcjs-basic-min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="i18n.js"></script>
+<script src="i18n_dict.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -562,6 +566,28 @@ html[data-theme="light"] .voice-time{color:rgba(38,36,31,.72);}
 .msg-ai-wrap.bubble-in{animation:aiBubbleIn 0.28s cubic-bezier(0.22,0.61,0.36,1) both;}
 @keyframes streamCursorBlink{0%,100%{opacity:1;}50%{opacity:0.25;}}
 .msg-ai.is-streaming{caret-color:transparent;}
+/* ===== Блоки кода (Markdown) — тёмная «карточка» с шапкой и кнопкой копирования ===== */
+.code-block{position:relative;margin:14px 0;border-radius:16px;overflow:hidden;background:#1b1c1f;border:1px solid rgba(255,255,255,.08);}
+.code-head{display:flex;align-items:center;justify-content:space-between;padding:9px 12px 9px 15px;background:transparent;}
+.code-lang{font-size:14px;font-weight:700;color:#e8e8ec;letter-spacing:.01em;font-family:'Inter',sans-serif;}
+.code-copy{display:flex;align-items:center;justify-content:center;width:30px;height:30px;border:none;border-radius:8px;background:transparent;color:#c5c5cd;cursor:pointer;transition:background .14s,color .14s,opacity .14s;position:relative;}
+.code-copy:hover:not(:disabled){background:rgba(255,255,255,.09);color:#fff;}
+.code-copy:disabled{opacity:.4;cursor:default;}
+.code-copy .cc-ic-done{position:absolute;opacity:0;transform:scale(.7);transition:opacity .16s,transform .16s;color:#34d399;}
+.code-copy .cc-ic-copy{transition:opacity .16s,transform .16s;}
+.code-copy.copied .cc-ic-copy{opacity:0;transform:scale(.7);}
+.code-copy.copied .cc-ic-done{opacity:1;transform:scale(1);}
+.code-pre{margin:0;padding:6px 15px 16px;overflow-x:auto;background:transparent;}
+.code-pre code.hljs{font-family:'SF Mono','JetBrains Mono','Courier New',ui-monospace,monospace;font-size:13.5px;line-height:1.6;background:transparent;padding:0;color:#e6e6eb;}
+html[data-theme="light"] .code-block{background:#1b1c1f;border-color:rgba(255,255,255,.08);}
+.file-card{display:flex;align-items:center;gap:12px;margin:12px 0 4px;padding:12px 14px;border-radius:14px;background:rgba(120,130,150,.08);border:1px solid rgba(120,130,150,.16);}
+.file-card-ic{flex:0 0 auto;width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;background:rgba(47,107,255,.14);color:#2f6bff;}
+.file-card-info{flex:1 1 auto;min-width:0;}
+.file-card-name{font-size:14px;font-weight:600;color:var(--text-ai);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.file-card-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+.file-card-btn{flex:0 0 auto;border:none;border-radius:9px;padding:8px 16px;font-size:13px;font-weight:600;color:#fff;background:#2f6bff;cursor:pointer;transition:opacity .15s;}
+.file-card-btn:hover{opacity:.9;}
+.file-card-btn:disabled{opacity:.6;cursor:default;}
 .msg-ai{font-size:var(--font-base);line-height:1.7;color:var(--text-ai);word-break:normal;overflow-wrap:anywhere;white-space:pre-wrap;hyphens:none;}
 /* Force AI text visible - light on dark bg, dark on light bg */
 @media(max-width:768px){.msg-ai{color:#e2e2e6;}}
@@ -2421,6 +2447,61 @@ function fmtResetHuman(d){
 
 /* marked setup */
 if(typeof marked!=='undefined') marked.setOptions({breaks:true,gfm:true});
+
+/* ===== Блоки кода: подсветка + шапка с названием языка и кнопкой «Копировать» =====
+   Кнопка видна сразу, но КОПИРОВАНИЕ доступно только после полного завершения
+   ответа ИИ (когда с пузырька снят класс .is-streaming — см. enableCodeCopy()). */
+const LANG_LABELS={js:'JavaScript',javascript:'JavaScript',ts:'TypeScript',typescript:'TypeScript',py:'Python',python:'Python',html:'HTML',css:'CSS',json:'JSON',bash:'Bash',sh:'Shell',shell:'Shell',sql:'SQL',java:'Java',c:'C',cpp:'C++','c++':'C++',cs:'C#',csharp:'C#',go:'Go',rust:'Rust',rs:'Rust',php:'PHP',ruby:'Ruby',rb:'Ruby',swift:'Swift',kotlin:'Kotlin',xml:'XML',yaml:'YAML',yml:'YAML',md:'Markdown',markdown:'Markdown',plaintext:'Text',text:'Text'};
+function codeLangLabel(lang){const k=String(lang||'').trim().toLowerCase();return LANG_LABELS[k]||(k?k.charAt(0).toUpperCase()+k.slice(1):'Code');}
+function highlightCode(code,lang){
+  try{
+    if(typeof hljs==='undefined')return escapeHtml(code);
+    const k=String(lang||'').trim().toLowerCase();
+    if(k&&hljs.getLanguage(k))return hljs.highlight(code,{language:k,ignoreIllegals:true}).value;
+    return hljs.highlightAuto(code).value;
+  }catch(e){return escapeHtml(code);}
+}
+function buildMarkedRenderer(){
+  if(typeof marked==='undefined')return;
+  const renderer=new marked.Renderer();
+  renderer.code=function(code,infostring){
+    const lang=(infostring||'').match(/\S*/)[0];
+    // ABC-блоки обрабатываются отдельно в renderMd — сюда не попадают.
+    const highlighted=highlightCode(code,lang);
+    const raw=escapeHtml(code);
+    return '<div class="code-block" data-code="'+encodeURIComponent(code)+'">'
+      +'<div class="code-head">'
+      +'<span class="code-lang">'+escapeHtml(codeLangLabel(lang))+'</span>'
+      +'<button class="code-copy" type="button" disabled onclick="copyCodeBlock(this)" aria-label="Копировать" title="Копировать">'
+      +'<svg class="cc-ic-copy" width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="11" height="11" rx="2.4" stroke="currentColor" stroke-width="1.8"/><path d="M6 15H5a2 2 0 01-2-2V5a2 2 0 012-2h8a2 2 0 012 2v1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>'
+      +'<svg class="cc-ic-done" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 12.5l5 5 11-11" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+      +'</button>'
+      +'</div>'
+      +'<pre class="code-pre"><code class="hljs">'+highlighted+'</code></pre>'
+      +'</div>';
+  };
+  marked.setOptions({renderer:renderer});
+}
+buildMarkedRenderer();
+
+// Копирование содержимого блока кода (доступно только когда кнопка не disabled).
+function copyCodeBlock(btn){
+  if(btn.disabled)return;
+  const block=btn.closest('.code-block');if(!block)return;
+  let code='';try{code=decodeURIComponent(block.getAttribute('data-code')||'');}catch(e){code=block.querySelector('code')?.textContent||'';}
+  const done=()=>{btn.classList.add('copied');setTimeout(()=>btn.classList.remove('copied'),1400);};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(code).then(done).catch(()=>fallbackCopy(code,done));}
+  else fallbackCopy(code,done);
+}
+function fallbackCopy(text,cb){
+  try{const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();cb&&cb();}catch(e){}
+}
+// Активировать кнопки копирования внутри готового (не стримящегося) пузыря.
+function enableCodeCopy(el){
+  if(!el)return;
+  el.querySelectorAll('.code-copy[disabled]').forEach(b=>{b.disabled=false;});
+}
+
 function isDesktop(){return window.innerWidth>=769;}
 
 /* ===== ПРОМО-УВЕДОМЛЕНИЯ =====
@@ -2479,6 +2560,15 @@ function showNotification(id,probability){
 }
 
 function isDeveloper(){return curUser?.role==='developer';}
+/* Отображаемое название подписки по роли пользователя. */
+function subscriptionLabel(){
+  const r=curUser?.role;
+  if(r==='developer')return 'Developer';
+  if(r==='admin')return 'Admin';
+  if(r==='moderator')return 'Moderator';
+  if(r==='pro')return 'Pro';
+  return 'Free';
+}
 function hasTrainingAccess(){return Boolean(curUser&&(curUser.role==='developer'||curUser.role==='admin'));}
 function hasModeratorAccess(){return Boolean(curUser&&(curUser.role==='developer'||curUser.role==='moderator'||curUser.role==='admin'));}
 /* Доступ к Pro-функциям (Dynatos, Max, Думать) — только у ролей pro/developer/admin/moderator.
@@ -2871,6 +2961,13 @@ async function loadProfile(uid,email){
     curUser={id:uid,email,nickname:localNick||(email||'').split('@')[0]||'Пользователь',role:'user',settings:{},needsNickname:!localNick};
   }
   if(curUser?.settings?.appearance)applyTheme(curUser.settings.appearance);
+  // Применяем язык интерфейса из профиля (если задан и отличается от текущего).
+  try{
+    const plang=curUser?.settings?.lang;
+    if(plang&&window.i18n&&window.i18n.supported.indexOf(plang)>=0&&window.i18n.get()!==plang){
+      window.i18n.set(plang);
+    }
+  }catch(e){}
   loadKnowledgeDocs();
   await loadKnowledgeDocsFromSupabase();
 }
@@ -4205,7 +4302,93 @@ function buildSystem(){
       +'работай только с видимой частью и при необходимости попроси уточнить раздел.';
   }
   if(s.customInstructions)sys+='\nДОПОЛНИТЕЛЬНО от пользователя: '+s.customInstructions;
+  sys+=FILE_GEN_SYSTEM;
   return sys;
+}
+
+/* Инструкция по генерации файлов (md/txt/pdf/docx). ИИ кладёт директиву отдельным
+   блоком, клиент её распознаёт, генерирует файл на сервере и показывает кнопку скачивания. */
+const FILE_GEN_SYSTEM=`
+СОЗДАНИЕ ФАЙЛОВ: если пользователь явно просит сделать/скачать файл (например «сделай pdf», «сохрани в docx», «оформи в файл», «скачать txt/markdown»), сформируй содержимое и в САМОМ КОНЦЕ ответа добавь ровно один блок такого вида:
+\`\`\`harmony-file
+{"format":"pdf","filename":"Короткое имя без расширения","content":"Полный текст файла в Markdown"}
+\`\`\`
+Правила:
+- format только один из: md, txt, pdf, docx.
+- content — это ТО, что должно попасть в файл (Markdown допустим). Не более 20000 символов.
+- Если материал явно превышает ~20000 символов, НЕ создавай файл: вежливо объясни, что на бесплатном тарифе файл слишком большой, и предложи сократить объём или разбить на части.
+- Перед блоком дай короткий человеческий ответ (1–2 предложения), что файл готов. Сам JSON пользователю показывать не нужно — интерфейс покажет кнопку скачивания.
+- Не создавай файл, если пользователь об этом не просил.`;
+
+const FILE_DIR_RE=/```harmony-file\s*([\s\S]*?)```/i;
+const FILE_FMT_META={md:{label:'Markdown',ext:'md'},txt:{label:'Текст',ext:'txt'},pdf:{label:'PDF',ext:'pdf'},docx:{label:'Word',ext:'docx'}};
+// Ищем в ответе директиву harmony-file, убираем её из текста/истории и рендерим кнопку скачивания.
+async function maybeHandleFileDirective(fullText,msgEl,historyIdx){
+  const m=FILE_DIR_RE.exec(fullText||'');
+  if(!m)return;
+  let spec=null;
+  try{spec=JSON.parse(m[1].trim());}catch(e){return;}
+  if(!spec||!spec.format||!spec.content)return;
+  const fmt=String(spec.format).toLowerCase();
+  if(!FILE_FMT_META[fmt])return;
+  // Текст без служебного блока — обновляем и бабл, и историю.
+  const cleaned=String(fullText).replace(FILE_DIR_RE,'').trim();
+  if(msgEl){renderMd(msgEl,cleaned);if(!msgEl.classList.contains('is-streaming'))enableCodeCopy(msgEl);}
+  if(typeof historyIdx==='number'&&chatHistory[historyIdx])chatHistory[historyIdx].content=cleaned;
+  // Кнопка скачивания под баблом.
+  if(msgEl){
+    const card=buildFileCard(spec,fmt);
+    msgEl.appendChild(card);
+    scrollChat();
+  }
+}
+function buildFileCard(spec,fmt){
+  const meta=FILE_FMT_META[fmt];
+  const name=(spec.filename||'document').replace(/[<>]/g,'');
+  const card=document.createElement('div');
+  card.className='file-card';
+  card.innerHTML=`
+    <div class="file-card-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8l-5-5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 3v5h5" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></div>
+    <div class="file-card-info"><div class="file-card-name">${name}.${meta.ext}</div><div class="file-card-sub">${meta.label} · нажмите, чтобы скачать</div></div>
+    <button class="file-card-btn">Скачать</button>`;
+  const btn=card.querySelector('.file-card-btn');
+  btn.onclick=()=>downloadGeneratedFile(spec,fmt,btn);
+  return card;
+}
+async function downloadGeneratedFile(spec,fmt,btn){
+  const orig=btn.textContent;
+  btn.disabled=true;btn.textContent='...';
+  try{
+    const res=await fetch('/api/generate-file',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({format:fmt,filename:spec.filename||'document',content:spec.content,userId:curUser?.id||null})
+    });
+    if(!res.ok){
+      let msg='Не удалось создать файл.';
+      try{const j=await res.json();if(j?.message)msg=j.message;}catch(e){}
+      btn.textContent='Ошибка';setTimeout(()=>{btn.textContent=orig;btn.disabled=false;},2200);
+      showFileError(msg);
+      return;
+    }
+    const blob=await res.blob();
+    const name=(spec.filename||'document').replace(/[<>:"|?*\/\\]/g,'').slice(0,60)||'document';
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download=name+'.'+FILE_FMT_META[fmt].ext;
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),4000);
+    btn.textContent='Готово';setTimeout(()=>{btn.textContent=orig;btn.disabled=false;},1600);
+  }catch(e){
+    btn.textContent='Ошибка';setTimeout(()=>{btn.textContent=orig;btn.disabled=false;},2200);
+    showFileError('Не удалось создать файл. Проверьте соединение.');
+  }
+}
+function showFileError(msg){
+  try{
+    if(typeof toast==='function'){toast(msg);return;}
+  }catch(e){}
+  alert(msg);
 }
 
 /* ===== FILE UPLOAD ===== */
@@ -4525,6 +4708,8 @@ function renderMd(el,text){
       el.appendChild(div);
     }
   });
+  // Кнопки копирования активны только у завершённого ответа (не во время стрима).
+  if(!el.classList.contains('is-streaming'))enableCodeCopy(el);
 }
 function splitMdSegments(text){
   // Та же логика разбиения, что и в renderMd, но возвращает массив сегментов с метаданными,
@@ -6249,6 +6434,7 @@ async function runAssistantReply(displayText){
   try{
     const result=await requestChatReplyLive(aiShell.msg,aiShell.actions);
     if(result?.text){chatHistory.push({role:'assistant',content:result.text});recordUsage(displayText,result.text);}
+    if(result?.text)await maybeHandleFileDirective(result.text,aiShell.msg,chatHistory.length-1);
     await saveChat();
     await autoContinueIfNeeded(result,aiShell.wrap,aiShell.msg,aiShell.actions);
   }catch(e){
@@ -6393,6 +6579,26 @@ function renderSettingsMain(){
           <div class="s-row-text">Память</div>
           <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
         </div>
+        <div class="s-row" onclick="renderSettingsGeneral()">
+          <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3.2" stroke="currentColor" stroke-width="2"/><path d="M12 2v2.4M12 19.6V22M22 12h-2.4M4.4 12H2M19.07 4.93l-1.7 1.7M6.63 17.37l-1.7 1.7M19.07 19.07l-1.7-1.7M6.63 6.63l-1.7-1.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+          <div class="s-row-text">Общие</div>
+          <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+        </div>
+      </div>
+    </div>
+    <div class="s-sect">
+      <div class="s-sect-label">Конфиденциальность</div>
+      <div class="s-rows">
+        <div class="s-row" onclick="renderSettingsSecurity()">
+          <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v5c0 4.6-3 8.6-7 10-4-1.4-7-5.4-7-10V6l7-3z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="s-row-text">Безопасность</div>
+          <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+        </div>
+        <div class="s-row" onclick="renderSettingsData()">
+          <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><ellipse cx="12" cy="6" rx="7" ry="3" stroke="currentColor" stroke-width="2"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+          <div class="s-row-text">Управление данными</div>
+          <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+        </div>
       </div>
     </div>
     <div class="s-sect">
@@ -6410,7 +6616,7 @@ function renderSettingsMain(){
         <div class="s-row">
           <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="5" stroke="currentColor" stroke-width="2"/><path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
           <div class="s-row-text">Подписка</div>
-          <div class="s-row-val">Free</div>
+          <div class="s-row-val">${subscriptionLabel()}</div>
         </div>
         <div class="s-row" onclick="renderSettingsLimits()">
           <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3.5 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
@@ -6442,6 +6648,11 @@ function renderSettingsMain(){
           <div class="s-row-text">Сведения</div>
           <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
         </div>
+        <div class="s-row" onclick="openHelpCenter()">
+          <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 5a2 2 0 012-2h9l5 5v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9.4 9.6a2.6 2.6 0 114.7 1.7c-.5.7-1.2 1-1.6 1.5-.3.4-.4.8-.4 1.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 17.5h.01" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></div>
+          <div class="s-row-text">Справочный центр</div>
+          <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+        </div>
         <div class="s-row" onclick="openSupportChat()">
           <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M9.2 9.3a2.8 2.8 0 115.1 1.9c-.5.8-1.3 1.1-1.8 1.7-.4.5-.5.9-.5 1.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 17h.01" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></div>
           <div class="s-row-text">Помощь</div>
@@ -6468,6 +6679,10 @@ function renderSettingsMain(){
 function goToDynatos(){
   // Открываем страницу оформления Pro в НОВОМ окне/вкладке.
   window.open('https://harmonyai-zeta.vercel.app/subscribe','_blank','noopener,noreferrer');
+}
+function openHelpCenter(){
+  // Справочный центр (FAQ) — открывается в новом окне.
+  window.open('/help','_blank','noopener,noreferrer');
 }
 function openSupportChat(){
   const tgUrl='tg://resolve?domain=harmonyaisupport_bot';
@@ -6509,6 +6724,200 @@ function renderSettingsMemory(){
       </div>
     </div>`;
 }
+
+/* ===== ОБЩИЕ ===== */
+function renderSettingsGeneral(){
+  const el=document.getElementById('settingsContent');
+  const s=getSettings();
+  const autoSwitch=(s.autoSwitch!==false);
+  const webSearch=(s.webSearch===true);
+  const curLang=(window.i18n&&window.i18n.get&&window.i18n.get())||localStorage.getItem('hai_lang')||'ru';
+  const names=(window.i18n&&window.i18n.names)||{ru:'Русский',en:'English',fr:'Français',de:'Deutsch',es:'Español'};
+  el.innerHTML=`
+    <div class="sth">
+      <div class="sth-back" onclick="renderSettingsMain()">
+        <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="sth-title">Общие</div>
+    </div>
+    <div class="mem-rows">
+      <div class="mem-row" onclick="renderSettingsLang()" style="cursor:pointer;">
+        <div class="mem-info"><div class="mem-title">Язык</div></div>
+        <div style="display:flex;align-items:center;gap:8px;color:var(--muted);font-size:14px;">${names[curLang]||'Русский'}<svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+      </div>
+      <div class="mem-row">
+        <div class="mem-info"><div class="mem-title">Автопереключение</div><div class="mem-desc">Автоматически использовать более умную модель для решения сложных вопросов</div></div>
+        <div class="sw ${autoSwitch?'on':''}" onclick="this.classList.toggle('on');saveSetting('autoSwitch',this.classList.contains('on'))"></div>
+      </div>
+      <div class="mem-row">
+        <div class="mem-info"><div class="mem-title">Поиск в интернете</div><div class="mem-desc">Искать актуальную информацию в реальном времени.</div></div>
+        <div class="sw ${webSearch?'on':''}" onclick="this.classList.toggle('on');saveSetting('webSearch',this.classList.contains('on'))"></div>
+      </div>
+    </div>`;
+}
+function renderSettingsLang(){
+  const el=document.getElementById('settingsContent');
+  const curLang=(window.i18n&&window.i18n.get&&window.i18n.get())||localStorage.getItem('hai_lang')||'ru';
+  const supported=(window.i18n&&window.i18n.supported)||['ru','en','fr','de','es'];
+  const names=(window.i18n&&window.i18n.names)||{ru:'Русский',en:'English',fr:'Français',de:'Deutsch',es:'Español'};
+  const rows=supported.map(l=>`
+    <div class="mem-row" onclick="pickLang('${l}')" style="cursor:pointer;">
+      <div class="mem-info"><div class="mem-title">${names[l]||l}</div></div>
+      ${l===curLang?'<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12l4 4 10-10" stroke="#2f6bff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}
+    </div>`).join('');
+  el.innerHTML=`
+    <div class="sth">
+      <div class="sth-back" onclick="renderSettingsGeneral()">
+        <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="sth-title">Язык</div>
+    </div>
+    <div class="mem-rows">${rows}</div>`;
+}
+function pickLang(lang){
+  if(window.i18n&&window.i18n.set)window.i18n.set(lang);
+  else localStorage.setItem('hai_lang',lang);
+  renderSettingsLang();
+}
+
+/* ===== БЕЗОПАСНОСТЬ ===== */
+function renderSettingsSecurity(){
+  const el=document.getElementById('settingsContent');
+  el.innerHTML=`
+    <div class="sth">
+      <div class="sth-back" onclick="renderSettingsMain()">
+        <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="sth-title">Безопасность</div>
+    </div>
+    <div class="mem-rows">
+      <div class="mem-row" onclick="renderSettingsEmail()" style="cursor:pointer;">
+        <div class="mem-info"><div class="mem-title">Сменить email</div><div class="mem-desc">${(curUser?.email||'').replace(/</g,'&lt;')}</div></div>
+        <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+      </div>
+      <div class="mem-row" onclick="renderSettingsSessions()" style="cursor:pointer;">
+        <div class="mem-info"><div class="mem-title">Активные сеансы</div><div class="mem-desc">Устройства, на которых выполнен вход</div></div>
+        <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+      </div>
+      <div class="mem-row" onclick="confirmDeleteAllChats()" style="cursor:pointer;">
+        <div class="mem-info"><div class="mem-title" style="color:#ff4d4f;">Удалить все чаты</div></div>
+      </div>
+    </div>`;
+}
+
+/* ===== УПРАВЛЕНИЕ ДАННЫМИ ===== */
+function renderSettingsData(){
+  const el=document.getElementById('settingsContent');
+  const s=getSettings();
+  const improveModels=(s.improveModels!==false);
+  const useAudio=(s.useAudio!==false);
+  el.innerHTML=`
+    <div class="sth">
+      <div class="sth-back" onclick="renderSettingsMain()">
+        <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="sth-title">Управление данными</div>
+    </div>
+    <div class="mem-rows">
+      <div class="mem-row">
+        <div class="mem-info"><div class="mem-title">Помогите улучшить модели</div><div class="mem-desc">Разрешите использовать ваш контент для улучшения наших моделей для вас и других пользователей. Мы принимаем меры для защиты вашей конфиденциальности.</div></div>
+        <div class="sw ${improveModels?'on':''}" onclick="this.classList.toggle('on');saveSetting('improveModels',this.classList.contains('on'))"></div>
+      </div>
+      <div class="mem-row">
+        <div class="mem-info"><div class="mem-title">Использовать аудиозаписи</div><div class="mem-desc">Разрешите использовать загруженные аудио записи произведений и нотных диктантов для улучшения наших моделей.</div></div>
+        <div class="sw ${useAudio?'on':''}" onclick="this.classList.toggle('on');saveSetting('useAudio',this.classList.contains('on'))"></div>
+      </div>
+    </div>`;
+}
+
+/* ===== СМЕНА EMAIL ===== */
+function renderSettingsEmail(){
+  const el=document.getElementById('settingsContent');
+  el.innerHTML=`
+    <div class="sth">
+      <div class="sth-back" onclick="renderSettingsSecurity()">
+        <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="sth-title">Сменить email</div>
+    </div>
+    <div class="mem-rows" style="padding:14px;display:flex;flex-direction:column;gap:10px;">
+      <div class="mem-desc" style="margin-bottom:2px;">Текущий: ${(curUser?.email||'').replace(/</g,'&lt;')}</div>
+      <input class="auth-input" id="newEmailInp" type="email" placeholder="Новый email" autocomplete="email" style="margin-bottom:0;" onkeydown="if(event.key==='Enter')saveNewEmail()">
+      <div class="auth-error" id="newEmailErr" style="display:none;"></div>
+      <button class="auth-btn-primary" id="newEmailBtn" style="margin-bottom:0;" onclick="saveNewEmail()">Сохранить</button>
+    </div>`;
+  setTimeout(()=>{const i=document.getElementById('newEmailInp');if(i)i.focus();},80);
+}
+async function saveNewEmail(){
+  const inp=document.getElementById('newEmailInp');
+  const err=document.getElementById('newEmailErr');
+  const btn=document.getElementById('newEmailBtn');
+  const val=(inp?.value||'').trim();
+  err.style.display='none';
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(val)){err.textContent='Введите корректный email';err.style.display='block';return;}
+  btn.disabled=true;btn.textContent='Отправляем...';
+  try{
+    const {error}=await sb.auth.updateUser({email:val});
+    if(error)throw error;
+    err.style.color='#2f6bff';
+    err.textContent='Письмо для подтверждения отправлено на новый адрес.';
+    err.style.display='block';
+  }catch(e){
+    err.style.color='';
+    err.textContent='Не удалось сменить email. Попробуйте ещё раз.';
+    err.style.display='block';
+  }finally{
+    btn.disabled=false;btn.textContent='Сохранить';
+  }
+}
+
+/* ===== АКТИВНЫЕ СЕАНСЫ ===== */
+function renderSettingsSessions(){
+  const el=document.getElementById('settingsContent');
+  const ua=navigator.userAgent||'';
+  let device='Это устройство';
+  if(/iPhone|iPad|iPod/i.test(ua))device='iOS · Safari';
+  else if(/Android/i.test(ua))device='Android';
+  else if(/Windows/i.test(ua))device='Windows';
+  else if(/Mac/i.test(ua))device='macOS';
+  else if(/Linux/i.test(ua))device='Linux';
+  el.innerHTML=`
+    <div class="sth">
+      <div class="sth-back" onclick="renderSettingsSecurity()">
+        <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="sth-title">Активные сеансы</div>
+    </div>
+    <div class="mem-rows">
+      <div class="mem-row">
+        <div class="mem-info"><div class="mem-title">${device}</div><div class="mem-desc">Текущий сеанс · активен сейчас</div></div>
+        <div style="color:#2fbf6b;font-size:13px;font-weight:600;">Активен</div>
+      </div>
+      <div class="mem-row" onclick="signOutEverywhere()" style="cursor:pointer;">
+        <div class="mem-info"><div class="mem-title" style="color:#ff4d4f;">Выйти на всех устройствах</div></div>
+      </div>
+    </div>`;
+}
+async function signOutEverywhere(){
+  if(!window.confirm('Выйти из аккаунта на всех устройствах?'))return;
+  try{await sb.auth.signOut({scope:'global'});}catch(e){}
+  location.reload();
+}
+
+/* ===== УДАЛИТЬ ВСЕ ЧАТЫ ===== */
+async function confirmDeleteAllChats(){
+  if(!window.confirm('Удалить все чаты? Это действие необратимо.'))return;
+  if(!curUser)return;
+  try{
+    await sb.from('chats').delete().eq('user_id',curUser.id);
+  }catch(e){}
+  chats=[];
+  try{chatHistory=[];curChatId=null;}catch(e){}
+  try{renderChatList();}catch(e){}
+  try{newChat();}catch(e){}
+  renderSettingsSecurity();
+}
+
 function renderSettingsName(){
   const el=document.getElementById('settingsContent');
   el.innerHTML=`
@@ -6953,6 +7362,15 @@ async function saveSetting(key,val){
   curUser.settings[key]=val;
   await sb.from('profiles').upsert({id:curUser.id,settings:curUser.settings},{onConflict:'id'});
 }
+// Сохраняем выбранный язык интерфейса в профиль (внутри settings, без изменения схемы).
+window.persistLangToProfile=async function(lang){
+  try{
+    if(!curUser)return;
+    if(!curUser.settings)curUser.settings={};
+    curUser.settings.lang=lang;
+    await sb.from('profiles').upsert({id:curUser.id,settings:curUser.settings},{onConflict:'id'});
+  }catch(e){}
+};
 </script>
 
 
