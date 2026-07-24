@@ -24,9 +24,9 @@ try{
 <script src="i18n.js"></script>
 <script src="i18n_dict.js"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Courier+Prime:wght@400;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-html,body{height:100%;overflow:hidden;}
+html,body{height:100%;height:100dvh;overflow:hidden;}
 body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;}
 /* Инлайновая <svg> сидит на текстовом baseline и оставляет несколько пикселей снизу —
    из-за этого иконки в круглых/квадратных кнопках выглядят смещёнными («криво»).
@@ -405,7 +405,7 @@ button:active,.model-pill:active,.send-btn:active{
 .auth-resend.disabled{opacity:.4;cursor:default;pointer-events:none;}
 
 /* ===================== APP LAYOUT ===================== */
-.app{display:none;height:100vh;overflow:hidden;position:relative;}
+.app{display:none;height:100vh;height:100svh;height:100dvh;overflow:hidden;position:relative;}
 .app.show{display:flex;}
 @media(max-width:768px){
   .app{flex-direction:column;}
@@ -426,7 +426,8 @@ button:active,.model-pill:active,.send-btn:active{
      safe-area паддинга и 2px снизу раньше пилюля «съезжала» и была не параллельна кнопкам). */
   .topbar-model-pill{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 14px);transform:translateX(-50%);height:38px;display:flex;align-items:center;justify-content:center;padding:0 22px;border-radius:999px;background:#1c1c20;border:1px solid rgba(255,255,255,.06);cursor:pointer;user-select:none;transition:background .12s,transform .12s;max-width:calc(100vw - 120px);overflow:hidden;white-space:nowrap;}
   .topbar-model-pill:active{transform:translateX(-50%) scale(.95);}
-  .topbar-model-pill .pill-name{font-size:16px;font-weight:800;color:#7c4dff;letter-spacing:-.2px;}
+  .topbar-model-pill{background:#161616;}
+  .topbar-model-pill .pill-name{font-size:18px;font-weight:800;color:#4f3dff;letter-spacing:.2px;}
   .topbar-training-pill{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 14px);transform:translateX(-50%);height:38px;display:flex;align-items:center;justify-content:center;padding:0 18px;border-radius:999px;background:rgba(255,255,255,0.08);border:1px solid var(--border);box-shadow:0 6px 18px rgba(0,0,0,.22);cursor:pointer;user-select:none;font-size:14px;font-weight:700;color:var(--text);}
 }
 @media(min-width:769px){
@@ -504,7 +505,10 @@ button:active,.model-pill:active,.send-btn:active{
 @media(max-width:768px){.chat-inner{padding:8px 20px 18px;max-width:100%;}}
 
 /* Greeting */
-.greeting-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 0;}
+.greeting-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 0;position:relative;}
+.greeting-mark{display:none;}
+@media(max-width:768px){.greeting-mark{display:block;position:absolute;top:8px;left:8px;color:rgba(255,255,255,.85);opacity:.9;}}
+html[data-theme="light"] .greeting-mark{color:#26241f;}
 .greeting-title{font-size:34px;font-weight:800;color:var(--text);letter-spacing:-1px;margin-bottom:10px;line-height:1.2;font-family:'SF Mono','Courier New',ui-monospace,monospace;}
 .greeting-sub{font-size:15px;color:var(--text2);transition:opacity .3s;line-height:1.5;max-width:400px;}
 .greeting-hints{display:flex;flex-direction:column;gap:14px;margin-top:34px;align-items:flex-start;}
@@ -512,7 +516,7 @@ button:active,.model-pill:active,.send-btn:active{
 .greeting-hint .gh-icon{font-size:17px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
 @media(max-width:768px){
   .greeting-wrap{padding:0 24px 18px;justify-content:flex-start;align-items:center;text-align:center;}
-  .greeting-title{font-size:26px;line-height:1.25;margin-bottom:0;letter-spacing:-.4px;margin-top:28vh;}
+  .greeting-title{font-size:30px;line-height:1.2;margin-bottom:0;letter-spacing:0;margin-top:24vh;font-family:'Courier Prime','SF Mono','Courier New',ui-monospace,monospace;font-weight:700;}
   .greeting-sub{display:none;}
   .greeting-hints{margin-top:auto!important;margin-bottom:0;align-items:flex-start;width:100%;}
   .greeting-hint{font-size:15.5px;font-weight:700;color:rgba(235,233,240,.92);gap:12px;}
@@ -1829,6 +1833,9 @@ html[data-theme="light"] .photo-deleted-msg{
     <div class="chat-area" id="chatArea">
       <div class="chat-inner" id="chatInner">
         <div class="greeting-wrap" id="greetingWrap">
+          <div class="greeting-mark mobile-only" aria-hidden="true">
+            <svg width="22" height="26" viewBox="0 0 22 26" fill="none"><ellipse cx="5.5" cy="21" rx="5" ry="3.6" fill="currentColor"/><path d="M10 21V2.5C10 2.5 10 1.5 11.2 1.5C15 1.5 16.5 5.5 16.5 8.5C16.5 9.5 16 10 15.5 9.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </div>
           <div class="greeting-title" id="greetingTitle">Привет! Я Harmony Ai</div>
           <div class="greeting-sub" id="greetSub">Спроси меня про любой аккорд 🎵</div>
           <div class="greeting-hints">
@@ -2667,6 +2674,7 @@ function ensureSignedInShell(session){
   }
   document.getElementById('authWrap').classList.add('gone');
   document.getElementById('app').classList.add('show');
+  window.__appShown=true;
   const mg=document.querySelector('.mobile-glossy');if(mg)mg.style.display='none';
   updateUserUI();
   if(!curChatId&&chatHistory.length===0)newChat();
@@ -3817,6 +3825,7 @@ function newChat(){
   recentAttachmentDocs=[];
   const inner=document.getElementById('chatInner');
   inner.innerHTML=`<div class="greeting-wrap" id="greetingWrap">
+    <div class="greeting-mark mobile-only" aria-hidden="true"><svg width="22" height="26" viewBox="0 0 22 26" fill="none"><ellipse cx="5.5" cy="21" rx="5" ry="3.6" fill="currentColor"/><path d="M10 21V2.5C10 2.5 10 1.5 11.2 1.5C15 1.5 16.5 5.5 16.5 8.5C16.5 9.5 16 10 15.5 9.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div>
     <div class="greeting-title" id="greetingTitle">${greetingTitleText()}</div>
     <div class="greeting-sub" id="greetSub">${GREETS[greetIdx]}</div>
     <div class="greeting-hints">
@@ -5878,6 +5887,21 @@ function pvToast(text){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind);
   else bind();
 })();
+
+// Возврат из /subscribe или /help может пройти через BFCache (iOS) —
+// принудительно пересчитаем layout, чтобы input-bar не оказался за границей вьюпорта.
+window.addEventListener('pageshow',function(e){
+  if(!e.persisted)return;
+  // Тик стилей на .app — заставляет пересчитать 100dvh с новыми параметрами вьюпорта.
+  const app=document.getElementById('app');
+  if(app&&app.classList.contains('show')){
+    app.style.height='';
+    // читаем layout, потом сбрасываем — форсирует re-flow
+    void app.offsetHeight;
+  }
+  try{if(typeof scrollChat==='function')scrollChat();}catch(err){}
+});
+
 function showImageLimitReached(check){
   const inner=document.getElementById('chatInner');
   const g=document.getElementById('greetingWrap');if(g)g.style.display='none';
@@ -6681,8 +6705,14 @@ function goToDynatos(){
   window.open('https://harmonyai-zeta.vercel.app/subscribe','_blank','noopener,noreferrer');
 }
 function openHelpCenter(){
-  // Справочный центр (FAQ) — открывается в новом окне.
-  window.open('/help','_blank','noopener,noreferrer');
+  // Справочный центр (FAQ).
+  // В PWA/Telegram Mini App window.open('_blank') часто блокируется — используем прямой переход.
+  const url='/help';
+  try{
+    const tg=window.Telegram&&window.Telegram.WebApp;
+    if(tg&&typeof tg.openLink==='function'){tg.openLink(location.origin+url);return;}
+  }catch(e){}
+  location.href=url;
 }
 function openSupportChat(){
   const tgUrl='tg://resolve?domain=harmonyaisupport_bot';
@@ -6778,6 +6808,25 @@ function pickLang(lang){
   if(window.i18n&&window.i18n.set)window.i18n.set(lang);
   else localStorage.setItem('hai_lang',lang);
   renderSettingsLang();
+  // Явно переводим только что перерисованный экран, а также весь <body>,
+  // чтобы не зависеть от таймингов MutationObserver.
+  try{
+    if(window.i18n&&window.i18n.apply){
+      window.i18n.apply(document.body);
+    }
+  }catch(e){}
+  // Обновляем места, где текст выставляется через JS textContent (не через HTML-шаблоны),
+  // например заголовок-приветствие: он берётся из greetingTitleText().
+  try{updateLangSensitiveUI();}catch(e){}
+}
+// Хук: перерисовывает статические, зашитые в JS строки при смене языка.
+function updateLangSensitiveUI(){
+  // Заголовок приветствия ("Привет, X" / "Hi, X" — базовая часть переводится словарём).
+  const gt=document.getElementById('greetingTitle');
+  if(gt&&typeof greetingTitleText==='function')gt.textContent=greetingTitleText();
+  // Плашка модели ("lite · low" / "Adanatos") — если функция обновления есть.
+  try{if(typeof updateModelPill==='function')updateModelPill();}catch(e){}
+  try{if(typeof updateTrainingPillUI==='function')updateTrainingPillUI();}catch(e){}
 }
 
 /* ===== БЕЗОПАСНОСТЬ ===== */
