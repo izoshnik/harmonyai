@@ -1709,6 +1709,640 @@ html[data-theme="light"] .pv-action:hover .pv-action-circle{background:rgba(20,1
 html[data-theme="light"] .photo-deleted-msg{
   background:rgba(20,18,12,.04);border-color:rgba(20,18,12,.12);
 }
+
+/* ===================== LIQUID GLASS — MOBILE BUTTONS & OBJECTS (INJECTED) =====================
+   Применяется ТОЛЬКО на мобильных (max-width:768px).
+   Все кнопки, пилюли, поля, карточки, шторки получают единый материал «жидкого стекла»:
+   — frosted backdrop blur + лёгкая рефракция
+   — верхняя световая кромка (highlight rim)
+   — нижняя компрессия тени
+   — мягкий внешний box-shadow
+   — пружинная анимация при нажатии
+   ============================================================================= */
+
+@media (max-width: 768px) {
+
+  /* ---- CSS-переменные материала ------------------------------------------ */
+  :root {
+    --lg-blur: blur(18px) saturate(160%) brightness(1.04);
+    --lg-bg: rgba(255, 255, 255, 0.12);
+    --lg-border: 1px solid rgba(255, 255, 255, 0.20);
+    --lg-rim-top: inset 0 1px 0 rgba(255,255,255,0.50),
+                  inset 0 0.5px 0 rgba(255,255,255,0.70);
+    --lg-rim-bot: inset 0 -1px 0 rgba(0,0,0,0.25);
+    --lg-shadow: 0 4px 18px rgba(0,0,0,0.30), 0 1px 4px rgba(0,0,0,0.18);
+    --lg-radius-btn: 14px;
+    --lg-radius-pill: 999px;
+    --lg-radius-card: 20px;
+    --lg-transition: background .15s ease, box-shadow .18s ease,
+                     transform .38s cubic-bezier(.34,1.56,.64,1),
+                     border-color .15s ease, opacity .15s ease;
+  }
+
+  /* Light-theme tint override */
+  html[data-theme="light"] {
+    --lg-bg: rgba(255, 255, 255, 0.55);
+    --lg-border: 1px solid rgba(20,18,12, 0.10);
+    --lg-rim-top: inset 0 1px 0 rgba(255,255,255,0.90),
+                  inset 0 0.5px 0 rgba(255,255,255,0.95);
+    --lg-rim-bot: inset 0 -1px 0 rgba(20,18,12,0.12);
+    --lg-shadow: 0 4px 18px rgba(20,18,12,0.12), 0 1px 4px rgba(20,18,12,0.07);
+  }
+
+  /* ---- Глобальный миксин: применяем к элементам через класс/тег ----------- */
+
+  /* Топбар-кнопки (три полоски, новый чат, etc.) */
+  .topbar-btn {
+    background: var(--lg-bg) !important;
+    backdrop-filter: var(--lg-blur) !important;
+    -webkit-backdrop-filter: var(--lg-blur) !important;
+    border: var(--lg-border) !important;
+    border-radius: var(--lg-radius-btn) !important;
+    box-shadow: var(--lg-rim-top), var(--lg-rim-bot), var(--lg-shadow) !important;
+    color: rgba(255,255,255,0.88) !important;
+    transition: var(--lg-transition) !important;
+  }
+  .topbar-btn:active {
+    transform: scale(0.91) !important;
+    box-shadow: var(--lg-rim-top), var(--lg-rim-bot),
+                0 2px 8px rgba(0,0,0,0.24) !important;
+    filter: brightness(0.88) !important;
+    transition: transform .09s cubic-bezier(.4,0,.2,1) !important;
+  }
+
+  /* Пилюля модели в топбаре */
+  .topbar-model-pill {
+    background: var(--lg-bg) !important;
+    backdrop-filter: var(--lg-blur) !important;
+    -webkit-backdrop-filter: var(--lg-blur) !important;
+    border: var(--lg-border) !important;
+    box-shadow: var(--lg-rim-top), var(--lg-rim-bot), var(--lg-shadow) !important;
+    transition: var(--lg-transition) !important;
+  }
+  .topbar-model-pill:active {
+    transform: translateX(-50%) scale(0.94) !important;
+    box-shadow: var(--lg-rim-top), var(--lg-rim-bot),
+                0 2px 8px rgba(0,0,0,0.22) !important;
+    transition: transform .09s cubic-bezier(.4,0,.2,1) !important;
+  }
+
+  /* Training pill */
+  .topbar-training-pill {
+    background: var(--lg-bg) !important;
+    backdrop-filter: var(--lg-blur) !important;
+    -webkit-backdrop-filter: var(--lg-blur) !important;
+    border: var(--lg-border) !important;
+    box-shadow: var(--lg-rim-top), var(--lg-rim-bot), var(--lg-shadow) !important;
+  }
+
+  /* Кнопка отправки (send) */
+  .send-btn {
+    backdrop-filter: var(--lg-blur) !important;
+    -webkit-backdrop-filter: var(--lg-blur) !important;
+    box-shadow: var(--lg-rim-top), var(--lg-rim-bot), var(--lg-shadow) !important;
+    border: 1px solid rgba(255,255,255,0.22) !important;
+    transition: var(--lg-transition) !important;
+  }
+  .send-btn:active {
+    transform: scale(0.91) !important;
+    filter: brightness(0.88) saturate(1.08) !important;
+    transition: transform .09s cubic-bezier(.4,0,.2,1) !important;
+  }
+
+  /* Иконки-кнопки в боковой панели */
+  .sb-icon-btn {
+    background: var(--lg-bg) !important;
+    backdrop-filter: var(--lg-blur) !important;
+    -webkit-backdrop-filter: var(--lg-blur) !important;
+    border: var(--lg-border) !important;
+    box-shadow: var(--lg-rim-top), var(--lg-rim-bot), var(--lg-shadow) !important;
+    border-radius: var(--lg-radius-btn) !important;
+    transition: var(--lg-transition) !important;
+    color: rgba(255,255,255,0.82) !important;
+  }
+  .sb-icon-btn:active {
+    transform: scale(0.91) !important;
+    transition: transform .09s cubic-bezier(.4,0,.2,1) !important;
+  }
+  .sb-icon-btn:hover {
+    background: rgba(255,255,255,0.18) !important;
+  }
+
+  /* Иконки-кнопки в поле ввода (attach, mic, etc.) */
+  .bar-icon {
+    background: var(--lg-bg) !important;
+    backdrop-filter: var(--lg-blur) !important;
+    -webkit-backdrop-filter: var(--lg-blur) !important;
+    border: var(--lg-border) !important;
+    border-radius: var(--lg-radius-btn) !important;
+    box-shadow: var(--lg-rim-top), var(--lg-rim-bot),
+                0 2px 10px rgba(0,0,0,0.18) !important;
+    transition: var(--lg-transition) !important;
+  }
+  .bar-icon:active {
+    transform: scale(0.91) !important;
+    transition: transform .09s cubic-bezier(.4,0,.2,1) !important;
+  }
+
+  /* Кнопка закрытия нижнего листа модели */
+  .mm-close {
+    background: var(--lg-bg) !important;
+    backdrop-filter: var(--lg-blur) !important;
+    -webkit-backdrop-filter: var(--lg-blur) !important;
+    border: var(--lg-border) !important;
+    box-shadow: var(--lg-rim-top), var(--lg-rim-bot),
+                0 3px 12px rgba(0,0,0,0.22) !important;
+    border-radius: var(--lg-radius-btn) !important;
+    transition: var(--lg-transition) !important;
+  }
+  .mm-close:active {
+    transform: scale(0.91) !important;
+    transition: transform .09s cubic-bezier(.4,0,.2,1) !important;
+  }
+
+  /* Кнопки «назад» и «закрыть» в настройках */
+  .sth-back, .sth-close {
+    background: var(--lg-bg) !important;
+    backdrop-filter: var(--lg-blur) !important;
+    -webkit-backdrop-filter: var(--lg-blur) !important;
+    border: var(--lg-border) !important;
+    box-shadow: var(--lg-rim-top), var(--lg-rim-bot),
+                0 3px 12px rgba(0,0,0,0.22) !important;
+    border-radius: var(--lg-radius-btn) !important;
+    transition: var(--lg-transition) !important;
+  }
+  .sth-back:active, .sth-close:active {
+    transform: scale(0.91) !important;
+    transition: transform .09s cubic-bezier(.4,0,.2,1) !important;
+  }
+
+  /* Кнопки аутентификации */
+  .auth-btn-primary {
+    background: rgba(255,255,255,0.18) !important;
+    backdrop-filter: var(--lg-blur) !important;
+    -webkit-backdrop-filter: var(--lg-blur) !important;
+    border: 1px solid rgba(255,255,255,0.30) !important;
+    box-shadow: var(--lg-rim-top), var(--lg-rim-bot), var(--lg-shadow) !important;
+    border-radius: var(--lg-radius-btn) !important;
+    color: #ffffff !important;
+    transition: var(--lg-transition) !important;
+  }
+  .auth-btn-primary:active {
+    transform: scale(0.94) !important;
+    transition: transform .09s cubic-bezier(.4,0,.2,1) !important;
+  }
+  .auth-btn-secondary {
+    background: var(--lg-bg) !important;
+    backdrop-filter: var(--lg-blur) !important;
+    -webkit-backdrop-filter: var(--lg-blur) !important;
+    border: var(--lg-border) !important;
+    box-shadow: var(--lg-rim-top), var(--lg-rim-bot),
+                0 3px 12px rgba(0,0,0,0.18) !important;
+    border-radius: var(--lg-radius-btn) !important;
+    transition: var(--lg-transition) !important;
+  }
+  .auth-btn-secondary:active {
+    transform: scale(0.94) !important;
+    transition: transform .09s cubic-bezier(.4,0,.2,1) !important;
+  }
+
+  /* OTP-ячейки */
+  .otp-box {
+    background: var(--lg-bg) !important;
+    backdrop-filter: var(--lg-blur) !important;
+    -webkit-backdrop-filter: var(--lg-blur) !important;
+    border: var(--lg-border) !important;
+    box-shadow: var(--lg-rim-top), var(--lg-rim-bot),
+                0 3px 10px rgba(0,0,0,0.18) !important;
+    border-radius: var(--lg-radius-btn) !important;
+    transition: var(--lg-transition) !important;
+  }
+  .otp-box:focus {
+    border: 1px solid rgba(255,255,255,0.55) !important;
+    box-shadow: var(--lg-rim-top), var(--lg-rim-bot),
+                0 0 0 2px rgba(255,255,255,0.12),
+                0 4px 14px rgba(0,0,0,0.22) !important;
+  }
+
+  /* Инпуты авторизации */
+  .auth-input {
+    background: var(--lg-bg) !important;
+    backdrop-filter: var(--lg-blur) !important;
+    -webkit-backdrop-filter: var(--lg-blur) !important;
+    border: var(--lg-border) !important;
+    box-shadow: var(--lg-rim-top), var(--lg-rim-bot),
+                0 3px 10px rgba(0,0,0,0.15) !important;
+    border-radius: var(--lg-radius-btn) !important;
+    color: #ffffff !important;
+    transition: var(--lg-transition) !important;
+  }
+  .auth-input:focus {
+    border: 1px solid rgba(255,255,255,0.55) !important;
+    box-shadow: var(--lg-rim-top), var(--lg-rim-bot),
+                0 0 0 2px rgba(255,255,255,0.10),
+                0 4px 14px rgba(0,0,0,0.22) !important;
+  }
+  .auth-input::placeholder { color: rgba(255,255,255,0.42) !important; }
+
+  /* Auth card сама */
+  .auth-card {
+    background: var(--lg-bg) !important;
+    backdrop-filter: var(--lg-blur) !important;
+    -webkit-backdrop-filter: var(--lg-blur) !important;
+    border: var(--lg-border) !important;
+    box-shadow: var(--lg-rim-top), var(--lg-rim-bot),
+                0 24px 64px rgba(0,0,0,0.45) !important;
+    border-radius: var(--lg-radius-card) !important;
+  }
+
+  /* Пилюля модели (model-pill) */
+  .model-pill {
+    background: var(--lg-bg) !important;
+    backdrop-filter: var(--lg-blur) !important;
+    -webkit-backdrop-filter: var(--lg-blur) !important;
+    border: var(--lg-border) !important;
+    box-shadow: var(--lg-rim-top), var(--lg-rim-bot),
+                0 3px 12px rgba(0,0,0,0.22) !important;
+    transition: var(--lg-transition) !important;
+  }
+  .model-pill:active {
+    transform: scale(0.92) !important;
+    filter: brightness(0.88) !important;
+    transition: transform .09s cubic-bezier(.4,0,.2,1) !important;
+  }
+
+  /* Карточки опций в листе выбора модели */
+  .mm-card {
+    background: var(--lg-bg) !important;
+    backdrop-filter: var(--lg-blur) !important;
+    -webkit-backdrop-filter: var(--lg-blur) !important;
+    border: var(--lg-border) !important;
+    box-shadow: var(--lg-rim-top), var(--lg-rim-bot),
+                0 4px 14px rgba(0,0,0,0.20) !important;
+    border-radius: var(--lg-radius-card) !important;
+  }
+
+  /* Строки настроек */
+  .s-row, .appear-row, .mem-row, .about-row {
+    background: var(--lg-bg) !important;
+    backdrop-filter: var(--lg-blur) !important;
+    -webkit-backdrop-filter: var(--lg-blur) !important;
+    border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+    transition: var(--lg-transition) !important;
+  }
+  .s-row:active, .appear-row:active {
+    transform: scale(0.97) !important;
+    transition: transform .09s cubic-bezier(.4,0,.2,1) !important;
+  }
+
+  /* Чат-айтемы в боковой панели */
+  .sb-chat-item {
+    background: transparent !important;
+    border-radius: var(--lg-radius-btn) !important;
+    transition: var(--lg-transition) !important;
+  }
+  .sb-chat-item:hover, .sb-chat-item.active {
+    background: var(--lg-bg) !important;
+    backdrop-filter: var(--lg-blur) !important;
+    -webkit-backdrop-filter: var(--lg-blur) !important;
+    border: var(--lg-border) !important;
+    box-shadow: var(--lg-rim-top), var(--lg-rim-bot),
+                0 2px 8px rgba(0,0,0,0.18) !important;
+  }
+  .sb-chat-item:active {
+    transform: scale(0.97) !important;
+    transition: transform .09s cubic-bezier(.4,0,.2,1) !important;
+  }
+
+  /* Строка пользователя в сайдбаре */
+  .sb-user-row {
+    background: var(--lg-bg) !important;
+    backdrop-filter: var(--lg-blur) !important;
+    -webkit-backdrop-filter: var(--lg-blur) !important;
+    border: var(--lg-border) !important;
+    box-shadow: var(--lg-rim-top), var(--lg-rim-bot),
+                0 3px 10px rgba(0,0,0,0.18) !important;
+    border-radius: var(--lg-radius-btn) !important;
+    transition: var(--lg-transition) !important;
+  }
+
+  /* Вложения в композере */
+  .composer-attachment {
+    background: var(--lg-bg) !important;
+    backdrop-filter: var(--lg-blur) !important;
+    -webkit-backdrop-filter: var(--lg-blur) !important;
+    border: var(--lg-border) !important;
+    box-shadow: var(--lg-rim-top), var(--lg-rim-bot),
+                0 8px 24px rgba(0,0,0,0.25) !important;
+    border-radius: var(--lg-radius-card) !important;
+    transition: var(--lg-transition) !important;
+  }
+  .composer-attachment:active {
+    transform: scale(0.96) !important;
+    transition: transform .09s cubic-bezier(.4,0,.2,1) !important;
+  }
+  .composer-attachment-remove {
+    background: rgba(255,255,255,0.18) !important;
+    backdrop-filter: var(--lg-blur) !important;
+    -webkit-backdrop-filter: var(--lg-blur) !important;
+    border: var(--lg-border) !important;
+    border-radius: 999px !important;
+    box-shadow: var(--lg-rim-top), 0 2px 6px rgba(0,0,0,0.20) !important;
+    transition: var(--lg-transition) !important;
+  }
+
+  /* Вложения в сообщениях */
+  .msg-user-attachment {
+    background: var(--lg-bg) !important;
+    backdrop-filter: var(--lg-blur) !important;
+    -webkit-backdrop-filter: var(--lg-blur) !important;
+    border: var(--lg-border) !important;
+    box-shadow: var(--lg-rim-top), var(--lg-rim-bot),
+                0 6px 18px rgba(0,0,0,0.25) !important;
+    border-radius: var(--lg-radius-card) !important;
+    transition: var(--lg-transition) !important;
+  }
+
+  /* Контекстное меню чата (долгое нажатие) */
+  .chat-ctx-menu {
+    background: var(--lg-bg) !important;
+    backdrop-filter: var(--lg-blur) !important;
+    -webkit-backdrop-filter: var(--lg-blur) !important;
+    border: var(--lg-border) !important;
+    box-shadow: var(--lg-rim-top), var(--lg-rim-bot),
+                0 16px 40px rgba(0,0,0,0.40) !important;
+    border-radius: var(--lg-radius-card) !important;
+  }
+  .chat-ctx-item {
+    border-radius: 10px !important;
+    transition: var(--lg-transition) !important;
+  }
+  .chat-ctx-item:hover {
+    background: rgba(255,255,255,0.10) !important;
+  }
+  .chat-ctx-item:active {
+    transform: scale(0.95) !important;
+    transition: transform .09s cubic-bezier(.4,0,.2,1) !important;
+  }
+
+  /* Карточки лимитов */
+  .limits-card {
+    background: var(--lg-bg) !important;
+    backdrop-filter: var(--lg-blur) !important;
+    -webkit-backdrop-filter: var(--lg-blur) !important;
+    border: var(--lg-border) !important;
+    box-shadow: var(--lg-rim-top), var(--lg-rim-bot),
+                0 8px 24px rgba(0,0,0,0.25) !important;
+    border-radius: var(--lg-radius-card) !important;
+  }
+
+  /* Кнопка выхода */
+  .logout-btn {
+    background: rgba(239,68,68,0.15) !important;
+    backdrop-filter: var(--lg-blur) !important;
+    -webkit-backdrop-filter: var(--lg-blur) !important;
+    border: 1px solid rgba(239,68,68,0.28) !important;
+    box-shadow: inset 0 1px 0 rgba(255,100,100,0.30),
+                0 3px 12px rgba(239,68,68,0.18) !important;
+    border-radius: var(--lg-radius-btn) !important;
+    transition: var(--lg-transition) !important;
+  }
+  .logout-btn:active {
+    transform: scale(0.94) !important;
+    transition: transform .09s cubic-bezier(.4,0,.2,1) !important;
+  }
+
+  /* Кнопка сохранения */
+  .save-btn {
+    background: rgba(255,255,255,0.18) !important;
+    backdrop-filter: var(--lg-blur) !important;
+    -webkit-backdrop-filter: var(--lg-blur) !important;
+    border: 1px solid rgba(255,255,255,0.32) !important;
+    box-shadow: var(--lg-rim-top), var(--lg-rim-bot), var(--lg-shadow) !important;
+    border-radius: var(--lg-radius-btn) !important;
+    transition: var(--lg-transition) !important;
+  }
+  .save-btn:active {
+    transform: scale(0.94) !important;
+    transition: transform .09s cubic-bezier(.4,0,.2,1) !important;
+  }
+
+  /* Переключатель (SW — toggle switch) */
+  .sw {
+    transition: var(--lg-transition) !important;
+    box-shadow: var(--lg-rim-top), var(--lg-rim-bot),
+                0 2px 8px rgba(0,0,0,0.25) !important;
+  }
+  .sw:active {
+    transform: scale(0.93) !important;
+    transition: transform .09s cubic-bezier(.4,0,.2,1) !important;
+  }
+
+  /* Селектор персонажа/персонализации */
+  .pers-selector, .pds-opt, .pers-row-inline, .mmp-opt {
+    background: var(--lg-bg) !important;
+    backdrop-filter: var(--lg-blur) !important;
+    -webkit-backdrop-filter: var(--lg-blur) !important;
+    border: var(--lg-border) !important;
+    box-shadow: var(--lg-rim-top), var(--lg-rim-bot),
+                0 4px 14px rgba(0,0,0,0.20) !important;
+    border-radius: var(--lg-radius-btn) !important;
+    transition: var(--lg-transition) !important;
+  }
+  .pers-selector:active, .pds-opt:active, .pers-row-inline:active, .mmp-opt:active {
+    transform: scale(0.95) !important;
+    transition: transform .09s cubic-bezier(.4,0,.2,1) !important;
+  }
+
+  /* Training tip */
+  .training-tip {
+    background: var(--lg-bg) !important;
+    backdrop-filter: var(--lg-blur) !important;
+    -webkit-backdrop-filter: var(--lg-blur) !important;
+    border: var(--lg-border) !important;
+    box-shadow: var(--lg-rim-top), var(--lg-rim-bot),
+                0 6px 18px rgba(0,0,0,0.25) !important;
+    border-radius: var(--lg-radius-card) !important;
+    transition: var(--lg-transition) !important;
+  }
+
+  /* Desktop option rows (переиспользуются на мобильной) */
+  .md-option, .md-mode-row, .ms-option, .desktop-row, .desktop-option {
+    background: var(--lg-bg) !important;
+    backdrop-filter: var(--lg-blur) !important;
+    -webkit-backdrop-filter: var(--lg-blur) !important;
+    border-radius: var(--lg-radius-btn) !important;
+    transition: var(--lg-transition) !important;
+  }
+  .md-option:active, .md-mode-row:active, .ms-option:active,
+  .desktop-row:active, .desktop-option:active {
+    transform: scale(0.96) !important;
+    transition: transform .09s cubic-bezier(.4,0,.2,1) !important;
+  }
+
+  /* Кнопка mic */
+  .mic-btn {
+    background: var(--lg-bg) !important;
+    backdrop-filter: var(--lg-blur) !important;
+    -webkit-backdrop-filter: var(--lg-blur) !important;
+    border: var(--lg-border) !important;
+    box-shadow: var(--lg-rim-top), 0 2px 8px rgba(0,0,0,0.22) !important;
+    border-radius: 999px !important;
+    transition: var(--lg-transition) !important;
+  }
+
+  /* Уведомления */
+  .notif-card {
+    background: rgba(30,30,36,0.72) !important;
+    backdrop-filter: var(--lg-blur) !important;
+    -webkit-backdrop-filter: var(--lg-blur) !important;
+    border: var(--lg-border) !important;
+    box-shadow: var(--lg-rim-top), var(--lg-rim-bot),
+                0 12px 32px rgba(0,0,0,0.38) !important;
+    border-radius: var(--lg-radius-card) !important;
+  }
+
+  /* Fab/плавающие кнопки (если есть) */
+  .fab, [class*="fab-"] {
+    background: var(--lg-bg) !important;
+    backdrop-filter: var(--lg-blur) !important;
+    -webkit-backdrop-filter: var(--lg-blur) !important;
+    border: var(--lg-border) !important;
+    box-shadow: var(--lg-rim-top), var(--lg-rim-bot), var(--lg-shadow) !important;
+    border-radius: 999px !important;
+    transition: var(--lg-transition) !important;
+  }
+
+  /* Общий fallback: все кнопки (button тег) без явного класса */
+  button:not(.send-btn):not(.topbar-btn):not(.sb-icon-btn):not(.bar-icon)
+         :not(.mm-close):not(.sth-back):not(.sth-close):not(.auth-btn-primary)
+         :not(.auth-btn-secondary):not(.logout-btn):not(.save-btn):not(.mic-btn)
+         :not(.sw):not(.mac-btn):not(.composer-attachment-remove):not([class*="no-lg"]) {
+    background: var(--lg-bg) !important;
+    backdrop-filter: var(--lg-blur) !important;
+    -webkit-backdrop-filter: var(--lg-blur) !important;
+    border: var(--lg-border) !important;
+    box-shadow: var(--lg-rim-top), var(--lg-rim-bot),
+                0 3px 10px rgba(0,0,0,0.18) !important;
+    border-radius: var(--lg-radius-btn) !important;
+    transition: var(--lg-transition) !important;
+  }
+
+  /* Кнопки mac-style (если есть, например в settings) */
+  .mac-btn {
+    background: var(--lg-bg) !important;
+    backdrop-filter: var(--lg-blur) !important;
+    -webkit-backdrop-filter: var(--lg-blur) !important;
+    border: var(--lg-border) !important;
+    box-shadow: var(--lg-rim-top), var(--lg-rim-bot),
+                0 2px 8px rgba(0,0,0,0.18) !important;
+    border-radius: var(--lg-radius-btn) !important;
+    transition: var(--lg-transition) !important;
+  }
+  .mac-btn:active {
+    transform: scale(0.91) !important;
+    transition: transform .09s cubic-bezier(.4,0,.2,1) !important;
+  }
+
+  /* Репорт textarea */
+  .report-textarea {
+    background: var(--lg-bg) !important;
+    backdrop-filter: var(--lg-blur) !important;
+    -webkit-backdrop-filter: var(--lg-blur) !important;
+    border: var(--lg-border) !important;
+    box-shadow: var(--lg-rim-top), 0 3px 10px rgba(0,0,0,0.15) !important;
+    border-radius: var(--lg-radius-btn) !important;
+    color: #ffffff !important;
+    transition: var(--lg-transition) !important;
+  }
+
+  /* Кнопка отправки репорта */
+  .report-submit {
+    background: rgba(255,255,255,0.20) !important;
+    backdrop-filter: var(--lg-blur) !important;
+    -webkit-backdrop-filter: var(--lg-blur) !important;
+    border: 1px solid rgba(255,255,255,0.35) !important;
+    box-shadow: var(--lg-rim-top), var(--lg-rim-bot), var(--lg-shadow) !important;
+    border-radius: var(--lg-radius-btn) !important;
+    color: #ffffff !important;
+    transition: var(--lg-transition) !important;
+  }
+  .report-submit:active {
+    transform: scale(0.94) !important;
+    transition: transform .09s cubic-bezier(.4,0,.2,1) !important;
+  }
+
+  /* Опция more-menu */
+  .more-item {
+    border-radius: var(--lg-radius-btn) !important;
+    transition: var(--lg-transition) !important;
+  }
+  .more-item:hover {
+    background: rgba(255,255,255,0.08) !important;
+  }
+  .more-item:active {
+    transform: scale(0.96) !important;
+    background: rgba(255,255,255,0.12) !important;
+    transition: transform .09s cubic-bezier(.4,0,.2,1) !important;
+  }
+
+  /* Поле ввода (input-box уже liquid glass, усиливаем для акцента) */
+  .input-box {
+    background: rgba(255,255,255,0.08) !important;
+    backdrop-filter: blur(22px) saturate(170%) brightness(1.05) !important;
+    -webkit-backdrop-filter: blur(22px) saturate(170%) brightness(1.05) !important;
+    border: 1px solid rgba(255,255,255,0.18) !important;
+    box-shadow: var(--lg-rim-top), var(--lg-rim-bot),
+                0 12px 34px rgba(0,0,0,0.32) !important;
+    border-radius: 22px !important;
+  }
+
+  /* Light-theme overrides for auth */
+  html[data-theme="light"] .auth-card {
+    background: rgba(255,255,255,0.68) !important;
+    border: 1px solid rgba(20,18,12,0.10) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.95),
+                0 24px 64px rgba(20,18,12,0.18) !important;
+  }
+  html[data-theme="light"] .auth-input {
+    background: rgba(255,255,255,0.55) !important;
+    border: 1px solid rgba(20,18,12,0.10) !important;
+    color: #26241f !important;
+  }
+  html[data-theme="light"] .auth-input::placeholder { color: rgba(38,36,31,0.40) !important; }
+  html[data-theme="light"] .auth-btn-primary {
+    background: rgba(44,42,36,0.90) !important;
+    border-color: transparent !important;
+    color: #ffffff !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.12),
+                0 4px 18px rgba(44,42,36,0.30) !important;
+  }
+
+  /* Accessibility: убираем motion для пользователей с prefers-reduced-motion */
+}
+@media (max-width: 768px) and (prefers-reduced-motion: reduce) {
+  .topbar-btn, .send-btn, .sb-icon-btn, .bar-icon, .mm-close,
+  .sth-back, .sth-close, .auth-btn-primary, .auth-btn-secondary,
+  .otp-box, .model-pill, .mm-card, .s-row, .appear-row,
+  .sb-chat-item, .composer-attachment, .msg-user-attachment,
+  .chat-ctx-item, .logout-btn, .save-btn, .sw, .pers-selector,
+  .pds-opt, .pers-row-inline, .mmp-opt, .training-tip, .mac-btn,
+  .mic-btn, .report-submit, .more-item {
+    transition: none !important;
+  }
+  .topbar-btn:active, .send-btn:active, .sb-icon-btn:active,
+  .bar-icon:active, .mm-close:active, .sth-back:active, .sth-close:active,
+  .auth-btn-primary:active, .auth-btn-secondary:active, .model-pill:active,
+  .s-row:active, .appear-row:active, .sb-chat-item:active,
+  .composer-attachment:active, .chat-ctx-item:active, .logout-btn:active,
+  .save-btn:active, .sw:active, .pers-selector:active, .pds-opt:active,
+  .pers-row-inline:active, .mmp-opt:active, .mac-btn:active,
+  .report-submit:active, .more-item:active {
+    transform: none !important;
+    filter: none !important;
+  }
+}
+/* ===================== END LIQUID GLASS MOBILE INJECTION ===================== */
 </style>
 </head>
 <body>
