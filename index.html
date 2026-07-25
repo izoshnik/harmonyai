@@ -422,7 +422,7 @@ button:active,.model-pill:active,.send-btn:active{
   .topbar-logo{font-size:21px;font-weight:800;color:var(--text);position:absolute;left:50%;transform:translateX(-50%);}
   /* Кнопка модели выровнена по той же горизонтали, что и «три полоски» и «новый чат»:
      она стоит в контентной строке топбара (top = верхний паддинг), одинаковой высоты 38px
-     с боковыми кнопками, а не центрируется по всему паддинг-боксу (из-за большого верхнего
+     с боковыми кнопками, а не центрируется по всему п��ддинг-боксу (из-за большого верхнего
      safe-area паддинга и 2px снизу раньше пилюля «съезжала» и была не параллельна кнопкам). */
   .topbar-model-pill{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 14px);transform:translateX(-50%);height:38px;display:flex;align-items:center;justify-content:center;padding:0 22px;border-radius:999px;background:#1c1c20;border:1px solid rgba(255,255,255,.06);cursor:pointer;user-select:none;transition:background .12s,transform .12s;max-width:calc(100vw - 120px);overflow:hidden;white-space:nowrap;}
   .topbar-model-pill:active{transform:translateX(-50%) scale(.95);}
@@ -1000,7 +1000,7 @@ html[data-theme="light"] .attach-opt:hover{background:rgba(20,18,12,.05);}
 }
 
 /* ===================== INPUT BAR ===================== */
-.input-wrap{padding:10px 20px 20px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;position:relative;z-index:2;}
+.input-wrap{padding:10px 20px 20px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;position:relative;z-index:2;background:transparent;}
 @media(max-width:768px){.input-wrap{padding:8px 16px 18px;gap:10px;}}
 .input-box{width:100%;max-width:720px;background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:12px 14px 10px;box-shadow:0 2px 12px rgba(0,0,0,0.06);transition:border-color .15s;}
 .input-box:focus-within{border-color:var(--text);}
@@ -1042,7 +1042,7 @@ html[data-theme="light"] .attach-opt:hover{background:rgba(20,18,12,.05);}
 }
 
 /* Send */
-.send-btn{width:34px;height:34px;border-radius:9px;background:var(--send-bg);color:var(--send-txt);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:opacity .15s;flex-shrink:0;}
+.send-btn{width:34px;height:34px;border-radius:50%;background:#2563eb;color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:opacity .15s;flex-shrink:0;box-shadow:0 2px 8px rgba(37,99,235,.35);}
 .send-btn:hover{opacity:.8;}
 
 /* Disclaimer */
@@ -1410,7 +1410,7 @@ html[data-theme="light"] .limit-reached{background:rgba(239,68,68,.07);border-co
 .attach-opt.pro-locked::after{margin-left:auto;}
 
 /* ===== КНОПКА «РАСПОЗНАТЬ МУЗЫКУ» (слева от send) ===== */
-.mic-btn{width:38px;height:38px;border-radius:50%;background:var(--input-bg);color:var(--text2);border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;transition:background .12s,color .12s,transform .1s;flex-shrink:0;margin-right:6px;}
+.mic-btn{width:38px;height:38px;border-radius:50%;background:transparent;color:var(--text2);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;transition:color .12s,transform .1s;flex-shrink:0;margin-right:6px;}
 .mic-btn:hover{background:var(--hover);color:var(--text);}
 .mic-btn:active{transform:scale(.94);}
 .mic-btn.recording{background:#ef4444;color:#fff;border-color:#ef4444;animation:micPulse 1.4s ease-in-out infinite;}
@@ -2602,7 +2602,7 @@ function isDesktop(){return window.innerWidth>=769;}
    Не показываются повторно в одной сессии (sessionStorage) и не показываются
    пользователям с Pro-ролями. Автозакрытие через 8 секунд. */
 const NOTIF_TEXTS={
-  promo_img:{title:'Получите более детальные изображения с Pro',body:'Улучшенное разрешение, насыщенные цвета и глубокая проработка деталей.',cta:'Обновить'},
+  promo_img:{title:'Получите более детальные изображения с Pro',body:'Улучшенное разрешение, насыщенные цвета и глубокая п��оработка деталей.',cta:'Обновить'},
   promo_quality:{title:'Улучшите качество ответов с Pro',body:'Более умная модель, ответы быстрее и точнее, работа с длинным контекстом.',cta:'Обновить'},
   promo_limits:{title:'Получите безграничные лимиты с Pro',body:'С Pro-подпиской доступны более умные модели без ограничений по лимитам.',cta:'Обновить'}
 };
@@ -5177,7 +5177,7 @@ function showSearchTrace(msgEl,phase,query,browsed,total){
     line._lastQuery=query||'';
   }else if(phase==='browse'){
     const host=query||'сайт';
-    setSearchLineText(line,'Смотрю '+host+'… Думаю');
+    setSearchLineText(line,'��мотрю '+host+'… Думаю');
     if(!line._browsed.includes(host))line._browsed.push(host);
   }else if(phase==='sources'){
     const n=browsed||total||0;
@@ -6701,7 +6701,7 @@ function renderSettingsMain(){
       <div class="s-rows">
         <div class="s-row" onclick="renderSettingsSecurity()">
           <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v5c0 4.6-3 8.6-7 10-4-1.4-7-5.4-7-10V6l7-3z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-          <div class="s-row-text">Безопасность</div>
+          <div class="s-row-text">Без��пасность</div>
           <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
         </div>
         <div class="s-row" onclick="renderSettingsData()">
