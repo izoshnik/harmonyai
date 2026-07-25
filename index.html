@@ -23,7 +23,6 @@ try{
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="i18n.js"></script>
 <script src="i18n_dict.js"></script>
-<link rel="stylesheet" href="liquid-glass-chat.css">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Courier+Prime:wght@400;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -1710,6 +1709,54 @@ html[data-theme="light"] .pv-action:hover .pv-action-circle{background:rgba(20,1
 html[data-theme="light"] .photo-deleted-msg{
   background:rgba(20,18,12,.04);border-color:rgba(20,18,12,.12);
 }
+
+/* ============================================================================
+   LIQUID GLASS — только раздел чата, только мобильная версия (max-width:768px).
+   Реализация 1:1 по инструкции: полупрозрачное стекло + backdrop-filter blur +
+   внешняя тонкая обводка/тень + верхний эллиптический блик (::before) +
+   нижняя мягкая световая полоса (::after). Никаких сторонних файлов.
+   ========================================================================= */
+@media(max-width:768px){
+  .main .topbar-btn,
+  .main .bar-icon,
+  .main .mic-btn,
+  .main .send-btn,
+  .main .mac-btn{
+    border:2px solid transparent;
+    background:rgba(255,255,255,.08);
+    box-shadow:0 0 2px rgba(255,255,255,.5),inset 0 0 12px rgba(0,0,0,.12);
+    backdrop-filter:blur(14px);
+    -webkit-backdrop-filter:blur(14px);
+    position:relative;
+    overflow:hidden;
+  }
+  .main .topbar-btn::before,
+  .main .bar-icon::before,
+  .main .mic-btn::before,
+  .main .send-btn::before,
+  .main .mac-btn::before{
+    content:"";
+    position:absolute;
+    width:160%;height:120%;left:-25%;top:-60%;
+    background:radial-gradient(ellipse,rgba(255,255,255,.7),rgba(255,255,255,.15) 35%,transparent 70%);
+    pointer-events:none;
+  }
+  .main .topbar-btn::after,
+  .main .bar-icon::after,
+  .main .mic-btn::after,
+  .main .send-btn::after,
+  .main .mac-btn::after{
+    content:"";
+    position:absolute;
+    left:20%;bottom:10%;width:60%;height:6px;
+    border-radius:50%;
+    background:rgba(255,255,255,.15);
+    filter:blur(6px);
+    pointer-events:none;
+  }
+  .main .send-btn{background:rgba(47,143,255,.28);}
+  .main .mic-btn.recording{background:rgba(239,68,68,.32);}
+}
 </style>
 </head>
 <body>
@@ -1729,23 +1776,6 @@ html[data-theme="light"] .photo-deleted-msg{
       <feTurbulence type="fractalNoise" baseFrequency="0.012 0.02" numOctaves="2" seed="11" result="lgEdgeRaw"/>
       <feGaussianBlur in="lgEdgeRaw" stdDeviation="1.6" result="lgEdgeNoise"/>
       <feDisplacementMap in="SourceGraphic" in2="lgEdgeNoise" scale="1.1" xChannelSelector="R" yChannelSelector="G"/>
-    </filter>
-    <!-- Линзовое преломление для чата (см. liquid-glass-chat.css) -->
-    <filter id="lgChatRefract" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
-      <feTurbulence type="fractalNoise" baseFrequency="0.0035 0.006" numOctaves="3" seed="21" result="n"/>
-      <feGaussianBlur in="n" stdDeviation="3.2" result="ns"/>
-      <feDisplacementMap in="SourceGraphic" in2="ns" scale="16" xChannelSelector="R" yChannelSelector="G" result="d"/>
-      <feGaussianBlur in="d" stdDeviation="0.4"/>
-    </filter>
-    <filter id="lgChatRefractSm" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">
-      <feTurbulence type="fractalNoise" baseFrequency="0.012 0.016" numOctaves="2" seed="9" result="sn"/>
-      <feGaussianBlur in="sn" stdDeviation="1.8" result="sns"/>
-      <feDisplacementMap in="SourceGraphic" in2="sns" scale="7" xChannelSelector="R" yChannelSelector="G"/>
-    </filter>
-    <filter id="lgChatEdge" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
-      <feTurbulence type="fractalNoise" baseFrequency="0.02 0.028" numOctaves="2" seed="5" result="en"/>
-      <feGaussianBlur in="en" stdDeviation="1.2" result="ens"/>
-      <feDisplacementMap in="SourceGraphic" in2="ens" scale="6" xChannelSelector="R" yChannelSelector="B"/>
     </filter>
   </defs>
 </svg>
