@@ -1,442 +1,338 @@
 /* ============================================================================
-   LIQUID GLASS (iOS 26) — ТОЛЬКО РАЗДЕЛ ЧАТА
+   LIQUID GLASS (iOS 26) — ТОЛЬКО МОБИЛЬНАЯ ВЕРСИЯ, ТОЛЬКО РАЗДЕЛ ЧАТА
+   ----------------------------------------------------------------------------
+   Минималистично: чистое стекло + преломление лучей.
+   Никаких искусственных бликов, sheen, 3D-теней и «выпуклых» кнопок.
+   Работает только на @media(max-width:768px) — на десктопе НИЧЕГО не меняется.
    ========================================================================= */
+@media(max-width:768px){
 
-:root{
-  --lgc-blur:24px;
-  --lgc-blur-sm:16px;
-  --lgc-sat:180%;
-  --lgc-radius-soft:20px;
-  --lgc-spring:cubic-bezier(.34,1.56,.64,1);
-  --lgc-quick:cubic-bezier(.4,0,.2,1);
-
-  --lgc-tint:linear-gradient(180deg,rgba(255,255,255,.085),rgba(255,255,255,.012) 46%,rgba(0,0,0,.10) 100%);
-  --lgc-density:radial-gradient(130% 100% at 50% 0%,rgba(255,255,255,.11),rgba(255,255,255,.02) 54%,rgba(0,0,0,.07) 100%);
-  --lgc-border:rgba(255,255,255,.20);
-  --lgc-rim-top:rgba(255,255,255,.55);
-  --lgc-rim-in:rgba(255,255,255,.09);
-  --lgc-rim-bottom:rgba(0,0,0,.26);
-  --lgc-shadow:0 12px 36px rgba(0,0,0,.44),0 2px 8px rgba(0,0,0,.24);
-  --lgc-shadow-sm:0 6px 18px rgba(0,0,0,.32);
-  --lgc-sheen:linear-gradient(125deg,rgba(255,255,255,.16) 0%,rgba(255,255,255,0) 26%,rgba(255,255,255,0) 68%,rgba(255,255,255,.10) 100%);
-}
-
-html[data-theme="light"]{
-  --lgc-tint:linear-gradient(180deg,rgba(255,255,255,.55),rgba(255,255,255,.22) 48%,rgba(20,18,12,.04) 100%);
-  --lgc-density:radial-gradient(130% 100% at 50% 0%,rgba(255,255,255,.7),rgba(255,255,255,.18) 55%,rgba(20,18,12,.03) 100%);
-  --lgc-border:rgba(20,18,12,.09);
-  --lgc-rim-top:rgba(255,255,255,.95);
-  --lgc-rim-in:rgba(20,18,12,.05);
-  --lgc-rim-bottom:rgba(20,18,12,.10);
-  --lgc-shadow:0 12px 32px rgba(20,18,12,.14),0 2px 6px rgba(20,18,12,.07);
-  --lgc-shadow-sm:0 6px 16px rgba(20,18,12,.10);
-  --lgc-sheen:linear-gradient(125deg,rgba(255,255,255,.62) 0%,rgba(255,255,255,0) 28%,rgba(255,255,255,0) 70%,rgba(255,255,255,.34) 100%);
-}
-@media(min-width:769px){
-  html:not([data-theme="dark"]){
-    --lgc-tint:linear-gradient(180deg,rgba(255,255,255,.55),rgba(255,255,255,.22) 48%,rgba(20,18,12,.04) 100%);
-    --lgc-density:radial-gradient(130% 100% at 50% 0%,rgba(255,255,255,.7),rgba(255,255,255,.18) 55%,rgba(20,18,12,.03) 100%);
-    --lgc-border:rgba(20,18,12,.09);
-    --lgc-rim-top:rgba(255,255,255,.95);
-    --lgc-rim-in:rgba(20,18,12,.05);
-    --lgc-rim-bottom:rgba(20,18,12,.10);
-    --lgc-shadow:0 12px 32px rgba(20,18,12,.14),0 2px 6px rgba(20,18,12,.07);
-    --lgc-shadow-sm:0 6px 16px rgba(20,18,12,.10);
-    --lgc-sheen:linear-gradient(125deg,rgba(255,255,255,.62) 0%,rgba(255,255,255,0) 28%,rgba(255,255,255,0) 70%,rgba(255,255,255,.34) 100%);
+  :root{
+    --lgc-blur:22px;
+    --lgc-blur-sm:14px;
+    --lgc-sat:170%;
+    --lgc-tint-dark:rgba(255,255,255,.06);
+    --lgc-tint-light:rgba(255,255,255,.55);
+    --lgc-border-dark:rgba(255,255,255,.10);
+    --lgc-border-light:rgba(20,18,12,.08);
   }
-}
 
-/* 1. КОРПУС СТЕКЛА */
-.main .topbar-btn,
-.main .topbar-model-pill,
-.main .topbar-training-pill,
-.main .model-pill,
-.main .bar-icon,
-.main .mic-btn,
-.main .send-btn,
-.main .voice-play,
-.main .continue-gen-btn,
-.main .mac-btn,
-.main .code-block,
-.main .code-copy,
-.main .file-card,
-.main .file-card-btn,
-.main .msg-user,
-.main .msg-user-attachment,
-.main .abc-block,
-.main .abc-annotation-chip,
-.main .reco-card,
-.main .limit-reached,
-.main .search-trace,
-.main .think-trace,
-.main .plus-drop,
-.main .model-drop,
-.main .mode-sub,
-.main .more-menu,
-.main .desktop-model-drop,
-.main .desktop-sub-drop,
-.input-wrap .input-box,
-.input-wrap .search-chip,
-.input-wrap .img-chip,
-.input-wrap .search-chip-x,
-.input-wrap .img-chip-x,
-.input-wrap .composer-attachment,
-.input-wrap .composer-attachment-remove,
-.mm-sheet,.mm-card,.mm-close,
-.attach-sheet,
-.rec-modal,.rec-modes,.rec-mode,.rec-record-btn,.rec-file-btn,.rec-close,
-.trace-popover,.trace-src-item,.trace-popover-close,
-.chat-menu-pop,.cmp-confirm,.cmp-search-back,.cmp-confirm-btn,
-.src-modal,.src-item,.src-close,
-.fb-modal,.fb-btn-cancel,.fb-btn-send,.fb-tab,
-.notif-card,.notif-btn,
-.pv-window,.pv-topbar,.pv-actions,.pv-menu,.pv-icon-btn,.pv-action-circle{
-  position:relative;
-  isolation:isolate;
-  background:transparent !important;
-  backdrop-filter:none !important;
-  -webkit-backdrop-filter:none !important;
-  border:1px solid var(--lgc-border);
-  box-shadow:var(--lgc-shadow);
-  transition:transform .42s var(--lgc-spring),box-shadow .24s ease,border-color .2s ease,filter .16s ease;
-}
+  /* ------------------------------------------------------------------
+     1. КОРПУС — только материал, никаких искусственных теней.
+     Стекло = прозрачный фон + backdrop-filter(blur+saturate) + тонкий бордер.
+     ------------------------------------------------------------------ */
+  .main .topbar-btn,
+  .main .topbar-model-pill,
+  .main .topbar-training-pill,
+  .main .model-pill,
+  .main .bar-icon,
+  .main .mic-btn,
+  .main .send-btn,
+  .main .voice-play,
+  .main .continue-gen-btn,
+  .main .mac-btn,
+  .main .code-block,
+  .main .code-copy,
+  .main .file-card,
+  .main .file-card-btn,
+  .main .msg-user,
+  .main .msg-user-attachment,
+  .main .abc-block,
+  .main .abc-annotation-chip,
+  .main .reco-card,
+  .main .limit-reached,
+  .main .search-trace,
+  .main .think-trace,
+  .main .plus-drop,
+  .main .model-drop,
+  .main .mode-sub,
+  .main .more-menu,
+  .input-wrap .input-box,
+  .input-wrap .search-chip,
+  .input-wrap .img-chip,
+  .input-wrap .search-chip-x,
+  .input-wrap .img-chip-x,
+  .input-wrap .composer-attachment,
+  .input-wrap .composer-attachment-remove,
+  .mm-sheet,.mm-card,.mm-close,
+  .attach-sheet,
+  .rec-modal,.rec-modes,.rec-mode,.rec-record-btn,.rec-file-btn,.rec-close,
+  .trace-popover,.trace-src-item,.trace-popover-close,
+  .chat-menu-pop,.cmp-confirm,.cmp-search-back,.cmp-confirm-btn,
+  .src-modal,.src-item,.src-close,
+  .fb-modal,.fb-btn-cancel,.fb-btn-send,.fb-tab,
+  .notif-card,.notif-btn,
+  .pv-window,.pv-topbar,.pv-actions,.pv-menu,.pv-icon-btn,.pv-action-circle{
+    position:relative;
+    isolation:isolate;
+    background:transparent !important;
+    backdrop-filter:none !important;
+    -webkit-backdrop-filter:none !important;
+    border:1px solid var(--lgc-border-dark);
+    box-shadow:none;
+    transition:transform .18s cubic-bezier(.4,0,.2,1),border-color .18s ease,opacity .15s ease;
+  }
+  html[data-theme="light"] .main .topbar-btn,
+  html[data-theme="light"] .main .topbar-model-pill,
+  html[data-theme="light"] .main .topbar-training-pill,
+  html[data-theme="light"] .main .model-pill,
+  html[data-theme="light"] .main .bar-icon,
+  html[data-theme="light"] .main .mic-btn,
+  html[data-theme="light"] .main .send-btn,
+  html[data-theme="light"] .main .voice-play,
+  html[data-theme="light"] .main .continue-gen-btn,
+  html[data-theme="light"] .main .mac-btn,
+  html[data-theme="light"] .main .code-block,
+  html[data-theme="light"] .main .code-copy,
+  html[data-theme="light"] .main .file-card,
+  html[data-theme="light"] .main .file-card-btn,
+  html[data-theme="light"] .main .msg-user,
+  html[data-theme="light"] .main .msg-user-attachment,
+  html[data-theme="light"] .main .abc-block,
+  html[data-theme="light"] .main .abc-annotation-chip,
+  html[data-theme="light"] .main .reco-card,
+  html[data-theme="light"] .main .search-trace,
+  html[data-theme="light"] .main .think-trace,
+  html[data-theme="light"] .main .plus-drop,
+  html[data-theme="light"] .main .model-drop,
+  html[data-theme="light"] .main .mode-sub,
+  html[data-theme="light"] .main .more-menu,
+  html[data-theme="light"] .input-wrap .input-box,
+  html[data-theme="light"] .input-wrap .search-chip,
+  html[data-theme="light"] .input-wrap .img-chip,
+  html[data-theme="light"] .input-wrap .composer-attachment,
+  html[data-theme="light"] .mm-sheet,
+  html[data-theme="light"] .mm-card,
+  html[data-theme="light"] .attach-sheet,
+  html[data-theme="light"] .rec-modal,
+  html[data-theme="light"] .trace-popover,
+  html[data-theme="light"] .chat-menu-pop,
+  html[data-theme="light"] .src-modal,
+  html[data-theme="light"] .fb-modal,
+  html[data-theme="light"] .notif-card,
+  html[data-theme="light"] .pv-window,
+  html[data-theme="light"] .pv-menu{
+    border-color:var(--lgc-border-light);
+  }
 
-.main .topbar-btn > *,.main .topbar-model-pill > *,.main .model-pill > *,
-.main .bar-icon > *,.main .mic-btn > *,.main .send-btn > *,.main .voice-play > *,
-.main .continue-gen-btn > *,.main .mac-btn > *,.main .code-block > *,
-.main .file-card > *,.main .msg-user > *,.main .msg-user-attachment > *,
-.main .abc-block > *,.main .reco-card > *,.main .limit-reached > *,
-.main .search-trace > *,.main .think-trace > *,.main .plus-drop > *,
-.main .model-drop > *,.main .mode-sub > *,.main .more-menu > *,
-.main .desktop-model-drop > *,.main .desktop-sub-drop > *,
-.input-wrap .input-box > *,.input-wrap .search-chip > *,.input-wrap .img-chip > *,
-.input-wrap .composer-attachment > *,
-.mm-sheet > *,.mm-card > *,.mm-close > *,.attach-sheet > *,
-.rec-modal > *,.rec-modes > *,.rec-mode > *,.rec-close > *,
-.trace-popover > *,.trace-src-item > *,.chat-menu-pop > *,.cmp-confirm > *,
-.src-modal > *,.src-item > *,.fb-modal > *,.notif-card > *,
-.pv-window > *,.pv-menu > *,.pv-icon-btn > *,.pv-action-circle > *{
-  position:relative;
-  z-index:1;
-}
+  /* Контент над оптическим слоем */
+  .main .topbar-btn > *,.main .topbar-model-pill > *,.main .model-pill > *,
+  .main .bar-icon > *,.main .mic-btn > *,.main .send-btn > *,
+  .main .mac-btn > *,.main .file-card > *,.main .msg-user > *,
+  .main .plus-drop > *,.main .model-drop > *,.main .more-menu > *,
+  .input-wrap .input-box > *,.input-wrap .search-chip > *,.input-wrap .img-chip > *,
+  .input-wrap .composer-attachment > *,
+  .mm-sheet > *,.mm-card > *,.attach-sheet > *,
+  .rec-modal > *,.rec-modes > *,.rec-mode > *,
+  .trace-popover > *,.chat-menu-pop > *,
+  .src-modal > *,.fb-modal > *,.notif-card > *,
+  .pv-window > *,.pv-menu > *{
+    position:relative;
+    z-index:1;
+  }
 
-/* 2. L1 + L2 */
-.main .topbar-btn::before,.main .topbar-model-pill::before,.main .topbar-training-pill::before,
-.main .model-pill::before,.main .bar-icon::before,.main .mic-btn::before,
-.main .send-btn::before,.main .voice-play::before,.main .continue-gen-btn::before,
-.main .mac-btn::before,.main .code-block::before,.main .code-copy::before,
-.main .file-card::before,.main .file-card-btn::before,
-.main .msg-user::before,.main .msg-user-attachment::before,
-.main .abc-block::before,.main .abc-annotation-chip::before,.main .reco-card::before,
-.main .limit-reached::before,.main .search-trace::before,.main .think-trace::before,
-.main .plus-drop::before,.main .model-drop::before,.main .mode-sub::before,
-.main .more-menu::before,.main .desktop-model-drop::before,.main .desktop-sub-drop::before,
-.input-wrap .input-box::before,.input-wrap .search-chip::before,.input-wrap .img-chip::before,
-.input-wrap .search-chip-x::before,.input-wrap .img-chip-x::before,
-.input-wrap .composer-attachment::before,.input-wrap .composer-attachment-remove::before,
-.mm-sheet::before,.mm-card::before,.mm-close::before,.attach-sheet::before,
-.rec-modal::before,.rec-modes::before,.rec-mode::before,.rec-record-btn::before,
-.rec-file-btn::before,.rec-close::before,
-.trace-popover::before,.trace-src-item::before,.trace-popover-close::before,
-.chat-menu-pop::before,.cmp-confirm::before,.cmp-search-back::before,.cmp-confirm-btn::before,
-.src-modal::before,.src-item::before,.src-close::before,
-.fb-modal::before,.fb-btn-cancel::before,.fb-btn-send::before,.fb-tab::before,
-.notif-card::before,.notif-btn::before,
-.pv-window::before,.pv-topbar::before,.pv-actions::before,.pv-menu::before,
-.pv-icon-btn::before,.pv-action-circle::before{
-  content:"";
-  position:absolute;
-  inset:-1px;
-  z-index:-2;
-  border-radius:inherit;
-  backdrop-filter:blur(var(--lgc-blur)) saturate(var(--lgc-sat)) brightness(1.06);
-  -webkit-backdrop-filter:blur(var(--lgc-blur)) saturate(var(--lgc-sat)) brightness(1.06);
-  background:var(--lgc-density),var(--lgc-tint);
-  filter:url(#lgChatRefract);
-  pointer-events:none;
-  transition:backdrop-filter .3s ease,filter .3s ease;
-}
-
-.main .bar-icon::before,.main .mic-btn::before,.main .send-btn::before,
-.main .mac-btn::before,.main .code-copy::before,.main .topbar-btn::before,
-.main .abc-annotation-chip::before,
-.input-wrap .search-chip-x::before,.input-wrap .img-chip-x::before,
-.input-wrap .composer-attachment-remove::before,
-.mm-close::before,.rec-close::before,.rec-mode::before,
-.trace-popover-close::before,.cmp-search-back::before,.src-close::before,
-.pv-icon-btn::before,.pv-action-circle::before{
-  backdrop-filter:blur(var(--lgc-blur-sm)) saturate(165%) brightness(1.08);
-  -webkit-backdrop-filter:blur(var(--lgc-blur-sm)) saturate(165%) brightness(1.08);
-  filter:url(#lgChatRefractSm);
-}
-
-/* 3. L3 + L4 */
-.main .topbar-btn::after,.main .topbar-model-pill::after,.main .topbar-training-pill::after,
-.main .model-pill::after,.main .bar-icon::after,.main .mic-btn::after,
-.main .send-btn::after,.main .voice-play::after,.main .continue-gen-btn::after,
-.main .mac-btn::after,.main .code-block::after,.main .code-copy::after,
-.main .file-card::after,.main .file-card-btn::after,
-.main .msg-user::after,.main .msg-user-attachment::after,
-.main .abc-block::after,.main .abc-annotation-chip::after,.main .reco-card::after,
-.main .limit-reached::after,.main .search-trace::after,.main .think-trace::after,
-.main .plus-drop::after,.main .model-drop::after,.main .mode-sub::after,
-.main .more-menu::after,.main .desktop-model-drop::after,.main .desktop-sub-drop::after,
-.input-wrap .input-box::after,.input-wrap .search-chip::after,.input-wrap .img-chip::after,
-.input-wrap .search-chip-x::after,.input-wrap .img-chip-x::after,
-.input-wrap .composer-attachment::after,.input-wrap .composer-attachment-remove::after,
-.mm-sheet::after,.mm-card::after,.mm-close::after,.attach-sheet::after,
-.rec-modal::after,.rec-modes::after,.rec-mode::after,.rec-record-btn::after,
-.rec-file-btn::after,.rec-close::after,
-.trace-popover::after,.trace-src-item::after,.trace-popover-close::after,
-.chat-menu-pop::after,.cmp-confirm::after,.cmp-search-back::after,.cmp-confirm-btn::after,
-.src-modal::after,.src-item::after,.src-close::after,
-.fb-modal::after,.fb-btn-cancel::after,.fb-btn-send::after,.fb-tab::after,
-.notif-card::after,.notif-btn::after,
-.pv-window::after,.pv-topbar::after,.pv-actions::after,.pv-menu::after,
-.pv-icon-btn::after,.pv-action-circle::after{
-  content:"";
-  position:absolute;
-  inset:0;
-  z-index:-1;
-  border-radius:inherit;
-  pointer-events:none;
-  box-shadow:
-    inset 0 1px 0 var(--lgc-rim-top),
-    inset 0 0 0 1px var(--lgc-rim-in),
-    inset 0 -1px 0 var(--lgc-rim-bottom),
-    inset 0 16px 28px -20px var(--lgc-rim-top),
-    inset 0 -18px 32px -22px var(--lgc-rim-bottom);
-  background:var(--lgc-sheen);
-  background-size:220% 220%;
-  animation:lgcSheen 11s ease-in-out infinite;
-  opacity:.9;
-}
-@keyframes lgcSheen{
-  0%,100%{background-position:0% 0%;opacity:.72;}
-  50%{background-position:100% 100%;opacity:1;}
-}
-
-/* 4. АКЦЕНТНЫЕ КНОПКИ */
-.main .send-btn::before{
-  background:
-    radial-gradient(120% 120% at 50% 0%,rgba(255,255,255,.45),rgba(255,255,255,.06) 60%),
-    linear-gradient(180deg,rgba(47,143,255,.85),rgba(20,105,225,.78));
-}
-.main .send-btn{color:#fff !important;border-color:rgba(255,255,255,.34);}
-.main .send-btn.is-stop::before{
-  background:
-    radial-gradient(120% 120% at 50% 0%,rgba(255,255,255,.6),rgba(255,255,255,.1) 60%),
-    linear-gradient(180deg,rgba(255,255,255,.86),rgba(226,226,232,.78));
-}
-.main .send-btn.is-stop{color:#111 !important;}
-.main .mic-btn.recording::before{
-  background:
-    radial-gradient(120% 120% at 50% 0%,rgba(255,255,255,.4),rgba(255,255,255,.05) 60%),
-    linear-gradient(180deg,rgba(239,68,68,.88),rgba(200,32,32,.8));
-}
-.rec-record-btn::before{
-  background:
-    radial-gradient(120% 120% at 50% 0%,rgba(255,255,255,.42),rgba(255,255,255,.06) 60%),
-    linear-gradient(180deg,rgba(10,132,255,.82),rgba(6,96,200,.76));
-}
-.rec-record-btn{color:#fff !important;}
-.rec-record-btn.stop::before{
-  background:
-    radial-gradient(120% 120% at 50% 0%,rgba(255,255,255,.42),rgba(255,255,255,.06) 60%),
-    linear-gradient(180deg,rgba(239,68,68,.86),rgba(190,30,30,.8));
-}
-.cmp-confirm-btn.danger::before{
-  background:linear-gradient(180deg,rgba(239,68,68,.86),rgba(190,30,30,.8));
-}
-.notif-btn::before{
-  background:linear-gradient(180deg,rgba(29,107,243,.85),rgba(15,78,200,.78));
-}
-.notif-btn,.cmp-confirm-btn.danger{color:#fff !important;}
-.fb-btn-send::before{background:linear-gradient(180deg,rgba(120,120,132,.5),rgba(60,60,70,.42));}
-
-.rec-mode.active::before{
-  background:
-    radial-gradient(120% 120% at 50% 0%,rgba(255,255,255,.4),rgba(255,255,255,.08) 60%),
-    linear-gradient(180deg,rgba(255,255,255,.22),rgba(255,255,255,.08));
-}
-html[data-theme="light"] .rec-mode.active::before{
-  background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(255,255,255,.66));
-}
-
-/* 5. ПЕРЕКЛЮЧАТЕЛИ */
-.main .sw,
-.mm-sheet .sw,
-.attach-sheet .sw,
-.trace-popover .sw,
-.chat-menu-pop .sw{
-  position:relative;
-  width:54px;
-  height:32px;
-  border-radius:999px;
-  background:transparent !important;
-  border:1px solid var(--lgc-border);
-  box-shadow:
-    inset 0 1px 0 var(--lgc-rim-top),
-    inset 0 -1px 0 var(--lgc-rim-bottom),
-    0 4px 14px rgba(0,0,0,.22);
-  isolation:isolate;
-  overflow:visible;
-  cursor:pointer;
-  transition:border-color .25s ease,box-shadow .25s ease;
-}
-.main .sw::before,
-.mm-sheet .sw::before,
-.attach-sheet .sw::before{
-  content:"";
-  position:absolute;
-  inset:0;
-  z-index:-1;
-  border-radius:999px;
-  backdrop-filter:blur(14px) saturate(170%) brightness(1.05);
-  -webkit-backdrop-filter:blur(14px) saturate(170%) brightness(1.05);
-  background:linear-gradient(180deg,rgba(255,255,255,.10),rgba(0,0,0,.10));
-  filter:url(#lgChatRefractSm);
-  transition:background .28s ease;
-}
-.main .sw::after,
-.mm-sheet .sw::after,
-.attach-sheet .sw::after{
-  content:"";
-  position:absolute;
-  top:2px;
-  left:2px;
-  width:26px;
-  height:26px;
-  border-radius:50%;
-  background:
-    radial-gradient(120% 120% at 32% 22%,rgba(255,255,255,.98),rgba(255,255,255,.82) 42%,rgba(232,232,238,.9) 100%);
-  box-shadow:
-    0 2px 6px rgba(0,0,0,.28),
-    0 6px 14px rgba(0,0,0,.18),
-    inset 0 1px 1px rgba(255,255,255,.95),
-    inset 0 -2px 3px rgba(0,0,0,.10);
-  transform:translateX(0);
-  transition:transform .38s var(--lgc-spring),width .18s var(--lgc-quick),box-shadow .25s ease;
-}
-.main .sw.on,
-.mm-sheet .sw.on,
-.attach-sheet .sw.on{
-  border-color:rgba(52,199,89,.55);
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.5),
-    0 4px 16px rgba(52,199,89,.30);
-}
-.main .sw.on::before,
-.mm-sheet .sw.on::before,
-.attach-sheet .sw.on::before{
-  background:
-    radial-gradient(120% 140% at 30% 0%,rgba(255,255,255,.42),rgba(255,255,255,.06) 55%),
-    linear-gradient(180deg,rgba(52,199,89,.82),rgba(28,160,66,.76));
-}
-.main .sw.on::after,
-.mm-sheet .sw.on::after,
-.attach-sheet .sw.on::after{
-  transform:translateX(22px);
-}
-.main .sw:active::after,
-.mm-sheet .sw:active::after,
-.attach-sheet .sw:active::after{width:31px;}
-.main .sw.on:active::after,
-.mm-sheet .sw.on:active::after,
-.attach-sheet .sw.on:active::after{transform:translateX(17px);}
-
-/* 6. ФИЗИКА НАЖАТИЯ */
-.main .topbar-btn:hover,.main .bar-icon:hover,.main .mic-btn:hover,
-.main .model-pill:hover,.main .send-btn:hover,.main .mac-btn:hover,
-.rec-mode:hover,.rec-file-btn:hover,.pv-icon-btn:hover,.trace-src-item:hover,
-.src-item:hover,.cmp-search-back:hover{
-  transform:translateY(-1px);
-  box-shadow:var(--lgc-shadow),0 0 0 1px var(--lgc-rim-in);
-}
-.main .topbar-btn:active,.main .bar-icon:active,.main .mic-btn:active,
-.main .send-btn:active,.main .model-pill:active,.main .mac-btn:active,
-.mm-close:active,.rec-close:active,.rec-mode:active,.rec-record-btn:active,
-.rec-file-btn:active,.pv-icon-btn:active,.pv-action-circle:active,
-.cmp-confirm-btn:active,.notif-btn:active{
-  transform:scale(.93);
-  transition:transform .09s var(--lgc-quick);
-}
-.main .bar-icon:active::before,.main .send-btn:active::before,
-.main .mic-btn:active::before,.main .topbar-btn:active::before,
-.pv-icon-btn:active::before,.mm-close:active::before{
-  backdrop-filter:blur(20px) saturate(190%) brightness(1.12);
-  -webkit-backdrop-filter:blur(20px) saturate(190%) brightness(1.12);
-}
-
-.main .plus-drop,.main .model-drop,.main .mode-sub,.main .more-menu,
-.main .desktop-model-drop,.main .desktop-sub-drop,
-.trace-popover,.chat-menu-pop,.src-modal,.fb-modal,.notif-card,.rec-modal,
-.pv-menu{border-radius:24px;}
-.input-wrap .input-box{border-radius:26px;}
-.mm-card,.rec-modes,.trace-src-item,.src-item{border-radius:18px;}
-.main .bar-icon,.main .mac-btn,.main .code-copy{border-radius:12px;}
-
-.input-wrap .input-box:focus-within{
-  border-color:rgba(120,170,255,.5);
-  box-shadow:var(--lgc-shadow),0 0 0 3px rgba(90,150,255,.16);
-}
-
-/* 7. ФОН ОВЕРЛЕЕВ */
-.mm-overlay,.attach-overlay,.rec-overlay,.src-overlay,.fb-overlay,
-.cmp-confirm-overlay,.pv-overlay{
-  background:rgba(10,10,14,.34) !important;
-  backdrop-filter:blur(18px) saturate(140%);
-  -webkit-backdrop-filter:blur(18px) saturate(140%);
-}
-html[data-theme="light"] .mm-overlay,
-html[data-theme="light"] .attach-overlay,
-html[data-theme="light"] .rec-overlay,
-html[data-theme="light"] .src-overlay,
-html[data-theme="light"] .fb-overlay,
-html[data-theme="light"] .cmp-confirm-overlay,
-html[data-theme="light"] .pv-overlay{
-  background:rgba(240,238,233,.42) !important;
-}
-
-.main .msg-user,.mm-sheet,.rec-modal,.trace-popover,.chat-menu-pop,
-.attach-sheet,.notif-card,.src-modal,.fb-modal{
-  text-shadow:0 1px 1px rgba(0,0,0,.10);
-}
-html[data-theme="light"] .main .msg-user,
-html[data-theme="light"] .mm-sheet,
-html[data-theme="light"] .rec-modal,
-html[data-theme="light"] .trace-popover,
-html[data-theme="light"] .chat-menu-pop,
-html[data-theme="light"] .attach-sheet{text-shadow:none;}
-
-.mm-sheet,.rec-modal,.trace-popover,.src-modal,.chat-menu-pop{overflow:auto;}
-.mm-sheet::before,.rec-modal::before,.trace-popover::before,
-.src-modal::before,.chat-menu-pop::before{filter:url(#lgChatRefractSm);}
-
-/* 8. FALLBACK */
-@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
-  .main .topbar-btn::before,.main .model-pill::before,.main .bar-icon::before,
-  .main .send-btn::before,.input-wrap .input-box::before,.mm-sheet::before,
-  .rec-modal::before,.trace-popover::before,.chat-menu-pop::before,
-  .attach-sheet::before,.notif-card::before,.pv-window::before{
-    background:rgba(28,28,34,.92);
-    filter:none;
+  /* ------------------------------------------------------------------
+     2. МАТЕРИАЛ — ОДИН слой ::before: blur + saturate + преломление.
+     Никаких sheen, 3D-градиентов, inset-теней. Чистая линза.
+     ------------------------------------------------------------------ */
+  .main .topbar-btn::before,.main .topbar-model-pill::before,.main .topbar-training-pill::before,
+  .main .model-pill::before,.main .bar-icon::before,.main .mic-btn::before,
+  .main .send-btn::before,.main .voice-play::before,.main .continue-gen-btn::before,
+  .main .mac-btn::before,.main .code-block::before,.main .code-copy::before,
+  .main .file-card::before,.main .file-card-btn::before,
+  .main .msg-user::before,.main .msg-user-attachment::before,
+  .main .abc-block::before,.main .abc-annotation-chip::before,.main .reco-card::before,
+  .main .limit-reached::before,.main .search-trace::before,.main .think-trace::before,
+  .main .plus-drop::before,.main .model-drop::before,.main .mode-sub::before,
+  .main .more-menu::before,
+  .input-wrap .input-box::before,.input-wrap .search-chip::before,.input-wrap .img-chip::before,
+  .input-wrap .search-chip-x::before,.input-wrap .img-chip-x::before,
+  .input-wrap .composer-attachment::before,.input-wrap .composer-attachment-remove::before,
+  .mm-sheet::before,.mm-card::before,.mm-close::before,.attach-sheet::before,
+  .rec-modal::before,.rec-modes::before,.rec-mode::before,.rec-record-btn::before,
+  .rec-file-btn::before,.rec-close::before,
+  .trace-popover::before,.trace-src-item::before,.trace-popover-close::before,
+  .chat-menu-pop::before,.cmp-confirm::before,.cmp-search-back::before,.cmp-confirm-btn::before,
+  .src-modal::before,.src-item::before,.src-close::before,
+  .fb-modal::before,.fb-btn-cancel::before,.fb-btn-send::before,.fb-tab::before,
+  .notif-card::before,.notif-btn::before,
+  .pv-window::before,.pv-topbar::before,.pv-actions::before,.pv-menu::before,
+  .pv-icon-btn::before,.pv-action-circle::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    z-index:-1;
+    border-radius:inherit;
+    backdrop-filter:blur(var(--lgc-blur)) saturate(var(--lgc-sat));
+    -webkit-backdrop-filter:blur(var(--lgc-blur)) saturate(var(--lgc-sat));
+    background:var(--lgc-tint-dark);
+    filter:url(#lgChatRefract);
+    pointer-events:none;
   }
   html[data-theme="light"] .main .topbar-btn::before,
+  html[data-theme="light"] .main .topbar-model-pill::before,
+  html[data-theme="light"] .main .model-pill::before,
+  html[data-theme="light"] .main .bar-icon::before,
+  html[data-theme="light"] .main .mic-btn::before,
+  html[data-theme="light"] .main .send-btn::before,
+  html[data-theme="light"] .main .mac-btn::before,
+  html[data-theme="light"] .main .file-card::before,
+  html[data-theme="light"] .main .msg-user::before,
+  html[data-theme="light"] .main .plus-drop::before,
+  html[data-theme="light"] .main .model-drop::before,
+  html[data-theme="light"] .main .more-menu::before,
   html[data-theme="light"] .input-wrap .input-box::before,
+  html[data-theme="light"] .input-wrap .search-chip::before,
+  html[data-theme="light"] .input-wrap .img-chip::before,
+  html[data-theme="light"] .input-wrap .composer-attachment::before,
   html[data-theme="light"] .mm-sheet::before,
-  html[data-theme="light"] .rec-modal::before{background:rgba(252,251,249,.96);}
-}
-
-@media(prefers-reduced-motion:reduce){
-  .main [class]::after,.mm-sheet::after,.rec-modal::after,.trace-popover::after,
-  .chat-menu-pop::after,.attach-sheet::after,.notif-card::after,.pv-window::after{
-    animation:none !important;
+  html[data-theme="light"] .mm-card::before,
+  html[data-theme="light"] .attach-sheet::before,
+  html[data-theme="light"] .rec-modal::before,
+  html[data-theme="light"] .trace-popover::before,
+  html[data-theme="light"] .chat-menu-pop::before,
+  html[data-theme="light"] .src-modal::before,
+  html[data-theme="light"] .fb-modal::before,
+  html[data-theme="light"] .notif-card::before,
+  html[data-theme="light"] .pv-window::before{
+    background:var(--lgc-tint-light);
   }
-  .main .sw::after,.mm-sheet .sw::after,.attach-sheet .sw::after{transition:transform .15s linear;}
-  .main .topbar-btn,.main .bar-icon,.main .mic-btn,.main .send-btn,.main .model-pill{transition:none !important;}
-}
 
-@media(max-width:768px) and (max-resolution:1.5dppx){
-  :root{--lgc-blur:18px;--lgc-blur-sm:13px;}
+  /* Убиваем декоративные ::after блики от старого Liquid Glass — только на мобильном.
+     На десктопе (min-width:769px) эти правила НЕ действуют. */
+  .main .topbar-btn::after,.main .topbar-model-pill::after,.main .topbar-training-pill::after,
+  .main .model-pill::after,.main .bar-icon::after,.main .mic-btn::after,
+  .main .send-btn::after,.main .voice-play::after,.main .continue-gen-btn::after,
+  .main .mac-btn::after,.main .code-block::after,.main .code-copy::after,
+  .main .file-card::after,.main .file-card-btn::after,
+  .main .msg-user::after,.main .msg-user-attachment::after,
+  .main .abc-block::after,.main .abc-annotation-chip::after,.main .reco-card::after,
+  .main .limit-reached::after,.main .search-trace::after,.main .think-trace::after,
+  .main .plus-drop::after,.main .model-drop::after,.main .mode-sub::after,
+  .main .more-menu::after,
+  .input-wrap .input-box::after,.input-wrap .search-chip::after,.input-wrap .img-chip::after,
+  .input-wrap .search-chip-x::after,.input-wrap .img-chip-x::after,
+  .input-wrap .composer-attachment::after,.input-wrap .composer-attachment-remove::after,
+  .mm-sheet::after,.mm-card::after,.mm-close::after,.attach-sheet::after,
+  .rec-modal::after,.rec-modes::after,.rec-mode::after,.rec-record-btn::after,
+  .rec-file-btn::after,.rec-close::after,
+  .trace-popover::after,.trace-src-item::after,.trace-popover-close::after,
+  .chat-menu-pop::after,.cmp-confirm::after,.cmp-search-back::after,.cmp-confirm-btn::after,
+  .src-modal::after,.src-item::after,.src-close::after,
+  .fb-modal::after,.fb-btn-cancel::after,.fb-btn-send::after,.fb-tab::after,
+  .notif-card::after,.notif-btn::after,
+  .pv-window::after,.pv-topbar::after,.pv-actions::after,.pv-menu::after,
+  .pv-icon-btn::after,.pv-action-circle::after{
+    content:none !important;
+    background:none !important;
+    box-shadow:none !important;
+    animation:none !important;
+    display:none !important;
+  }
+
+  /* Мелкие элементы — более мягкая линза, чтобы иконки не «плыли» */
+  .main .bar-icon::before,.main .mic-btn::before,.main .send-btn::before,
+  .main .mac-btn::before,.main .code-copy::before,.main .topbar-btn::before,
+  .main .abc-annotation-chip::before,
+  .input-wrap .search-chip-x::before,.input-wrap .img-chip-x::before,
+  .input-wrap .composer-attachment-remove::before,
+  .mm-close::before,.rec-close::before,.rec-mode::before,
+  .trace-popover-close::before,.cmp-search-back::before,.src-close::before,
+  .pv-icon-btn::before,.pv-action-circle::before{
+    backdrop-filter:blur(var(--lgc-blur-sm)) saturate(160%);
+    -webkit-backdrop-filter:blur(var(--lgc-blur-sm)) saturate(160%);
+    filter:url(#lgChatRefractSm);
+  }
+
+  /* ------------------------------------------------------------------
+     3. Акцентные кнопки — цветной фон живёт как единая заливка
+     под тем же стеклянным слоем; без градиентов «сверху-вниз»,
+     без искусственного «объёма».
+     ------------------------------------------------------------------ */
+  .main .send-btn::before{
+    background:rgba(47,143,255,.78);
+  }
+  .main .send-btn{color:#fff !important;border-color:rgba(255,255,255,.24);}
+  .main .send-btn.is-stop::before{background:rgba(255,255,255,.78);}
+  .main .send-btn.is-stop{color:#111 !important;}
+  .main .mic-btn.recording::before{background:rgba(239,68,68,.82);}
+  .rec-record-btn::before{background:rgba(10,132,255,.78);}
+  .rec-record-btn{color:#fff !important;}
+  .rec-record-btn.stop::before{background:rgba(239,68,68,.82);}
+  .cmp-confirm-btn.danger::before{background:rgba(239,68,68,.82);}
+  .cmp-confirm-btn.danger{color:#fff !important;}
+  .notif-btn::before{background:rgba(29,107,243,.82);}
+  .notif-btn{color:#fff !important;}
+
+  /* ------------------------------------------------------------------
+     4. Скругления в духе iOS 26 (squircle-эффект через большое radius)
+     ------------------------------------------------------------------ */
+  .main .plus-drop,.main .model-drop,.main .mode-sub,.main .more-menu,
+  .trace-popover,.chat-menu-pop,.src-modal,.fb-modal,.notif-card,.rec-modal,
+  .pv-menu{border-radius:22px;}
+  .input-wrap .input-box{border-radius:26px;}
+  .mm-card,.rec-modes,.trace-src-item,.src-item{border-radius:16px;}
+  .main .bar-icon,.main .mac-btn,.main .code-copy{border-radius:12px;}
+
+  /* Фокус поля ввода — тонкая цветная кромка, без внешней тени */
+  .input-wrap .input-box:focus-within{border-color:rgba(120,170,255,.5);}
+
+  /* ------------------------------------------------------------------
+     5. Взаимодействие: только лёгкое затемнение, без «прыжка»
+     ------------------------------------------------------------------ */
+  .main .topbar-btn:active,.main .bar-icon:active,.main .mic-btn:active,
+  .main .send-btn:active,.main .model-pill:active,.main .mac-btn:active,
+  .mm-close:active,.rec-close:active,.rec-mode:active,.rec-record-btn:active,
+  .rec-file-btn:active,.pv-icon-btn:active,.pv-action-circle:active,
+  .cmp-confirm-btn:active,.notif-btn:active{
+    opacity:.82;
+    transform:scale(.97);
+    transition:transform .08s ease,opacity .08s ease;
+  }
+
+  /* ------------------------------------------------------------------
+     6. ФОН ОВЕРЛЕЕВ — мягкое матовое затемнение
+     ------------------------------------------------------------------ */
+  .mm-overlay,.attach-overlay,.rec-overlay,.src-overlay,.fb-overlay,
+  .cmp-confirm-overlay,.pv-overlay{
+    background:rgba(10,10,14,.34) !important;
+    backdrop-filter:blur(16px) saturate(140%);
+    -webkit-backdrop-filter:blur(16px) saturate(140%);
+  }
+  html[data-theme="light"] .mm-overlay,
+  html[data-theme="light"] .attach-overlay,
+  html[data-theme="light"] .rec-overlay,
+  html[data-theme="light"] .src-overlay,
+  html[data-theme="light"] .fb-overlay,
+  html[data-theme="light"] .cmp-confirm-overlay,
+  html[data-theme="light"] .pv-overlay{
+    background:rgba(240,238,233,.42) !important;
+  }
+
+  /* Скроллящиеся панели: у них overflow — линзу приглушаем */
+  .mm-sheet,.rec-modal,.trace-popover,.src-modal,.chat-menu-pop{overflow:auto;}
+  .mm-sheet::before,.rec-modal::before,.trace-popover::before,
+  .src-modal::before,.chat-menu-pop::before{filter:url(#lgChatRefractSm);}
+
+  /* ------------------------------------------------------------------
+     7. FALLBACK — если браузер не умеет backdrop-filter
+     ------------------------------------------------------------------ */
+  @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+    .main .topbar-btn::before,.main .model-pill::before,.main .bar-icon::before,
+    .main .send-btn::before,.input-wrap .input-box::before,.mm-sheet::before,
+    .rec-modal::before,.trace-popover::before,.chat-menu-pop::before,
+    .attach-sheet::before,.notif-card::before,.pv-window::before{
+      background:rgba(28,28,34,.9);
+      filter:none;
+    }
+    html[data-theme="light"] .main .topbar-btn::before,
+    html[data-theme="light"] .input-wrap .input-box::before,
+    html[data-theme="light"] .mm-sheet::before,
+    html[data-theme="light"] .rec-modal::before{background:rgba(252,251,249,.94);}
+  }
+
+  /* Слабые GPU — уменьшаем радиус блюра */
+  @media(max-resolution:1.5dppx){
+    :root{--lgc-blur:16px;--lgc-blur-sm:11px;}
+  }
 }
