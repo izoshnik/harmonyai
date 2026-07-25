@@ -1711,51 +1711,203 @@ html[data-theme="light"] .photo-deleted-msg{
 }
 
 /* ============================================================================
-   LIQUID GLASS — только раздел чата, только мобильная версия (max-width:768px).
-   Реализация 1:1 по инструкции: полупрозрачное стекло + backdrop-filter blur +
-   внешняя тонкая обводка/тень + верхний эллиптический блик (::before) +
-   нижняя мягкая световая полоса (::after). Никаких сторонних файлов.
+   LIQUID GLASS 2.0 — глянцевое «жидкое стекло», ТОЛЬКО мобильная версия (≤768px).
+   Материал по инструкции: полупрозрачная база + backdrop-filter blur(14px),
+   верхний зеркальный блик, внутренний rim-light по кромке и мягкая нижняя
+   компрессия. Все блики — многослойные background прямо на кнопке (никаких
+   псевдо-слоёв ПОВЕРХ иконок: ничего не перекрывает соседние кнопки и клики).
+   Геометрия кнопок не меняется (никаких новых border — только inset-тени),
+   поэтому иконки стоят ровно по центру. Десктоп (≥769px) не затрагивается.
    ========================================================================= */
 @media(max-width:768px){
-  .main .topbar-btn,
-  .main .bar-icon,
-  .main .mic-btn,
-  .main .send-btn,
-  .main .mac-btn{
-    border:2px solid transparent;
-    background:rgba(255,255,255,.08);
-    box-shadow:0 0 2px rgba(255,255,255,.5),inset 0 0 12px rgba(0,0,0,.12);
-    backdrop-filter:blur(14px);
-    -webkit-backdrop-filter:blur(14px);
-    position:relative;
-    overflow:hidden;
+
+  /* Фоновые «шары»: заметнее и с холодным подтоном — стеклу есть что преломлять,
+     интерфейс «дышит» (анимация floatBubble уже есть). */
+  .mobile-glossy .bubble{opacity:.38;}
+  .mobile-glossy .b1{background:radial-gradient(circle,#4a4272 0%,transparent 70%);}
+  .mobile-glossy .b2{background:radial-gradient(circle,#2c3a58 0%,transparent 70%);}
+
+  /* --- Круглые кнопки шапки («☰» и «⋯») — глянцевое стекло --- */
+  .main .topbar-btn{
+    border:none;
+    color:rgba(250,250,253,.92);
+    background:
+      radial-gradient(130% 95% at 50% 0%,rgba(255,255,255,.30),rgba(255,255,255,.07) 46%,rgba(255,255,255,0) 74%),
+      linear-gradient(180deg,rgba(255,255,255,.13),rgba(255,255,255,.05) 55%,rgba(255,255,255,.02)),
+      rgba(255,255,255,.07);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.55),
+      inset 0 0 0 1px rgba(255,255,255,.10),
+      inset 0 -7px 12px -9px rgba(0,0,0,.55),
+      0 4px 14px rgba(0,0,0,.30),
+      0 0 2px rgba(255,255,255,.35);
+    backdrop-filter:blur(14px) saturate(180%) brightness(1.06);
+    -webkit-backdrop-filter:blur(14px) saturate(180%) brightness(1.06);
   }
-  .main .topbar-btn::before,
-  .main .bar-icon::before,
-  .main .mic-btn::before,
-  .main .send-btn::before,
-  .main .mac-btn::before{
-    content:"";
-    position:absolute;
-    width:160%;height:120%;left:-25%;top:-60%;
-    background:radial-gradient(ellipse,rgba(255,255,255,.7),rgba(255,255,255,.15) 35%,transparent 70%);
-    pointer-events:none;
+
+  /* --- Пилюля модели и пилюля «Обучение» в шапке --- */
+  .topbar-model-pill,.topbar-training-pill{
+    border:1px solid rgba(255,255,255,.14);
+    background:
+      radial-gradient(130% 100% at 50% 0%,rgba(255,255,255,.26),rgba(255,255,255,.06) 45%,rgba(255,255,255,0) 75%),
+      linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,.03) 55%,rgba(0,0,0,.08)),
+      rgba(24,24,32,.38);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.45),
+      inset 0 -8px 14px -10px rgba(0,0,0,.50),
+      0 6px 20px rgba(0,0,0,.32),
+      0 0 2px rgba(255,255,255,.30);
+    backdrop-filter:blur(14px) saturate(180%) brightness(1.05);
+    -webkit-backdrop-filter:blur(14px) saturate(180%) brightness(1.05);
   }
-  .main .topbar-btn::after,
-  .main .bar-icon::after,
-  .main .mic-btn::after,
-  .main .send-btn::after,
-  .main .mac-btn::after{
-    content:"";
-    position:absolute;
-    left:20%;bottom:10%;width:60%;height:6px;
-    border-radius:50%;
-    background:rgba(255,255,255,.15);
-    filter:blur(6px);
-    pointer-events:none;
+  .topbar-model-pill .pill-name{color:#8b78ff;text-shadow:0 0 16px rgba(124,102,255,.45);}
+  /* Живой блик, медленно «проезжающий» по пилюле (overflow:hidden уже есть) */
+  .topbar-model-pill::after{
+    content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+    background:linear-gradient(115deg,transparent 32%,rgba(255,255,255,.10) 46%,rgba(255,255,255,.18) 50%,rgba(255,255,255,.10) 54%,transparent 68%);
+    background-size:260% 100%;background-position:135% 0;
+    animation:lgSweep 6.5s ease-in-out infinite;
   }
-  .main .send-btn{background:rgba(47,143,255,.28);}
-  .main .mic-btn.recording{background:rgba(239,68,68,.32);}
+
+  /* --- Строка ввода — глянцевая стеклянная «таблетка» --- */
+  .input-box{
+    border:1px solid rgba(255,255,255,.12);
+    background:
+      radial-gradient(140% 110% at 50% 0%,rgba(255,255,255,.17),rgba(255,255,255,.04) 44%,rgba(255,255,255,0) 76%),
+      linear-gradient(180deg,rgba(255,255,255,.09),rgba(255,255,255,.02) 50%,rgba(0,0,0,.10)),
+      rgba(18,18,24,.40);
+    backdrop-filter:blur(14px) saturate(180%) brightness(1.05);
+    -webkit-backdrop-filter:blur(14px) saturate(180%) brightness(1.05);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.40),
+      inset 0 0 0 1px rgba(255,255,255,.05),
+      inset 0 -9px 16px -12px rgba(0,0,0,.55),
+      0 10px 30px rgba(0,0,0,.34),
+      0 0 2px rgba(255,255,255,.30);
+  }
+  .input-box:focus-within{border-color:rgba(255,255,255,.22);}
+  /* Тяжёлый псевдо-слой ядра больше не нужен: стекло (ровно 14px) на самом элементе.
+     ::after остаётся тонким «пробегающим» бликом ПОД контентом (z-index:-1) —
+     он ничего не перекрывает и не ловит клики. */
+  .input-box::before{content:none;}
+  .input-box::after{
+    content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;
+    box-shadow:none;mix-blend-mode:normal;opacity:1;
+    background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.07) 45%,rgba(255,255,255,.13) 50%,rgba(255,255,255,.07) 55%,transparent 70%);
+    background-size:300% 100%;background-position:140% 0;
+    animation:lgSweep 7.5s ease-in-out infinite 1.2s;
+  }
+
+  /* Иконки «+» и «микрофон» внутри стеклянной таблетки — чистые глянцевые иконки,
+     без остатков старого стекла (раньше на них висели тени/blur при прозрачном фоне — «баг»). */
+  .main .bar-icon,.main .mic-btn{
+    border:none;box-shadow:none;
+    backdrop-filter:none;-webkit-backdrop-filter:none;
+    overflow:visible;
+  }
+  .main .mic-btn.recording{color:#ff5f56!important;}
+
+  /* --- Кнопка отправки — глянцевая синяя линза --- */
+  .main .send-btn{
+    color:#fff;
+    background:
+      radial-gradient(120% 95% at 50% 0%,rgba(255,255,255,.50),rgba(255,255,255,.14) 42%,rgba(255,255,255,0) 72%),
+      linear-gradient(180deg,#54a6ff 0%,#1f7dff 58%,#1668dd 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.70),
+      inset 0 -4px 8px -4px rgba(9,52,130,.60),
+      0 6px 16px rgba(31,125,255,.40),
+      0 0 2px rgba(255,255,255,.40);
+    animation:sendBreathe 3.6s ease-in-out infinite;
+  }
+  /* Состояние «стоп» — белая глянцевая линза (раньше её перекрашивало в синий — «баг») */
+  .main .send-btn.is-stop{
+    color:#0d0d12;
+    background:
+      radial-gradient(120% 95% at 50% 0%,#ffffff,rgba(255,255,255,.72) 55%,rgba(255,255,255,.55)),
+      linear-gradient(180deg,#ffffff,#e9e9f0);
+    box-shadow:
+      inset 0 1px 0 #fff,
+      inset 0 -3px 6px -3px rgba(0,0,0,.18),
+      0 8px 20px rgba(0,0,0,.28);
+    animation:none;
+  }
+  .main .send-btn:disabled{opacity:.45;box-shadow:inset 0 1px 0 rgba(255,255,255,.5);animation:none;}
+
+  /* --- Круглые кнопки закрытия/назад и play голосового — глянцевое стекло --- */
+  .mm-close,.sth-close,.sth.sth-with-close .sth-back,.voice-play{
+    border:none;
+    background:
+      radial-gradient(130% 95% at 50% 0%,rgba(255,255,255,.30),rgba(255,255,255,.08) 46%,rgba(255,255,255,0) 75%),
+      rgba(255,255,255,.09);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.50),
+      inset 0 0 0 1px rgba(255,255,255,.08),
+      inset 0 -6px 10px -8px rgba(0,0,0,.50),
+      0 2px 10px rgba(0,0,0,.22);
+    backdrop-filter:blur(14px) saturate(170%);
+    -webkit-backdrop-filter:blur(14px) saturate(170%);
+  }
+
+  /* ===== Светлая тема: то же глянцевое стекло в светлом исполнении ===== */
+  html[data-theme="light"] .main .topbar-btn{
+    color:#3a3830;
+    background:
+      radial-gradient(130% 95% at 50% 0%,rgba(255,255,255,.95),rgba(255,255,255,.55) 46%,rgba(255,255,255,.25) 78%),
+      rgba(255,255,255,.42);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.95),
+      inset 0 0 0 1px rgba(20,18,12,.05),
+      inset 0 -6px 10px -8px rgba(20,18,12,.18),
+      0 4px 14px rgba(20,18,12,.10);
+    backdrop-filter:blur(14px) saturate(170%);
+    -webkit-backdrop-filter:blur(14px) saturate(170%);
+  }
+  html[data-theme="light"] .topbar-model-pill,html[data-theme="light"] .topbar-training-pill{
+    border-color:rgba(20,18,12,.08);
+    background:
+      radial-gradient(130% 100% at 50% 0%,rgba(255,255,255,.95),rgba(255,255,255,.60) 50%,rgba(255,255,255,.35) 80%),
+      rgba(255,255,255,.50);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.95),
+      inset 0 -8px 14px -10px rgba(20,18,12,.14),
+      0 6px 20px rgba(20,18,12,.12);
+  }
+  html[data-theme="light"] .topbar-model-pill .pill-name{color:#6a4dff;text-shadow:none;}
+  html[data-theme="light"] .input-box{
+    border-color:rgba(20,18,12,.08);
+    background:
+      radial-gradient(140% 110% at 50% 0%,rgba(255,255,255,.95),rgba(255,255,255,.62) 46%,rgba(255,255,255,.40) 80%),
+      rgba(255,255,255,.45);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.95),
+      inset 0 -9px 16px -12px rgba(20,18,12,.12),
+      0 10px 30px rgba(20,18,12,.12);
+  }
+  html[data-theme="light"] .input-box:focus-within{border-color:rgba(20,18,12,.16);}
+  html[data-theme="light"] .mm-close,html[data-theme="light"] .sth-close,
+  html[data-theme="light"] .sth.sth-with-close .sth-back{
+    background:
+      radial-gradient(130% 95% at 50% 0%,rgba(255,255,255,.95),rgba(255,255,255,.55) 50%,rgba(255,255,255,.30) 80%),
+      rgba(255,255,255,.40);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.95),
+      inset 0 0 0 1px rgba(20,18,12,.05),
+      0 2px 10px rgba(20,18,12,.10);
+    color:#26241f;
+  }
+
+  /* Анимации «живого стекла» */
+  @keyframes lgSweep{0%,55%{background-position:135% 0;}90%,100%{background-position:-45% 0;}}
+  @keyframes sendBreathe{
+    0%,100%{box-shadow:inset 0 1px 0 rgba(255,255,255,.70),inset 0 -4px 8px -4px rgba(9,52,130,.60),0 6px 16px rgba(31,125,255,.38),0 0 2px rgba(255,255,255,.40);}
+    50%{box-shadow:inset 0 1px 0 rgba(255,255,255,.70),inset 0 -4px 8px -4px rgba(9,52,130,.60),0 6px 22px rgba(31,125,255,.62),0 0 2px rgba(255,255,255,.50);}
+  }
+}
+/* Уважение к reduced motion: стекло остаётся, движение выключается */
+@media(max-width:768px) and (prefers-reduced-motion:reduce){
+  .topbar-model-pill::after,.input-box::after{animation:none!important;background:none!important;}
+  .main .send-btn{animation:none!important;}
 }
 </style>
 </head>
