@@ -2092,7 +2092,7 @@ html[data-theme="light"] .photo-deleted-msg{
       <button class="cmp-search-back" onclick="chatMenuSearchBack()" aria-label="Назад">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
-      <input type="text" id="cmpSearchInp" placeholder="Поиск по сообщениям…" autocomplete="off" oninput="chatMenuSearchRun(this.value)">
+      <input type="text" id="cmpSearchInp" placeholder="Поиск по со��бщениям…" autocomplete="off" oninput="chatMenuSearchRun(this.value)">
     </div>
     <div class="cmp-search-results" id="cmpSearchResults"></div>
   </div>
@@ -2258,7 +2258,7 @@ html[data-theme="light"] .photo-deleted-msg{
       </div>
       <div class="attach-opt" id="attachSearch" onclick="attachChoose('search',event)">
         <span class="attach-opt-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M3 12h18M12 3a14 14 0 010 18M12 3a14 14 0 000 18" stroke="currentColor" stroke-width="1.8"/></svg></span>
-        <span class="attach-opt-txt">Поиск в сети</span>
+        <span class="attach-opt-txt">Поис�� в сети</span>
         <span class="attach-opt-state" id="attachSearchState">ИИ сам решит</span>
       </div>
       <div class="attach-opt" onclick="attachChoose('files',event)">
@@ -2367,7 +2367,9 @@ let authHydrationPromise=null,authHydratedUserId='';
 let knowledgeDocs=[];
 let isGenerating=false,activeAbortController=null,activeStreamStop=null;
 const CHAT_TIMEOUT_MS=280000;
-const STREAM_STALL_MS=110000;
+// Сервер шлёт keep-alive пинги каждые 15с: если 45с полной тишины — соединение реально умерло,
+// нет смысла держать пользователя в ожидании дольше (раньше было 110с и стрим «застревал»).
+const STREAM_STALL_MS=45000;
 const PRIMARY_API_ORIGIN='https://harmonyai-zeta.vercel.app';
 const KB_GLOBAL_KEY='harmonyai_global_kb_v1';
 const KB_USER_PREFIX='harmonyai_user_kb_v1_';
@@ -2602,7 +2604,7 @@ function isDesktop(){return window.innerWidth>=769;}
    Не показываются повторно в одной сессии (sessionStorage) и не показываются
    пользователям с Pro-ролями. Автозакрытие через 8 секунд. */
 const NOTIF_TEXTS={
-  promo_img:{title:'Получите более детальные изображения с Pro',body:'Улучшенное разрешение, насыщенные цвета и глубокая п��оработка деталей.',cta:'Обновить'},
+  promo_img:{title:'Получите более детальные изображения с Pro',body:'Улучшенное разрешение, насыщенные цвета и глубок��я проработка деталей.',cta:'Обновить'},
   promo_quality:{title:'Улучшите качество ответов с Pro',body:'Более умная модель, ответы быстрее и точнее, работа с длинным контекстом.',cta:'Обновить'},
   promo_limits:{title:'Получите безграничные лимиты с Pro',body:'С Pro-подпиской доступны более умные модели без ограничений по лимитам.',cta:'Обновить'}
 };
@@ -4376,7 +4378,7 @@ function buildSystem(){
   const emojisMap={none:'Никогда не используй эмодзи.',some:'Можешь изредка добавить 1-2 уместных эмодзи.',many:'Используй эмодзи активно для оживления ответов.'};
   if(s.emojis&&s.emojis!=='default'&&emojisMap[s.emojis])sys+='\n'+emojisMap[s.emojis];
   if(curMode==='low')sys+='\nРЕЖИМ Low: отвечай кратко, максимум 3-4 предложения.';
-  if(curMode==='max')sys+='\nРЕЖИМ Max: отвечай подробно, с объяснениями и примерами.';
+  if(curMode==='max')sys+='\nРЕЖИМ Max: отвечай подро��но, с объяснениями и примерами.';
   if(hasTrainingAccess())sys+='\nПользователь с ролью developer/admin. Его заметки и загруженные материалы считай приоритетными источниками знаний.';
   if(trainingMode&&hasTrainingAccess())sys+='\nРЕЖИМ ОБУЧЕНИЯ: пользователь сейчас в специальном разделе «Обучение». Всё, что он присылает, уже автоматически сохраняется в базу знаний. Кратко подтверди, что информация принята и сохранена, и при необходимости задай уточняющий вопрос, чтобы материал был более полным и полезным для дальнейшего обучения.';
   sys+=buildKnowledgeContext(currentQuery);
@@ -5177,7 +5179,7 @@ function showSearchTrace(msgEl,phase,query,browsed,total){
     line._lastQuery=query||'';
   }else if(phase==='browse'){
     const host=query||'сайт';
-    setSearchLineText(line,'��мотрю '+host+'… Думаю');
+    setSearchLineText(line,'Смотрю '+host+'… Думаю');
     if(!line._browsed.includes(host))line._browsed.push(host);
   }else if(phase==='sources'){
     const n=browsed||total||0;
@@ -5250,6 +5252,16 @@ function fmtThinkDuration(ms){
   const m=Math.floor(s/60),rem=s%60;
   return m+'м '+rem+'с';
 }
+// Приводим текст размышлений к читаемому виду: убираем служебный маркер ответа,
+// рваные переносы и лишние пробелы, чтобы в мини-окне был нормальный связный текст.
+function formatReasoningText(text){
+  return String(text||'')
+    .replace(/(?:\*\*)?={2,}\s*ОТВЕТ\s*={2,}(?:\*\*)?/gi,'')
+    .replace(/\r/g,'')
+    .replace(/[ \t]+\n/g,'\n')
+    .replace(/\n{3,}/g,'\n\n')
+    .replace(/[ \t]{2,}/g,' ');
+}
 function ensureReasoningLine(msgEl){
   const wrap=msgEl.closest('.msg-ai-wrap');
   if(!wrap)return null;
@@ -5278,7 +5290,7 @@ function appendReasoningChunk(msgEl,text){
   // а эта строка отвечает конкретно за размышление модели.
   if(_thinkPopoverLine===line){
     const body=document.getElementById('thinkPopoverBody');
-    if(body){body.textContent=line._text;body.scrollTop=body.scrollHeight;}
+    if(body){body.textContent=formatReasoningText(line._text);body.scrollTop=body.scrollHeight;}
   }
   scrollChat();
 }
@@ -5299,7 +5311,7 @@ let _thinkPopoverLine=null;
 function openThinkPopover(line){
   _thinkPopoverLine=line;
   const body=document.getElementById('thinkPopoverBody');
-  if(body)body.textContent=line._text||'';
+  if(body)body.textContent=formatReasoningText(line._text||'');
   document.getElementById('thinkPopover')?.classList.add('open');
   // Прокручиваем в самый низ, если размышление ещё стримится.
   if(body)requestAnimationFrame(()=>{body.scrollTop=body.scrollHeight;});
@@ -5664,7 +5676,10 @@ async function requestChatReplyLive(msgEl,actionsEl,extraMessages=[],prefixText=
             for(const line of dataLines){
               const raw=line.slice(5).trim();
               if(!raw)continue;
-              const payloadChunk=JSON.parse(raw);
+              // Битый/обрезанный JSON-чанк не должен убивать весь поток — просто пропускаем его.
+              let payloadChunk=null;
+              try{payloadChunk=JSON.parse(raw);}catch(e){continue;}
+              if(!payloadChunk||typeof payloadChunk!=='object')continue;
               if(payloadChunk.type==='search_query'){
                 // ИИ начала поиск: показываем блок размышления «Ищу в интернете…»
                 if(!gotSearchTrace){hideTyping();gotSearchTrace=true;}
@@ -5703,7 +5718,11 @@ async function requestChatReplyLive(msgEl,actionsEl,extraMessages=[],prefixText=
                 hideTyping();
                 if(gotSearchTrace)finalizeSearchTrace(msgEl);
                 if(gotReasoning)finalizeReasoningTrace(msgEl);
-                const fullFinal=prefixText+normalizeReplyNotation(payloadChunk.text||'');
+                let fullFinal=prefixText+normalizeReplyNotation(payloadChunk.text||'');
+                // Гарантия ответа: пустой done не должен оставлять пустое сообщение после «Думал N секунд» —
+                // показываем то, что уже настримилось, или честное пояснение.
+                if(!fullFinal.trim())fullFinal=normalizeReplyNotation(msgEl.dataset.raw||msgEl.textContent||'');
+                if(!fullFinal.trim())fullFinal='Не удалось получить полный ответ от модели. Попробуйте ещё раз.';
                 const finalText=await typer.complete(fullFinal);
                 setMessageActionsVisible(actionsEl,true);
                 return {text:finalText,truncated:Boolean(payloadChunk.truncated)};
@@ -5919,7 +5938,7 @@ async function pvEdit(){
   }
 }
 // Удалить фото из истории чата: на месте картинки остаётся неактивное сообщение
-// «Фото удалено». Сохраняем обновлённую историю в базу.
+// «Фото удалено». Сохраняем обновлённую истор��ю в базу.
 function pvDelete(){
   const imgEl=_pvState.imgEl;if(!imgEl){closePhotoViewer();return;}
   // Поднимаемся до бабла ассистента (.msg-ai-wrap) и заменяем содержимое заглушкой.
@@ -6576,7 +6595,7 @@ async function handleTextReply(){
   const text=ta.value.trim();
   if(!text&&!pendingAttachments.length)return;
 
-  // Проверка лимитов до отправки
+  // Проверка лимитов д�� отправки
   const limit=checkLimit();
   if(limit.blocked){showLimitReached(limit);return;}
   ta.value='';ta.style.height='auto';
@@ -6701,7 +6720,7 @@ function renderSettingsMain(){
       <div class="s-rows">
         <div class="s-row" onclick="renderSettingsSecurity()">
           <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v5c0 4.6-3 8.6-7 10-4-1.4-7-5.4-7-10V6l7-3z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-          <div class="s-row-text">Без��пасность</div>
+          <div class="s-row-text">Безопасность</div>
           <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
         </div>
         <div class="s-row" onclick="renderSettingsData()">
@@ -7007,6 +7026,29 @@ async function saveNewEmail(){
 }
 
 /* ===== АКТИВНЫЕ СЕАНСЫ ===== */
+// Гео текущего сеанса (страна + город) по IP через серверный /api/detect-locale.
+let _sessionGeo=null;
+function buildLocaleApiCandidates(){
+  const liveBase=PRIMARY_API_ORIGIN.replace(/\/$/,'');
+  const isLiveHost=window.location.hostname==='harmonyai-zeta.vercel.app';
+  const endpoints=[];
+  if(window.location.protocol!=='file:'&&isLiveHost)endpoints.push('/api/detect-locale');
+  endpoints.push(`${liveBase}/api/detect-locale`);
+  return [...new Set(endpoints)];
+}
+async function fetchSessionGeo(){
+  if(_sessionGeo)return _sessionGeo;
+  const endpoints=buildLocaleApiCandidates();
+  for(const ep of endpoints){
+    try{
+      const res=await withTimeout(fetch(ep,{cache:'no-store',credentials:'omit'}),7000,'Определение местоположения заняло слишком много времени');
+      if(!res.ok)continue;
+      const data=await res.json();
+      if(data&&(data.country||data.city)){_sessionGeo=data;return data;}
+    }catch(e){}
+  }
+  return null;
+}
 function renderSettingsSessions(){
   const el=document.getElementById('settingsContent');
   const ua=navigator.userAgent||'';
@@ -7025,13 +7067,20 @@ function renderSettingsSessions(){
     </div>
     <div class="mem-rows">
       <div class="mem-row">
-        <div class="mem-info"><div class="mem-title">${device}</div><div class="mem-desc">Текущий сеанс · активен сейчас</div></div>
+        <div class="mem-info"><div class="mem-title">${device}</div><div class="mem-desc">Текущий сеанс · активен сейчас<span id="sessionGeoTxt"></span></div></div>
         <div style="color:#2fbf6b;font-size:13px;font-weight:600;">Активен</div>
       </div>
       <div class="mem-row" onclick="signOutEverywhere()" style="cursor:pointer;">
         <div class="mem-info"><div class="mem-title" style="color:#ff4d4f;">Выйти на всех устройствах</div></div>
       </div>
     </div>`;
+  // Подтягиваем страну и город текущего сеанса по IP (через /api/detect-locale).
+  fetchSessionGeo().then(geo=>{
+    const t=document.getElementById('sessionGeoTxt');
+    if(!t||!geo)return;
+    const place=[geo.city,geo.country].filter(Boolean).join(', ');
+    if(place)t.textContent=' · '+place;
+  }).catch(()=>{});
 }
 async function signOutEverywhere(){
   if(!window.confirm('Выйти из аккаунта на всех устройствах?'))return;
@@ -7533,7 +7582,7 @@ window.persistLangToProfile=async function(lang){
     </div>
     <div class="fb-success" id="fbSuccess">✓ Сохранено! Спасибо за помощь.</div>
     <div class="fb-actions">
-      <button class="fb-btn-cancel" onclick="closeFbModal()">Отмена</button>
+      <button class="fb-btn-cancel" onclick="closeFbModal()">Отмен��</button>
       <button class="fb-btn-send" id="fbSendBtn" onclick="submitFbModal()">Отправить</button>
     </div>
   </div>
