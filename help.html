@@ -56,6 +56,32 @@
     white-space:nowrap;
   }
   .lang-btn svg{width:18px;height:18px;}
+  /* Кнопка возврата в настройки — пилюля в стиле интерфейса + лёгкое «стекло» (Liquid Glass) */
+  .back-btn{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    background:var(--pill);
+    border:none;
+    border-radius:999px;
+    padding:10px 16px;
+    font-size:16px;
+    font-weight:500;
+    color:var(--text);
+    text-decoration:none;
+    white-space:nowrap;
+    cursor:pointer;
+    font-family:inherit;
+    -webkit-backdrop-filter:blur(18px) saturate(140%);
+    backdrop-filter:blur(18px) saturate(140%);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 6px 18px rgba(0,0,0,.05);
+    transition:opacity .15s;
+    outline:none;
+  }
+  .back-btn:hover{opacity:.75;}
+  .back-btn:active{opacity:.6;}
+  .back-btn svg{width:18px;height:18px;}
+  .back-row{margin-bottom:16px;}
   .lang-menu{
     position:absolute;
     top:calc(100% + 8px);
@@ -208,6 +234,12 @@
 </head>
 <body>
 <div class="wrap">
+  <div class="back-row">
+    <a class="back-btn" href="/settings" id="backBtn" aria-label="Вернуться в настройки" title="Вернуться в настройки">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      <span id="backLabel">Настройки</span>
+    </a>
+  </div>
   <div class="top">
     <div class="logo">HarmonyAi</div>
     <div class="lang-wrap">
@@ -243,11 +275,11 @@
 <script>
 /* ---- UI chrome translations (FAQ Q&A stay in Russian; FAQ translations can be added later) ---- */
 var I18N = {
-  ru:{name:"Русский", search:"Поиск статей...", site:"Сайт", sub:"Частые вопросы о сайте HarmonyAi", empty:"Ничего не найдено"},
-  en:{name:"English", search:"Search articles...", site:"Site", sub:"Frequently asked questions about HarmonyAi", empty:"Nothing found"},
-  fr:{name:"Français", search:"Rechercher des articles...", site:"Site", sub:"Questions fréquentes sur HarmonyAi", empty:"Aucun résultat"},
-  de:{name:"Deutsch", search:"Artikel suchen...", site:"Seite", sub:"Häufige Fragen zu HarmonyAi", empty:"Nichts gefunden"},
-  es:{name:"Español", search:"Buscar artículos...", site:"Sitio", sub:"Preguntas frecuentes sobre HarmonyAi", empty:"No se encontró nada"}
+  ru:{name:"Русский", search:"Поиск статей...", site:"Сайт", sub:"Частые вопросы о сайте HarmonyAi", empty:"Ничего не найдено", back:"Настройки"},
+  en:{name:"English", search:"Search articles...", site:"Site", sub:"Frequently asked questions about HarmonyAi", empty:"Nothing found", back:"Settings"},
+  fr:{name:"Français", search:"Rechercher des articles...", site:"Site", sub:"Questions fréquentes sur HarmonyAi", empty:"Aucun résultat", back:"Paramètres"},
+  de:{name:"Deutsch", search:"Artikel suchen...", site:"Seite", sub:"Häufige Fragen zu HarmonyAi", empty:"Nichts gefunden", back:"Einstellungen"},
+  es:{name:"Español", search:"Buscar artículos...", site:"Sitio", sub:"Preguntas frecuentes sobre HarmonyAi", empty:"No se encontró nada", back:"Ajustes"}
 };
 var LANG_ORDER = ["ru","en","fr","de","es"];
 
@@ -256,7 +288,7 @@ var FAQ = [
   ["Что такое HarmonyAI?","HarmonyAI - это искусственный интеллект, разработанный специально для учеников музыкальных школ. В отличие от обычных универсальных помощников, он обучен не только на общедоступных данных, но и на нескольких сотнях учебников, методических пособий и практических заданий по сольфеджио, музыкальной грамоте, теории музыки, гармонии и музыкальной литературе. Благодаря этому сервис лучше понимает музыкальные термины, умеет объяснять темы простым языком и помогает готовиться к урокам, контрольным работам, экзаменам и вступительным испытаниям. При этом HarmonyAI сохраняет все привычные возможности современного искусственного интеллекта: отвечает на вопросы, пишет тексты, анализирует информацию, помогает с учебой и выполняет множество других задач."],
   ["Чем HarmonyAI отличается от других искусственных интеллектов?","Большинство сервисов искусственного интеллекта являются универсальными помощниками и не имеют глубоких знаний в области музыкального образования. HarmonyAI был создан именно для учеников музыкальных школ. Он понимает программу обучения, музыкальные термины, особенности нотной записи и способен объяснять сложные темы значительно понятнее. Кроме того, сервис умеет распознавать музыкальные произведения, работать с нотными диктантами и постепенно получает новые специализированные функции, которых нет у большинства аналогов."],
   ["Что умеет HarmonyAI?","HarmonyAI способен отвечать на вопросы практически по любой теме, объяснять учебный материал, помогать выполнять домашние задания, анализировать изображения, читать документы, создавать изображения по текстовому описанию, распознавать музыкальные произведения, анализировать нотные диктанты, помогать с музыкальной теорией, сольфеджио, гармонией и музыкальной литературой. Искусственный интеллект также умеет переводить тексты, помогать с программированием, искать ошибки и объяснять свои ответы простым языком."],
-  ["Может ли HarmonyAI читать файлы?","Да. HarmonyAI поддерживает работу с различными документами и текстовыми файлами. После загрузки файла искусственный интеллект может проанализировать его содержимое, ответить на вопросы, сделать краткое содержание, объяснить сложные темы или помочь найти нужную информацию."],
+  ["Может ли HarmonyAI читать файлы?","Да. HarmonyAI поддерживает работу с различными документами и текстовыми файлами. После загрузки файла искусственный интеллект может проанализировать ��го содержимое, ответить на вопросы, сделать краткое содержание, объяснить сложные темы или помочь найти нужную информацию."],
   ["Для кого предназначен HarmonyAI?","HarmonyAI разработан в первую очередь для учеников музыкальных школ, однако пользоваться сервисом могут также преподаватели, родители и все, кто изучает музыку самостоятельно. Он подходит как начинающим музыкантам, так и учащимся старших классов, помогая быстрее понимать сложные темы и экономить время при подготовке к занятиям."],
   ["Можно ли пользоваться бесплатно?","Да. HarmonyAI имеет полностью бесплатный тариф, позволяющий познакомиться с основными возможностями сервиса. Однако бесплатная версия имеет ежедневные лимиты и некоторые ограничения функций. Если лимитов недостаточно или требуется доступ ко всем возможностям платформы, можно оформить Pro-подписку и пользоваться сервисом без ограничений."],
   ["Нужна ли регистрация?","Да. Для использования HarmonyAI необходимо зарегистрироваться при помощи электронной почты. Вместо обычного пароля используется безопасный вход по одноразовому коду подтверждения, который приходит на электронную почту. Это упрощает авторизацию и снижает риск потери пароля."],
@@ -361,6 +393,8 @@ function applyLang(code){
   siteTitle.textContent = t.site;
   siteSub.textContent = t.sub;
   emptyMsg.textContent = t.empty;
+  var backLabel = document.getElementById("backLabel");
+  if(backLabel && t.back) backLabel.textContent = t.back;
   document.documentElement.lang = code;
   langMenu.querySelectorAll("button").forEach(function(b){
     b.setAttribute("aria-selected", b.getAttribute("data-code") === code ? "true" : "false");
