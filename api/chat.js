@@ -268,7 +268,7 @@ function needsPersonalContext(query = '', messages = []) {
   if (!clean) return false;
 
   // Явные сигналы: пользователь ссылается на себя, свою историю, свои файлы/настройки
-  const personalSignals = /(помнишь|как обычно|как всегда|мо[йяюе]\s|мне нравится|мне не нравится|я говорил|я писал|я просил|я предпочита|настрой(ка|ки)|профил|документ|файл|учебник|загрузил|прикреп|ранее мы|в прошлый раз|продолжи|как в прошлый раз|исправь(те)? (как|так)|мою память|обнови память|запомни)/;
+  const personalSignals = /(помнишь|как обычно|как всегда|мо[йяюе]\s|мне нравится|мне не нравится|я говорил|я писал|я просил|я предпочита|настрой(ка|ки)|профил|документ|файл|учебник|загрузил|прикреп|ранее мы|в прошлый раз|продолжи|как в прошлый раз|исправь(те)? (как|так)|мою память|обно��и память|запомни)/;
   if (personalSignals.test(clean)) return true;
 
   // Если в этом чате уже есть прикреплённые документы/изображения среди сообщений — контекст нужен
@@ -339,7 +339,7 @@ function isDefinitelyOfflineQuery(query = '') {
   return false;
 }
 
-// Финальное решение: нужен ли поиск. Учитывает явный запрос пользователя,
+// Финальное решение: нужен ли поиск. Учитывает яв��ый запрос пользователя,
 // характер вопроса (факты/актуальность) и исключения.
 function decideWebSearch({ query = '', searchEnabled = 'auto' } = {}) {
   // searchEnabled: 'auto' (ИИ решает сама) | 'on' (принудительно) | 'off'
@@ -542,9 +542,11 @@ function buildThinkInstruction() {
   return [
     '',
     'РЕЖИМ ДУМАТЬ ВКЛЮЧЁН.',
-    `Сначала напиши настоящий, развёрнутый ход рассуждений простым текстом (анализ вопроса, варианты, проверка) — это реальные размышления, а не заглушка.`,
+    'Сначала напиши ход рассуждений простым, связным и читаемым текстом: обычные полные предложения, без markdown-разметки, без обрывков слов и без служебных токенов.',
+    'Рассуждения держи компактными (примерно 100-200 слов) — скорость ответа важнее длинных размышлений.',
     `Когда рассуждения закончены, выведи на отдельной строке ровно маркер ${REASONING_DELIMITER}`,
-    `Сразу после маркера дай финальный, чистый ответ для пользователя без повторения рассуждений.`,
+    'Сразу после маркера дай финальный, чистый ответ для пользователя без повторения рассуждений.',
+    'ОБЯЗАТЕЛЬНО: маркер и финальный ответ должны быть всегда. Даже если ты не уверен, как ответить лучше всего, — всё равно выведи маркер и дай лучший возможный ответ. Пустой ответ недопустим.',
     'Не используй маркер где-либо ещё, кроме этого единственного разделителя.'
   ].join('\n');
 }
@@ -760,9 +762,9 @@ function hasAbcBlock(text = '') {
 }
 
 function stripReasoningPrefix(text = '') {
-  const idx = String(text || '').indexOf(REASONING_DELIMITER);
-  if (idx === -1) return text;
-  return String(text).slice(idx + REASONING_DELIMITER.length).replace(/^\s+/, '');
+  const marker = findAnswerMarker(text);
+  if (!marker) return text;
+  return String(text).slice(marker.index + marker.length).replace(/^\s+/, '');
 }
 
 async function repairNotationReplyIfNeeded(apiKey, modelName, query, replyText) {
@@ -804,7 +806,30 @@ function writeSseEvent(res, payload) {
 // Модель просят сначала писать реальные рассуждения, затем этот маркер, затем сам ответ.
 const REASONING_DELIMITER = '===ОТВЕТ===';
 
+// Модели часто пишут маркер неточно: с пробелами, жирным или другим числом «=».
+// Ловим все распространённые варианты, иначе финальный ответ целиком уходит в «размышления»
+// и пользователь остаётся без ответа.
+const ANSWER_MARKER_RE = /(?:\*\*)?={2,}\s*ОТВЕТ\s*={2,}(?:\*\*)?/i;
+function findAnswerMarker(text = '') {
+  const m = ANSWER_MARKER_RE.exec(String(text || ''));
+  if (!m) return null;
+  return { index: m.index, length: m[0].length };
+}
+
+// Обёртка с SSE keep-alive: пинг-комментарий каждые 15 секунд, чтобы прокси и браузер
+// не обрывали соединение во время долгих пауз модели (главная причина «застрявшего» стриминга).
 async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs, query, largeContext = false, captureReasoning = false, maxTokens = 0, headersAlreadySent = false) {
+  const heartbeat = setInterval(() => {
+    try { if (res.headersSent && !res.writableEnded) res.write(': ping\n\n'); } catch (e) {}
+  }, 15000);
+  try {
+    return await streamOpenAIToClientInner(res, apiKey, modelName, messages, timeoutMs, query, largeContext, captureReasoning, maxTokens, headersAlreadySent);
+  } finally {
+    clearInterval(heartbeat);
+  }
+}
+
+async function streamOpenAIToClientInner(res, apiKey, modelName, messages, timeoutMs, query, largeContext = false, captureReasoning = false, maxTokens = 0, headersAlreadySent = false) {
   let fullText = '';
   let gotAnyDelta = false;
   let headersSent = Boolean(headersAlreadySent);
@@ -813,13 +838,14 @@ async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs,
   // Состояние разбора рассуждений в реальном времени (только если captureReasoning=true)
   let rawAll = '';            // весь текст модели как есть (с маркером)
   let switchedToAnswer = !captureReasoning; // если не просили рассуждения — сразу режим ответа
-  let pendingHold = '';       // придерживаем хвост на случай, если маркер разорван между чанками
 
   // Сколько молчит апстрим между токенами, прежде чем мы считаем это обрывом.
   // Большие документы и режим "Думать" — модель может надолго замолчать во время
   // длинных рассуждений, поэтому даём существенно больше запаса, чем раньше (было 45-60с,
   // чего регулярно не хватало и приводило к ложным обрывам ответа на середине).
-  const chunkTimeoutMs = (largeContext || captureReasoning) ? 110000 : 70000;
+  // Скорость важнее бесконечного ожидания: keep-alive пинги идут отдельно, поэтому если модель
+  // молчит дольше этого времени — быстрее запускаем «тихое продолжение», а не висим.
+  const chunkTimeoutMs = (largeContext || captureReasoning) ? 75000 : 45000;
 
   // Если апстрим всё же замолчал дольше chunkTimeoutMs — пробуем НЕЗАМЕТНО для пользователя
   // продолжить генерацию с того места, где она остановилась, прежде чем сдаваться и помечать
@@ -914,6 +940,12 @@ async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs,
             parsed = null;
           }
           if (!parsed) continue;
+          // Некоторые провайдеры стримят рассуждения отдельным полем — транслируем их клиенту,
+          // чтобы окно «Размышление модели» не оставалось пустым.
+          const reasoningDelta = parsed?.choices?.[0]?.delta?.reasoning_content || parsed?.choices?.[0]?.delta?.reasoning || '';
+          if (captureReasoning && !switchedToAnswer && typeof reasoningDelta === 'string' && reasoningDelta) {
+            writeSseEvent(res, { type: 'reasoning', text: reasoningDelta });
+          }
           let delta = parsed?.choices?.[0]?.delta?.content || '';
           if (Array.isArray(delta)) {
             delta = delta.map((item) => item?.text || '').join('');
@@ -927,23 +959,23 @@ async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs,
               continue;
             }
 
-            // Накопили текст с потенциальным маркером — ищем его, придерживая хвост
-            rawAll += pendingHold + delta;
-            pendingHold = '';
-            const idx = rawAll.indexOf(REASONING_DELIMITER);
-            if (idx === -1) {
+            // Накопили текст с потенциальным маркером — ищем его, придерживая хвост.
+            // ВАЖНО: хвост живёт ТОЛЬКО в rawAll. Раньше он дублировался через pendingHold,
+            // из-за чего в окно размышлений попадали задвоенные обрывки слов и «странный текст».
+            rawAll += delta;
+            const marker = findAnswerMarker(rawAll);
+            if (!marker) {
               // Держим в буфере только хвост, который может быть началом маркера
-              const holdLen = Math.min(rawAll.length, REASONING_DELIMITER.length - 1);
+              const holdLen = Math.min(rawAll.length, 24);
               const safeLen = rawAll.length - holdLen;
               if (safeLen > 0) {
                 writeSseEvent(res, { type: 'reasoning', text: rawAll.slice(0, safeLen) });
+                rawAll = rawAll.slice(safeLen);
               }
-              pendingHold = rawAll.slice(safeLen);
-              rawAll = rawAll.slice(safeLen);
             } else {
-              const reasoningPart = rawAll.slice(0, idx);
+              const reasoningPart = rawAll.slice(0, marker.index);
               if (reasoningPart) writeSseEvent(res, { type: 'reasoning', text: reasoningPart });
-              const answerPart = rawAll.slice(idx + REASONING_DELIMITER.length).replace(/^\s+/, '');
+              const answerPart = rawAll.slice(marker.index + marker.length).replace(/^\s+/, '');
               switchedToAnswer = true;
               rawAll = '';
               if (answerPart) writeSseEvent(res, { type: 'delta', text: answerPart });
@@ -1007,16 +1039,37 @@ async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs,
   // Если маркер так и не пришёл (модель не подчинилась формату) — отдаём всё как ответ целиком
   let finalRawText = fullText;
   if (captureReasoning && !switchedToAnswer) {
-    const idx = fullText.indexOf(REASONING_DELIMITER);
-    finalRawText = idx === -1 ? fullText : fullText.slice(idx + REASONING_DELIMITER.length).replace(/^\s+/, '');
+    finalRawText = stripReasoningPrefix(fullText);
   }
 
   // Ответ оборвался из-за молчания модели даже после попыток незаметно продолжить — не "чиним"
   // нотацию повторным запросом (он может полностью переписать честный частичный текст), просто
   // сообщаем клиенту, что ответ неполный (клиент сам попробует автоматически продолжить ещё раз).
-  const finalText = stalled
+  let finalText = stalled
     ? sanitizeAssistantText(finalRawText)
     : await repairNotationReplyIfNeeded(apiKey, modelName, query, finalRawText);
+
+  // ГАРАНТИЯ ОТВЕТА: если после режима «Думать» финальный текст пуст (модель ушла в рассуждения
+  // и не выдала ответ после маркера) — быстро запрашиваем краткий ответ без рассуждений.
+  // Лучше хоть какой-то ответ, чем пустое сообщение после «Думал N секунд».
+  if (!String(finalText || '').trim()) {
+    try {
+      const { response, data } = await callOpenAI(apiKey, modelName, [
+        ...messages,
+        { role: 'user', content: 'Время на размышления закончилось. Немедленно дай краткий финальный ответ на последний вопрос пользователя: без рассуждений и без маркеров, только сам ответ. Даже если не уверен — дай лучший возможный вариант.' }
+      ], 25000, 1024);
+      const quick = data?.choices?.[0]?.message?.content || '';
+      if (response.ok && !data?.error && quick.trim()) {
+        finalText = sanitizeAssistantText(stripReasoningPrefix(quick));
+      }
+    } catch (quickErr) {
+      // подстрахуемся ниже текстом, который уже успела написать модель
+    }
+    if (!String(finalText || '').trim()) {
+      finalText = sanitizeAssistantText(fullText) || 'Не удалось сформировать развёрнутый ответ. Попробуйте переформулировать вопрос.';
+    }
+  }
+
   writeSseEvent(res, { type: 'done', text: finalText, truncated: stalled });
   res.end();
 
@@ -1351,7 +1404,7 @@ export default async function handler(req, res) {
             console.error(`[harmonyai] model unavailable | model=${modelName} | reason=${compactErrorValue(errorMessage, 500)}`);
             return res.status(400).json({
               error: {
-                message: 'Выбранная модель временно недоступна. Попробуйте другую модель или повторите позже.',
+                message: 'Выбранная модель временно недоступна. Попро��уйте другую модель или повторите позже.',
                 status: lastError.status || 400
               }
             });
