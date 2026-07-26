@@ -12,19 +12,34 @@ try{
   var __t=localStorage.getItem('hai_theme');
   if(__t==='light'||__t==='dark')document.documentElement.setAttribute('data-theme',__t);
 }catch(e){}
+// Мгновенная проверка сохранённой сессии Supabase ДО отрисовки: если токен есть в localStorage,
+// экран регистрации не показываем вовсе (initSession ниже подтвердит сессию и откроет чат,
+// а при недействительном токене снимет data-boot и покажет вход).
+try{
+  for(var __i=0;__i<localStorage.length;__i++){
+    var __k=localStorage.key(__i);
+    if(__k&&__k.indexOf('sb-')===0&&__k.indexOf('-auth-token')!==-1){document.documentElement.setAttribute('data-boot','app');break;}
+  }
+}catch(e){}
 </script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230d0f14'/%3E%3Cpath d='M18 14h8v18h12V14h8v36h-8V39H26v11h-8z' fill='%23ffffff'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://cqthnymltqpcxtpiryka.supabase.co">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Courier+Prime:wght@400;700&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/abcjs@6.2.3/dist/abcjs-basic-min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="i18n.js"></script>
 <script src="i18n_dict.js"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Courier+Prime:wght@400;700&display=swap');
+/* Шрифты подключены через <link rel="stylesheet"> в <head> — быстрее, чем @import внутри CSS. */
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 html,body{height:100%;height:100dvh;overflow:hidden;}
 body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;}
@@ -378,6 +393,9 @@ button:active,.model-pill:active,.send-btn:active{
 /* ===================== AUTH ===================== */
 .auth-wrap{position:fixed;inset:0;z-index:1000;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px;}
 .auth-wrap.gone{display:none;}
+/* Пока data-boot="app" (в localStorage найден токен Supabase) — экран входа скрыт ещё до проверки сессии,
+   чтобы авторизованный пользователь никогда не видел «вспышку» регистрации. */
+html[data-boot="app"] .auth-wrap{display:none;}
 .auth-card{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:36px 28px;max-width:380px;width:100%;display:flex;flex-direction:column;gap:0;}
 .auth-screen{display:none;flex-direction:column;gap:0;}
 .auth-screen.active{display:flex;}
@@ -422,7 +440,7 @@ button:active,.model-pill:active,.send-btn:active{
   .topbar-logo{font-size:21px;font-weight:800;color:var(--text);position:absolute;left:50%;transform:translateX(-50%);}
   /* Кнопка модели выровнена по той же горизонтали, что и «три полоски» и «новый чат»:
      она стоит в контентной строке топбара (top = верхний паддинг), одинаковой высоты 38px
-     с боковыми кнопками, а не центрируется по всему п��ддинг-боксу (из-за большого верхнего
+     с боковыми кнопками, а не центрируется по всему п����ддинг-боксу (из-за большого верхнего
      safe-area паддинга и 2px снизу раньше пилюля «съезжала» и была не параллельна кнопкам). */
   .topbar-model-pill{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 14px);transform:translateX(-50%);height:38px;display:flex;align-items:center;justify-content:center;padding:0 22px;border-radius:999px;background:#1c1c20;border:1px solid rgba(255,255,255,.06);cursor:pointer;user-select:none;transition:background .12s,transform .12s;max-width:calc(100vw - 120px);overflow:hidden;white-space:nowrap;}
   .topbar-model-pill:active{transform:translateX(-50%) scale(.95);}
@@ -1790,6 +1808,28 @@ html[data-theme="light"] .photo-deleted-msg{
     color:rgba(255,255,255,.96);
   }
 }
+
+/* ============================================================================
+   Кнопки «+» (bar-icon) и микрофона — полностью БЕЗ обводки во всех состояниях.
+   Размеры, расположение, анимации и Liquid Glass (blur/фон/блик ::before) не
+   меняются: убираем только border/ring/outline. Ширина границы сохранена
+   (transparent), поэтому геометрия кнопок не сдвигается.
+   ========================================================================= */
+.bar-icon,.mic-btn,
+.bar-icon:hover,.mic-btn:hover,
+.bar-icon:active,.mic-btn:active,
+.bar-icon:focus,.mic-btn:focus,
+.bar-icon:focus-visible,.mic-btn:focus-visible{outline:none;}
+@media(max-width:768px){
+  .main .bar-icon,.main .mic-btn{
+    border-color:transparent;
+    box-shadow:0 10px 26px rgba(0,0,0,.18); /* внешняя мягкая тень без inset-кольца */
+  }
+  .main .bar-icon::after,.main .mic-btn::after{box-shadow:none;} /* кольцевая обводка ::after */
+  .main .bar-icon:active,.main .mic-btn:active{
+    box-shadow:0 7px 18px rgba(0,0,0,.18);
+  }
+}
 </style>
 </head>
 <body>
@@ -2258,7 +2298,7 @@ html[data-theme="light"] .photo-deleted-msg{
       </div>
       <div class="attach-opt" id="attachSearch" onclick="attachChoose('search',event)">
         <span class="attach-opt-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M3 12h18M12 3a14 14 0 010 18M12 3a14 14 0 000 18" stroke="currentColor" stroke-width="1.8"/></svg></span>
-        <span class="attach-opt-txt">Поис�� в сети</span>
+        <span class="attach-opt-txt">��оис�� в сети</span>
         <span class="attach-opt-state" id="attachSearchState">ИИ сам решит</span>
       </div>
       <div class="attach-opt" onclick="attachChoose('files',event)">
@@ -2294,7 +2334,8 @@ html[data-theme="light"] .photo-deleted-msg{
 const SB_URL='https://cqthnymltqpcxtpiryka.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNxdGhueW1sdHFwY3h0cGlyeWthIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MjY3NzYsImV4cCI6MjA5NzAwMjc3Nn0.b-6lSdjT7XwWkt607ORwGfKYSn3CLZJB3mcs4QQUSoE';
 const sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-if(window.pdfjsLib)window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+// pdf.js и mammoth подключены с defer (не блокируют первую отрисовку страницы);
+// workerSrc для pdf.js настраивается лениво в parsePdfFile перед первым использованием.
 
 let curUser=null,curEmail='',resendTimer=null,resendLeft=0;
 let sidebarExpanded=false;
@@ -2601,7 +2642,7 @@ function isDesktop(){return window.innerWidth>=769;}
 
 /* ===== ПРОМО-УВЕДОМЛЕНИЯ =====
    Три ID (promo_img / promo_quality / promo_limits) с разными вероятностями.
-   Не показываются повторно в одной сессии (sessionStorage) и не показываются
+   Не показываются повторно в одной сессии (sessionStorage) и не показ��ваются
    пользователям с Pro-ролями. Автозакрытие через 8 секунд. */
 const NOTIF_TEXTS={
   promo_img:{title:'Получите более детальные изображения с Pro',body:'Улучшенное разрешение, насыщенные цвета и глубок��я проработка деталей.',cta:'Обновить'},
@@ -2766,6 +2807,7 @@ function ensureSignedInShell(session){
   const mg=document.querySelector('.mobile-glossy');if(mg)mg.style.display='none';
   updateUserUI();
   if(!curChatId&&chatHistory.length===0)newChat();
+  syncSignedInRoute();
 }
 async function hydrateSignedInState(session){
   const uid=session?.user?.id;
@@ -3012,17 +3054,64 @@ function startResend(){
   });
 })();
 
+/* ===== МАРШРУТЫ (/login, /chat, /settings) =====
+   Приложение остаётся одностраничным: vercel.json переписывает эти пути на index.html,
+   а этот блок синхронизирует адресную строку с состоянием интерфейса. */
+const ROUTING_ENABLED=/^https?:$/.test(window.location.protocol);
+let routeNavigating=false; // true, когда открытие/закрытие вызвано popstate — history не трогаем
+function currentRoute(){
+  if(!ROUTING_ENABLED)return '/';
+  return (window.location.pathname||'/').replace(/\/+$/,'').toLowerCase()||'/';
+}
+function setRoute(path,push){
+  if(!ROUTING_ENABLED||currentRoute()===path)return;
+  try{
+    if(push)history.pushState({route:path},'',path);
+    else history.replaceState({route:path},'',path);
+  }catch(e){}
+}
+// После показа оболочки чата: / и /login превращаются в /chat, /settings открывает настройки.
+function syncSignedInRoute(){
+  if(currentRoute()==='/settings'){
+    routeNavigating=true;
+    try{openSettings();}finally{routeNavigating=false;}
+    return;
+  }
+  setRoute('/chat',false);
+}
+// Нет сессии / выход: показываем /login и снимаем ранний флаг data-boot (см. <head>).
+function syncSignedOutRoute(){
+  document.documentElement.removeAttribute('data-boot');
+  setRoute('/login',false);
+}
+window.addEventListener('popstate',()=>{
+  if(!ROUTING_ENABLED)return;
+  const r=currentRoute();
+  const ov=document.getElementById('settingsOverlay');
+  routeNavigating=true;
+  try{
+    if(r==='/settings'&&window.__appShown)openSettings();
+    else if(ov&&ov.classList.contains('open'))closeSettings();
+  }finally{routeNavigating=false;}
+});
+
 /* ===== SESSION ===== */
 async function initSession(){
-  const {data:{session}}=await withTimeout(
-    sb.auth.getSession(),
-    8000,
-    'Проверка сохранённой сессии заняла слишком много времени'
-  );
+  let session=null;
+  try{
+    ({data:{session}}=await withTimeout(
+      sb.auth.getSession(),
+      8000,
+      'Проверка сохранённой сессии заняла слишком много времени'
+    ));
+  }catch(e){
+    console.warn('Session check failed',e); // при сбое проверки показываем вход, как и раньше
+  }
   if(session){
     beginSignedInState(session);
     return;
   }
+  syncSignedOutRoute();
   document.getElementById('authWrap').classList.remove('gone');
   document.getElementById('app').classList.remove('show');
   const mg1=document.querySelector('.mobile-glossy');if(mg1)mg1.style.display='';
@@ -3035,6 +3124,7 @@ sb.auth.onAuthStateChange((event,session)=>{
   if(event==='SIGNED_OUT'){
     authHydrationPromise=null;authHydratedUserId='';
     curUser=null;chatHistory=[];curChatId=null;chats=[];
+    syncSignedOutRoute();
     document.getElementById('authWrap').classList.remove('gone');
     document.getElementById('app').classList.remove('show');
     const mg2=document.querySelector('.mobile-glossy');if(mg2)mg2.style.display='';
@@ -3438,6 +3528,8 @@ function removeAttachment(index){
   updateComposerPlaceholder();
 }
 async function parsePdfFile(file){
+  if(!window.pdfjsLib)throw new Error('Модуль чтения PDF ещё загружается — попробуйте через пару секунд');
+  if(!window.pdfjsLib.GlobalWorkerOptions.workerSrc)window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
   const arr=await file.arrayBuffer();
   const pdf=await window.pdfjsLib.getDocument({data:arr}).promise;
   const pages=[];
@@ -3449,6 +3541,7 @@ async function parsePdfFile(file){
   return pages.join('\n\n');
 }
 async function parseDocxFile(file){
+  if(!window.mammoth)throw new Error('Модуль чтения DOCX ещё загружается — попробуйте через пару секунд');
   const arr=await file.arrayBuffer();
   const result=await window.mammoth.extractRawText({arrayBuffer:arr});
   return result.value||'';
@@ -3500,6 +3593,7 @@ async function parseGenericFile(file){
 async function logOut(){
   await sb.auth.signOut();
   curUser=null;chatHistory=[];curChatId=null;chats=[];
+  syncSignedOutRoute();
   document.getElementById('authWrap').classList.remove('gone');
   document.getElementById('app').classList.remove('show');
   const mg3=document.querySelector('.mobile-glossy');if(mg3)mg3.style.display='';
@@ -4375,7 +4469,7 @@ function buildSystem(){
   if(s.enthusiasm&&s.enthusiasm!=='default'&&enthusiasmMap[s.enthusiasm])sys+='\n'+enthusiasmMap[s.enthusiasm];
   const headingsMap={off:'Не используй markdown-заголовки и маркированные списки, пиши сплошным текстом.',on:'Активно используй заголовки и структурированные списки.'};
   if(s.headings&&s.headings!=='default'&&headingsMap[s.headings])sys+='\n'+headingsMap[s.headings];
-  const emojisMap={none:'Никогда не используй эмодзи.',some:'Можешь изредка добавить 1-2 уместных эмодзи.',many:'Используй эмодзи активно для оживления ответов.'};
+  const emojisMap={none:'Никогда не используй эмодзи.',some:'Можешь изредка добавить 1-2 уместных эмодзи.',many:'Используй эмодзи ак��ивно для оживления ответов.'};
   if(s.emojis&&s.emojis!=='default'&&emojisMap[s.emojis])sys+='\n'+emojisMap[s.emojis];
   if(curMode==='low')sys+='\nРЕЖИМ Low: отвечай кратко, максимум 3-4 предложения.';
   if(curMode==='max')sys+='\nРЕЖИМ Max: отвечай подро��но, с объяснениями и примерами.';
@@ -4805,7 +4899,7 @@ function renderMd(el,text){
       el.appendChild(div);
     }
   });
-  // Кнопки копирования активны только у завершённого ответа (не во время стрима).
+  // Кнопки копирования активны только у завер��ённого ответа (не во время стрима).
   if(!el.classList.contains('is-streaming'))enableCodeCopy(el);
 }
 function splitMdSegments(text){
@@ -5131,7 +5225,7 @@ async function regenMsg(item){
     await autoContinueIfNeeded(result,wrap,msgEl,actionsEl);
   }catch(e){
     hideTyping();
-    if(e.message!=='Генерация остановлена')renderMd(msgEl,'Ошибка: '+e.message);
+    if(e.message!=='Генерация остановлена')renderMd(msgEl,'Ошибк��: '+e.message);
   }finally{
     activeAbortController=null;
     activeStreamStop=null;
@@ -5351,49 +5445,22 @@ function tChatErr(msg){
   }
   return text||'Что-то пошло не так при запросе к модели';
 }
-function buildApiCandidates(){
+// Единый строитель списка эндпоинтов: локальный /api/* на боевом хосте + абсолютный fallback.
+// Раньше это были четыре одинаковые функции — оставлен один помощник, поведение не изменилось.
+function buildEndpointCandidates(path){
   const liveBase=PRIMARY_API_ORIGIN.replace(/\/$/,'');
   const isLiveHost=window.location.hostname==='harmonyai-zeta.vercel.app';
   const endpoints=[];
   if(window.location.protocol!=='file:'&&isLiveHost){
-    endpoints.push('/api/chat');
+    endpoints.push(path);
   }
-  endpoints.push(`${liveBase}/api/chat`);
+  endpoints.push(`${liveBase}${path}`);
   return [...new Set(endpoints)];
 }
-// Кандидаты-эндпоинты для генерации изображения — зеркало buildApiCandidates, но /api/generate-image.
-function buildImageApiCandidates(){
-  const liveBase=PRIMARY_API_ORIGIN.replace(/\/$/,'');
-  const isLiveHost=window.location.hostname==='harmonyai-zeta.vercel.app';
-  const endpoints=[];
-  if(window.location.protocol!=='file:'&&isLiveHost){
-    endpoints.push('/api/generate-image');
-  }
-  endpoints.push(`${liveBase}/api/generate-image`);
-  return [...new Set(endpoints)];
-}
-// Кандидаты-эндпоинты для intent-классификатора (api/intent.js) — отдельный лёгкий путь.
-function buildIntentApiCandidates(){
-  const liveBase=PRIMARY_API_ORIGIN.replace(/\/$/,'');
-  const isLiveHost=window.location.hostname==='harmonyai-zeta.vercel.app';
-  const endpoints=[];
-  if(window.location.protocol!=='file:'&&isLiveHost){
-    endpoints.push('/api/intent');
-  }
-  endpoints.push(`${liveBase}/api/intent`);
-  return [...new Set(endpoints)];
-}
-// Кандидаты-эндпоинты для генератора названия чата (api/title.js).
-function buildTitleApiCandidates(){
-  const liveBase=PRIMARY_API_ORIGIN.replace(/\/$/,'');
-  const isLiveHost=window.location.hostname==='harmonyai-zeta.vercel.app';
-  const endpoints=[];
-  if(window.location.protocol!=='file:'&&isLiveHost){
-    endpoints.push('/api/title');
-  }
-  endpoints.push(`${liveBase}/api/title`);
-  return [...new Set(endpoints)];
-}
+function buildApiCandidates(){return buildEndpointCandidates('/api/chat');}
+function buildImageApiCandidates(){return buildEndpointCandidates('/api/generate-image');}
+function buildIntentApiCandidates(){return buildEndpointCandidates('/api/intent');}
+function buildTitleApiCandidates(){return buildEndpointCandidates('/api/title');}
 // Название чата определяет ИИ по ТЕМЕ первого обмена (а не по первым словам промпта).
 // Вызывается fire-and-forget из saveChat после первого ответа ассистента.
 const TITLE_PLACEHOLDER='Новый чат';
@@ -5795,7 +5862,7 @@ function showLimitReached(check){
   inner.appendChild(d.firstElementChild);
   scrollChat();
 }
-/* ===== ГЕНЕРАЦИЯ ИЗОБРАЖЕНИЯ (Cloudflare Workers AI, отдельный путь) ===== */
+/* ===== ГЕНЕРАЦИЯ ИЗОБРАЖЕНИЯ (Cloudflare Workers AI, отдельный ��уть) ===== */
 // Вставляет <img> в бабл ассистента по URL из Storage.
 function appendImageToShell(msgEl,src){
   if(!msgEl)return;
@@ -5907,7 +5974,7 @@ async function pvShare(){
   // Фолбэк: копируем URL в буфер обмена.
   try{
     await navigator.clipboard.writeText(url);
-    pvToast('Ссылка на изображение скопирована');
+    pvToast('С��ылка на изображение скопирована');
   }catch(e){
     pvToast('Не удалось поделиться — скопируйте ссылку вручную');
   }
@@ -6648,9 +6715,11 @@ function openSettings(){
   closeSidebar();
   renderSettingsMain();
   document.getElementById('settingsOverlay').classList.add('open');
+  if(!routeNavigating)setRoute('/settings',true);
 }
 function closeSettings(){
   document.getElementById('settingsOverlay').classList.remove('open');
+  if(!routeNavigating&&currentRoute()==='/settings')setRoute('/chat',false);
 }
 
 function getSettings(){return curUser?.settings||{};}
