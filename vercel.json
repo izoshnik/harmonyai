@@ -3,7 +3,10 @@
   "trailingSlash": false,
   "rewrites": [
     { "source": "/subscribe", "destination": "/subscribe.html" },
-    { "source": "/help", "destination": "/help.html" }
+    { "source": "/help", "destination": "/help.html" },
+    { "source": "/login", "destination": "/index.html" },
+    { "source": "/chat", "destination": "/index.html" },
+    { "source": "/settings", "destination": "/index.html" }
   ],
   "headers": [
     {
