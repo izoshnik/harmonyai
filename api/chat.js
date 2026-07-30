@@ -268,7 +268,7 @@ function needsPersonalContext(query = '', messages = []) {
   if (!clean) return false;
 
   // Явные сигналы: пользователь ссылается на себя, свою историю, свои файлы/настройки
-  const personalSignals = /(помнишь|как обычно|как всегда|мо[йяюе]\s|мне нравится|мне не нравится|я говорил|я писал|я просил|я предпочита|настрой(ка|ки)|профил|документ|файл|учебник|загрузил|прикреп|ранее мы|в прошлый раз|продолжи|как в прошлый раз|исправь(те)? (как|так)|мою память|обно��и память|запомни)/;
+  const personalSignals = /(помнишь|как обычно|как всегда|мо[йяюе]\s|мне нравится|мне не нравится|я говорил|я писал|я просил|я предпочита|настрой(ка|ки)|профил|документ|файл|учебник|загрузил|прикреп|ранее мы|в прошлый раз|продолжи|как в прошлый раз|исправь(те)? (как|так)|мою память|обнови память|запомни)/;
   if (personalSignals.test(clean)) return true;
 
   // Если в этом чате уже есть прикреплённые документы/изображения среди сообщений — контекст нужен
@@ -339,7 +339,7 @@ function isDefinitelyOfflineQuery(query = '') {
   return false;
 }
 
-// Финальное решение: нужен ли поиск. Учитывает яв��ый запрос пользователя,
+// Финальное решение: нужен ли поиск. Учитывает явный запрос пользователя,
 // характер вопроса (факты/актуальность) и исключения.
 function decideWebSearch({ query = '', searchEnabled = 'auto' } = {}) {
   // searchEnabled: 'auto' (ИИ решает сама) | 'on' (принудительно) | 'off'
@@ -1076,9 +1076,8 @@ async function streamOpenAIToClientInner(res, apiKey, modelName, messages, timeo
   return { ok: true, text: finalText, model: modelName, truncated: stalled };
 }
 
-// Роли, у которых есть доступ к Pro-функциям (Dynatos, Max, Думать).
-// Клиент прячет опции для user, но серверная проверка тоже нужна:
-// нельзя обойти гейт, послав model:'pro' в обход UI.
+// Роли, у которых есть доступ к Pro-модели Dynatos.
+// Max и «Думать» доступны всем тарифам; сервер защищает только выбор модели.
 function isProRole(profile){
   const r=String(profile?.role||'').toLowerCase();
   const p=String(profile?.plan||'').toLowerCase();
@@ -1237,13 +1236,11 @@ export default async function handler(req, res) {
     }
 
     const profile = await fetchProfile(userId);
-    // Серверный Pro-гейт: если роль не Pro, тихо снимаем Max и Думать
-    // (клиент их и так не даст включить, но защищаемся от прямых запросов к API).
-    if (!isProRole(profile)) {
-      if (effort === 'max') effort = 'low';
-      if (think) think = false;
-      if (model === 'pro') model = 'lite';
-    }
+    // Max и «Думать» разрешены всем. Только Dynatos остаётся серверно защищённым.
+    // Прямой запрос model:'pro' от FREE не получает платную модель.
+    if (!isProRole(profile) && model === 'pro') model = 'lite';
+    effort = effort === 'max' ? 'max' : 'low';
+    think = Boolean(think);
     const query = lastUserText(messages);
     const isQuick = isSimpleQuery(query);
     const wantsContext = needsPersonalContext(query, messages);
@@ -1404,7 +1401,7 @@ export default async function handler(req, res) {
             console.error(`[harmonyai] model unavailable | model=${modelName} | reason=${compactErrorValue(errorMessage, 500)}`);
             return res.status(400).json({
               error: {
-                message: 'Выбранная модель временно недоступна. Попро��уйте другую модель или повторите позже.',
+                message: 'Выбранная модель временно недоступна. Попробуйте другую модель или повторите позже.',
                 status: lastError.status || 400
               }
             });
