@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HarmonyAI Pro — Оформление подписки</title>
 <meta name="robots" content="noindex">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   /* ================== LIQUID GLASS — единая система ==================
      Базовый слой стекла (LiquidGlassSurface): тёмный фон, blur, тонкая
@@ -157,6 +158,44 @@
     font-size:11.5px;letter-spacing:.04em;color:rgba(235,235,245,.42);
     text-align:center;font-weight:500;user-select:text;}
   @media(max-width:820px){.legal-footer{font-size:11px;padding:14px 10px calc(14px + env(safe-area-inset-bottom,0px));}}
+
+  /* HarmonyAI v1.8: единая светлая сине-белая тема в стиле Telegram. */
+  :root{
+    --bg:#eaf3fb;
+    --text:#17212b;
+    --text2:#6d7f8f;
+    --accent:#3390ec;
+    --accent2:#2481cc;
+    --glass-bg:rgba(255,255,255,.92);
+    --glass-border:rgba(36,112,168,.16);
+  }
+  body{
+    background:
+      radial-gradient(900px 560px at 82% -10%,rgba(51,144,236,.18),transparent 62%),
+      radial-gradient(760px 520px at 5% 108%,rgba(84,169,235,.13),transparent 60%),
+      var(--bg);
+  }
+  .lg{box-shadow:0 20px 60px rgba(35,98,145,.16);}
+  .lg::before{background:linear-gradient(150deg,rgba(255,255,255,.95),rgba(255,255,255,.24) 38%,transparent 72%);}
+  .lg::after{background:linear-gradient(to top,rgba(51,144,236,.05),transparent);}
+  .lg-refract{opacity:.25;background:linear-gradient(120deg,rgba(51,144,236,.10),rgba(36,129,204,.04));}
+  .pane-left{border-color:rgba(36,112,168,.12);}
+  .brand-logo{color:#fff;background:linear-gradient(150deg,var(--accent),var(--accent2));box-shadow:0 8px 22px rgba(51,144,236,.28);}
+  .brand-name b{background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .pill{background:rgba(51,144,236,.10);border-color:rgba(51,144,236,.24);color:#2481cc;}
+  .pill .dot{background:var(--accent);box-shadow:0 0 10px rgba(51,144,236,.5);}
+  .feat .fi{background:rgba(51,144,236,.08);border-color:rgba(51,144,236,.16);color:#2481cc;}
+  .price{background:linear-gradient(90deg,#17212b,#3390ec);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .divider{background:rgba(36,112,168,.12);}
+  .pay-btn{background:linear-gradient(120deg,var(--accent),var(--accent2));box-shadow:0 12px 30px rgba(51,144,236,.28);}
+  .pay-btn:hover{box-shadow:0 16px 38px rgba(51,144,236,.34);}
+  .pay-btn:disabled{cursor:wait;opacity:.72;transform:none;}
+  .methods span{background:rgba(51,144,236,.07);border-color:rgba(51,144,236,.14);color:var(--text2);}
+  .back{color:var(--text2);background:rgba(255,255,255,.88);border-color:rgba(36,112,168,.16);box-shadow:0 8px 24px rgba(35,98,145,.10);}
+  .back:hover{color:var(--accent2);}
+  .legal-footer{color:rgba(23,33,43,.48);}
+  @media(max-width:820px){.pane-left{border-bottom-color:rgba(36,112,168,.12);}}
+  @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;}}
 </style>
 </head>
 <body>
@@ -222,8 +261,8 @@
     <!-- Экран успеха (заглушка вместо реальной оплаты) -->
     <div class="done" id="done">
       <div class="done-ic"><svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-      <h3>Спасибо!</h3>
-      <p>Это демонстрационная страница — реальная оплата пока не подключена.<br>Здесь появится приём платежа 299&nbsp;₽.</p>
+      <h3>Оплата принята</h3>
+      <p>Подписка HarmonyAI Pro активируется автоматически.<br>Вернитесь в приложение, чтобы использовать Dynatos.</p>
       <button class="pay-btn" style="margin-top:22px" onclick="if(window.opener){window.close()}else{location.href='/'}">Вернуться в HarmonyAI</button>
     </div>
   </div>
@@ -233,6 +272,10 @@
 <div class="legal-footer">ИНН 781455842468</div>
 
 <script>
+  const SB_URL='https://cqthnymltqpcxtpiryka.supabase.co';
+  const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNxdGhueW1sdHFwY3h0cGlyeWthIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MjY3NzYsImV4cCI6MjA5NzAwMjc3Nn0.b-6lSdjT7XwWkt607ORwGfKYSn3CLZJB3mcs4QQUSoE';
+  const paymentSb=window.supabase?.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+
   // При возврате с ЮKassa (?success=1) — сразу показываем экран успеха.
   (function checkReturn(){
     const p = new URLSearchParams(location.search);
@@ -263,40 +306,21 @@
     btn.textContent='Обработка…';
 
     try {
-      // userId берём из localStorage (ключ совместим с Supabase-сессией в index.html)
-      let userId = null;
-      try {
-        const raw = localStorage.getItem('sb-user') || localStorage.getItem('harmonyai_user');
-        if(raw){ const u=JSON.parse(raw); userId=u?.id||u?.user?.id||null; }
-      } catch{}
-      // Fallback: ищем Supabase session в localStorage по ключу вида sb-*-auth-token
-      if(!userId){
-        for(const k of Object.keys(localStorage)){
-          if(k.includes('auth-token')){
-            try{
-              const s=JSON.parse(localStorage.getItem(k));
-              userId=s?.user?.id || s?.access_token && JSON.parse(atob(s.access_token.split('.')[1]))?.sub || null;
-              if(userId) break;
-            }catch{}
-          }
-        }
+      const {data:sessionData,error:sessionError}=await paymentSb.auth.getSession();
+      if(sessionError)throw sessionError;
+      const session=sessionData?.session;
+      const userId=session?.user?.id||null;
+      const email=session?.user?.email||'';
+      if(!session?.access_token||!userId){
+        throw new Error('Сначала войдите в аккаунт HarmonyAI');
       }
-
-      const email = (() => {
-        try{
-          for(const k of Object.keys(localStorage)){
-            if(k.includes('auth-token')){
-              const s=JSON.parse(localStorage.getItem(k));
-              return s?.user?.email || '';
-            }
-          }
-        }catch{}
-        return '';
-      })();
 
       const res = await fetch('/api/payment/create', {
         method: 'POST',
-        headers: {'Content-Type':'application/json'},
+        headers: {
+          'Content-Type':'application/json',
+          'Authorization':'Bearer '+session.access_token
+        },
         body: JSON.stringify({ userId, email })
       });
       const data = await res.json().catch(()=>({}));
