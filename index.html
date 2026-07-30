@@ -9,9 +9,10 @@
 // Если тема не выбрана (или выбрана "system") — поведение НЕ меняется: мобильная тёмная,
 // десктопная светлая (как было). data-theme="light"/"dark" — новые явные темы поверх них.
 try{
-  var __t=localStorage.getItem('hai_theme');
-  if(__t==='light'||__t==='dark')document.documentElement.setAttribute('data-theme',__t);
-}catch(e){}
+  // HarmonyAI v1.8 использует единую светлую сине-белую тему на всех устройствах.
+  localStorage.setItem('hai_theme','light');
+  document.documentElement.setAttribute('data-theme','light');
+}catch(e){document.documentElement.setAttribute('data-theme','light');}
 // Мгновенная проверка сохранённой сессии Supabase ДО отрисовки: если токен есть в localStorage,
 // экран регистрации не показываем вовсе (initSession ниже подтвердит сессию и откроет чат,
 // а при недействительном токене снимет data-boot и покажет вход).
@@ -50,24 +51,26 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans
 
 /* ===================== МОБИЛЬНАЯ — ТЁМНАЯ (по умолчанию) ===================== */
 :root{
-  --bg:#0a0a0c;
-  --bg2:#121214;
-  --bg3:rgba(255,255,255,0.06);
-  --text:#ffffff;
-  --text2:#888892;
-  --text-ai:#e8e8ec;
-  --border:rgba(255,255,255,0.10);
-  --border2:rgba(255,255,255,0.06);
-  --send-bg:#ffffff;
-  --send-txt:#0a0a0c;
-  --user-bg:#1e1e24;
+  --bg:#eaf3fb;
+  --bg2:#ffffff;
+  --bg3:rgba(51,144,236,0.08);
+  --text:#17212b;
+  --text2:#6d7f8f;
+  --text-ai:#17212b;
+  --border:rgba(36,112,168,0.16);
+  --border2:rgba(36,112,168,0.09);
+  --send-bg:#3390ec;
+  --send-txt:#ffffff;
+  --user-bg:#3390ec;
   --user-txt:#ffffff;
-  --input-bg:rgba(255,255,255,0.06);
-  --hover:rgba(255,255,255,0.06);
-  --active:rgba(255,255,255,0.10);
-  --drop-bg:#1a1a1f;
-  --drop-shadow:0 8px 32px rgba(0,0,0,0.5);
-  --check:#22c55e;
+  --input-bg:#ffffff;
+  --hover:rgba(51,144,236,0.08);
+  --active:rgba(51,144,236,0.14);
+  --drop-bg:#ffffff;
+  --drop-shadow:0 12px 36px rgba(30,93,140,0.16);
+  --check:#3390ec;
+  --accent:#3390ec;
+  --accent-strong:#2481cc;
   --font-base:15px;
 }
 /* ===================== ДЕСКТОП — СВЕТЛАЯ ===================== */
@@ -121,24 +124,24 @@ html[data-theme="dark"]{
   --check:#22c55e;
 }
 html[data-theme="light"]{
-  --bg:#f7f6f3;
-  --bg2:#f0eee9;
-  --bg3:rgba(20,18,12,0.04);
-  --text:#26241f;
-  --text2:#7a766c;
-  --text-ai:#26241f;
-  --border:rgba(20,18,12,0.10);
-  --border2:rgba(20,18,12,0.06);
-  --send-bg:#2c2a24;
+  --bg:#eaf3fb;
+  --bg2:#ffffff;
+  --bg3:rgba(51,144,236,0.08);
+  --text:#17212b;
+  --text2:#6d7f8f;
+  --text-ai:#17212b;
+  --border:rgba(36,112,168,0.16);
+  --border2:rgba(36,112,168,0.09);
+  --send-bg:#3390ec;
   --send-txt:#ffffff;
-  --user-bg:#ffffff;
-  --user-txt:#26241f;
-  --input-bg:rgba(20,18,12,0.04);
-  --hover:rgba(20,18,12,0.045);
-  --active:rgba(20,18,12,0.07);
+  --user-bg:#3390ec;
+  --user-txt:#ffffff;
+  --input-bg:#ffffff;
+  --hover:rgba(51,144,236,0.08);
+  --active:rgba(51,144,236,0.14);
   --drop-bg:#ffffff;
-  --drop-shadow:0 8px 32px rgba(20,18,12,0.12);
-  --check:#16a34a;
+  --drop-shadow:0 12px 36px rgba(30,93,140,0.16);
+  --check:#3390ec;
 }
 /* ============================================================================
    МОБИЛЬНАЯ СВЕТЛАЯ ТЕМА (liquid glass, спокойные светлые цвета)
@@ -149,13 +152,13 @@ html[data-theme="light"]{
    ============================================================================ */
 @media(max-width:768px){
   /* Пузырь сообщения пользователя — мягкое белое стекло с тонкой рамкой вместо резкого тёмного */
-  html[data-theme="light"] .msg-user{background:rgba(255,255,255,.82);color:#26241f;border:1px solid rgba(20,18,12,.07);box-shadow:0 6px 18px rgba(20,18,12,.07);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);}
-  html[data-theme="light"] .msg-user-attachment-meta{color:rgba(38,36,31,.6);}
-  html[data-theme="light"] .msg-user-attachment-name{color:#26241f;}
+  html[data-theme="light"] .msg-user{background:linear-gradient(145deg,#4ba3f3,#3390ec);color:#fff;border:1px solid rgba(23,111,184,.18);box-shadow:0 6px 18px rgba(30,105,166,.18);}
+  html[data-theme="light"] .msg-user-attachment-meta{color:#6d7f8f;}
+  html[data-theme="light"] .msg-user-attachment-name{color:#17212b;}
 
   /* Пилюля модели в шапке */
   html[data-theme="light"] .topbar-model-pill{background:rgba(255,255,255,.72);border:1px solid rgba(0,0,0,.06);box-shadow:0 4px 16px rgba(20,18,12,.08);}
-  html[data-theme="light"] .topbar-model-pill .pill-name{color:#6a4dff;}
+  html[data-theme="light"] .topbar-model-pill .pill-name{color:#2481cc;}
   html[data-theme="light"] .topbar-training-pill{background:rgba(0,0,0,.05);border-color:rgba(0,0,0,.08);box-shadow:0 6px 18px rgba(20,18,12,.10);}
   html[data-theme="light"] .topbar-logo{color:#26241f;}
 
@@ -440,7 +443,7 @@ html[data-boot="app"] .auth-wrap{display:none;}
   .topbar-logo{font-size:21px;font-weight:800;color:var(--text);position:absolute;left:50%;transform:translateX(-50%);}
   /* Кнопка модели выровнена по той же горизонтали, что и «три полоски» и «новый чат»:
      она стоит в контентной строке топбара (top = верхний паддинг), одинаковой высоты 38px
-     с боковыми кнопками, а не центрируется по всему п����ддинг-боксу (из-за большого верхнего
+     с боковыми кнопками, а не центрируется по всему паддинг-боксу (из-за большого верхнего
      safe-area паддинга и 2px снизу раньше пилюля «съезжала» и была не параллельна кнопкам). */
   .topbar-model-pill{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 14px);transform:translateX(-50%);height:38px;display:flex;align-items:center;justify-content:center;padding:0 22px;border-radius:999px;background:#1c1c20;border:1px solid rgba(255,255,255,.06);cursor:pointer;user-select:none;transition:background .12s,transform .12s;max-width:calc(100vw - 120px);overflow:hidden;white-space:nowrap;}
   .topbar-model-pill:active{transform:translateX(-50%) scale(.95);}
@@ -1823,13 +1826,37 @@ html[data-theme="light"] .photo-deleted-msg{
 @media(max-width:768px){
   .main .bar-icon,.main .mic-btn{
     border-color:transparent;
-    box-shadow:0 10px 26px rgba(0,0,0,.18); /* внешняя мягкая тень без inset-кольца */
+    box-shadow:0 10px 26px rgba(30,93,140,.14);
   }
-  .main .bar-icon::after,.main .mic-btn::after{box-shadow:none;} /* кольцевая обводка ::after */
-  .main .bar-icon:active,.main .mic-btn:active{
-    box-shadow:0 7px 18px rgba(0,0,0,.18);
-  }
+  .main .bar-icon::after,.main .mic-btn::after{box-shadow:none;}
+  .main .bar-icon:active,.main .mic-btn:active{box-shadow:0 7px 18px rgba(30,93,140,.14);}
 }
+
+/* HarmonyAI v1.8 — единая сине-белая тема в духе Telegram. */
+html[data-theme="light"] body{background:linear-gradient(135deg,#dcecf9 0%,#edf6fc 45%,#e5f1fa 100%);}
+html[data-theme="light"] .main{background:transparent;}
+html[data-theme="light"] .sidebar,html[data-theme="light"] .topbar,html[data-theme="light"] .settings-box,
+html[data-theme="light"] .input-box,html[data-theme="light"] .desktop-model-drop,html[data-theme="light"] .desktop-sub-drop,
+html[data-theme="light"] .mm-sheet,html[data-theme="light"] .attach-sheet,html[data-theme="light"] .notif-card{
+  background:rgba(255,255,255,.94);border-color:rgba(51,144,236,.14);box-shadow:0 14px 42px rgba(35,104,157,.13);
+}
+html[data-theme="light"] .msg-user{background:linear-gradient(145deg,#4ba3f3,#3390ec)!important;color:#fff!important;border-color:rgba(23,111,184,.2)!important;box-shadow:0 7px 20px rgba(30,105,166,.2)!important;}
+html[data-theme="light"] .msg-ai-wrap{background:rgba(255,255,255,.72);border:1px solid rgba(51,144,236,.09);border-radius:20px;padding:12px 14px;box-shadow:0 5px 18px rgba(35,104,157,.08);}
+html[data-theme="light"] .send-btn,html[data-theme="light"] .auth-btn-primary,html[data-theme="light"] .save-btn,
+html[data-theme="light"] .file-card-btn,html[data-theme="light"] .notif-btn{background:#3390ec!important;color:#fff!important;}
+html[data-theme="light"] .model-pill,html[data-theme="light"] .topbar-model-pill{color:#2481cc;border-color:rgba(51,144,236,.16);}
+html[data-theme="light"] .sb-chat-item.active{background:rgba(51,144,236,.12);color:#1f78b8;}
+html[data-theme="light"] .prof-ava{background:#3390ec!important;color:#fff;}
+html[data-theme="light"] .overlay,html[data-theme="light"] .mm-overlay,html[data-theme="light"] .settings-overlay{background:rgba(36,88,126,.20);}
+.msg-user,.msg-user-wrap{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;}
+.msg-user-wrap{touch-action:pan-y;}
+.msg-user-ctx-menu{position:fixed;z-index:9999;min-width:190px;padding:7px;border-radius:16px;background:rgba(255,255,255,.98);border:1px solid rgba(51,144,236,.16);box-shadow:0 18px 48px rgba(24,73,110,.23);opacity:0;transform:translateY(5px) scale(.97);transition:opacity .14s ease,transform .16s ease;}
+.msg-user-ctx-menu.open{opacity:1;transform:none;}
+.msg-user-ctx-item{display:flex;align-items:center;width:100%;gap:10px;padding:11px 12px;border:0;border-radius:11px;background:transparent;color:#17212b;font:600 14px/1.2 inherit;text-align:left;cursor:pointer;}
+.msg-user-ctx-item:hover,.msg-user-ctx-item:focus-visible{background:rgba(51,144,236,.10);outline:none;}
+.msg-user-ctx-item.danger{color:#d84a4a;}
+.msg-user-ctx-time{margin-top:4px;padding:8px 12px 5px;border-top:1px solid rgba(51,144,236,.12);font-size:11px;color:#7890a3;text-align:center;letter-spacing:.02em;}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important;}}
 </style>
 </head>
 <body>
@@ -2132,7 +2159,7 @@ html[data-theme="light"] .photo-deleted-msg{
       <button class="cmp-search-back" onclick="chatMenuSearchBack()" aria-label="Назад">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
-      <input type="text" id="cmpSearchInp" placeholder="Поиск по со��бщениям…" autocomplete="off" oninput="chatMenuSearchRun(this.value)">
+      <input type="text" id="cmpSearchInp" placeholder="Поиск по сообщениям…" autocomplete="off" oninput="chatMenuSearchRun(this.value)">
     </div>
     <div class="cmp-search-results" id="cmpSearchResults"></div>
   </div>
@@ -2298,7 +2325,7 @@ html[data-theme="light"] .photo-deleted-msg{
       </div>
       <div class="attach-opt" id="attachSearch" onclick="attachChoose('search',event)">
         <span class="attach-opt-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M3 12h18M12 3a14 14 0 010 18M12 3a14 14 0 000 18" stroke="currentColor" stroke-width="1.8"/></svg></span>
-        <span class="attach-opt-txt">��оис�� в сети</span>
+        <span class="attach-opt-txt">Поиск в сети</span>
         <span class="attach-opt-state" id="attachSearchState">ИИ сам решит</span>
       </div>
       <div class="attach-opt" onclick="attachChoose('files',event)">
@@ -2642,10 +2669,10 @@ function isDesktop(){return window.innerWidth>=769;}
 
 /* ===== ПРОМО-УВЕДОМЛЕНИЯ =====
    Три ID (promo_img / promo_quality / promo_limits) с разными вероятностями.
-   Не показываются повторно в одной сессии (sessionStorage) и не показ��ваются
+   Не показываются повторно в одной сессии (sessionStorage) и не показываются
    пользователям с Pro-ролями. Автозакрытие через 8 секунд. */
 const NOTIF_TEXTS={
-  promo_img:{title:'Получите более детальные изображения с Pro',body:'Улучшенное разрешение, насыщенные цвета и глубок��я проработка деталей.',cta:'Обновить'},
+  promo_img:{title:'Получите более детальные изображения с Pro',body:'Улучшенное разрешение, насыщенные цвета и глубокая проработка деталей.',cta:'Обновить'},
   promo_quality:{title:'Улучшите качество ответов с Pro',body:'Более умная модель, ответы быстрее и точнее, работа с длинным контекстом.',cta:'Обновить'},
   promo_limits:{title:'Получите безграничные лимиты с Pro',body:'С Pro-подпиской доступны более умные модели без ограничений по лимитам.',cta:'Обновить'}
 };
@@ -2682,8 +2709,7 @@ function renderNotification(id){
   card.querySelector('.notif-close').addEventListener('click',()=>dismissNotification(card));
   card.querySelector('.notif-btn').addEventListener('click',()=>{
     dismissNotification(card);
-    // CTA пока просто закрывает уведомление; переход на экран Pro при желании
-    // можно повесить сюда позже (openSettings() + вкладка лимитов).
+    goToSubscription();
   });
   card._autoTimer=setTimeout(()=>dismissNotification(card),8000);
   host.appendChild(card);
@@ -2707,8 +2733,8 @@ function subscriptionLabel(){
 }
 function hasTrainingAccess(){return Boolean(curUser&&(curUser.role==='developer'||curUser.role==='admin'));}
 function hasModeratorAccess(){return Boolean(curUser&&(curUser.role==='developer'||curUser.role==='moderator'||curUser.role==='admin'));}
-/* Доступ к Pro-функциям (Dynatos, Max, Думать) — только у ролей pro/developer/admin/moderator.
-   Обычный User видит опции задизейбленными с тултипом «Доступно в Pro». */
+/* Dynatos доступен только ролям pro/developer/admin/moderator.
+   Режимы Max и «Думать» доступны всем пользователям. */
 function isProUser(){
   const r=curUser?.role;
   return Boolean(curUser&&(r==='pro'||r==='developer'||r==='admin'||r==='moderator'));
@@ -2823,6 +2849,7 @@ async function hydrateSignedInState(session){
     if(chatsResult.status==='rejected')console.warn('Chats hydrate failed',chatsResult.reason);
     updateUserUI();
     renderChatList();
+    registerCurrentDevice().catch(()=>{});
     maybeShowNicknameModal();
     // Промо при входе в приложение. Пробуем показать оба, но реально появится одно
     // (renderNotification вытесняет предыдущее, вероятности мешают одновременному показу).
@@ -3445,25 +3472,31 @@ function attachmentFileIcon(name){
     </svg>
   `;
 }
+async function uploadChatAttachment(blob,name,mime){
+  if(!curUser||!blob)return null;
+  const safe=String(name||'file').replace(/[^a-zA-Z0-9._-]+/g,'_').slice(-90)||'file';
+  const path=curUser.id+'/'+new Date().toISOString().slice(0,10)+'/'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'_'+safe;
+  try{
+    const {error}=await sb.storage.from('chat-attachments').upload(path,blob,{contentType:mime||blob.type||'application/octet-stream',upsert:false,cacheControl:'31536000'});
+    if(error)throw error;
+    const {data}=sb.storage.from('chat-attachments').getPublicUrl(path);
+    return {storagePath:path,url:data?.publicUrl||null};
+  }catch(e){console.warn('Attachment storage upload failed',e);return null;}
+}
+function dataUrlToBlob(dataUrl){
+  const parts=String(dataUrl||'').split(',');if(parts.length<2)return null;
+  const mime=(parts[0].match(/data:([^;]+)/)||[])[1]||'application/octet-stream';
+  const bin=atob(parts[1]),bytes=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
+  return new Blob([bytes],{type:mime});
+}
 function cloneAttachmentForHistory(item){
   if(item.kind==='image'){
-    return {
-      kind:'image',
-      name:item.name||'Изображение',
-      mime:item.mime||'image/jpeg',
-      size:item.size||0,
-      dataUrl:item.dataUrl||('data:'+item.mime+';base64,'+item.base64),
-      meta:item.meta||fileExtLabel(item.name||item.mime||'image')
-    };
+    return {kind:'image',name:item.name||'Изображение',mime:item.mime||'image/jpeg',size:item.size||0,
+      dataUrl:item.dataUrl||('data:'+item.mime+';base64,'+item.base64),url:item.url||null,storagePath:item.storagePath||null,
+      meta:item.meta||fileExtLabel(item.name||item.mime||'image')};
   }
-  return {
-    kind:'document',
-    name:item.name||'Файл',
-    size:item.size||0,
-    mime:item.mime||'application/octet-stream',
-    ext:fileExtLabel(item.name||'Файл'),
-    doc:item.doc||null
-  };
+  return {kind:'document',name:item.name||'Файл',size:item.size||0,mime:item.mime||'application/octet-stream',
+    ext:fileExtLabel(item.name||'Файл'),doc:item.doc||null,url:item.url||null,storagePath:item.storagePath||null};
 }
 function renderUserAttachmentsMarkup(attachments=[]){
   if(!attachments.length)return '';
@@ -3471,12 +3504,13 @@ function renderUserAttachmentsMarkup(attachments=[]){
     if(item.kind==='image'){
       // Если есть dataUrl — показываем само фото; иначе (история перезагружена из базы в
       // облегчённом виде) показываем карточку-заглушку с именем файла вместо битой картинки.
-      if(item.dataUrl){
+      if(item.url||item.dataUrl){
+        const src=item.url||item.dataUrl;
         return `
-          <div class="msg-user-attachment image">
-            <img src="${item.dataUrl}" alt="${escapeHtml(item.name||'Изображение')}">
+          <a class="msg-user-attachment image" href="${escapeHtml(src)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">
+            <img src="${escapeHtml(src)}" alt="${escapeHtml(item.name||'Изображение')}" loading="lazy">
             <div class="msg-user-attachment-name" title="${escapeHtml(item.name||'Изображение')}">${escapeHtml(item.name||'Изображение')}</div>
-          </div>
+          </a>
         `;
       }
       const meta=item.meta||fileExtLabel(item.name||'image');
@@ -3489,12 +3523,14 @@ function renderUserAttachmentsMarkup(attachments=[]){
       `;
     }
     const meta=`${item.ext||fileExtLabel(item.name)}${item.size?` · ${formatBytes(item.size)}`:''}`;
+    const tag=item.url?'a':'div';
+    const href=item.url?` href="${escapeHtml(item.url)}" target="_blank" rel="noopener" download onclick="event.stopPropagation()"`:'';
     return `
-      <div class="msg-user-attachment document">
+      <${tag} class="msg-user-attachment document"${href}>
         <div class="msg-user-file-icon">${attachmentFileIcon(item.name)}</div>
         <div class="msg-user-attachment-name" title="${escapeHtml(item.name||'Файл')}">${escapeHtml(item.name||'Файл')}</div>
         <div class="msg-user-attachment-meta">${escapeHtml(meta)}</div>
-      </div>
+      </${tag}>
     `;
   }).join('')+`</div>`;
 }
@@ -3931,17 +3967,20 @@ async function openChat(id){
   const {data}=await sb.from('chats').select('history').eq('id',id).eq('user_id',curUser.id).single();
   if(!data)return;
   curChatId=id;
-  chatHistory=data.history||[];
+  chatHistory=(data.history||[]).map(ensureMessageMeta);
   restoreRecentAttachmentsFromHistory(chatHistory);
   const inner=document.getElementById('chatInner');inner.innerHTML='';
   chatHistory.forEach(m=>{
     const txt=typeof m.content==='string'?m.content:(Array.isArray(m.content)?m.content.find(c=>c.type==='text')?.text:'[фото]');
-    if(m.role==='user')addUserBubble(txt,m.attachments||[]);
+    if(m.role==='user')addUserBubble(displayUserMessageText(m),m.attachments||[],m);
     else if(m.image){
-      // Сообщение с сгенерированной картинкой — рендерим <img> по URL из Storage.
       const shell=createAiBubbleShell({showActions:false});
       appendImageToShell(shell.msg,m.image);
-    }else addAiBubble(normalizeReplyNotation(txt||''),false);
+    }else{
+      addAiBubble(normalizeReplyNotation(txt||''),false).then(shell=>{
+        if(m.generatedFile) shell.msg.appendChild(buildFileCard(m.generatedFile,m.generatedFile.format));
+      });
+    }
   });
   updateTrainingPillUI();
   renderChatList();
@@ -4099,11 +4138,8 @@ function backToMobileModelScreen(){
   document.getElementById('mmScreenModel')?.classList.add('active');
 }
 function selectModel(m){
-  // Dynatos (pro) — только для роли pro/developer/admin/moderator.
-  if(m==='pro'&&!isProUser()){
-    if(typeof showNotification==='function')showNotification('promo_limits',1);
-    return;
-  }
+  // Dynatos остаётся Pro-only: FREE сразу попадает на оформление подписки.
+  if(m==='pro'&&!isProUser()){closeModelMenus();closeMobileModelSheet();goToSubscription();return;}
   curModel=m;
   refreshModelUI();
   closeModelMenus();
@@ -4156,24 +4192,12 @@ function fitDesktopSubs(){
   }
 }
 function selectMode(m){
-  // Режим Max — только Pro-роли.
-  if(m==='max'&&!isProUser()){
-    if(typeof showNotification==='function')showNotification('promo_limits',1);
-    return;
-  }
-  curMode=m;
-  refreshModelUI();
-  closeModelMenus();
+  // Low и Max доступны на обоих тарифах; тариф определяет модель и лимиты, не глубину.
+  curMode=m;refreshModelUI();closeModelMenus();
 }
 function toggleThink(e){
   if(e&&e.stopPropagation)e.stopPropagation();
-  // Режим Думать — только Pro-роли.
-  if(!thinkOn&&!isProUser()){
-    if(typeof showNotification==='function')showNotification('promo_limits',1);
-    return;
-  }
-  thinkOn=!thinkOn;
-  refreshModelUI();
+  thinkOn=!thinkOn;refreshModelUI();
 }
 
 /* ===== WEB SEARCH UI ===== */
@@ -4333,17 +4357,19 @@ function refreshModelUI(){
   setOpacity('mmCheckPro',curModel==='pro'?'1':'0');
   setOpacity('mmCheckLow',curMode==='low'?'1':'0');
   setOpacity('mmCheckMax',curMode==='max'?'1':'0');
-  /* Pro-гейт: помечаем недоступные для User опции классом .locked с tooltip. */
-  const locked=!isProUser();
-  const proTip='Доступно в Pro';
-  ['desktopCkPro','desktopCkMax','desktopThinkSw','mmOptPro','mmOptMax','mmThinkSw','attachThinkSw'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(!el)return;
+  /* Pro-гейт применяется только к Dynatos. Max и «Думать» доступны всем. */
+  const locked=!isProUser(),proTip='Dynatos доступен в Pro';
+  ['desktopCkPro','mmOptPro'].forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
     el.classList.toggle('locked',locked);
-    // Тултип на самой опции (родителе), чтобы hover срабатывал по всей строке.
-    const host=el.closest('.desktop-option,.desktop-think,.mm-opt,.mm-think-card,.attach-opt')||el;
+    const host=el.closest('.desktop-option,.mm-opt')||el;
     if(locked){host.setAttribute('title',proTip);host.classList.add('pro-locked');}
     else{host.removeAttribute('title');host.classList.remove('pro-locked');}
+  });
+  ['desktopCkMax','desktopThinkSw','mmOptMax','mmThinkSw','attachThinkSw'].forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;el.classList.remove('locked');
+    const host=el.closest('.desktop-option,.desktop-think,.mm-opt,.mm-think-card,.attach-opt')||el;
+    host.removeAttribute('title');host.classList.remove('pro-locked');
   });
 }
 refreshModelUI();
@@ -4469,10 +4495,10 @@ function buildSystem(){
   if(s.enthusiasm&&s.enthusiasm!=='default'&&enthusiasmMap[s.enthusiasm])sys+='\n'+enthusiasmMap[s.enthusiasm];
   const headingsMap={off:'Не используй markdown-заголовки и маркированные списки, пиши сплошным текстом.',on:'Активно используй заголовки и структурированные списки.'};
   if(s.headings&&s.headings!=='default'&&headingsMap[s.headings])sys+='\n'+headingsMap[s.headings];
-  const emojisMap={none:'Никогда не используй эмодзи.',some:'Можешь изредка добавить 1-2 уместных эмодзи.',many:'Используй эмодзи ак��ивно для оживления ответов.'};
+  const emojisMap={none:'Никогда не используй эмодзи.',some:'Можешь изредка добавить 1-2 уместных эмодзи.',many:'Используй эмодзи активно для оживления ответов.'};
   if(s.emojis&&s.emojis!=='default'&&emojisMap[s.emojis])sys+='\n'+emojisMap[s.emojis];
   if(curMode==='low')sys+='\nРЕЖИМ Low: отвечай кратко, максимум 3-4 предложения.';
-  if(curMode==='max')sys+='\nРЕЖИМ Max: отвечай подро��но, с объяснениями и примерами.';
+  if(curMode==='max')sys+='\nРЕЖИМ Max: отвечай подробно, с объяснениями и примерами.';
   if(hasTrainingAccess())sys+='\nПользователь с ролью developer/admin. Его заметки и загруженные материалы считай приоритетными источниками знаний.';
   if(trainingMode&&hasTrainingAccess())sys+='\nРЕЖИМ ОБУЧЕНИЯ: пользователь сейчас в специальном разделе «Обучение». Всё, что он присылает, уже автоматически сохраняется в базу знаний. Кратко подтверди, что информация принята и сохранена, и при необходимости задай уточняющий вопрос, чтобы материал был более полным и полезным для дальнейшего обучения.';
   sys+=buildKnowledgeContext(currentQuery);
@@ -4525,7 +4551,11 @@ async function maybeHandleFileDirective(fullText,msgEl,historyIdx){
   // Текст без служебного блока — обновляем и бабл, и историю.
   const cleaned=String(fullText).replace(FILE_DIR_RE,'').trim();
   if(msgEl){renderMd(msgEl,cleaned);if(!msgEl.classList.contains('is-streaming'))enableCodeCopy(msgEl);}
-  if(typeof historyIdx==='number'&&chatHistory[historyIdx])chatHistory[historyIdx].content=cleaned;
+  spec={format:fmt,filename:String(spec.filename||'document').slice(0,80),content:String(spec.content).slice(0,20000)};
+  if(typeof historyIdx==='number'&&chatHistory[historyIdx]){
+    chatHistory[historyIdx].content=cleaned;
+    chatHistory[historyIdx].generatedFile=spec;
+  }
   // Кнопка скачивания под баблом.
   if(msgEl){
     const card=buildFileCard(spec,fmt);
@@ -4596,14 +4626,11 @@ async function handleFile(inp){
         // Сжимаем фото под отправку — оригинал идёт только в локальное превью (previewUrl),
         // в сеть уходит сжатый dataUrl. Это убирает «Load failed» на больших/многих фото.
         const {dataUrl,mime}=await compressImageFile(f);
+        const stored=await uploadChatAttachment(dataUrlToBlob(dataUrl),f.name||'image.jpg',mime||'image/jpeg');
         pendingAttachments.push({
-          kind:'image',
-          name:f.name||'Изображение',
-          mime:mime||'image/jpeg',
-          size:f.size||0,
-          dataUrl,
-          base64:dataUrl.split(',')[1]||'',
-          previewUrl:URL.createObjectURL(f),
+          kind:'image',name:f.name||'Изображение',mime:mime||'image/jpeg',size:f.size||0,
+          dataUrl,base64:dataUrl.split(',')[1]||'',previewUrl:URL.createObjectURL(f),
+          url:stored?.url||null,storagePath:stored?.storagePath||null,
           meta:fileExtLabel(f.name||f.type||'image')
         });
         continue;
@@ -4612,12 +4639,10 @@ async function handleFile(inp){
       const doc=makeKnowledgeDoc(f.name,parsed.text,f.name.split('.').pop().toLowerCase());
       if(!doc.chunks.length)throw new Error(`В файле "${f.name}" не найден читаемый текст`);
       storeKnowledgeDoc(doc,hasTrainingAccess()?'global':'user');
+      const stored=await uploadChatAttachment(f,f.name,f.type||'application/octet-stream');
       pendingAttachments.push({
-        kind:'document',
-        name:f.name,
-        size:f.size||0,
-        mime:f.type||'application/octet-stream',
-        doc
+        kind:'document',name:f.name,size:f.size||0,mime:f.type||'application/octet-stream',doc,
+        url:stored?.url||null,storagePath:stored?.storagePath||null
       });
     }
     renderComposerAttachments();
@@ -4692,15 +4717,79 @@ function createAiBubbleShell({showActions=true,hiddenActions=false}={}){
   inner.appendChild(wrap);scrollChat();
   return {wrap,msg,actions};
 }
-function addUserBubble(text,attachments=[]){
+function makeMessageId(){return 'msg_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);}
+function ensureMessageMeta(message){
+  if(!message||typeof message!=='object')return message;
+  if(!message.id)message.id=makeMessageId();
+  if(!message.createdAt)message.createdAt=new Date().toISOString();
+  return message;
+}
+function displayUserMessageText(message){
+  const content=message?.content;
+  if(typeof content==='string')return content.replace(/\n\n\[ФАЙЛ \d+:[\s\S]*$/,'').trim();
+  if(Array.isArray(content))return String(content.find(p=>p.type==='text')?.text||'').replace(/\n\n\[ФАЙЛ \d+:[\s\S]*$/,'').trim();
+  return '';
+}
+function formatUserMessageTime(value){
+  const d=new Date(value||Date.now());
+  if(Number.isNaN(d.getTime()))return '';
+  const now=new Date();
+  const same=d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth()&&d.getDate()===now.getDate();
+  // Формат намеренно следует подтверждённому ТЗ: минуты:часы.
+  const mh=String(d.getMinutes()).padStart(2,'0')+':'+String(d.getHours()).padStart(2,'0');
+  if(same)return mh;
+  return mh+' '+String(d.getDate()).padStart(2,'0')+':'+String(d.getMonth()+1).padStart(2,'0')+':'+String(d.getFullYear()).slice(-2);
+}
+let _userMsgMenu=null,_userMsgPressTimer=null,_userMsgPressStart=null;
+function closeUserMessageMenu(){if(_userMsgMenu){_userMsgMenu.remove();_userMsgMenu=null;}}
+function copyUserMessage(message){
+  const text=displayUserMessageText(message);
+  if(!text)return;
+  if(navigator.clipboard?.writeText)navigator.clipboard.writeText(text).catch(()=>fallbackCopy(text));
+  else fallbackCopy(text);
+}
+async function deleteUserMessage(messageId,wrap){
+  const idx=chatHistory.findIndex(m=>m.id===messageId);
+  if(idx<0)return;
+  chatHistory.splice(idx,1);
+  wrap?.remove();
+  closeUserMessageMenu();
+  await saveChat();
+}
+function openUserMessageMenu(message,anchor,x,y){
+  closeUserMessageMenu();
+  const menu=document.createElement('div');menu.className='msg-user-ctx-menu';
+  menu.innerHTML=`<button class="msg-user-ctx-item" data-act="copy">Копировать</button><button class="msg-user-ctx-item danger" data-act="delete">Удалить</button><div class="msg-user-ctx-time">${formatUserMessageTime(message.createdAt)}</div>`;
+  document.body.appendChild(menu);_userMsgMenu=menu;
+  const r=anchor.getBoundingClientRect(),mw=menu.offsetWidth||190,mh=menu.offsetHeight||130;
+  const left=Math.max(10,Math.min(window.innerWidth-mw-10,Number.isFinite(x)?x:r.right-mw));
+  const top=Math.max(10,Math.min(window.innerHeight-mh-10,Number.isFinite(y)?y:r.top));
+  menu.style.left=left+'px';menu.style.top=top+'px';requestAnimationFrame(()=>menu.classList.add('open'));
+  menu.querySelector('[data-act="copy"]').onclick=()=>{copyUserMessage(message);closeUserMessageMenu();};
+  menu.querySelector('[data-act="delete"]').onclick=()=>deleteUserMessage(message.id,anchor);
+}
+function bindUserMessageMenu(wrap,message){
+  const start=(x,y)=>{_userMsgPressStart={x,y};clearTimeout(_userMsgPressTimer);_userMsgPressTimer=setTimeout(()=>openUserMessageMenu(message,wrap,x,y),480);};
+  const cancel=()=>{clearTimeout(_userMsgPressTimer);_userMsgPressStart=null;};
+  wrap.addEventListener('touchstart',e=>{const t=e.touches[0];start(t.clientX,t.clientY);},{passive:true});
+  wrap.addEventListener('touchmove',e=>{const t=e.touches[0];if(_userMsgPressStart&&(Math.abs(t.clientX-_userMsgPressStart.x)>10||Math.abs(t.clientY-_userMsgPressStart.y)>10))cancel();},{passive:true});
+  wrap.addEventListener('touchend',cancel);wrap.addEventListener('touchcancel',cancel);
+  wrap.addEventListener('contextmenu',e=>{e.preventDefault();openUserMessageMenu(message,wrap,e.clientX,e.clientY);});
+  wrap.addEventListener('copy',e=>e.preventDefault());wrap.addEventListener('dragstart',e=>e.preventDefault());
+}
+document.addEventListener('pointerdown',e=>{if(_userMsgMenu&&!_userMsgMenu.contains(e.target))closeUserMessageMenu();},{capture:true});
+function addUserBubble(text,attachments=[],message=null){
   const inner=getChatInner();
-  const wrap=document.createElement('div');wrap.className='msg-user-wrap';
+  const meta=ensureMessageMeta(message||{role:'user',content:text,attachments});
+  const wrap=document.createElement('div');wrap.className='msg-user-wrap';wrap.dataset.messageId=meta.id;
   if(attachments.length)wrap.innerHTML=renderUserAttachmentsMarkup(attachments);
   if(text&&text.trim()){
     const d=document.createElement('div');d.className='msg-user';d.textContent=text;
     wrap.appendChild(d);
   }
+  bindUserMessageMenu(wrap,meta);
   inner.appendChild(wrap);scrollChat();
+  return meta;
 }
 function addAiBubble(text,stream,opts={}){
   const shell=createAiBubbleShell({
@@ -4899,7 +4988,7 @@ function renderMd(el,text){
       el.appendChild(div);
     }
   });
-  // Кнопки копирования активны только у завер��ённого ответа (не во время стрима).
+  // Кнопки копирования активны только у завершённого ответа (не во время стрима).
   if(!el.classList.contains('is-streaming'))enableCodeCopy(el);
 }
 function splitMdSegments(text){
@@ -5225,7 +5314,7 @@ async function regenMsg(item){
     await autoContinueIfNeeded(result,wrap,msgEl,actionsEl);
   }catch(e){
     hideTyping();
-    if(e.message!=='Генерация остановлена')renderMd(msgEl,'Ошибк��: '+e.message);
+    if(e.message!=='Генерация остановлена')renderMd(msgEl,'Ошибка: '+e.message);
   }finally{
     activeAbortController=null;
     activeStreamStop=null;
@@ -5598,10 +5687,11 @@ function slimPriorContent(content){
 function slimAttachments(attachments){
   if(!Array.isArray(attachments))return attachments;
   return attachments.map(att=>{
-    if(att.kind==='image'){
-      return {kind:'image',name:att.name||'Изображение',mime:att.mime||'image/jpeg',size:att.size||0,meta:att.meta||fileExtLabel(att.name||att.mime||'image')};
-    }
-    return {kind:'document',name:att.name||'Файл',size:att.size||0,mime:att.mime||'application/octet-stream',ext:att.ext||fileExtLabel(att.name||'Файл')};
+    if(att.kind==='image')return {kind:'image',name:att.name||'Изображение',mime:att.mime||'image/jpeg',size:att.size||0,
+      meta:att.meta||fileExtLabel(att.name||att.mime||'image'),url:att.url||null,storagePath:att.storagePath||null};
+    return {kind:'document',name:att.name||'Файл',size:att.size||0,mime:att.mime||'application/octet-stream',
+      ext:att.ext||fileExtLabel(att.name||'Файл'),url:att.url||null,storagePath:att.storagePath||null,
+      doc:att.doc?{id:att.doc.id,name:att.doc.name,type:att.doc.type,createdAt:att.doc.createdAt,chunks:(att.doc.chunks||[]).slice(0,12)}:null};
   });
 }
 function toWireHistory(history,opts={}){
@@ -5610,16 +5700,14 @@ function toWireHistory(history,opts={}){
   for(let i=history.length-1;i>=0;i--){if(history[i].role==='user'){lastUserIdx=i;break;}}
   return history.map((m,i)=>{
     const base={role:m.role};
+    if(keepImage){base.id=m.id||makeMessageId();base.createdAt=m.createdAt||new Date().toISOString();}
     if(m.role==='user'&&i===lastUserIdx){
-      base.content=m.content;
-      base.attachments=slimAttachments(m.attachments);
-      return base;
+      base.content=m.content;base.attachments=slimAttachments(m.attachments);return base;
     }
     base.content=slimPriorContent(m.content);
     if(m.role==='user')base.attachments=slimAttachments(m.attachments);
-    // Для модели URL картинки не нужен — только текстовая метка в content.
-    // При сохранении в базу (keepImage=true) сохраняем URL, чтобы восстановить картинку при открытии чата.
     if(keepImage&&m.image)base.image=m.image;
+    if(keepImage&&m.generatedFile)base.generatedFile=m.generatedFile;
     return base;
   });
 }
@@ -5862,7 +5950,7 @@ function showLimitReached(check){
   inner.appendChild(d.firstElementChild);
   scrollChat();
 }
-/* ===== ГЕНЕРАЦИЯ ИЗОБРАЖЕНИЯ (Cloudflare Workers AI, отдельный ��уть) ===== */
+/* ===== ГЕНЕРАЦИЯ ИЗОБРАЖЕНИЯ (Cloudflare Workers AI, отдельный путь) ===== */
 // Вставляет <img> в бабл ассистента по URL из Storage.
 function appendImageToShell(msgEl,src){
   if(!msgEl)return;
@@ -5974,7 +6062,7 @@ async function pvShare(){
   // Фолбэк: копируем URL в буфер обмена.
   try{
     await navigator.clipboard.writeText(url);
-    pvToast('С��ылка на изображение скопирована');
+    pvToast('Ссылка на изображение скопирована');
   }catch(e){
     pvToast('Не удалось поделиться — скопируйте ссылку вручную');
   }
@@ -6005,7 +6093,7 @@ async function pvEdit(){
   }
 }
 // Удалить фото из истории чата: на месте картинки остаётся неактивное сообщение
-// «Фото удалено». Сохраняем обновлённую истор��ю в базу.
+// «Фото удалено». Сохраняем обновлённую историю в базу.
 function pvDelete(){
   const imgEl=_pvState.imgEl;if(!imgEl){closePhotoViewer();return;}
   // Поднимаемся до бабла ассистента (.msg-ai-wrap) и заменяем содержимое заглушкой.
@@ -6558,8 +6646,9 @@ async function sendMsg(){
   if(wantsImage&&text&&isNotationRequest(text)){
     setImageMode(false);
     const staffNote='Генерацию нотного стана в виде изображения поддержать не могу — качество будет неприемлемым. Покажу ноты в текстовом формате (ABC-нотация).\n\n';
-    addUserBubble(text,pendingAttachments.slice());
-    chatHistory.push({role:'user',content:text,attachments:pendingAttachments.map(cloneAttachmentForHistory)});
+    const userMsg=ensureMessageMeta({role:'user',content:text,attachments:pendingAttachments.map(cloneAttachmentForHistory)});
+    addUserBubble(text,userMsg.attachments,userMsg);
+    chatHistory.push(userMsg);
     await saveChat();
     const ta2=document.getElementById('msgTa');if(ta2){ta2.value='';ta2.style.height='auto';}
     clearPendingAttachments();renderComposerAttachments();updateComposerPlaceholder();
@@ -6577,10 +6666,11 @@ async function sendMsg(){
     clearPendingAttachments();renderComposerAttachments();updateComposerPlaceholder();
     const prevImageMode=imageGenModeActive;
     setImageMode(false); // сброс режима, чтобы следующее обычное сообщение ушло как текст
-    addUserBubble(text,[]);
+    const userMsg=ensureMessageMeta({role:'user',content:text,attachments:[]});
+    addUserBubble(text,[],userMsg);
     // Сообщение пользователя фиксируем в истории сразу — даже если классификатор решит,
     // что генерация не нужна, текстовый ответ модели должен видеть этот ход.
-    chatHistory.push({role:'user',content:text,attachments:[]});
+    chatHistory.push(userMsg);
     await saveChat();
     // Двухэтапный пайплайн: сначала intent-классификатор решает, действительно ли нужна
     // картинка и хватает ли деталей. forceImage=true только если режим был включён кнопкой
@@ -6662,7 +6752,7 @@ async function handleTextReply(){
   const text=ta.value.trim();
   if(!text&&!pendingAttachments.length)return;
 
-  // Проверка лимитов д�� отправки
+  // Проверка лимитов до отправки
   const limit=checkLimit();
   if(limit.blocked){showLimitReached(limit);return;}
   ta.value='';ta.style.height='auto';
@@ -6703,8 +6793,9 @@ async function handleTextReply(){
 
   rememberRecentAttachments(outgoingAttachments);
   clearPendingAttachments();
-  addUserBubble(displayText,historyAttachments);
-  chatHistory.push({role:'user',content:userContent,attachments:historyAttachments});
+  const userMsg=ensureMessageMeta({role:'user',content:userContent,attachments:historyAttachments});
+  addUserBubble(displayText,historyAttachments,userMsg);
+  chatHistory.push(userMsg);
   await saveChat();
 
   await runAssistantReply(displayText);
@@ -6874,10 +6965,12 @@ function renderSettingsMain(){
       </div>
     </div>`;
 }
-function goToDynatos(){
-  // Открываем страницу оформления Pro в НОВОМ окне/вкладке.
-  window.open('https://harmonyai-zeta.vercel.app/subscribe','_blank','noopener,noreferrer');
+function goToSubscription(){
+  const url=location.origin&&location.origin!=='null'?location.origin+'/subscribe':'https://harmonyai-zeta.vercel.app/subscribe';
+  try{const tg=window.Telegram&&window.Telegram.WebApp;if(tg&&typeof tg.openLink==='function'){tg.openLink(url);return;}}catch(e){}
+  location.href=url;
 }
+function goToDynatos(){goToSubscription();}
 function openHelpCenter(){
   // Справочный центр (FAQ).
   // В PWA/Telegram Mini App window.open('_blank') часто блокируется — используем прямой переход.
@@ -7019,7 +7112,7 @@ function renderSettingsSecurity(){
         <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
       </div>
       <div class="mem-row" onclick="renderSettingsSessions()" style="cursor:pointer;">
-        <div class="mem-info"><div class="mem-title">Активные сеансы</div><div class="mem-desc">Устройства, на которых выполнен вход</div></div>
+        <div class="mem-info"><div class="mem-title">Устройства</div><div class="mem-desc">Все устройства, замеченные на аккаунте с этого обновления</div></div>
         <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
       </div>
       <div class="mem-row" onclick="confirmDeleteAllChats()" style="cursor:pointer;">
@@ -7118,38 +7211,37 @@ async function fetchSessionGeo(){
   }
   return null;
 }
-function renderSettingsSessions(){
-  const el=document.getElementById('settingsContent');
+const DEVICE_ID_KEY='harmonyai_device_id_v1';
+function getDeviceId(){
+  try{let id=localStorage.getItem(DEVICE_ID_KEY);if(!id){id=crypto.randomUUID?crypto.randomUUID():makeMessageId();localStorage.setItem(DEVICE_ID_KEY,id);}return id;}
+  catch(e){return 'volatile_'+makeMessageId();}
+}
+function detectDevice(){
   const ua=navigator.userAgent||'';
-  let device='Это устройство';
-  if(/iPhone|iPad|iPod/i.test(ua))device='iOS · Safari';
-  else if(/Android/i.test(ua))device='Android';
-  else if(/Windows/i.test(ua))device='Windows';
-  else if(/Mac/i.test(ua))device='macOS';
-  else if(/Linux/i.test(ua))device='Linux';
-  el.innerHTML=`
-    <div class="sth">
-      <div class="sth-back" onclick="renderSettingsSecurity()">
-        <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <div class="sth-title">Активные сеансы</div>
-    </div>
-    <div class="mem-rows">
-      <div class="mem-row">
-        <div class="mem-info"><div class="mem-title">${device}</div><div class="mem-desc">Текущий сеанс · активен сейчас<span id="sessionGeoTxt"></span></div></div>
-        <div style="color:#2fbf6b;font-size:13px;font-weight:600;">Активен</div>
-      </div>
-      <div class="mem-row" onclick="signOutEverywhere()" style="cursor:pointer;">
-        <div class="mem-info"><div class="mem-title" style="color:#ff4d4f;">Выйти на всех устройствах</div></div>
-      </div>
-    </div>`;
-  // Подтягиваем страну и город текущего сеанса по IP (через /api/detect-locale).
-  fetchSessionGeo().then(geo=>{
-    const t=document.getElementById('sessionGeoTxt');
-    if(!t||!geo)return;
-    const place=[geo.city,geo.country].filter(Boolean).join(', ');
-    if(place)t.textContent=' · '+place;
-  }).catch(()=>{});
+  const os=/iPhone|iPad|iPod/i.test(ua)?'iOS':/Android/i.test(ua)?'Android':/Windows/i.test(ua)?'Windows':/Mac/i.test(ua)?'macOS':/Linux/i.test(ua)?'Linux':'Другая ОС';
+  const browser=/Edg\//.test(ua)?'Edge':/OPR\//.test(ua)?'Opera':/Chrome\//.test(ua)?'Chrome':/Firefox\//.test(ua)?'Firefox':/Safari\//.test(ua)?'Safari':'Браузер';
+  const device_type=/Mobi|Android|iPhone|iPad/i.test(ua)?'mobile':'desktop';
+  return {device_id:getDeviceId(),device_name:os+' · '+browser,browser,os,device_type};
+}
+async function registerCurrentDevice(){
+  if(!curUser)return;
+  const info=detectDevice(),geo=await fetchSessionGeo().catch(()=>null),now=new Date().toISOString();
+  const row={user_id:curUser.id,...info,city:geo?.city||null,country:geo?.country||null,last_seen_at:now};
+  try{await sb.from('account_devices').upsert(row,{onConflict:'user_id,device_id',ignoreDuplicates:false});}
+  catch(e){console.warn('Device journal unavailable; apply supabase_migration_v1_8.sql',e);}
+}
+function formatDeviceSeen(value){
+  const d=new Date(value);if(Number.isNaN(d.getTime()))return 'дата неизвестна';
+  return d.toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+}
+async function renderSettingsSessions(){
+  const el=document.getElementById('settingsContent');
+  el.innerHTML=`<div class="sth"><div class="sth-back" onclick="renderSettingsSecurity()"><svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="sth-title">Устройства</div></div><div class="mem-rows" id="devicesList"><div class="mem-row"><div class="mem-info"><div class="mem-title">Загрузка…</div></div></div></div>`;
+  const current=getDeviceId();
+  let devices=[];try{const {data,error}=await sb.from('account_devices').select('*').eq('user_id',curUser.id).order('last_seen_at',{ascending:false});if(error)throw error;devices=data||[];}catch(e){}
+  const list=document.getElementById('devicesList');if(!list)return;
+  if(!devices.length)devices=[{...detectDevice(),last_seen_at:new Date().toISOString(),city:_sessionGeo?.city,country:_sessionGeo?.country}];
+  list.innerHTML=devices.map(d=>{const isCurrent=d.device_id===current;const place=[d.city,d.country].filter(Boolean).join(', ');return `<div class="mem-row"><div class="mem-info"><div class="mem-title">${escapeHtml(d.device_name||'Устройство')}</div><div class="mem-desc">${isCurrent?'Текущее устройство · ':''}последняя активность ${formatDeviceSeen(d.last_seen_at)}${place?' · '+escapeHtml(place):''}</div></div>${isCurrent?'<div style="color:#2481cc;font-size:13px;font-weight:600;">Текущее</div>':''}</div>`;}).join('')+`<div class="mem-row" onclick="signOutEverywhere()" style="cursor:pointer;"><div class="mem-info"><div class="mem-title" style="color:#ff4d4f;">Выйти на всех устройствах</div></div></div>`;
 }
 async function signOutEverywhere(){
   if(!window.confirm('Выйти из аккаунта на всех устройствах?'))return;
@@ -7651,7 +7743,7 @@ window.persistLangToProfile=async function(lang){
     </div>
     <div class="fb-success" id="fbSuccess">✓ Сохранено! Спасибо за помощь.</div>
     <div class="fb-actions">
-      <button class="fb-btn-cancel" onclick="closeFbModal()">Отмен��</button>
+      <button class="fb-btn-cancel" onclick="closeFbModal()">Отмена</button>
       <button class="fb-btn-send" id="fbSendBtn" onclick="submitFbModal()">Отправить</button>
     </div>
   </div>
