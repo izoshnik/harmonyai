@@ -22,6 +22,9 @@
   "Выйти на всех устройствах": {"en":"Sign out on all devices","fr":"Se déconnecter de tous les appareils","de":"Auf allen Geräten abmelden","es":"Cerrar sesión en todos los dispositivos"},
   "Новый email": {"en":"New email","fr":"Nouvel e-mail","de":"Neue E-Mail","es":"Nuevo correo"},
   "Это устройство": {"en":"This device","fr":"Cet appareil","de":"Dieses Gerät","es":"Este dispositivo"},
+  "Мессенджер": {"en":"Messenger","fr":"Messagerie","de":"Messenger","es":"Mensajero"},
+  "Устройства": {"en":"Devices","fr":"Appareils","de":"Geräte","es":"Dispositivos"},
+  "Последняя активность": {"en":"Last active","fr":"Dernière activité","de":"Zuletzt aktiv","es":"Última actividad"},
   "Скачать": {"en":"Download","fr":"Télécharger","de":"Herunterladen","es":"Descargar"},
   "Готово": {"en":"Done","fr":"Terminé","de":"Fertig","es":"Listo"},
   "Ошибка": {"en":"Error","fr":"Erreur","de":"Fehler","es":"Error"}
