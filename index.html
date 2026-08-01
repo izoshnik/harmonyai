@@ -473,7 +473,7 @@ html[data-boot="app"] .auth-wrap{display:none;}
   .topbar-logo{font-size:21px;font-weight:800;color:var(--text);position:absolute;left:50%;transform:translateX(-50%);}
   /* Кнопка модели выровнена по той же горизонтали, что и «три полоски» и «новый чат»:
      она стоит в контентной строке топбара (top = верхний паддинг), одинаковой высоты 38px
-     с боковыми кнопками, а не центрируется по всему п����ддинг-боксу (из-за большого верхнего
+     с боковыми кнопками, а не центрируется по всему паддинг-боксу (из-за большого верхнего
      safe-area паддинга и 2px снизу раньше пилюля «съезжала» и была не параллельна кнопкам). */
   .topbar-model-pill{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 14px);transform:translateX(-50%);height:38px;display:flex;align-items:center;justify-content:center;padding:0 22px;border-radius:999px;background:#1c1c20;border:1px solid rgba(255,255,255,.06);cursor:pointer;user-select:none;transition:background .12s,transform .12s;max-width:calc(100vw - 120px);overflow:hidden;white-space:nowrap;}
   .topbar-model-pill:active{transform:translateX(-50%) scale(.95);}
@@ -1915,7 +1915,7 @@ html[data-theme="light"] .photo-deleted-msg{
       <div class="auth-h1">Думает быстро,<br>результат быстрее</div>
       <div class="auth-sub">ИИ для учеников музыкальной школы. Подходит не только для музыки — он умеет всё!</div>
       <button class="auth-btn-primary" onclick="goToEmail()">Продолжить с Email</button>
-      <div class="auth-tos">Продолжая, вы соглашаетесь с нашей <a href="./legal/privacy.html" target="_blank" rel="noopener noreferrer">Политикой Конфиденциальности</a> и <a href="./legal/terms.html" target="_blank" rel="noopener noreferrer">Условиями Пользования</a>.</div>
+      <div class="auth-tos">Продолжая, вы соглашаетесь с нашей <a href="/legal/privacy" target="_blank" rel="noopener noreferrer">Политикой Конфиденциальности</a> и <a href="/legal/terms" target="_blank" rel="noopener noreferrer">Условиями Пользования</a>.</div>
       <div class="auth-beta">beta version 1.4</div>
     </div>
     <!-- Экран 2: Email -->
@@ -1974,7 +1974,7 @@ html[data-theme="light"] .photo-deleted-msg{
     <div class="sb-footer">
       <div class="sb-user-row" onclick="openSettings()">
         <div class="sb-avatar" id="sbAvatar">?</div>
-        <div class="sb-username" id="sbUsername">Загрузка...</div>
+        <div class="sb-username" id="sbUsername"></div>
       </div>
     </div>
   </div>
@@ -2177,7 +2177,7 @@ html[data-theme="light"] .photo-deleted-msg{
       <button class="cmp-search-back" onclick="chatMenuSearchBack()" aria-label="Назад">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
-      <input type="text" id="cmpSearchInp" placeholder="Поиск по со��бщениям…" autocomplete="off" oninput="chatMenuSearchRun(this.value)">
+      <input type="text" id="cmpSearchInp" placeholder="Поиск по сообщениям…" autocomplete="off" oninput="chatMenuSearchRun(this.value)">
     </div>
     <div class="cmp-search-results" id="cmpSearchResults"></div>
   </div>
@@ -2280,7 +2280,7 @@ html[data-theme="light"] .photo-deleted-msg{
           <div class="mm-opt-desc">Для сложных задач. Ответ больше.</div>
         </button>
       </div>
-      <div class="mm-hint">Режим «Max» выдаёт более большой контекст, но быстрее тратит лимиты пользователя.</div>
+      <div class="mm-hint">Режим «Max» даёт больший контекст, но быстрее расходует лимиты пользователя.</div>
       <div class="mm-card mm-think-card">
         <div class="mm-think-copy">
           <div class="mm-think-title">Думать</div>
@@ -2312,7 +2312,7 @@ html[data-theme="light"] .photo-deleted-msg{
       </div>
     </div>
     <div class="pv-stage">
-      <img id="pvImage" src="" alt="Сгенерированное изображение">
+      <img id="pvImage" alt="Сгенерированное изображение">
     </div>
     <div class="pv-actions">
       <button class="pv-action" id="pvDownloadBtn" title="Скачать" aria-label="Скачать">
@@ -2343,7 +2343,7 @@ html[data-theme="light"] .photo-deleted-msg{
       </div>
       <div class="attach-opt" id="attachSearch" onclick="attachChoose('search',event)">
         <span class="attach-opt-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M3 12h18M12 3a14 14 0 010 18M12 3a14 14 0 000 18" stroke="currentColor" stroke-width="1.8"/></svg></span>
-        <span class="attach-opt-txt">��оис�� в сети</span>
+        <span class="attach-opt-txt">Поиск в сети</span>
         <span class="attach-opt-state" id="attachSearchState">ИИ сам решит</span>
       </div>
       <div class="attach-opt" onclick="attachChoose('files',event)">
@@ -2687,10 +2687,10 @@ function isDesktop(){return window.innerWidth>=769;}
 
 /* ===== ПРОМО-УВЕДОМЛЕНИЯ =====
    Три ID (promo_img / promo_quality / promo_limits) с разными вероятностями.
-   Не показываются повторно в одной сессии (sessionStorage) и не показ��ваются
+   Не показываются повторно в одной сессии (sessionStorage) и не показываются
    пользователям с Pro-ролями. Автозакрытие через 8 секунд. */
 const NOTIF_TEXTS={
-  promo_img:{title:'Получите более детальные изображения с Pro',body:'Улучшенное разрешение, насыщенные цвета и глубок��я проработка деталей.',cta:'Обновить'},
+  promo_img:{title:'Получите более детальные изображения с Pro',body:'Улучшенное разрешение, насыщенные цвета и глубокая проработка деталей.',cta:'Обновить'},
   promo_quality:{title:'Улучшите качество ответов с Pro',body:'Более умная модель, ответы быстрее и точнее, работа с длинным контекстом.',cta:'Обновить'},
   promo_limits:{title:'Получите безграничные лимиты с Pro',body:'С Pro-подпиской доступны более умные модели без ограничений по лимитам.',cta:'Обновить'}
 };
@@ -3208,7 +3208,15 @@ function greetingTitleText(){
   return name?`Привет, ${escapeHtml(name)}`:'Привет! Я Harmony Ai';
 }
 function updateUserUI(){
-  if(!curUser)return;
+  if(!curUser){
+    // Нет пользователя — сбрасываем строку в нейтральное состояние,
+    // чтобы в сайдбаре не оставался вечный текст «Загрузка...».
+    const av0=document.getElementById('sbAvatar');
+    const un0=document.getElementById('sbUsername');
+    if(av0)av0.textContent='?';
+    if(un0)un0.textContent='';
+    return;
+  }
   const ch=(curUser.email||'?').charAt(0).toUpperCase();
   const av=document.getElementById('sbAvatar');
   const un=document.getElementById('sbUsername');
@@ -4516,10 +4524,10 @@ function buildSystem(){
   if(s.enthusiasm&&s.enthusiasm!=='default'&&enthusiasmMap[s.enthusiasm])sys+='\n'+enthusiasmMap[s.enthusiasm];
   const headingsMap={off:'Не используй markdown-заголовки и маркированные списки, пиши сплошным текстом.',on:'Активно используй заголовки и структурированные списки.'};
   if(s.headings&&s.headings!=='default'&&headingsMap[s.headings])sys+='\n'+headingsMap[s.headings];
-  const emojisMap={none:'Никогда не используй эмодзи.',some:'Можешь изредка добавить 1-2 уместных эмодзи.',many:'Используй эмодзи ак��ивно для оживления ответов.'};
+  const emojisMap={none:'Никогда не используй эмодзи.',some:'Можешь изредка добавить 1-2 уместных эмодзи.',many:'Используй эмодзи активно для оживления ответов.'};
   if(s.emojis&&s.emojis!=='default'&&emojisMap[s.emojis])sys+='\n'+emojisMap[s.emojis];
   if(curMode==='low')sys+='\nРЕЖИМ Low: отвечай кратко, максимум 3-4 предложения.';
-  if(curMode==='max')sys+='\nРЕЖИМ Max: отвечай подро��но, с объяснениями и примерами.';
+  if(curMode==='max')sys+='\nРЕЖИМ Max: отвечай подробно, с объяснениями и примерами.';
   if(hasTrainingAccess())sys+='\nПользователь с ролью developer/admin. Его заметки и загруженные материалы считай приоритетными источниками знаний.';
   if(trainingMode&&hasTrainingAccess())sys+='\nРЕЖИМ ОБУЧЕНИЯ: пользователь сейчас в специальном разделе «Обучение». Всё, что он присылает, уже автоматически сохраняется в базу знаний. Кратко подтверди, что информация принята и сохранена, и при необходимости задай уточняющий вопрос, чтобы материал был более полным и полезным для дальнейшего обучения.';
   sys+=buildKnowledgeContext(currentQuery);
@@ -5047,7 +5055,7 @@ function renderMd(el,text){
       el.appendChild(div);
     }
   });
-  // Кнопки копирования активны только у завер��ённого ответа (не во время стрима).
+  // Кнопки копирования активны только у завершённого ответа (не во время стрима).
   if(!el.classList.contains('is-streaming'))enableCodeCopy(el);
 }
 function splitMdSegments(text){
@@ -5373,7 +5381,7 @@ async function regenMsg(item){
     await autoContinueIfNeeded(result,wrap,msgEl,actionsEl);
   }catch(e){
     hideTyping();
-    if(e.message!=='Генерация остановлена')renderMd(msgEl,'Ошибк��: '+e.message);
+    if(e.message!=='Генерация остановлена')renderMd(msgEl,'Ошибка: '+e.message);
   }finally{
     activeAbortController=null;
     activeStreamStop=null;
@@ -6012,7 +6020,7 @@ function showLimitReached(check){
   inner.appendChild(d.firstElementChild);
   scrollChat();
 }
-/* ===== ГЕНЕРАЦИЯ ИЗОБРАЖЕНИЯ (Cloudflare Workers AI, отдельный ��уть) ===== */
+/* ===== ГЕНЕРАЦИЯ ИЗОБРАЖЕНИЯ (Cloudflare Workers AI, отдельный путь) ===== */
 // Вставляет <img> в бабл ассистента по URL из Storage.
 function appendImageToShell(msgEl,src){
   if(!msgEl)return;
@@ -6056,8 +6064,10 @@ function closePhotoViewer(){
   closePhotoViewerMenu();
   document.removeEventListener('keydown',_pvKeyHandler);
   // Очищаем src, чтобы не мигала прошлая картинка при следующем открытии.
+  // removeAttribute вместо src='' — пустая строка заставляет браузер
+  // повторно запрашивать текущий URL страницы.
   const img=document.getElementById('pvImage');
-  if(img)img.src='';
+  if(img)img.removeAttribute('src');
 }
 function _pvKeyHandler(e){
   if(e.key==='Escape'){
@@ -6124,7 +6134,7 @@ async function pvShare(){
   // Фолбэк: копируем URL в буфер обмена.
   try{
     await navigator.clipboard.writeText(url);
-    pvToast('С��ылка на изображение скопирована');
+    pvToast('Ссылка на изображение скопирована');
   }catch(e){
     pvToast('Не удалось поделиться — скопируйте ссылку вручную');
   }
@@ -6155,7 +6165,7 @@ async function pvEdit(){
   }
 }
 // Удалить фото из истории чата: на месте картинки остаётся неактивное сообщение
-// «Фото удалено». Сохраняем обновлённую истор��ю в базу.
+// «Фото удалено». Сохраняем обновлённую историю в базу.
 function pvDelete(){
   const imgEl=_pvState.imgEl;if(!imgEl){closePhotoViewer();return;}
   // Поднимаемся до бабла ассистента (.msg-ai-wrap) и заменяем содержимое заглушкой.
@@ -6815,7 +6825,7 @@ async function handleTextReply(){
   const text=ta.value.trim();
   if(!text&&!pendingAttachments.length)return;
 
-  // Проверка лимитов д�� отправки
+  // Проверка лимитов до отправки
   const limit=checkLimit();
   if(limit.blocked){showLimitReached(limit);return;}
   ta.value='';ta.style.height='auto';
@@ -7524,8 +7534,8 @@ function renderAbout(){
         <div class="about-app-ver">Версия 1.4 (beta)</div>
       </div>
       <div class="about-rows">
-        <div class="about-row"><div class="about-row-label">Политика конфиденциальности</div><div class="about-row-val"><a href="./legal/privacy.html" target="_blank" rel="noopener noreferrer">Открыть</a></div></div>
-        <div class="about-row"><div class="about-row-label">Условия использования</div><div class="about-row-val"><a href="./legal/terms.html" target="_blank" rel="noopener noreferrer">Открыть</a></div></div>
+        <div class="about-row"><div class="about-row-label">Политика конфиденциальности</div><div class="about-row-val"><a href="/legal/privacy" target="_blank" rel="noopener noreferrer">Открыть</a></div></div>
+        <div class="about-row"><div class="about-row-label">Условия использования</div><div class="about-row-val"><a href="/legal/terms" target="_blank" rel="noopener noreferrer">Открыть</a></div></div>
       </div>
       <div class="about-foot">HarmonyAI — ИИ-помощник для учеников музыкальной школы.<br>© ${new Date().getFullYear()} HarmonyAI. Все права защищены.</div>
     </div>`;
@@ -7808,7 +7818,7 @@ window.persistLangToProfile=async function(lang){
     </div>
     <div class="fb-success" id="fbSuccess">✓ Сохранено! Спасибо за помощь.</div>
     <div class="fb-actions">
-      <button class="fb-btn-cancel" onclick="closeFbModal()">Отмен��</button>
+      <button class="fb-btn-cancel" onclick="closeFbModal()">Отмена</button>
       <button class="fb-btn-send" id="fbSendBtn" onclick="submitFbModal()">Отправить</button>
     </div>
   </div>
