@@ -473,7 +473,7 @@ html[data-boot="app"] .auth-wrap{display:none;}
   .topbar-logo{font-size:21px;font-weight:800;color:var(--text);position:absolute;left:50%;transform:translateX(-50%);}
   /* Кнопка модели выровнена по той же горизонтали, что и «три полоски» и «новый чат»:
      она стоит в контентной строке топбара (top = верхний паддинг), одинаковой высоты 38px
-     с боковыми кнопками, а не центрируется по всему п����ддинг-боксу (из-за большого верхнего
+     с боковыми кнопками, а не центрируется по всему паддинг-боксу (из-за большого верхнего
      safe-area паддинга и 2px снизу раньше пилюля «съезжала» и была не параллельна кнопкам). */
   .topbar-model-pill{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 14px);transform:translateX(-50%);height:38px;display:flex;align-items:center;justify-content:center;padding:0 22px;border-radius:999px;background:#1c1c20;border:1px solid rgba(255,255,255,.06);cursor:pointer;user-select:none;transition:background .12s,transform .12s;max-width:calc(100vw - 120px);overflow:hidden;white-space:nowrap;}
   .topbar-model-pill:active{transform:translateX(-50%) scale(.95);}
@@ -1461,7 +1461,7 @@ html[data-theme="light"] .limit-reached{background:rgba(239,68,68,.07);border-co
 .pro-locked{opacity:.55;position:relative;}
 .pro-locked::after{content:'PRO';font-size:9px;font-weight:800;letter-spacing:.06em;color:#a472ff;background:rgba(164,114,255,.12);border:1px solid rgba(164,114,255,.28);border-radius:6px;padding:2px 5px;margin-left:6px;flex-shrink:0;}
 .desktop-option.pro-locked::after,.desktop-think.pro-locked::after{margin-left:auto;}
-.mm-opt.pro-locked::after,.mm-think-card.pro-locked::after{position:absolute;right:14px;top:14px;}
+.mm-opt.pro-locked::after,.mm-think-card.pro-locked::after{position:absolute;right:14px;bottom:14px;top:auto;}
 .attach-opt.pro-locked::after{margin-left:auto;}
 
 /* ===== КНОПКА «РАСПОЗНАТЬ МУЗЫКУ» (слева от send) ===== */
@@ -1875,6 +1875,216 @@ html[data-theme="light"] .photo-deleted-msg{
   html[data-theme="light"] .main .bar-icon,html[data-theme="light"] .main .mic-btn,
   html[data-theme="messenger"] .main .bar-icon,html[data-theme="messenger"] .main .mic-btn{color:var(--text2)!important;}
 }
+/* =====================================================================
+   MOBILE LIQUID GLASS v2 - only mobile (max-width:768px).
+   Desktop layout/colors untouched. Settings screen keeps its structure,
+   only its background becomes one solid surface.
+   Accent #084CFD, no purple.
+   ===================================================================== */
+@media(max-width:768px){
+
+  :root{
+    --lg-accent:#084CFD;
+    --lg-tint:rgba(255,255,255,.06);
+    --lg-tint-2:rgba(255,255,255,.10);
+    --lg-stroke:rgba(255,255,255,.12);
+    --lg-blur:blur(15px) saturate(160%);
+    --lg-blur-lg:blur(28px) saturate(170%);
+    --lg-shadow:0 12px 30px rgba(0,0,0,.38);
+    --lg-inner:inset 0 1px 0 rgba(255,255,255,.20),inset 0 -1px 0 rgba(0,0,0,.20);
+  }
+
+  /* ---------- pure black canvas (dark mobile theme only) ---------- */
+  html:not([data-theme="light"]):not([data-theme="messenger"]) body,
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .app{background:#000;}
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .main,
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .chat-area{background:transparent;}
+
+  /* background light blobs: accent blue instead of grey/violet */
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .mobile-glossy .bubble{opacity:.22;}
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .mobile-glossy .b1{background:radial-gradient(circle,rgba(8,76,253,.42) 0%,transparent 70%);}
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .mobile-glossy .b2{background:radial-gradient(circle,rgba(8,76,253,.22) 0%,transparent 70%);}
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .mobile-glossy .b3{background:radial-gradient(circle,rgba(130,150,190,.14) 0%,transparent 70%);}
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .mobile-glossy .b4{background:radial-gradient(circle,rgba(8,76,253,.18) 0%,transparent 70%);}
+
+  /* ---------- TOPBAR ---------- */
+  .topbar{background:transparent;}
+  .topbar-btn{
+    width:40px;height:40px;
+    background:rgba(255,255,255,.06);
+    -webkit-backdrop-filter:var(--lg-blur);backdrop-filter:var(--lg-blur);
+    border:1px solid var(--lg-stroke);
+    box-shadow:var(--lg-inner),0 6px 16px rgba(0,0,0,.30);
+    color:rgba(255,255,255,.88);
+  }
+  .topbar-btn:hover,.topbar-btn:active{background:rgba(255,255,255,.11);}
+
+  .topbar-model-pill{
+    height:40px;
+    background:rgba(255,255,255,.06);
+    -webkit-backdrop-filter:var(--lg-blur);backdrop-filter:var(--lg-blur);
+    border:1px solid var(--lg-stroke);
+    box-shadow:var(--lg-inner),0 8px 22px rgba(0,0,0,.34);
+  }
+  .topbar-model-pill .pill-name{color:#fff;font-weight:700;font-size:17px;}
+  .topbar-training-pill{
+    height:40px;
+    background:rgba(255,255,255,.06);
+    -webkit-backdrop-filter:var(--lg-blur);backdrop-filter:var(--lg-blur);
+    border:1px solid var(--lg-stroke);
+    box-shadow:var(--lg-inner),0 8px 22px rgba(0,0,0,.34);
+  }
+
+  /* ---------- SIDEBAR ---------- */
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .sidebar{
+    background:rgba(12,12,14,.55);
+    -webkit-backdrop-filter:var(--lg-blur-lg);backdrop-filter:var(--lg-blur-lg);
+    border-right:1px solid var(--lg-stroke);
+  }
+  .sb-user-row{
+    background:rgba(255,255,255,.06);
+    -webkit-backdrop-filter:var(--lg-blur);backdrop-filter:var(--lg-blur);
+    border:1px solid rgba(255,255,255,.08);
+  }
+  .sb-chat-item.active{background:rgba(8,76,253,.18);border:1px solid rgba(8,76,253,.34);}
+
+  /* ---------- MESSAGES ---------- */
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .msg-user{
+    background:linear-gradient(180deg,rgba(255,255,255,.11),rgba(255,255,255,.045));
+    -webkit-backdrop-filter:var(--lg-blur);backdrop-filter:var(--lg-blur);
+    border:1px solid var(--lg-stroke);
+    box-shadow:var(--lg-inner),0 10px 24px rgba(0,0,0,.34);
+    color:#fff;
+  }
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .msg-ai{color:#EDEDF2;}
+  .msg-user-attachment{
+    background:rgba(255,255,255,.07);
+    -webkit-backdrop-filter:var(--lg-blur);backdrop-filter:var(--lg-blur);
+    border:1px solid var(--lg-stroke);
+    box-shadow:0 10px 22px rgba(0,0,0,.28);
+  }
+
+  /* code blocks / cards inside answers */
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .code-block{
+    background:rgba(255,255,255,.045);
+    -webkit-backdrop-filter:var(--lg-blur);backdrop-filter:var(--lg-blur);
+    border:1px solid var(--lg-stroke);
+    box-shadow:var(--lg-inner),0 10px 26px rgba(0,0,0,.30);
+  }
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .file-card{
+    background:rgba(255,255,255,.055);
+    -webkit-backdrop-filter:var(--lg-blur);backdrop-filter:var(--lg-blur);
+    border:1px solid var(--lg-stroke);
+  }
+  .file-card-ic{background:rgba(8,76,253,.18);color:#7FA8FF;}
+  .file-card-btn{background:rgba(8,76,253,.85);}
+  .search-trace{
+    background:rgba(8,76,253,.12);
+    border-color:rgba(255,255,255,.14);
+    -webkit-backdrop-filter:var(--lg-blur);backdrop-filter:var(--lg-blur);
+  }
+  .img-chip-ic{color:#7FA8FF;}
+
+  /* ---------- COMPOSER ---------- */
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .input-box{
+    background:linear-gradient(180deg,rgba(255,255,255,.085),rgba(255,255,255,.035));
+    -webkit-backdrop-filter:var(--lg-blur-lg);backdrop-filter:var(--lg-blur-lg);
+    border:1px solid var(--lg-stroke);
+    box-shadow:var(--lg-inner),0 14px 34px rgba(0,0,0,.40);
+    border-radius:24px;
+  }
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .input-box:focus-within{
+    border-color:rgba(8,76,253,.55);
+    box-shadow:0 0 0 1px rgba(8,76,253,.30),var(--lg-inner),0 16px 38px rgba(0,0,0,.44);
+  }
+  .bar-icon,.mic-btn{
+    background:rgba(255,255,255,.06);
+    -webkit-backdrop-filter:var(--lg-blur);backdrop-filter:var(--lg-blur);
+    border:1px solid rgba(255,255,255,.10);
+    border-radius:50%;
+    width:38px;height:38px;
+    color:rgba(255,255,255,.86);
+  }
+  .bar-icon:hover,.bar-icon:active,.mic-btn:hover,.mic-btn:active{background:rgba(255,255,255,.12);color:#fff;}
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .send-btn{
+    width:38px!important;height:38px!important;min-width:38px!important;min-height:38px!important;
+    background:rgba(8,76,253,.30)!important;
+    -webkit-backdrop-filter:var(--lg-blur);backdrop-filter:var(--lg-blur);
+    border:1px solid rgba(8,76,253,.55)!important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 8px 20px rgba(8,76,253,.22);
+    color:#fff!important;
+  }
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .send-btn svg{width:17px!important;height:17px!important;color:#fff;}
+
+  /* ---------- MODEL BOTTOM-SHEET ---------- */
+  .mm-overlay{background:rgba(0,0,0,.55);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);}
+  .mm-sheet{
+    background:linear-gradient(180deg,rgba(22,22,26,.72),rgba(10,10,12,.78));
+    -webkit-backdrop-filter:var(--lg-blur-lg);backdrop-filter:var(--lg-blur-lg);
+    border:1px solid var(--lg-stroke);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 -18px 48px rgba(0,0,0,.50);
+  }
+  .mm-card{
+    background:rgba(255,255,255,.05);
+    -webkit-backdrop-filter:var(--lg-blur);backdrop-filter:var(--lg-blur);
+    border:1px solid rgba(255,255,255,.09);
+  }
+  .mm-close{
+    width:36px;height:36px;
+    background:rgba(255,255,255,.07);
+    -webkit-backdrop-filter:var(--lg-blur);backdrop-filter:var(--lg-blur);
+    border:1px solid rgba(255,255,255,.11);
+  }
+  .mm-opt-badge{background:rgba(8,76,253,.22);border:1px solid rgba(8,76,253,.42);color:#B8CDFF;}
+  .mm-opt-badge.mm-badge-neutral{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.10);color:var(--text2);}
+  .mm-opt.active{background:rgba(8,76,253,.10);}
+  .mm-opt-check{color:#7FA8FF;}
+
+  /* FIX: the "Pro" marker used to be covered by the check mark on select.
+     Locked marker now sits bottom-right, the row is no longer globally dimmed. */
+  .mm-opt.pro-locked{opacity:1;}
+  .mm-opt.pro-locked .mm-opt-name,
+  .mm-opt.pro-locked .mm-opt-desc{opacity:.62;}
+  .mm-opt.pro-locked::after,
+  .mm-think-card.pro-locked::after{
+    color:#7FA8FF;background:rgba(8,76,253,.16);border:1px solid rgba(8,76,253,.42);
+  }
+
+  /* plus-menu / context menus */
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .more-menu,
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .model-drop,
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .mode-sub,
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .fb-modal,
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .chat-menu-pop,
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .chat-ctx-menu{
+    background:linear-gradient(180deg,rgba(24,24,28,.72),rgba(12,12,15,.78));
+    -webkit-backdrop-filter:var(--lg-blur-lg);backdrop-filter:var(--lg-blur-lg);
+    border:1px solid var(--lg-stroke);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 18px 44px rgba(0,0,0,.48);
+  }
+
+  /* ---------- SETTINGS: one solid background, no seams ----------
+     The liquid-glass pseudo layers on .settings-box were absolutely
+     positioned inside a scrolling container, so they scrolled away and
+     produced visible bands. Settings keeps its layout, only the backdrop
+     becomes one continuous surface. */
+  .settings-overlay{
+    background:#000!important;
+    -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+  }
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .settings-overlay{
+    background:radial-gradient(130% 70% at 50% 0%,rgba(8,76,253,.10) 0%,transparent 62%),#000!important;
+  }
+  .settings-box{background:transparent!important;}
+  .settings-box::before,.settings-box::after{content:none!important;display:none!important;}
+  .prof-ava{background:linear-gradient(145deg,#084CFD,#0A2E9E)!important;}
+  .prof-ava-edit{border-color:#000;}
+
+  /* ---------- reduced motion ---------- */
+  @media(prefers-reduced-motion:reduce){
+    .mobile-glossy .bubble{animation:none;}
+  }
+}
 </style>
 </head>
 <body>
@@ -2177,7 +2387,7 @@ html[data-theme="light"] .photo-deleted-msg{
       <button class="cmp-search-back" onclick="chatMenuSearchBack()" aria-label="Назад">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
-      <input type="text" id="cmpSearchInp" placeholder="Поиск по со��бщениям…" autocomplete="off" oninput="chatMenuSearchRun(this.value)">
+      <input type="text" id="cmpSearchInp" placeholder="Поиск по сообщениям…" autocomplete="off" oninput="chatMenuSearchRun(this.value)">
     </div>
     <div class="cmp-search-results" id="cmpSearchResults"></div>
   </div>
@@ -2269,7 +2479,7 @@ html[data-theme="light"] .photo-deleted-msg{
             <span class="mm-opt-badge mm-badge-neutral">Обычный</span>
           </div>
           <span class="mm-opt-check" id="mmCheckLow">✓</span>
-          <div class="mm-opt-desc">Быстрые ответы для обычных вопросов</div>
+          <div class="mm-opt-desc">Быстрые ответы на повседневные вопросы</div>
         </button>
         <div class="mm-divider"></div>
         <button class="mm-opt" id="mmOptMax" onclick="selectMode('max')">
@@ -2277,10 +2487,10 @@ html[data-theme="light"] .photo-deleted-msg{
             <span class="mm-opt-name">Max</span>
           </div>
           <span class="mm-opt-check" id="mmCheckMax">✓</span>
-          <div class="mm-opt-desc">Для сложных задач. Ответ больше.</div>
+          <div class="mm-opt-desc">Для сложных задач — более развёрнутый ответ</div>
         </button>
       </div>
-      <div class="mm-hint">Режим «Max» выдаёт более большой контекст, но быстрее тратит лимиты пользователя.</div>
+      <div class="mm-hint">Режим «Max» даёт больший контекст и более подробные ответы, но быстрее расходует лимиты.</div>
       <div class="mm-card mm-think-card">
         <div class="mm-think-copy">
           <div class="mm-think-title">Думать</div>
@@ -2343,7 +2553,7 @@ html[data-theme="light"] .photo-deleted-msg{
       </div>
       <div class="attach-opt" id="attachSearch" onclick="attachChoose('search',event)">
         <span class="attach-opt-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M3 12h18M12 3a14 14 0 010 18M12 3a14 14 0 000 18" stroke="currentColor" stroke-width="1.8"/></svg></span>
-        <span class="attach-opt-txt">��оис�� в сети</span>
+        <span class="attach-opt-txt">Поиск в сети</span>
         <span class="attach-opt-state" id="attachSearchState">ИИ сам решит</span>
       </div>
       <div class="attach-opt" onclick="attachChoose('files',event)">
@@ -2687,10 +2897,10 @@ function isDesktop(){return window.innerWidth>=769;}
 
 /* ===== ПРОМО-УВЕДОМЛЕНИЯ =====
    Три ID (promo_img / promo_quality / promo_limits) с разными вероятностями.
-   Не показываются повторно в одной сессии (sessionStorage) и не показ��ваются
+   Не показываются повторно в одной сессии (sessionStorage) и не показываются
    пользователям с Pro-ролями. Автозакрытие через 8 секунд. */
 const NOTIF_TEXTS={
-  promo_img:{title:'Получите более детальные изображения с Pro',body:'Улучшенное разрешение, насыщенные цвета и глубок��я проработка деталей.',cta:'Обновить'},
+  promo_img:{title:'Получите более детальные изображения с Pro',body:'Улучшенное разрешение, насыщенные цвета и глубокая проработка деталей.',cta:'Обновить'},
   promo_quality:{title:'Улучшите качество ответов с Pro',body:'Более умная модель, ответы быстрее и точнее, работа с длинным контекстом.',cta:'Обновить'},
   promo_limits:{title:'Получите безграничные лимиты с Pro',body:'С Pro-подпиской доступны более умные модели без ограничений по лимитам.',cta:'Обновить'}
 };
@@ -4516,10 +4726,10 @@ function buildSystem(){
   if(s.enthusiasm&&s.enthusiasm!=='default'&&enthusiasmMap[s.enthusiasm])sys+='\n'+enthusiasmMap[s.enthusiasm];
   const headingsMap={off:'Не используй markdown-заголовки и маркированные списки, пиши сплошным текстом.',on:'Активно используй заголовки и структурированные списки.'};
   if(s.headings&&s.headings!=='default'&&headingsMap[s.headings])sys+='\n'+headingsMap[s.headings];
-  const emojisMap={none:'Никогда не используй эмодзи.',some:'Можешь изредка добавить 1-2 уместных эмодзи.',many:'Используй эмодзи ак��ивно для оживления ответов.'};
+  const emojisMap={none:'Никогда не используй эмодзи.',some:'Можешь изредка добавить 1-2 уместных эмодзи.',many:'Используй эмодзи активно для оживления ответов.'};
   if(s.emojis&&s.emojis!=='default'&&emojisMap[s.emojis])sys+='\n'+emojisMap[s.emojis];
   if(curMode==='low')sys+='\nРЕЖИМ Low: отвечай кратко, максимум 3-4 предложения.';
-  if(curMode==='max')sys+='\nРЕЖИМ Max: отвечай подро��но, с объяснениями и примерами.';
+  if(curMode==='max')sys+='\nРЕЖИМ Max: отвечай подробно, с объяснениями и примерами.';
   if(hasTrainingAccess())sys+='\nПользователь с ролью developer/admin. Его заметки и загруженные материалы считай приоритетными источниками знаний.';
   if(trainingMode&&hasTrainingAccess())sys+='\nРЕЖИМ ОБУЧЕНИЯ: пользователь сейчас в специальном разделе «Обучение». Всё, что он присылает, уже автоматически сохраняется в базу знаний. Кратко подтверди, что информация принята и сохранена, и при необходимости задай уточняющий вопрос, чтобы материал был более полным и полезным для дальнейшего обучения.';
   sys+=buildKnowledgeContext(currentQuery);
@@ -5047,7 +5257,7 @@ function renderMd(el,text){
       el.appendChild(div);
     }
   });
-  // Кнопки копирования активны только у завер��ённого ответа (не во время стрима).
+  // Кнопки копирования активны только у завершённого ответа (не во время стрима).
   if(!el.classList.contains('is-streaming'))enableCodeCopy(el);
 }
 function splitMdSegments(text){
@@ -5373,7 +5583,7 @@ async function regenMsg(item){
     await autoContinueIfNeeded(result,wrap,msgEl,actionsEl);
   }catch(e){
     hideTyping();
-    if(e.message!=='Генерация остановлена')renderMd(msgEl,'Ошибк��: '+e.message);
+    if(e.message!=='Генерация остановлена')renderMd(msgEl,'Ошибка: '+e.message);
   }finally{
     activeAbortController=null;
     activeStreamStop=null;
@@ -6012,7 +6222,7 @@ function showLimitReached(check){
   inner.appendChild(d.firstElementChild);
   scrollChat();
 }
-/* ===== ГЕНЕРАЦИЯ ИЗОБРАЖЕНИЯ (Cloudflare Workers AI, отдельный ��уть) ===== */
+/* ===== ГЕНЕРАЦИЯ ИЗОБРАЖЕНИЯ (Cloudflare Workers AI, отдельный путь) ===== */
 // Вставляет <img> в бабл ассистента по URL из Storage.
 function appendImageToShell(msgEl,src){
   if(!msgEl)return;
@@ -6124,7 +6334,7 @@ async function pvShare(){
   // Фолбэк: копируем URL в буфер обмена.
   try{
     await navigator.clipboard.writeText(url);
-    pvToast('С��ылка на изображение скопирована');
+    pvToast('Ссылка на изображение скопирована');
   }catch(e){
     pvToast('Не удалось поделиться — скопируйте ссылку вручную');
   }
@@ -6155,7 +6365,7 @@ async function pvEdit(){
   }
 }
 // Удалить фото из истории чата: на месте картинки остаётся неактивное сообщение
-// «Фото удалено». Сохраняем обновлённую истор��ю в базу.
+// «Фото удалено». Сохраняем обновлённую историю в базу.
 function pvDelete(){
   const imgEl=_pvState.imgEl;if(!imgEl){closePhotoViewer();return;}
   // Поднимаемся до бабла ассистента (.msg-ai-wrap) и заменяем содержимое заглушкой.
@@ -6815,7 +7025,7 @@ async function handleTextReply(){
   const text=ta.value.trim();
   if(!text&&!pendingAttachments.length)return;
 
-  // Проверка лимитов д�� отправки
+  // Проверка лимитов до отправки
   const limit=checkLimit();
   if(limit.blocked){showLimitReached(limit);return;}
   ta.value='';ta.style.height='auto';
@@ -7031,6 +7241,24 @@ function goToDynatos(){
   // Открываем страницу оформления Pro в НОВОМ окне/вкладке.
   window.open('https://harmonyai-zeta.vercel.app/subscribe','_blank','noopener,noreferrer');
 }
+/* Deep link from the help center back button: /?screen=settings opens the settings screen
+   as soon as the app is mounted, then strips the query so it does not stay in history. */
+(function(){
+  function openFromQuery(){
+    var p;
+    try{ p = new URLSearchParams(location.search); }catch(e){ return; }
+    if(p.get('screen') !== 'settings') return;
+    try{ history.replaceState(null, '', location.pathname); }catch(e){}
+    var tries = 0;
+    (function attempt(){
+      var app = document.getElementById('app');
+      if(typeof openSettings === 'function' && app && app.classList.contains('show')){ openSettings(); return; }
+      if(tries++ < 60) setTimeout(attempt, 150);
+    })();
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', openFromQuery);
+  else openFromQuery();
+})();
 function openHelpCenter(){
   // Справочный центр (FAQ).
   // В PWA/Telegram Mini App window.open('_blank') часто блокируется — используем прямой переход.
@@ -7808,7 +8036,7 @@ window.persistLangToProfile=async function(lang){
     </div>
     <div class="fb-success" id="fbSuccess">✓ Сохранено! Спасибо за помощь.</div>
     <div class="fb-actions">
-      <button class="fb-btn-cancel" onclick="closeFbModal()">Отмен��</button>
+      <button class="fb-btn-cancel" onclick="closeFbModal()">Отмена</button>
       <button class="fb-btn-send" id="fbSendBtn" onclick="submitFbModal()">Отправить</button>
     </div>
   </div>
