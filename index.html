@@ -1848,7 +1848,7 @@ html[data-theme="light"] .photo-deleted-msg{
 
 /* ============================================================================
    Кнопки «+» (bar-icon) и микрофона — полностью БЕЗ обводки во всех состояниях.
-   Размеры, расположение, анимации и Liquid Glass (blur/фон/блик ::before) не
+   Размеры, расположение, анимации и Liquid Glass (blur/фон/бл��к ::before) не
    меняются: убираем только border/ring/outline. Ширина границы сохранена
    (transparent), поэтому геометрия кнопок не сдвигается.
    ========================================================================= */
@@ -2125,7 +2125,7 @@ html[data-theme="light"] .photo-deleted-msg{
       <div class="auth-h1">Думает быстро,<br>результат быстрее</div>
       <div class="auth-sub">ИИ для учеников музыкальной школы. Подходит не только для музыки — он умеет всё!</div>
       <button class="auth-btn-primary" onclick="goToEmail()">Продолжить с Email</button>
-      <div class="auth-tos">Продолжая, вы соглашаетесь с нашей <a href="./legal/privacy.html" target="_blank" rel="noopener noreferrer">Политикой Конфиденциальности</a> и <a href="./legal/terms.html" target="_blank" rel="noopener noreferrer">Условиями Пользования</a>.</div>
+      <div class="auth-tos">Продолжая, вы соглашаетесь с н����шей <a href="./legal/privacy.html" target="_blank" rel="noopener noreferrer">Политикой Конфиденциальности</a> и <a href="./legal/terms.html" target="_blank" rel="noopener noreferrer">Условиями Пользования</a>.</div>
       <div class="auth-beta">beta version 1.4</div>
     </div>
     <!-- Экран 2: Email -->
@@ -2840,7 +2840,7 @@ function fmtResetHuman(d){
 if(typeof marked!=='undefined') marked.setOptions({breaks:true,gfm:true});
 
 /* ===== Блоки кода: подсветка + шапка с названием языка и кнопкой «Копировать» =====
-   Кнопка видна сразу, но КОПИРОВАНИЕ доступно только после полного завершения
+   Кнопка вид��а сразу, но КОПИРОВАНИЕ доступно только после полного завершения
    ответа ИИ (когда с пузырька снят класс .is-streaming — см. enableCodeCopy()). */
 const LANG_LABELS={js:'JavaScript',javascript:'JavaScript',ts:'TypeScript',typescript:'TypeScript',py:'Python',python:'Python',html:'HTML',css:'CSS',json:'JSON',bash:'Bash',sh:'Shell',shell:'Shell',sql:'SQL',java:'Java',c:'C',cpp:'C++','c++':'C++',cs:'C#',csharp:'C#',go:'Go',rust:'Rust',rs:'Rust',php:'PHP',ruby:'Ruby',rb:'Ruby',swift:'Swift',kotlin:'Kotlin',xml:'XML',yaml:'YAML',yml:'YAML',md:'Markdown',markdown:'Markdown',plaintext:'Text',text:'Text'};
 function codeLangLabel(lang){const k=String(lang||'').trim().toLowerCase();return LANG_LABELS[k]||(k?k.charAt(0).toUpperCase()+k.slice(1):'Code');}
@@ -3534,8 +3534,13 @@ async function syncKnowledgeDocToSupabase(doc,scope='user'){
     chunk_index:index,
     content
   }));
-  const {error:chunkError}=await sb.from('knowledge_chunks').insert(chunkRows);
-  if(chunkError)throw chunkError;
+  // Большие книги дают сотни/тысячи чанков — вставляем пачками, чтобы не превысить
+  // лимит размера тела запроса (иначе очень большой файл не сохранится в базу знаний).
+  const CHUNK_INSERT_BATCH=100;
+  for(let i=0;i<chunkRows.length;i+=CHUNK_INSERT_BATCH){
+    const {error:chunkError}=await sb.from('knowledge_chunks').insert(chunkRows.slice(i,i+CHUNK_INSERT_BATCH));
+    if(chunkError)throw chunkError;
+  }
   await loadKnowledgeDocsFromSupabase();
   return true;
 }
@@ -4192,7 +4197,7 @@ async function openChat(id){
     const txt=typeof m.content==='string'?m.content:(Array.isArray(m.content)?m.content.find(c=>c.type==='text')?.text:'[фото]');
     if(m.role==='user')addUserBubble(txt,m.attachments||[],{createdAt:m.createdAt,historyIndex:idx});
     else if(m.image){
-      // Сообщение с сгенерированной картинкой — рендерим <img> по URL из Storage.
+      // Сообщение с сгенериров��нной картинкой — рендерим <img> по URL из Storage.
       const shell=createAiBubbleShell({showActions:false,createdAt:m.createdAt,historyIndex:idx});
       appendImageToShell(shell.msg,m.image);
     }else{
@@ -4754,7 +4759,7 @@ function buildSystem(){
   return sys;
 }
 
-/* Инструкция по генерации файлов (md/txt/pdf/docx). ИИ кладёт директиву отдельным
+/* Инструкция по генерации файл��в (md/txt/pdf/docx). ИИ кладёт директиву отдельным
    блоком, клиент её распознаёт, генерирует файл на сервере и показывает кнопку скачивания. */
 const FILE_GEN_SYSTEM=`
 СОЗДАНИЕ ФАЙЛОВ: если пользователь явно просит сделать/скачать файл (например «сделай pdf», «сохрани в docx», «оформи в файл», «скачать txt/markdown»), сформируй содержимое и в САМОМ КОНЦЕ ответа добавь ровно один блок такого вида:
@@ -4855,19 +4860,38 @@ async function uploadAttachmentFile(file){
   const {data}=sb.storage.from('chat-attachments').getPublicUrl(storagePath);
   return {id:`${Date.now()}-${Math.random().toString(36).slice(2,8)}`,name:file.name||safe,mime:file.type||'text/plain',size:file.size||0,storagePath,url:data?.publicUrl||''};
 }
+// «Мягкая» загрузка сырого файла в хранилище. Для очень больших PDF/TXT бакет может отказать
+// по лимиту размера — но это не должно мешать ИИ прочитать/запомнить файл, т.к. текст
+// извлекается на клиенте и сохраняется в базу знаний отдельно.
+async function uploadAttachmentFileSafe(file){
+  try{
+    return await uploadAttachmentFile(file);
+  }catch(e){
+    console.warn('Raw storage upload skipped (non-fatal):',e&&e.message?e.message:e);
+    return null;
+  }
+}
 async function handleFile(inp){
   const files=Array.from(inp.files||[]);
-  if(!files.length)return;
-  try{
-    if(pendingAttachments.length+files.length>MAX_ATTACHMENTS_PER_SEND){
-      throw new Error(`Можно прикрепить не больше ${MAX_ATTACHMENTS_PER_SEND} файлов или фото за один раз`);
-    }
-    for(const f of files){
+  if(!files.length){inp.value='';return;}
+  // Лимит: не больше MAX_ATTACHMENTS_PER_SEND (20) файлов/фото за один раз.
+  if(pendingAttachments.length+files.length>MAX_ATTACHMENTS_PER_SEND){
+    inp.value='';
+    alert(`Можно прикрепить не больше ${MAX_ATTACHMENTS_PER_SEND} файлов или фото за один раз`);
+    return;
+  }
+  const ta=document.getElementById('msgTa');
+  const prevPlaceholder=ta?ta.placeholder:'';
+  if(ta&&files.length)ta.placeholder=files.length>1?`Обрабатываю файлы (0/${files.length})…`:'Читаю файл…';
+  const failed=[];
+  let done=0;
+  // Каждый файл обрабатываем изолированно: ошибка на одном файле не должна
+  // «сносить» весь пакет из 20 файлов — остальные всё равно прикрепятся.
+  for(const f of files){
+    try{
       const parsed=await parseGenericFile(f);
-      const stored=await uploadAttachmentFile(f);
+      const stored=await uploadAttachmentFileSafe(f);
       if(parsed.kind==='image'){
-        // Сжимаем фото под отправку — оригинал идёт только в локальное превью (previewUrl),
-        // в сеть уходит сжатый dataUrl. Это убирает «Load failed» на больших/многих фото.
         const {dataUrl,mime}=await compressImageFile(f);
         pendingAttachments.push({
           kind:'image',
@@ -4880,28 +4904,36 @@ async function handleFile(inp){
           id:stored?.id||null,url:stored?.url||'',storagePath:stored?.storagePath||null,createdAt:messageNow(),
           meta:fileExtLabel(f.name||f.type||'image')
         });
-        continue;
+      }else if(parsed.kind==='document'){
+        const doc=makeKnowledgeDoc(f.name,parsed.text,f.name.split('.').pop().toLowerCase());
+        if(!doc.chunks.length)throw new Error('в файле не найден читаемый текст');
+        // Файл целиком уходит в базу знаний (RAG): текст режется на чанки и сохраняется в Supabase,
+        // поэтому ИИ «помнит» его и в следующих чатах, а не только в текущем сообщении.
+        storeKnowledgeDoc(doc,hasTrainingAccess()?'global':'user');
+        pendingAttachments.push({
+          kind:'document',
+          name:f.name,
+          size:f.size||0,
+          mime:f.type||'application/octet-stream',
+          id:stored?.id||null,url:stored?.url||'',storagePath:stored?.storagePath||null,createdAt:messageNow(),
+          doc
+        });
+      }else{
+        throw new Error('не удалось прочитать файл');
       }
-      if(parsed.kind!=='document')throw new Error('Не удалось прочитать файл');
-      const doc=makeKnowledgeDoc(f.name,parsed.text,f.name.split('.').pop().toLowerCase());
-      if(!doc.chunks.length)throw new Error(`В файле "${f.name}" не найден читаемый текст`);
-      storeKnowledgeDoc(doc,hasTrainingAccess()?'global':'user');
-      pendingAttachments.push({
-        kind:'document',
-        name:f.name,
-        size:f.size||0,
-        mime:f.type||'application/octet-stream',
-        id:stored?.id||null,url:stored?.url||'',storagePath:stored?.storagePath||null,createdAt:messageNow(),
-        doc
-      });
+    }catch(e){
+      failed.push((f.name||'файл')+': '+(e&&e.message?e.message:e));
+    }finally{
+      done++;
+      if(ta&&files.length>1)ta.placeholder=`Обрабатываю файлы (${done}/${files.length})…`;
     }
-    renderComposerAttachments();
-    updateComposerPlaceholder();
-  }catch(e){
-    clearPendingAttachments();
-    alert('Ошибка загрузки файла: '+e.message);
-  }finally{
-    inp.value='';
+  }
+  if(ta)ta.placeholder=prevPlaceholder;
+  renderComposerAttachments();
+  updateComposerPlaceholder();
+  inp.value='';
+  if(failed.length){
+    alert('Не удалось загрузить часть файлов:\n'+failed.join('\n'));
   }
 }
 
@@ -6326,7 +6358,7 @@ async function pvShare(){
         }
       }catch(e){/* CORS/не поддерживается — пробуем URL ниже */}
       if(navigator.share){
-        await navigator.share({title:'HarmonyAI — изображение',url});
+        await navigator.share({title:'HarmonyAI — изобра��ение',url});
         return;
       }
     }
@@ -6424,7 +6456,7 @@ function pvToast(text){
 // принудительно пересчитаем layout, чтобы input-bar не оказался за границей вьюпорта.
 window.addEventListener('pageshow',function(e){
   if(!e.persisted)return;
-  // Тик стилей на .app — заставляет пересчитать 100dvh с новыми параметрами вьюпорта.
+  // Тик стилей на .app — заставля��т пересчитать 100dvh с новыми параметрами вьюпорта.
   const app=document.getElementById('app');
   if(app&&app.classList.contains('show')){
     app.style.height='';
@@ -7041,7 +7073,7 @@ async function handleTextReply(){
   function buildDocInlineText(att,idx){
     const chunks=att.doc?.chunks||[];
     if(!chunks.length)return `[ФАЙЛ ${idx+1}: ${att.name}]\n(текст не удалось извлечь)`;
-    // Ограничиваем объём вкладываемого текста, иначе большие документы раздували токены,
+    // Ограничиваем объём вкладываемого текста, ин��че большие документы раздували токены,
     // замедляли ответ и переполняли лимит тела запроса. Даём начало документа с пометкой об обрезке.
     const full=chunks.join('\n\n');
     if(full.length<=INLINE_DOC_CHAR_LIMIT)return `[ФАЙЛ ${idx+1}: ${att.name}]\n${full}`;
@@ -7825,7 +7857,7 @@ function renderSettingsLimits(){
     <div class="limits-card">
       <div class="limits-card-head">
         <div class="limits-card-title">Еженедельный лимит</div>
-        <div class="limits-reset">без сброса</div>
+        <div class="limits-reset">без сбр��са</div>
       </div>
       <div class="limits-metric">
         <div class="limits-metric-row"><span class="limits-metric-label">Токены</span><span class="limits-infinite">∞</span></div>
