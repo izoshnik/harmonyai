@@ -38,6 +38,11 @@ try{
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="i18n.js"></script>
 <script src="i18n_dict.js"></script>
+<link rel="stylesheet" href="css/music-player.css">
+<script defer src="js/music-cache.js"></script>
+<script defer src="js/music-intents.js"></script>
+<script defer src="js/music-client.js"></script>
+<script defer src="js/music-player.js"></script>
 <style>
 /* Шрифты подключены через <link rel="stylesheet"> в <head> — быстрее, чем @import внутри CSS. */
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -4196,6 +4201,12 @@ async function openChat(id){
   chatHistory.forEach((m,idx)=>{
     const txt=typeof m.content==='string'?m.content:(Array.isArray(m.content)?m.content.find(c=>c.type==='text')?.text:'[фото]');
     if(m.role==='user')addUserBubble(txt,m.attachments||[],{createdAt:m.createdAt,historyIndex:idx});
+    else if(m.music){
+      // Музыкальная карточка — пересобираем из сохранённого пейлоада.
+      // Подписанной ссылки в истории нет, поэтому Play возьмёт свежую.
+      const shell=createAiBubbleShell({showActions:false,createdAt:m.createdAt,historyIndex:idx});
+      try{shell.msg.appendChild(buildMusicCard(m.music));}catch(e){shell.msg.textContent=txt||'';}
+    }
     else if(m.image){
       // Сообщение с сгенериров��нной картинкой — рендерим <img> по URL из Storage.
       const shell=createAiBubbleShell({showActions:false,createdAt:m.createdAt,historyIndex:idx});
@@ -6002,6 +6013,7 @@ function toWireHistory(history,opts={}){
     const base={role:m.role};
     if(forStorage)base.createdAt=m.createdAt||messageNow();
     if(forStorage&&m.generatedFile)base.generatedFile=m.generatedFile;
+    if(forStorage&&m.music)base.music=m.music;
     if(m.role==='user'&&i===lastUserIdx){
       base.content=m.content;
       base.attachments=slimAttachments(m.attachments);
@@ -6940,6 +6952,21 @@ async function sendMsg(){
   const text=ta.value.trim();
   if(!text&&!pendingAttachments.length)return;
 
+  // МУЗЫКА — САМЫЙ ПЕРВЫЙ ПРОВЕРЯЕМЫЙ ПУТЬ.
+  // «пауза» и «следующий» отрабатывают без единого сетевого запроса,
+  // «включи X» — за один запрос к /api/music, мимо LLM.
+  // Если фраза не музыкальная — handleMusicMessage вернёт false
+  // и всё пойдёт старым путём без изменений.
+  if(text&&!pendingAttachments.length&&typeof handleMusicMessage==='function'){
+    let musicHandled=false;
+    try{ musicHandled=await handleMusicMessage(text); }catch(e){ musicHandled=false; }
+    if(musicHandled){
+      ta.value='';ta.style.height='auto';
+      updateComposerPlaceholder();
+      return;
+    }
+  }
+
   // ПРОМО-УВЕДОМЛЕНИЕ после первого сообщения в сессии (~12% для не-Pro).
   if(!window._firstMsgSent){window._firstMsgSent=true;setTimeout(()=>showNotification('promo_limits',1/8),400);}
 
@@ -7015,6 +7042,225 @@ async function sendMsg(){
 // Собственно запрос текстового ответа модели и его стриминг в бабл ассистента.
 // Предполагается, что пользовательский ход УЖЕ добавлен в chatHistory и сохранён.
 // displayText — текст для учёта usage/индикатора; attachments уже учтены в history.
+/* ===== MUSIC (Яндекс.Музыка) =====
+   Перехват музыкальных фраз ДО обращения к модели.
+   Смысл: «пауза» не должна стоить секунд ожидания и токенов LLM. */
+
+function musicEscape(s){
+  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function musicDur(sec){
+  if(!sec&&sec!==0)return '';
+  const m=Math.floor(sec/60),s=Math.floor(sec%60);
+  return m+':'+(s<10?'0':'')+s;
+}
+
+/* Карточка результата в пузыре ассистента. Строится один раз и из истории тоже. */
+function buildMusicCard(payload){
+  const items=Array.isArray(payload.items)?payload.items:[];
+  const head=payload.collection||payload.bestMatch||items[0]||{};
+  const card=document.createElement('div');
+  card.className='music-card';
+
+  const cover=head.cover?'<img class="music-card__cover" src="'+musicEscape(head.cover)+'" alt="" />'
+                        :'<div class="music-card__cover"></div>';
+  const title=musicEscape(head.title||head.name||payload.query||'');
+  const sub=musicEscape(head.subtitle||head.artist||(items.length?items.length+' треков':''));
+
+  card.innerHTML=
+    '<div class="music-card__head">'+cover+
+    '<div class="music-card__info"><div class="music-card__title">'+title+'</div>'+
+    '<div class="music-card__sub">'+sub+'</div></div>'+
+    '<button class="music-card__play" type="button" aria-label="Воспроизвести">\u25b6</button></div>'+
+    '<div class="music-card__list">'+items.slice(0,12).map(function(t,i){
+      return '<button class="music-card__row" type="button" data-i="'+i+'"'+(t.playable===false?' disabled':'')+'>'+
+        '<span class="music-card__n">'+(i+1)+'</span>'+
+        '<span class="music-card__name">'+musicEscape(t.title)+'</span>'+
+        '<span class="music-card__artist">'+musicEscape(t.artist)+'</span>'+
+        '<span class="music-card__dur">'+musicDur(t.duration)+'</span></button>';
+    }).join('')+'</div>';
+
+  const startAt=function(i){
+    // Готовую ссылку передаём только для того трека, для которого сервер её прислал,
+    // и только в первые две минуты — дальше она протухает.
+    const fresh=payload._t&&(Date.now()-payload._t<120000);
+    const best=payload.bestMatch&&items[i]&&items[i].trackId===payload.bestMatch.trackId;
+    window.MusicPlayer.setQueue(items,i,(fresh&&best)?payload.playback:null,payload.collection);
+  };
+
+  card.querySelector('.music-card__play').addEventListener('click',function(){
+    const bi=payload.bestMatch?items.findIndex(function(t){return t.trackId===payload.bestMatch.trackId;}):0;
+    startAt(bi<0?0:bi);
+  });
+  Array.prototype.forEach.call(card.querySelectorAll('.music-card__row'),function(row){
+    row.addEventListener('click',function(){startAt(Number(row.getAttribute('data-i')));});
+  });
+
+  return card;
+}
+
+/* Карточка подключения аккаунта: код + кнопка, опрос статуса сам себя завершает. */
+async function renderMusicConnect(container){
+  container.innerHTML='<div class="music-connect">Готовлю подключение…</div>';
+  let d;
+  try{ d=await window.MusicClient.authStart(); }
+  catch(e){ container.innerHTML='<div class="music-connect">Не удалось начать подключение: '+musicEscape(e.message)+'</div>'; return; }
+
+  const link=d.verificationUrl+'?code='+encodeURIComponent(d.userCode);
+  container.innerHTML=
+    '<div class="music-connect">'+
+    '<div>Чтобы слушать музыку, подключите аккаунт Яндекса. Это один раз.</div>'+
+    '<div class="music-connect__code">'+musicEscape(d.userCode)+'</div>'+
+    '<div><a class="music-connect__btn" href="'+musicEscape(link)+'" target="_blank" rel="noopener">Открыть страницу Яндекса</a></div>'+
+    '<div class="music-connect__hint" data-role="st">Жду подтверждения…</div></div>';
+
+  const st=container.querySelector('[data-role="st"]');
+  const deadline=Date.now()+(d.expiresIn||300)*1000;
+  let wait=(d.interval||5)*1000;
+
+  const tick=async function(){
+    if(Date.now()>deadline){st.textContent='Срок кода истёк. Напишите запрос ещё раз.';return;}
+    let r;
+    try{ r=await window.MusicClient.authPoll(d.deviceCode); }
+    catch(e){ st.textContent='Ошибка проверки, повторяю…'; setTimeout(tick,wait); return; }
+
+    if(r.status==='ok'){
+      st.textContent='Готово: '+(r.login||'аккаунт подключён')+'. Повторите запрос — включу музыку.';
+      return;
+    }
+    if(r.status==='denied'){st.textContent='Доступ отклонён.';return;}
+    if(r.status==='expired'){st.textContent='Срок кода истёк.';return;}
+    if(r.slowDown)wait+=2000;
+    setTimeout(tick,wait);
+  };
+  setTimeout(tick,wait);
+}
+
+/* Главный перехватчик. Возвращает true, если фраза обработана без модели. */
+async function handleMusicMessage(text){
+  if(!window.MusicIntents||!window.MusicClient||!window.MusicPlayer)return false;
+  const intent=window.MusicIntents.detect(text);
+  if(!intent)return false;
+
+  /* --- КОМАНДЫ ПЛЕЕРА: мгновенно, без сети и без токенов. --- */
+  if(intent.type==='control'){
+    const P=window.MusicPlayer;
+    if(!P.isActive()&&intent.command!=='resume_or_random')return false;
+
+    let reply='';
+    switch(intent.command){
+      case 'pause':    reply=P.pause()?'Пауза.':'Сейчас ничего не играет.';break;
+      case 'resume':
+      case 'resume_or_random':
+        if(!P.isActive())return false;
+        reply=P.play()?'Продолжаю.':'Нечего продолжать.';break;
+      case 'next':     reply=P.next(true)?'Следующий трек.':'Это последний трек.';break;
+      case 'previous': P.prev();reply='Предыдущий трек.';break;
+      case 'shuffle':  reply=P.toggleShuffle()?'Вперемешку включено.':'Вперемешку выключено.';break;
+      case 'repeat': {
+        const m=P.cycleRepeat();
+        reply=m==='off'?'Повтор выключен.':(m==='one'?'Повтор одного трека.':'Повтор всей очереди.');
+        break;
+      }
+      case 'louder':   P.setVolume(0.15);reply='Громче.';break;
+      case 'quieter':  P.setVolume(-0.15);reply='Тише.';break;
+      case 'mute':     reply=P.toggleMute()?'Звук выключен.':'Звук включён.';break;
+      case 'close':    P.close();reply='Плеер закрыт.';break;
+      case 'like': {
+        const t=P.currentTrack();
+        if(!t)return false;
+        window.MusicClient.like(t.trackId,true).catch(function(){});
+        reply='Добавил в избранное.';break;
+      }
+      default: return false;
+    }
+
+    const g=document.getElementById('greetingWrap');if(g)g.style.display='none';
+    addUserBubble(text,[],{createdAt:messageNow()});
+    chatHistory.push({role:'user',content:text,createdAt:messageNow()});
+    chatHistory.push({role:'assistant',content:reply,createdAt:messageNow()});
+    await addAiBubble(reply,false,{createdAt:messageNow(),historyIndex:chatHistory.length-1});
+    saveChat().catch(function(){});
+    scrollChat();
+    return true;
+  }
+
+  /* --- ЗАПУСК МУЗЫКИ: один запрос к /api/music, мимо модели. --- */
+  const g=document.getElementById('greetingWrap');if(g)g.style.display='none';
+  addUserBubble(text,[],{createdAt:messageNow()});
+  chatHistory.push({role:'user',content:text,createdAt:messageNow()});
+
+  const shell=createAiBubbleShell({showActions:false});
+  shell.msg.innerHTML='<div class="music-connect">Ищу…</div>';
+  scrollChat();
+
+  let data;
+  try{
+    data=await window.MusicClient.resolve(intent.kind,intent.query);
+  }catch(e){
+    if(e&&e.type==='music_auth_required'){
+      await renderMusicConnect(shell.msg);
+      chatHistory.push({role:'assistant',content:'Для музыки нужно подключить аккаунт Яндекса.',createdAt:messageNow()});
+      saveChat().catch(function(){});
+      return true;
+    }
+    if(e&&e.type==='music_disabled'){
+      shell.msg.textContent='Музыкальный модуль сейчас отключён.';
+      chatHistory.push({role:'assistant',content:'Музыкальный модуль сейчас отключён.',createdAt:messageNow()});
+      saveChat().catch(function(){});
+      return true;
+    }
+    // Любая другая ошибка — не теряем запрос, отдаём его обычному чату.
+    shell.wrap.remove();
+    chatHistory.pop();
+    return false;
+  }
+
+  if(!data||data.type==='music_not_found'){
+    const miss='Не нашёл ничего по запросу «'+intent.query+'».';
+    shell.msg.textContent=miss;
+    chatHistory.push({role:'assistant',content:miss,createdAt:messageNow()});
+    saveChat().catch(function(){});
+    return true;
+  }
+
+  const payload={
+    kind:intent.kind,
+    query:intent.query,
+    items:data.items||[],
+    bestMatch:data.bestMatch||null,
+    collection:data.collection||null,
+    playback:data.playback||null,
+    _t:Date.now()
+  };
+
+  shell.msg.innerHTML='';
+  shell.msg.appendChild(buildMusicCard(payload));
+  scrollChat();
+
+  // Автостарт — ведь пользователь сказал «включи», а не «найди».
+  if(payload.items.length){
+    const bi=payload.bestMatch
+      ? payload.items.findIndex(function(t){return t.trackId===payload.bestMatch.trackId;})
+      : 0;
+    window.MusicPlayer.setQueue(payload.items,bi<0?0:bi,payload.playback,payload.collection);
+  }
+
+  const label=payload.bestMatch
+    ? ('Включаю: '+payload.bestMatch.title+' — '+payload.bestMatch.artist)
+    : ('Нашёл по запросу «'+payload.query+'»');
+
+  // В историю кладём без подписанной ссылки — она всё равно протухнет.
+  const stored=Object.assign({},payload);
+  delete stored.playback; delete stored._t;
+  chatHistory.push({role:'assistant',content:label,music:stored,createdAt:messageNow()});
+
+  saveChat().catch(function(){});
+  maybeGenerateChatTitle();
+  return true;
+}
+
 async function runAssistantReply(displayText){
   const hasImg=chatHistory.length>1&&Array.isArray(chatHistory[chatHistory.length-1]?.attachments)&&chatHistory[chatHistory.length-1].attachments.some(a=>a.kind==='image');
   const hasDoc=chatHistory.length>1&&Array.isArray(chatHistory[chatHistory.length-1]?.attachments)&&chatHistory[chatHistory.length-1].attachments.some(a=>a.kind==='document');
