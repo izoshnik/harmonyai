@@ -22,8 +22,13 @@
   }
 
   function currentUserId() {
-    // Подхватываем id из того же источника, что и остальной чат.
+    /* В HarmonyAI текущий пользователь живёт в переменной curUser, объявленной
+       внутри инлайн-скрипта index.html. Из внешнего файла она не видна,
+       поэтому index.html кладёт id в window.__hmUserId перед каждым запросом.
+       Остальные варианты — запас на случай другого окружения. */
     try {
+      if (global.__hmUserId) return global.__hmUserId;
+      if (global.curUser && global.curUser.id) return global.curUser.id;
       if (global.currentUser && global.currentUser.id) return global.currentUser.id;
       if (global.userProfile && global.userProfile.id) return global.userProfile.id;
     } catch (e) { /* noop */ }
