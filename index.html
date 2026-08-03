@@ -7101,7 +7101,7 @@ function buildMusicCard(payload){
 }
 
 /* Карточка подключения аккаунта: код + кнопка, опрос статуса сам себя завершает. */
-async function renderMusicConnect(container){
+async function renderMusicConnect(container,onConnected){
   container.innerHTML='<div class="music-connect">Готовлю подключение…</div>';
   let d;
   try{ d=await window.MusicClient.authStart(); }
@@ -7126,7 +7126,14 @@ async function renderMusicConnect(container){
     catch(e){ st.textContent='Ошибка проверки, повторяю…'; setTimeout(tick,wait); return; }
 
     if(r.status==='ok'){
-      st.textContent='Готово: '+(r.login||'аккаунт подключён')+'. Повторите запрос — включу музыку.';
+      if(r.persisted===false){
+        // Токен принят, но не сохранён — говорим прямо, а не «всё успешно».
+        st.textContent='Подключено, но не сохранено. '+(r.warning||'')+
+          ' Сейчас включу, но после перезапуска сервера придётся повторить.';
+      }else{
+        st.textContent='Готово: '+(r.login||'аккаунт подключён')+'. Включаю…';
+      }
+      if(typeof onConnected==='function'){ try{ await onConnected(); }catch(e){} }
       return;
     }
     if(r.status==='denied'){st.textContent='Доступ отклонён.';return;}
@@ -7139,6 +7146,12 @@ async function renderMusicConnect(container){
 
 /* Главный перехватчик. Возвращает true, если фраза обработана без модели. */
 async function handleMusicMessage(text){
+  /* curUser объявлен в этом же инлайн-скрипте и невидим файлам из js/.
+     Без этой строки сервер не знает, чей токен сохранять и чей искать,
+     и авторизация зацикливается. */
+  try{ window.__hmUserId=(typeof curUser!=='undefined'&&curUser&&curUser.id)?curUser.id:null; }
+  catch(e){ window.__hmUserId=null; }
+
   if(!window.MusicIntents||!window.MusicClient||!window.MusicPlayer)return false;
   const intent=window.MusicIntents.detect(text);
   if(!intent)return false;
@@ -7200,7 +7213,29 @@ async function handleMusicMessage(text){
     data=await window.MusicClient.resolve(intent.kind,intent.query);
   }catch(e){
     if(e&&e.type==='music_auth_required'){
-      await renderMusicConnect(shell.msg);
+      /* После успешного подключения сами повторяем исходный запрос —
+         пользователь не должен ничего перепечатывать. */
+      await renderMusicConnect(shell.msg,async function(){
+        let d2=null;
+        try{ d2=await window.MusicClient.resolve(intent.kind,intent.query); }catch(e2){ return; }
+        if(!d2||d2.type==='music_not_found')return;
+        const p2={kind:intent.kind,query:intent.query,items:d2.items||[],
+          bestMatch:d2.bestMatch||null,collection:d2.collection||null,
+          playback:d2.playback||null,_t:Date.now()};
+        const shell2=createAiBubbleShell({showActions:false});
+        shell2.msg.innerHTML='';
+        shell2.msg.appendChild(buildMusicCard(p2));
+        scrollChat();
+        if(p2.items.length){
+          const bi2=p2.bestMatch
+            ? p2.items.findIndex(function(t){return t.trackId===p2.bestMatch.trackId;})
+            : 0;
+          window.MusicPlayer.setQueue(p2.items,bi2<0?0:bi2,p2.playback,p2.collection);
+        }
+        chatHistory.push({role:'assistant',content:'Включаю: '+intent.query,
+          music:p2,createdAt:messageNow()});
+        saveChat().catch(function(){});
+      });
       chatHistory.push({role:'assistant',content:'Для музыки нужно подключить аккаунт Яндекса.',createdAt:messageNow()});
       saveChat().catch(function(){});
       return true;
@@ -7218,6 +7253,14 @@ async function handleMusicMessage(text){
   }
 
   if(!data||data.type==='music_not_found'){
+    /* Голое название без глагола и ничего не нашлось — значит это был
+       не запрос музыки, а обычный вопрос. Молча отдаём его модели:
+       пользователь даже не узнает, что мы пробовали искать трек. */
+    if(intent.confidence==='low'){
+      shell.wrap.remove();
+      chatHistory.pop();
+      return false;
+    }
     const miss='Не нашёл ничего по запросу «'+intent.query+'».';
     shell.msg.textContent=miss;
     chatHistory.push({role:'assistant',content:miss,createdAt:messageNow()});
