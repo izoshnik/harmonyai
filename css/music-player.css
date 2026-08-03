@@ -238,7 +238,7 @@ body.has-music-bar { padding-bottom: var(--music-bar-h); }
 
 /* ------------------------------------------------------------ подключение */
 
-.music-connect { padding: 14px; }
+.music-connect { padding: 14px; color: var(--music-fg, inherit); line-height: 1.5; }
 .music-connect__code {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 26px;
@@ -246,21 +246,36 @@ body.has-music-bar { padding-bottom: var(--music-bar-h); }
   letter-spacing: 3px;
   padding: 10px 14px;
   border-radius: 10px;
-  background: rgba(127, 127, 127, .14);
+  background: rgba(127, 127, 127, .18);
+  border: 1px solid rgba(127, 127, 127, .28);
+  color: var(--music-fg, inherit);
   display: inline-block;
   margin: 8px 0;
+  user-select: all;
 }
-.music-connect__btn {
+.music-connect__btn,
+.music-connect__btn:link,
+.music-connect__btn:visited,
+.music-connect__btn:hover,
+.music-connect__btn:active {
   display: inline-block;
-  padding: 9px 16px;
-  border-radius: 9px;
-  background: var(--music-accent);
-  color: #fff;
+  padding: 11px 20px;
+  margin-top: 4px;
+  border-radius: 10px;
+  background: var(--music-accent, #3b6ef5);
+  color: #ffffff;
   text-decoration: none;
-  font-weight: 600;
-  border: 0;
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1.25;
+  letter-spacing: .1px;
+  border: 1px solid rgba(0, 0, 0, .18);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .22);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, .28);
   cursor: pointer;
 }
+.music-connect__btn:hover { filter: brightness(1.1); }
+.music-connect__btn:active { transform: translateY(1px); }
 .music-connect__hint { color: var(--music-dim); font-size: 12.5px; margin-top: 8px; }
 
 /* -------------------------------------------------------------- мобильные */
