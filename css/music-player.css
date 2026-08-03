@@ -1,0 +1,282 @@
+/* ============================================================================
+   HarmonyAI — стили музыкального плеера и карточек в чате.
+
+   Переиспользуются переменные темы проекта, если они есть;
+   значения после запятой — запасные, чтобы плеер выглядел цельно
+   и в светлой, и в тёмной теме без правок в основном CSS.
+   ========================================================================== */
+
+:root {
+  --music-bar-h: 68px;
+  --music-bg: var(--panel, var(--bg-secondary, #14161a));
+  --music-fg: var(--text, var(--text-primary, #e9edf2));
+  --music-dim: var(--text-secondary, #99a2ad);
+  --music-accent: var(--accent, var(--primary, #7c5cff));
+  --music-line: var(--border, rgba(255, 255, 255, .10));
+}
+
+/* ------------------------------------------------------------------ панель */
+
+.music-bar {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 9000;
+  background: var(--music-bg);
+  color: var(--music-fg);
+  border-top: 1px solid var(--music-line);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, .28);
+  transform: translateY(110%);
+  transition: transform .26s cubic-bezier(.22, .8, .3, 1);
+  font-size: 14px;
+  user-select: none;
+}
+
+.music-bar.is-visible { transform: translateY(0); }
+
+/* Чтобы панель не перекрывала поле ввода чата. */
+body.has-music-bar { padding-bottom: var(--music-bar-h); }
+
+/* --------------------------------------------------------------- прогресс */
+
+.music-bar__progress {
+  position: relative;
+  height: 4px;
+  background: var(--music-line);
+  cursor: pointer;
+  transition: height .12s ease;
+}
+.music-bar__progress:hover,
+.music-bar__progress:focus-visible { height: 8px; outline: none; }
+
+.music-bar__buffered,
+.music-bar__played {
+  position: absolute; top: 0; left: 0; bottom: 0;
+  width: 0;
+}
+.music-bar__buffered { background: rgba(255, 255, 255, .16); }
+.music-bar__played { background: var(--music-accent); }
+
+.music-bar__thumb {
+  position: absolute; top: 50%; left: 0;
+  width: 12px; height: 12px; margin-left: -6px;
+  border-radius: 50%;
+  background: var(--music-accent);
+  transform: translateY(-50%) scale(0);
+  transition: transform .12s ease;
+}
+.music-bar__progress:hover .music-bar__thumb,
+.music-bar__progress:focus-visible .music-bar__thumb { transform: translateY(-50%) scale(1); }
+
+/* ------------------------------------------------------------------- тело */
+
+.music-bar__body {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 16px;
+  height: calc(var(--music-bar-h) - 4px);
+  box-sizing: border-box;
+}
+
+.music-bar__cover {
+  width: 46px; height: 46px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: var(--music-line);
+  flex: 0 0 auto;
+}
+
+.music-bar__meta { min-width: 0; flex: 1 1 200px; }
+
+.music-bar__title {
+  font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.music-bar__artist {
+  color: var(--music-dim);
+  font-size: 12.5px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.music-bar__controls { display: flex; align-items: center; gap: 4px; flex: 0 0 auto; }
+.music-bar__time { color: var(--music-dim); font-variant-numeric: tabular-nums; font-size: 12.5px; flex: 0 0 auto; }
+.music-bar__right { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
+
+/* ----------------------------------------------------------------- кнопки */
+
+.music-btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--music-fg);
+  font-size: 16px;
+  line-height: 1;
+  width: 34px; height: 34px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background .14s ease, color .14s ease, transform .1s ease;
+}
+.music-btn:hover { background: rgba(127, 127, 127, .16); }
+.music-btn:active { transform: scale(.92); }
+.music-btn.is-active { color: var(--music-accent); }
+.music-btn:focus-visible { outline: 2px solid var(--music-accent); outline-offset: 2px; }
+
+.music-btn--main {
+  width: 42px; height: 42px;
+  font-size: 18px;
+  background: var(--music-accent);
+  color: #fff;
+}
+.music-btn--main:hover { background: var(--music-accent); filter: brightness(1.12); }
+
+.music-vol { width: 84px; accent-color: var(--music-accent); cursor: pointer; }
+
+/* Индикатор загрузки — деликатная пульсация главной кнопки. */
+.music-bar.is-loading .music-btn--main { animation: music-pulse 1s ease-in-out infinite; }
+@keyframes music-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+
+/* ---------------------------------------------------------------- очередь */
+
+.music-queue {
+  max-height: 46vh;
+  overflow-y: auto;
+  border-top: 1px solid var(--music-line);
+  padding: 6px;
+}
+
+.music-queue__row {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--music-fg);
+  text-align: left;
+  cursor: pointer;
+  font-size: 13.5px;
+}
+.music-queue__row:hover { background: rgba(127, 127, 127, .14); }
+.music-queue__row.is-current { background: rgba(127, 127, 127, .1); color: var(--music-accent); font-weight: 600; }
+.music-queue__n { color: var(--music-dim); font-variant-numeric: tabular-nums; }
+.music-queue__t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.music-queue__a { color: var(--music-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 40%; }
+
+/* ------------------------------------------------------ карточки в чате */
+
+.music-card {
+  border: 1px solid var(--music-line);
+  border-radius: 14px;
+  overflow: hidden;
+  margin: 8px 0;
+  background: rgba(127, 127, 127, .05);
+}
+
+.music-card__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+}
+
+.music-card__cover {
+  width: 56px; height: 56px;
+  border-radius: 10px;
+  object-fit: cover;
+  background: var(--music-line);
+  flex: 0 0 auto;
+}
+
+.music-card__info { min-width: 0; flex: 1 1 auto; }
+.music-card__title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.music-card__sub { color: var(--music-dim); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.music-card__play {
+  flex: 0 0 auto;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  border: 0;
+  background: var(--music-accent);
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: transform .1s ease, filter .14s ease;
+}
+.music-card__play:hover { filter: brightness(1.12); }
+.music-card__play:active { transform: scale(.92); }
+
+.music-card__list { border-top: 1px solid var(--music-line); }
+
+.music-card__row {
+  display: grid;
+  grid-template-columns: 26px 1fr auto auto;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  padding: 9px 12px;
+  border: 0;
+  background: transparent;
+  color: var(--music-fg);
+  text-align: left;
+  cursor: pointer;
+  font-size: 13.5px;
+}
+.music-card__row + .music-card__row { border-top: 1px solid var(--music-line); }
+.music-card__row:hover { background: rgba(127, 127, 127, .12); }
+.music-card__row[disabled] { opacity: .45; cursor: not-allowed; }
+.music-card__n { color: var(--music-dim); font-variant-numeric: tabular-nums; }
+.music-card__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.music-card__artist { color: var(--music-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 34%; }
+.music-card__dur { color: var(--music-dim); font-variant-numeric: tabular-nums; }
+
+/* ------------------------------------------------------------ подключение */
+
+.music-connect { padding: 14px; }
+.music-connect__code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(127, 127, 127, .14);
+  display: inline-block;
+  margin: 8px 0;
+}
+.music-connect__btn {
+  display: inline-block;
+  padding: 9px 16px;
+  border-radius: 9px;
+  background: var(--music-accent);
+  color: #fff;
+  text-decoration: none;
+  font-weight: 600;
+  border: 0;
+  cursor: pointer;
+}
+.music-connect__hint { color: var(--music-dim); font-size: 12.5px; margin-top: 8px; }
+
+/* -------------------------------------------------------------- мобильные */
+
+@media (max-width: 760px) {
+  :root { --music-bar-h: 60px; }
+  .music-bar__body { gap: 10px; padding: 6px 10px; }
+  .music-bar__time,
+  .music-vol,
+  #mbShuffle,
+  #mbRepeat { display: none; }
+  .music-bar__cover { width: 40px; height: 40px; }
+  .music-card__artist { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .music-bar { transition: none; }
+  .music-bar.is-loading .music-btn--main { animation: none; }
+}
