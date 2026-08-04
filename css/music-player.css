@@ -295,3 +295,15 @@ body.has-music-bar { padding-bottom: var(--music-bar-h); }
   .music-bar { transition: none; }
   .music-bar.is-loading .music-btn--main { animation: none; }
 }
+
+/* ============ Одиночный трек: компактная «таблетка» ============ */
+.music-card--single { border-radius: 999px; padding: 5px; max-width: 430px; }
+.music-card--single .music-card__head { padding: 4px 14px 4px 4px; gap: 13px; }
+.music-card--single .music-card__cover { width: 46px; height: 46px; border-radius: 999px; }
+.music-card--single .music-card__title { font-size: 15px; font-weight: 700; }
+.music-card--single .music-card__sub { font-size: 13px; }
+.music-card--single .music-card__play { width: 38px; height: 38px; }
+@media (max-width: 760px) {
+  .music-card--single { max-width: 100%; }
+  .music-card--single .music-card__title { font-size: 14.5px; }
+}
