@@ -29,7 +29,8 @@
     volume: 1,
     muted: false,
     collection: null,
-    retrying: false
+    retrying: false,
+    failStreak: 0
   };
 
   /* ------------------------------------------------------------------ утилиты */
@@ -338,6 +339,7 @@
       return audio.play();
     }).then(function () {
       state.retrying = false;
+      state.failStreak = 0;
       prefetchNext();
       save();
     }).catch(function (err) {
@@ -385,9 +387,14 @@
       .then(function () { state.retrying = false; })
       .catch(function () {
         state.retrying = false;
-        // Трек действительно недоступен — не стопорим очередь.
-        if (state.queue.length > 1) next(true);
-        else notify('Трек недоступен для воспроизведения');
+        // Раньше здесь вызывался next(): при системном сбое ссылок это
+        // давало каскад — очередь пролистывалась насквозь за секунды.
+        // Теперь останавливаемся на первой же неудаче.
+        state.failStreak = (state.failStreak || 0) + 1;
+        pause();
+        notify(state.failStreak > 1
+          ? 'Яндекс Музыка не отдаёт аудио. Проверьте подключение аккаунта в Настройках.'
+          : 'Этот трек недоступен для воспроизведения');
       });
   }
 
