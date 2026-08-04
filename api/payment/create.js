@@ -12,6 +12,8 @@ function originAllowed(req) {
   if (!origin) return true;
   try {
     const host = new URL(origin).hostname;
+    const selfHost = String(req.headers.host || '').split(':')[0];
+    if (selfHost && host === selfHost) return true; // same-origin всегда разрешён
     return ALLOWED_HOSTS.some(h => host === h || host.endsWith('.' + h));
   } catch { return false; }
 }
