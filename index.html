@@ -1059,13 +1059,48 @@ html[data-theme="light"] .attach-opt:hover{background:rgba(20,18,12,.05);}
   html[data-theme="dark"] .composer-attachment{background:linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.03));border-color:var(--border);box-shadow:0 10px 24px rgba(0,0,0,.28);}
 }
 
+/* ============ Подписка и Подключения (вставлено патчем) ============ */
+.sub-wrap{display:flex;flex-direction:column;gap:14px;padding:4px 0 24px;}
+.sub-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:16px 18px;}
+.sub-card-label{font-size:12.5px;color:var(--text2);font-weight:600;}
+.sub-card-sub{font-size:12.5px;color:var(--text2);line-height:1.5;margin-top:6px;}
+.sub-plan-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:6px;}
+.sub-plan{font-size:30px;font-weight:800;line-height:1;color:#8b5cf6;letter-spacing:-.5px;}
+.sub-badge{display:inline-flex;align-items:center;gap:7px;padding:5px 12px;border-radius:999px;background:rgba(52,199,89,.14);color:#34c759;font-size:12.5px;font-weight:700;}
+.sub-dot{width:7px;height:7px;border-radius:50%;background:#34c759;}
+.sub-date{font-size:24px;font-weight:800;line-height:1.15;color:var(--text);margin-top:8px;letter-spacing:-.3px;}
+.sub-card-title{font-size:15px;font-weight:700;color:var(--text);}
+.sub-perks{display:flex;flex-direction:column;gap:12px;margin-top:14px;}
+.sub-perk{display:flex;align-items:center;gap:11px;font-size:13.5px;color:var(--text);line-height:1.35;}
+.sub-perk svg{flex:0 0 auto;color:#8b5cf6;}
+.sub-btn{width:100%;margin-top:12px;padding:13px 16px;border-radius:12px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:14.5px;font-weight:700;font-family:inherit;cursor:pointer;transition:filter .12s;}
+.sub-btn:hover{filter:brightness(1.12);}
+.sub-btn.danger{color:#ff5a5f;border-color:rgba(255,90,95,.32);background:rgba(255,90,95,.08);}
+.sub-foot{display:flex;align-items:flex-start;gap:9px;padding:2px 6px 0;color:var(--text2);font-size:12px;line-height:1.5;}
+.sub-foot svg{flex:0 0 auto;margin-top:1px;}
+.conn-row{display:flex;align-items:center;gap:13px;}
+.conn-logo{flex:0 0 auto;width:40px;height:40px;border-radius:11px;background:#ffcc00;color:#000;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:19px;font-family:inherit;}
+.conn-meta{flex:1 1 auto;min-width:0;}
+.conn-name{font-size:14.5px;font-weight:700;color:var(--text);}
+.conn-state{font-size:12.5px;color:var(--text2);margin-top:3px;line-height:1.4;}
+.conn-state.ok{color:#34c759;}
+.conn-btn{flex:0 0 auto;padding:9px 15px;border-radius:10px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:13.5px;font-weight:700;font-family:inherit;cursor:pointer;white-space:nowrap;}
+.conn-btn.primary{background:#8b5cf6;border-color:#8b5cf6;color:#fff;}
+.conn-btn.danger{color:#ff5a5f;border-color:rgba(255,90,95,.32);}
+.conn-slot{margin-top:14px;}
+@media(max-width:768px){
+  .sub-plan{font-size:27px;}
+  .sub-date{font-size:21px;}
+  .conn-btn{padding:8px 13px;font-size:13px;}
+}
+
 /* ===================== INPUT BAR ===================== */
 .input-wrap{padding:10px 20px 20px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;position:relative;z-index:2;background:transparent;}
 @media(max-width:768px){.input-wrap{padding:8px 16px 18px;gap:10px;}}
 .input-box{width:100%;max-width:720px;background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:12px 14px 10px;box-shadow:0 2px 12px rgba(0,0,0,0.06);transition:border-color .15s;}
 .input-box:focus-within{border-color:var(--text);}
 @media(max-width:768px){.input-box{border-radius:20px;padding:10px 12px 8px;background:rgba(255,255,255,0.04);backdrop-filter:blur(12px);border:none;}}
-.input-box textarea{width:100%;border:none;outline:none;resize:none;font-size:var(--font-base);color:var(--text);font-family:inherit;background:transparent;line-height:1.55;max-height:160px;min-height:22px;overflow-y:auto;}
+.input-box textarea{width:100%;border:none;outline:none;resize:none;font-size:var(--font-base);color:var(--text);font-family:inherit;background:transparent;line-height:1.55;max-height:160px;min-height:22px;overflow-y:auto;overflow-wrap:anywhere;word-break:break-word;white-space:pre-wrap;}
 .input-box textarea::placeholder{color:var(--text2);}
 .input-bar-row{display:flex;align-items:center;justify-content:space-between;margin-top:8px;}
 .bar-left{display:flex;align-items:center;gap:4px;}
@@ -1147,8 +1182,8 @@ html[data-theme="light"] .attach-opt:hover{background:rgba(20,18,12,.05);}
 @media(max-width:768px){
   .input-wrap{padding:6px 20px calc(14px + env(safe-area-inset-bottom,0px));}
   /* Мобильная строка ввода — 1:1 с скрином adanatos: сплошной #161616, скруглённая «таблетка», один ряд. */
-  .input-box{position:relative;overflow:visible;border-radius:24px;padding:0 6px 0 14px;min-height:46px;height:46px;background:rgba(18,18,22,.34);backdrop-filter:blur(22px) saturate(145%);-webkit-backdrop-filter:blur(22px) saturate(145%);border:1px solid rgba(255,255,255,0.08);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.025),0 16px 36px rgba(0,0,0,.18);display:flex;align-items:center;gap:8px;}
-  .input-box textarea{min-height:22px;padding:12px 0;font-size:13.5px;line-height:1.2;flex:1;order:2;max-height:120px;color:#f2f2f2;font-family:'Baloo 2','Inter',-apple-system,sans-serif;font-weight:600;}
+  .input-box{position:relative;overflow:visible;border-radius:24px;padding:0 6px 0 14px;min-height:46px;height:auto;background:rgba(18,18,22,.34);backdrop-filter:blur(22px) saturate(145%);-webkit-backdrop-filter:blur(22px) saturate(145%);border:1px solid rgba(255,255,255,0.08);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.025),0 16px 36px rgba(0,0,0,.18);display:flex;align-items:flex-end;gap:8px;padding-top:5px;padding-bottom:5px;}
+  .input-box textarea{min-height:26px;padding:6px 0;font-size:14px;line-height:1.38;flex:1 1 auto;order:2;max-height:132px;overflow-wrap:anywhere;word-break:break-word;white-space:pre-wrap;color:#f2f2f2;font-family:'Baloo 2','Inter',-apple-system,sans-serif;font-weight:600;}
   .input-box textarea::placeholder{color:#8a8a8f;font-weight:600;}
   .input-bar-row{margin-top:0;display:contents;}
   .bar-left{order:1;position:static;transform:none;z-index:2;}
@@ -1348,7 +1383,7 @@ html[data-theme="light"] .limits-card{background:rgba(255,255,255,.66);border:1p
 .limits-bar-fill.warn{background:linear-gradient(90deg,#f59e0b,#ea580c);}
 .limits-bar-fill.full{background:linear-gradient(90deg,#ef4444,#dc2626);}
 .limits-bar-fill.pro{background:linear-gradient(90deg,#a855f7,#6366f1);}
-.limits-infinite{font-size:22px;font-weight:800;color:#7c4dff;line-height:1;}
+.limits-infinite{font-size:13px;font-weight:700;color:#7c4dff;line-height:1.2;white-space:nowrap;}
 .limits-note{font-size:12.5px;color:var(--text2);line-height:1.55;padding:0 4px;}
 .limits-note strong{color:var(--text);font-weight:700;}
 
@@ -1853,7 +1888,7 @@ html[data-theme="light"] .photo-deleted-msg{
 
 /* ============================================================================
    Кнопки «+» (bar-icon) и микрофона — полностью БЕЗ обводки во всех состояниях.
-   Размеры, расположение, анимации и Liquid Glass (blur/фон/бл��к ::before) не
+   Размеры, расположение, анимации и Liquid Glass (blur/фон/блик ::before) не
    меняются: убираем только border/ring/outline. Ширина границы сохранена
    (transparent), поэтому геометрия кнопок не сдвигается.
    ========================================================================= */
@@ -2130,7 +2165,7 @@ html[data-theme="light"] .photo-deleted-msg{
       <div class="auth-h1">Думает быстро,<br>результат быстрее</div>
       <div class="auth-sub">ИИ для учеников музыкальной школы. Подходит не только для музыки — он умеет всё!</div>
       <button class="auth-btn-primary" onclick="goToEmail()">Продолжить с Email</button>
-      <div class="auth-tos">Продолжая, вы соглашаетесь с н����шей <a href="./legal/privacy.html" target="_blank" rel="noopener noreferrer">Политикой Конфиденциальности</a> и <a href="./legal/terms.html" target="_blank" rel="noopener noreferrer">Условиями Пользования</a>.</div>
+      <div class="auth-tos">Продолжая, вы соглашаетесь с нашей <a href="./legal/privacy.html" target="_blank" rel="noopener noreferrer">Политикой Конфиденциальности</a> и <a href="./legal/terms.html" target="_blank" rel="noopener noreferrer">Условиями Пользования</a>.</div>
       <div class="auth-beta">beta version 1.4</div>
     </div>
     <!-- Экран 2: Email -->
@@ -2845,7 +2880,7 @@ function fmtResetHuman(d){
 if(typeof marked!=='undefined') marked.setOptions({breaks:true,gfm:true});
 
 /* ===== Блоки кода: подсветка + шапка с названием языка и кнопкой «Копировать» =====
-   Кнопка вид��а сразу, но КОПИРОВАНИЕ доступно только после полного завершения
+   Кнопка видна сразу, но КОПИРОВАНИЕ доступно только после полного завершения
    ответа ИИ (когда с пузырька снят класс .is-streaming — см. enableCodeCopy()). */
 const LANG_LABELS={js:'JavaScript',javascript:'JavaScript',ts:'TypeScript',typescript:'TypeScript',py:'Python',python:'Python',html:'HTML',css:'CSS',json:'JSON',bash:'Bash',sh:'Shell',shell:'Shell',sql:'SQL',java:'Java',c:'C',cpp:'C++','c++':'C++',cs:'C#',csharp:'C#',go:'Go',rust:'Rust',rs:'Rust',php:'PHP',ruby:'Ruby',rb:'Ruby',swift:'Swift',kotlin:'Kotlin',xml:'XML',yaml:'YAML',yml:'YAML',md:'Markdown',markdown:'Markdown',plaintext:'Text',text:'Text'};
 function codeLangLabel(lang){const k=String(lang||'').trim().toLowerCase();return LANG_LABELS[k]||(k?k.charAt(0).toUpperCase()+k.slice(1):'Code');}
@@ -4208,7 +4243,7 @@ async function openChat(id){
       try{shell.msg.appendChild(buildMusicCard(m.music));}catch(e){shell.msg.textContent=txt||'';}
     }
     else if(m.image){
-      // Сообщение с сгенериров��нной картинкой — рендерим <img> по URL из Storage.
+      // Сообщение с сгенерированной картинкой — рендерим <img> по URL из Storage.
       const shell=createAiBubbleShell({showActions:false,createdAt:m.createdAt,historyIndex:idx});
       appendImageToShell(shell.msg,m.image);
     }else{
@@ -4770,7 +4805,7 @@ function buildSystem(){
   return sys;
 }
 
-/* Инструкция по генерации файл��в (md/txt/pdf/docx). ИИ кладёт директиву отдельным
+/* Инструкция по генерации файлов (md/txt/pdf/docx). ИИ кладёт директиву отдельным
    блоком, клиент её распознаёт, генерирует файл на сервере и показывает кнопку скачивания. */
 const FILE_GEN_SYSTEM=`
 СОЗДАНИЕ ФАЙЛОВ: если пользователь явно просит сделать/скачать файл (например «сделай pdf», «сохрани в docx», «оформи в файл», «скачать txt/markdown»), сформируй содержимое и в САМОМ КОНЦЕ ответа добавь ровно один блок такого вида:
@@ -4949,7 +4984,14 @@ async function handleFile(inp){
 }
 
 /* ===== TEXTAREA ===== */
-function taResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,160)+'px';}
+function taResize(el){
+  // Предел роста разный: на мобильном строка не должна съедать пол-экрана.
+  el.style.height='auto';
+  const max=(window.innerWidth<=768)?132:160;
+  const nh=Math.min(el.scrollHeight,max);
+  el.style.height=nh+'px';
+  el.style.overflowY=(el.scrollHeight>max)?'auto':'hidden';
+}
 
 /* ===== MESSAGES ===== */
 const IC_COPY='<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke="currentColor" stroke-width="2"/></svg>';
@@ -6370,7 +6412,7 @@ async function pvShare(){
         }
       }catch(e){/* CORS/не поддерживается — пробуем URL ниже */}
       if(navigator.share){
-        await navigator.share({title:'HarmonyAI — изобра��ение',url});
+        await navigator.share({title:'HarmonyAI — изображение',url});
         return;
       }
     }
@@ -6468,7 +6510,7 @@ function pvToast(text){
 // принудительно пересчитаем layout, чтобы input-bar не оказался за границей вьюпорта.
 window.addEventListener('pageshow',function(e){
   if(!e.persisted)return;
-  // Тик стилей на .app — заставля��т пересчитать 100dvh с новыми параметрами вьюпорта.
+  // Тик стилей на .app — заставляет пересчитать 100dvh с новыми параметрами вьюпорта.
   const app=document.getElementById('app');
   if(app&&app.classList.contains('show')){
     app.style.height='';
@@ -7060,8 +7102,11 @@ function musicDur(sec){
 function buildMusicCard(payload){
   const items=Array.isArray(payload.items)?payload.items:[];
   const head=payload.collection||payload.bestMatch||items[0]||{};
+  // Одиночный трек показываем одной «таблеткой» без списка вариантов.
+  // Список остаётся только для плейлистов, альбомов и артистов.
+  const single=!payload.collection;
   const card=document.createElement('div');
-  card.className='music-card';
+  card.className='music-card'+(single?' music-card--single':'');
 
   const cover=head.cover?'<img class="music-card__cover" src="'+musicEscape(head.cover)+'" alt="" />'
                         :'<div class="music-card__cover"></div>';
@@ -7073,20 +7118,23 @@ function buildMusicCard(payload){
     '<div class="music-card__info"><div class="music-card__title">'+title+'</div>'+
     '<div class="music-card__sub">'+sub+'</div></div>'+
     '<button class="music-card__play" type="button" aria-label="Воспроизвести">\u25b6</button></div>'+
-    '<div class="music-card__list">'+items.slice(0,12).map(function(t,i){
+    (single?'':'<div class="music-card__list">'+items.slice(0,12).map(function(t,i){
       return '<button class="music-card__row" type="button" data-i="'+i+'"'+(t.playable===false?' disabled':'')+'>'+
         '<span class="music-card__n">'+(i+1)+'</span>'+
         '<span class="music-card__name">'+musicEscape(t.title)+'</span>'+
         '<span class="music-card__artist">'+musicEscape(t.artist)+'</span>'+
         '<span class="music-card__dur">'+musicDur(t.duration)+'</span></button>';
-    }).join('')+'</div>';
+    }).join('')+'</div>');
 
   const startAt=function(i){
     // Готовую ссылку передаём только для того трека, для которого сервер её прислал,
     // и только в первые две минуты — дальше она протухает.
     const fresh=payload._t&&(Date.now()-payload._t<120000);
     const best=payload.bestMatch&&items[i]&&items[i].trackId===payload.bestMatch.trackId;
-    window.MusicPlayer.setQueue(items,i,(fresh&&best)?payload.playback:null,payload.collection);
+    // Очередь из одного трека: раньше туда попадали все найденные варианты,
+    // и при сбое воспроизведения плеер пролистывал их насквозь за секунды.
+    const queue=single?[items[i]].filter(Boolean):items;
+    window.MusicPlayer.setQueue(queue,single?0:i,(fresh&&best)?payload.playback:null,payload.collection);
   };
 
   card.querySelector('.music-card__play').addEventListener('click',function(){
@@ -7362,7 +7410,7 @@ async function handleTextReply(){
   function buildDocInlineText(att,idx){
     const chunks=att.doc?.chunks||[];
     if(!chunks.length)return `[ФАЙЛ ${idx+1}: ${att.name}]\n(текст не удалось извлечь)`;
-    // Ограничиваем объём вкладываемого текста, ин��че большие документы раздували токены,
+    // Ограничиваем объём вкладываемого текста, иначе большие документы раздували токены,
     // замедляли ответ и переполняли лимит тела запроса. Даём начало документа с пометкой об обрезке.
     const full=chunks.join('\n\n');
     if(full.length<=INLINE_DOC_CHAR_LIMIT)return `[ФАЙЛ ${idx+1}: ${att.name}]\n${full}`;
@@ -7466,6 +7514,11 @@ function renderSettingsMain(){
           <div class="s-row-text">Общие</div>
           <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
         </div>
+        <div class="s-row" onclick="renderSettingsConnections()">
+          <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 2v6M15 2v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 8h12v3a6 6 0 01-6 6 6 6 0 01-6-6V8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 17v5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+          <div class="s-row-text">Подключения</div>
+          <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+        </div>
       </div>
     </div>
     <div class="s-sect">
@@ -7505,11 +7558,17 @@ function renderSettingsMain(){
           <div class="s-row-text">Лимиты</div>
           <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
         </div>
+        ${isProUser()?`
+        <div class="s-row" onclick="renderSettingsSubscription()">
+          <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="2.5" y="5" width="19" height="14" rx="2.5" stroke="currentColor" stroke-width="2"/><path d="M2.5 10h19" stroke="currentColor" stroke-width="2"/><path d="M6 14.5h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+          <div class="s-row-text">Управление подпиской</div>
+          <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+        </div>`:`
         <div class="s-row s-row-accent" onclick="goToDynatos()">
           <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3l1.6 5.2L19 10l-5.4 1.8L12 17l-1.6-5.2L5 10l5.4-1.8L12 3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
           <div class="s-row-text">Перейти на Pro</div>
           <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-        </div>
+        </div>`}
       </div>
     </div>
     <div class="s-sect">
@@ -7632,6 +7691,191 @@ function renderSettingsMemory(){
 }
 
 /* ===== ОБЩИЕ ===== */
+/* ============================================================================
+   Подписка и Подключения. Вставлено патчем.
+   ========================================================================== */
+
+/* Дата окончания подписки в профиле может лежать под разными именами —
+   проверяем все известные, чтобы экран не зависел от одной схемы. */
+function subUntilInfo(){
+  const u=curUser||{};
+  const s=u.settings||{};
+  const raw=u.proUntil||u.pro_until||u.subscriptionUntil||u.subscription_until
+          ||s.proUntil||s.subscriptionUntil||null;
+  if(!raw)return null;
+  const d=new Date(raw);
+  if(isNaN(d.getTime()))return null;
+  return {
+    text:d.toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'}),
+    days:Math.max(0,Math.ceil((d.getTime()-Date.now())/86400000))
+  };
+}
+
+function dayWord(n){
+  const a=n%100, b=n%10;
+  if(a>10&&a<20)return 'дней';
+  if(b===1)return 'день';
+  if(b>=2&&b<=4)return 'дня';
+  return 'дней';
+}
+
+function renderSettingsSubscription(){
+  const el=document.getElementById('settingsContent');
+  const plan=subscriptionLabel();
+  const info=subUntilInfo();
+  const check='<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9.2" stroke="currentColor" stroke-width="1.8"/><path d="M8 12.4l2.7 2.6L16 9.6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const perks=['Неограниченные сообщения с ИИ','Доступ ко всем моделям','Приоритетная генерация ответов','История чатов без ограничений','Экспорт и сохранение чатов'];
+  el.innerHTML=`
+    <div class="sth">
+      <div class="sth-back" onclick="renderSettingsMain()">
+        <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="sth-title">Управление подпиской</div>
+    </div>
+    <div class="sub-wrap">
+      <div class="sub-card">
+        <div class="sub-card-label">Текущий план</div>
+        <div class="sub-plan-row">
+          <span class="sub-plan">${plan}</span>
+          <span class="sub-badge"><span class="sub-dot"></span>Активна</span>
+        </div>
+        <div class="sub-card-sub">Доступ ко всем возможностям HarmonyAI</div>
+      </div>
+      ${info?`
+      <div class="sub-card">
+        <div class="sub-card-label">Подписка действует до</div>
+        <div class="sub-date">${info.text}</div>
+        <div class="sub-card-sub">${info.days>0?('Осталось '+info.days+' '+dayWord(info.days)):'Срок действия истёк'}</div>
+      </div>`:''}
+      <div class="sub-card">
+        <div class="sub-card-title">Что входит в ${plan}</div>
+        <div class="sub-perks">
+          ${perks.map(p=>`<div class="sub-perk">${check}<span>${p}</span></div>`).join('')}
+        </div>
+      </div>
+      <div class="sub-card">
+        <div class="sub-card-title">Управление подпиской</div>
+        <div class="sub-card-sub">Вы можете изменить план или отменить подписку.</div>
+        <button class="sub-btn" onclick="goToDynatos()">Сменить план</button>
+        <button class="sub-btn danger" onclick="cancelSubscription()">Отменить подписку</button>
+      </div>
+      <div class="sub-foot">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="4" y="10" width="16" height="11" rx="2.4" stroke="currentColor" stroke-width="2"/><path d="M8 10V7.5a4 4 0 018 0V10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <span>Ваши платежи защищены. Отмена подписки вступит в силу в конце оплаченного периода.</span>
+      </div>
+    </div>`;
+}
+
+function cancelSubscription(){
+  if(!confirm('Отменить подписку? Доступ сохранится до конца оплаченного периода.'))return;
+  openSupportChat();
+}
+
+/* ------------------------------------------------------------ Подключения */
+
+function renderSettingsConnections(){
+  const el=document.getElementById('settingsContent');
+  el.innerHTML=`
+    <div class="sth">
+      <div class="sth-back" onclick="renderSettingsMain()">
+        <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="sth-title">Подключения</div>
+    </div>
+    <div class="sub-wrap">
+      <div class="sub-card" id="connYm">
+        <div class="conn-row">
+          <div class="conn-logo">Я</div>
+          <div class="conn-meta">
+            <div class="conn-name">Яндекс Музыка</div>
+            <div class="conn-state">Проверяю подключение…</div>
+          </div>
+        </div>
+      </div>
+      <div class="sub-foot">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 11v5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 8h.01" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+        <span>После подключения можно писать в чат «включи…» — трек начнёт играть сразу.</span>
+      </div>
+    </div>`;
+  refreshYandexConn();
+}
+
+async function refreshYandexConn(){
+  const card=document.getElementById('connYm');
+  if(!card)return;
+  const meta=card.querySelector('.conn-meta');
+  if(!meta)return;
+
+  if(!window.MusicClient){
+    meta.querySelector('.conn-state').textContent='Модуль музыки не загрузился — обновите страницу.';
+    return;
+  }
+
+  let st=null;
+  try{ st=await window.MusicClient.status(); }
+  catch(e){ st=null; }
+
+  const row=card.querySelector('.conn-row');
+  const old=row.querySelector('.conn-btn');
+  if(old)old.remove();
+  const slot=card.querySelector('.conn-slot');
+  if(slot)slot.remove();
+
+  const state=meta.querySelector('.conn-state');
+
+  if(!st){
+    state.className='conn-state';
+    state.textContent='Не удалось получить статус. Проверьте соединение.';
+    return;
+  }
+  if(st.available===false){
+    state.className='conn-state';
+    state.textContent='Музыка отключена на сервере администратором.';
+    return;
+  }
+
+  const btn=document.createElement('button');
+  btn.type='button';
+
+  if(st.connected){
+    state.className='conn-state ok';
+    state.textContent='Подключено'+(st.uid?(' · '+st.uid):'')+(st.hasPlus?' · Plus':'');
+    btn.className='conn-btn danger';
+    btn.textContent='Отключить';
+    btn.addEventListener('click',disconnectYandex);
+  }else{
+    state.className='conn-state';
+    state.textContent=st.fallback?'Работает общий аккаунт. Подключите свой для стабильности.':'Не подключено';
+    btn.className='conn-btn primary';
+    btn.textContent='Подключить';
+    btn.addEventListener('click',startYandexConnect);
+  }
+  row.appendChild(btn);
+}
+
+/* Тот же самый мастер подключения, что и в чате, но внутри окна настроек. */
+function startYandexConnect(){
+  const card=document.getElementById('connYm');
+  if(!card)return;
+  const btn=card.querySelector('.conn-btn');
+  if(btn)btn.remove();
+  let slot=card.querySelector('.conn-slot');
+  if(!slot){
+    slot=document.createElement('div');
+    slot.className='conn-slot';
+    card.appendChild(slot);
+  }
+  renderMusicConnect(slot,async function(){
+    await refreshYandexConn();
+  });
+}
+
+async function disconnectYandex(){
+  if(!confirm('Отключить Яндекс Музыку от аккаунта?'))return;
+  try{ await window.MusicClient.authDisconnect(); }catch(e){}
+  await refreshYandexConn();
+}
+
 function renderSettingsGeneral(){
   const el=document.getElementById('settingsContent');
   const s=getSettings();
@@ -8135,25 +8379,25 @@ function renderSettingsLimits(){
         <div class="limits-reset">без сброса</div>
       </div>
       <div class="limits-metric">
-        <div class="limits-metric-row"><span class="limits-metric-label">Токены</span><span class="limits-infinite">∞</span></div>
+        <div class="limits-metric-row"><span class="limits-metric-label">Токены</span><span class="limits-infinite">Без ограничений</span></div>
         <div class="limits-bar"><div class="limits-bar-fill pro" style="width:100%"></div></div>
       </div>
       <div class="limits-metric">
-        <div class="limits-metric-row"><span class="limits-metric-label">Сообщения</span><span class="limits-infinite">∞</span></div>
+        <div class="limits-metric-row"><span class="limits-metric-label">Сообщения</span><span class="limits-infinite">Без ограничений</span></div>
         <div class="limits-bar"><div class="limits-bar-fill pro" style="width:100%"></div></div>
       </div>
     </div>
     <div class="limits-card">
       <div class="limits-card-head">
         <div class="limits-card-title">Еженедельный лимит</div>
-        <div class="limits-reset">без сбр��са</div>
+        <div class="limits-reset">без сброса</div>
       </div>
       <div class="limits-metric">
-        <div class="limits-metric-row"><span class="limits-metric-label">Токены</span><span class="limits-infinite">∞</span></div>
+        <div class="limits-metric-row"><span class="limits-metric-label">Токены</span><span class="limits-infinite">Без ограничений</span></div>
         <div class="limits-bar"><div class="limits-bar-fill pro" style="width:100%"></div></div>
       </div>
       <div class="limits-metric">
-        <div class="limits-metric-row"><span class="limits-metric-label">Сообщения</span><span class="limits-infinite">∞</span></div>
+        <div class="limits-metric-row"><span class="limits-metric-label">Сообщения</span><span class="limits-infinite">Без ограничений</span></div>
         <div class="limits-bar"><div class="limits-bar-fill pro" style="width:100%"></div></div>
       </div>
     </div>
