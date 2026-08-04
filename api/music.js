@@ -1,326 +1,321 @@
 /* ============================================================================
-   HarmonyAI — единый музыкальный эндпоинт.
+   HarmonyAI — стили музыкального плеера и карточек в чате.
 
-   Почему ОДИН файл, а не восемь, как предлагало ТЗ:
-   в проекте уже 11 serverless-функций, а лимит Vercel Hobby — 12 на деплой.
-   Восемь новых файлов сломали бы сборку. Один роутер с action — 12/12.
-
-   Главная оптимизация скорости — action:'resolve'.
-   Один HTTP-запрос на фразу «включи believer» возвращает сразу:
-     - карточки треков,
-     - лучшее совпадение,
-     - ГОТОВУЮ ссылку на аудио для него (если успела за бюджет времени).
-   Значит нажатие Play не требует сети вообще: звук стартует мгновенно.
-   Если ссылка не успела — карточки всё равно уходят сразу, а ссылка
-   догревается в фоне (prefetch) и будет готова к моменту клика.
-
-   Токен Яндекса никогда не уходит в браузер.
+   Переиспользуются переменные темы проекта, если они есть;
+   значения после запятой — запасные, чтобы плеер выглядел цельно
+   и в светлой, и в тёмной теме без правок в основном CSS.
    ========================================================================== */
 
-import {
-  searchTracks, getSuggest, getTrack, getTracks, getPlaybackUrl, prefetchPlaybackUrl,
-  getPlaylist, searchPlaylist, getArtist, searchArtist, getAlbum, searchAlbum,
-  getLikedTracks, setLike, musicEnabled, YandexError,
-} from '../lib/yandex.js';
-
-import {
-  resolveToken, connectionStatus, requestDeviceCode, pollDeviceToken,
-  connectWithToken, disconnectUser,
-} from '../lib/yandex-auth.js';
-
-export const config = { maxDuration: 30 };
-
-/* --------------------------------------------------- защита (как в recognize.js) */
-
-const ALLOWED_HOSTS = ['harmonyai-zeta.vercel.app', 'localhost', '127.0.0.1'];
-
-function originAllowed(req) {
-  const origin = String(req.headers.origin || req.headers.referer || '').trim();
-  if (!origin) return true;
-  try {
-    const host = new URL(origin).hostname;
-    return ALLOWED_HOSTS.some((h) => host === h || host.endsWith('.' + h));
-  } catch (e) { return false; }
+:root {
+  --music-bar-h: 68px;
+  --music-bg: var(--panel, var(--bg-secondary, #14161a));
+  --music-fg: var(--text, var(--text-primary, #e9edf2));
+  --music-dim: var(--text-secondary, #99a2ad);
+  --music-accent: var(--accent, var(--primary, #7c5cff));
+  --music-line: var(--border, rgba(255, 255, 255, .10));
 }
 
-// Музыка — лёгкие запросы, но их много (поиск + прокрутка очереди).
-const RL_WINDOW_MS = 60 * 1000, RL_MAX = 90;
-const _rl = new Map();
+/* ------------------------------------------------------------------ панель
 
-function rateLimited(req) {
-  const fwd = String(req.headers['x-forwarded-for'] || '');
-  const ip = String(fwd.split(',')[0].trim() || req.socket?.remoteAddress || 'unknown');
-  const now = Date.now();
-  const rec = _rl.get(ip);
-  if (!rec || now - rec.start > RL_WINDOW_MS) {
-    _rl.set(ip, { start: now, count: 1 });
-    if (_rl.size > 5000) for (const [k, v] of _rl) if (now - v.start > RL_WINDOW_MS) _rl.delete(k);
-    return false;
-  }
-  rec.count += 1;
-  return rec.count > RL_MAX;
+   Плеер живёт В ПОТОКЕ внутри колонки чата: JS вставляет его в #main перед
+   .chat-area — то есть сразу ПОД кнопкой выбора модели в топбаре.
+   Ширина ограничена рамками чата (как .chat-inner — 720px), поэтому панель
+   никогда не вылезает за пределы чата и не перекрывает поле ввода. */
+
+.music-bar {
+  position: relative;
+  z-index: 3;
+  width: min(720px, calc(100% - 32px));
+  margin: 6px auto 2px;
+  background: var(--music-bg);
+  color: var(--music-fg);
+  border: 1px solid var(--music-line);
+  border-radius: 18px;
+  overflow: hidden;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .22);
+  font-size: 14px;
+  user-select: none;
+  display: none;
 }
 
-/* ------------------------------------------------------------------ утилиты */
-
-/** Гонка с таймаутом: не даём одному медленному шагу задержать весь ответ. */
-function raceBudget(promise, ms, fallback = null) {
-  return Promise.race([
-    promise.catch(() => fallback),
-    new Promise((resolve) => setTimeout(() => resolve(fallback), ms)),
-  ]);
+.music-bar.is-visible {
+  display: block;
+  animation: music-bar-in .26s cubic-bezier(.22, .8, .3, 1);
+}
+@keyframes music-bar-in {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-function readBody(req) {
-  if (req.body && typeof req.body === 'object') return req.body;
-  if (typeof req.body === 'string') { try { return JSON.parse(req.body); } catch (e) { return {}; } }
-  return {};
+/* --------------------------------------------------------------- прогресс */
+
+.music-bar__progress {
+  position: relative;
+  height: 4px;
+  background: var(--music-line);
+  cursor: pointer;
+  transition: height .12s ease;
+}
+.music-bar__progress:hover,
+.music-bar__progress:focus-visible { height: 8px; outline: none; }
+
+.music-bar__buffered,
+.music-bar__played {
+  position: absolute; top: 0; left: 0; bottom: 0;
+  width: 0;
+}
+.music-bar__buffered { background: rgba(255, 255, 255, .16); }
+.music-bar__played { background: var(--music-accent); }
+
+.music-bar__thumb {
+  position: absolute; top: 50%; left: 0;
+  width: 12px; height: 12px; margin-left: -6px;
+  border-radius: 50%;
+  background: var(--music-accent);
+  transform: translateY(-50%) scale(0);
+  transition: transform .12s ease;
+}
+.music-bar__progress:hover .music-bar__thumb,
+.music-bar__progress:focus-visible .music-bar__thumb { transform: translateY(-50%) scale(1); }
+
+/* ------------------------------------------------------------------- тело */
+
+.music-bar__body {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 16px;
+  height: calc(var(--music-bar-h) - 4px);
+  box-sizing: border-box;
 }
 
-/* ------------------------------------------------------------------ handler */
+.music-bar__cover {
+  width: 46px; height: 46px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: var(--music-line);
+  flex: 0 0 auto;
+}
 
-export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  // Ответы музыки не кэшируем на CDN — внутри подписанные ссылки.
-  res.setHeader('Cache-Control', 'no-store');
+.music-bar__meta { min-width: 0; flex: 1 1 200px; }
 
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: { message: 'Method not allowed' } });
-  }
-  if (!originAllowed(req)) {
-    return res.status(403).json({ error: { message: 'Источник запроса не разрешён' } });
-  }
-  if (rateLimited(req)) {
-    return res.status(429).json({ error: { message: 'Слишком много запросов, подождите минуту' } });
-  }
-  if (!musicEnabled()) {
-    return res.status(503).json({
-      type: 'music_disabled',
-      error: { message: 'Музыкальный модуль временно отключён' },
-    });
-  }
+.music-bar__title {
+  font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.music-bar__artist {
+  color: var(--music-dim);
+  font-size: 12.5px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 
-  const body = readBody(req);
-  const action = String(body.action || '').trim();
-  const userId = body.userId ? String(body.userId) : null;
+.music-bar__controls { display: flex; align-items: center; gap: 4px; flex: 0 0 auto; }
+.music-bar__time { color: var(--music-dim); font-variant-numeric: tabular-nums; font-size: 12.5px; flex: 0 0 auto; }
+.music-bar__right { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
 
-  try {
-    /* ---------------------------------------------------------- авторизация */
+/* ----------------------------------------------------------------- кнопки */
 
-    if (action === 'status') {
-      const st = await connectionStatus(userId);
-      return res.status(200).json({ type: 'music_status', ...st });
-    }
+.music-btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--music-fg);
+  font-size: 16px;
+  line-height: 1;
+  width: 34px; height: 34px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background .14s ease, color .14s ease, transform .1s ease;
+}
+.music-btn:hover { background: rgba(127, 127, 127, .16); }
+.music-btn:active { transform: scale(.92); }
+.music-btn.is-active { color: var(--music-accent); }
+.music-btn:focus-visible { outline: 2px solid var(--music-accent); outline-offset: 2px; }
 
-    if (action === 'auth_start') {
-      // deviceCode — не токен доступа, а одноразовый идентификатор сессии,
-      // бесполезный без подтверждения человеком на странице Яндекса.
-      const d = await requestDeviceCode();
-      return res.status(200).json({ type: 'music_auth_start', ...d });
-    }
+.music-btn--main {
+  width: 42px; height: 42px;
+  font-size: 18px;
+  background: var(--music-accent);
+  color: #fff;
+}
+.music-btn--main:hover { background: var(--music-accent); filter: brightness(1.12); }
 
-    if (action === 'auth_poll') {
-      const r = await pollDeviceToken(String(body.deviceCode || ''), userId);
-      return res.status(200).json({ type: 'music_auth_poll', ...r });
-    }
+.music-vol { width: 84px; accent-color: var(--music-accent); cursor: pointer; }
 
-    if (action === 'auth_token') {
-      const r = await connectWithToken(String(body.token || ''), userId);
-      return res.status(200).json({ type: 'music_auth_token', ...r });
-    }
+/* Индикатор загрузки — деликатная пульсация главной кнопки. */
+.music-bar.is-loading .music-btn--main { animation: music-pulse 1s ease-in-out infinite; }
+@keyframes music-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
 
-    if (action === 'auth_disconnect') {
-      const r = await disconnectUser(userId);
-      return res.status(200).json({ type: 'music_auth_disconnect', ...r });
-    }
+/* ---------------------------------------------------------------- очередь */
 
-    /* ------------------------------------------ всё остальное требует токена */
+.music-queue {
+  max-height: 46vh;
+  overflow-y: auto;
+  border-top: 1px solid var(--music-line);
+  padding: 6px;
+}
 
-    const auth = await resolveToken(userId);
-    if (!auth.token) {
-      return res.status(401).json({
-        type: 'music_auth_required',
-        error: { message: 'Подключите Яндекс.Музыку, чтобы слушать треки' },
-      });
-    }
-    const token = auth.token;
+.music-queue__row {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--music-fg);
+  text-align: left;
+  cursor: pointer;
+  font-size: 13.5px;
+}
+.music-queue__row:hover { background: rgba(127, 127, 127, .14); }
+.music-queue__row.is-current { background: rgba(127, 127, 127, .1); color: var(--music-accent); font-weight: 600; }
+.music-queue__n { color: var(--music-dim); font-variant-numeric: tabular-nums; }
+.music-queue__t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.music-queue__a { color: var(--music-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 40%; }
 
-    // Бюджет на попытку сразу приложить ссылку на аудио к ответу.
-    const URL_BUDGET_MS = 1400;
+/* ------------------------------------------------------ карточки в чате */
 
-    /** Общий хвост для коллекций: берём первый играбельный трек и греем ссылку. */
-    async function withFirstPlayback(tracks) {
-      const first = tracks.find((t) => t.playable) || tracks[0] || null;
-      if (!first) return { first: null, playback: null };
-      const playback = await raceBudget(getPlaybackUrl(first.trackId, { token }), URL_BUDGET_MS);
-      if (!playback) prefetchPlaybackUrl(first.trackId, { token });
-      const next = tracks.find((t) => t.playable && t.trackId !== first.trackId);
-      if (next) prefetchPlaybackUrl(next.trackId, { token });
-      return { first, playback };
-    }
+.music-card {
+  border: 1px solid var(--music-line);
+  border-radius: 14px;
+  overflow: hidden;
+  margin: 8px 0;
+  background: rgba(127, 127, 127, .05);
+}
 
-    /* ------------------------------------------------------------------ resolve */
-    /* Самый быстрый путь: фраза -> готовая к воспроизведению очередь. */
+.music-card__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+}
 
-    if (action === 'resolve') {
-      const kind = String(body.kind || 'track');
-      const query = String(body.query || '').trim();
-      if (!query) return res.status(400).json({ error: { message: 'Пустой запрос' } });
+.music-card__cover {
+  width: 56px; height: 56px;
+  border-radius: 10px;
+  object-fit: cover;
+  background: var(--music-line);
+  flex: 0 0 auto;
+}
 
-      if (kind === 'playlist' || kind === 'album' || kind === 'artist') {
-        let entity = null;
-        if (kind === 'playlist') entity = await searchPlaylist(query, { token });
-        if (kind === 'album') entity = await searchAlbum(query, { token });
-        if (kind === 'artist') entity = await searchArtist(query, { token });
+.music-card__info { min-width: 0; flex: 1 1 auto; }
+.music-card__title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.music-card__sub { color: var(--music-dim); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-        const tracks = Array.isArray(entity?.tracks) ? entity.tracks : [];
-        if (!entity || !tracks.length) {
-          return res.status(200).json({ type: 'music_not_found', query, kind });
-        }
+.music-card__play {
+  flex: 0 0 auto;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  border: 0;
+  background: var(--music-accent);
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: transform .1s ease, filter .14s ease;
+}
+.music-card__play:hover { filter: brightness(1.12); }
+.music-card__play:active { transform: scale(.92); }
 
-        const { first, playback } = await withFirstPlayback(tracks);
-        return res.status(200).json({
-          type: 'music_collection',
-          kind,
-          query,
-          collection: {
-            title: entity.title || entity.name || '',
-            subtitle: entity.artist || entity.owner || 'Популярное',
-            cover: entity.cover || null,
-            count: tracks.length,
-          },
-          items: tracks.slice(0, 100),
-          bestMatch: first,
-          playback,
-        });
-      }
+.music-card__list { border-top: 1px solid var(--music-line); }
 
-      // kind === 'track'
-      const { items, bestMatch, cached } = await searchTracks(query, { token, limit: 8 });
-      if (!items.length) {
-        return res.status(200).json({ type: 'music_not_found', query, kind: 'track' });
-      }
+.music-card__row {
+  display: grid;
+  grid-template-columns: 26px 1fr auto auto;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  padding: 9px 12px;
+  border: 0;
+  background: transparent;
+  color: var(--music-fg);
+  text-align: left;
+  cursor: pointer;
+  font-size: 13.5px;
+}
+.music-card__row + .music-card__row { border-top: 1px solid var(--music-line); }
+.music-card__row:hover { background: rgba(127, 127, 127, .12); }
+.music-card__row[disabled] { opacity: .45; cursor: not-allowed; }
+.music-card__n { color: var(--music-dim); font-variant-numeric: tabular-nums; }
+.music-card__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.music-card__artist { color: var(--music-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 34%; }
+.music-card__dur { color: var(--music-dim); font-variant-numeric: tabular-nums; }
 
-      let playback = null;
-      if (bestMatch && bestMatch.playable) {
-        playback = await raceBudget(getPlaybackUrl(bestMatch.trackId, { token }), URL_BUDGET_MS);
-        if (!playback) prefetchPlaybackUrl(bestMatch.trackId, { token });
-        const next = items.find((t) => t.playable && t.trackId !== bestMatch.trackId);
-        if (next) prefetchPlaybackUrl(next.trackId, { token });
-      }
+/* ------------------------------------------------------------ подключение */
 
-      return res.status(200).json({
-        type: 'music_search_result', query, items, bestMatch, playback, cached,
-      });
-    }
+.music-connect { padding: 14px; color: var(--music-fg, inherit); line-height: 1.5; }
+.music-connect__code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(127, 127, 127, .18);
+  border: 1px solid rgba(127, 127, 127, .28);
+  color: var(--music-fg, inherit);
+  display: inline-block;
+  margin: 8px 0;
+  user-select: all;
+}
+.music-connect__btn,
+.music-connect__btn:link,
+.music-connect__btn:visited,
+.music-connect__btn:hover,
+.music-connect__btn:active {
+  display: inline-block;
+  padding: 11px 20px;
+  margin-top: 4px;
+  border-radius: 10px;
+  background: var(--music-accent, #3b6ef5);
+  color: #ffffff;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1.25;
+  letter-spacing: .1px;
+  border: 1px solid rgba(0, 0, 0, .18);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .22);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, .28);
+  cursor: pointer;
+}
+.music-connect__btn:hover { filter: brightness(1.1); }
+.music-connect__btn:active { transform: translateY(1px); }
+.music-connect__hint { color: var(--music-dim); font-size: 12.5px; margin-top: 8px; }
 
-    /* ------------------------------------------------------------------ поиск */
+/* -------------------------------------------------------------- мобильные */
 
-    if (action === 'search') {
-      const query = String(body.query || '').trim();
-      const limit = Number(body.limit) || 8;
-      const r = await searchTracks(query, { token, limit });
-      if (r.bestMatch && r.bestMatch.playable) {
-        prefetchPlaybackUrl(r.bestMatch.trackId, { token });
-      }
-      return res.status(200).json({
-        type: 'music_search_result', query,
-        items: r.items, bestMatch: r.bestMatch, cached: r.cached,
-      });
-    }
+@media (max-width: 760px) {
+  :root { --music-bar-h: 60px; }
+  .music-bar { width: calc(100% - 20px); margin-top: 4px; border-radius: 16px; }
+  .music-bar__body { gap: 10px; padding: 6px 10px; }
+  .music-bar__time,
+  .music-vol,
+  #mbShuffle,
+  #mbRepeat { display: none; }
+  .music-bar__cover { width: 40px; height: 40px; }
+  .music-card__artist { display: none; }
+}
 
-    if (action === 'suggest') {
-      const items = await getSuggest(String(body.part || ''), { token });
-      return res.status(200).json({ type: 'music_suggest', items });
-    }
+@media (prefers-reduced-motion: reduce) {
+  .music-bar.is-visible { animation: none; }
+  .music-bar.is-loading .music-btn--main { animation: none; }
+}
 
-    /* ----------------------------------------------------------------- треки */
-
-    if (action === 'track') {
-      const track = await getTrack(String(body.trackId || ''), { token });
-      if (!track) return res.status(404).json({ error: { message: 'Трек не найден' } });
-      prefetchPlaybackUrl(track.trackId, { token });
-      return res.status(200).json({ type: 'music_track', track });
-    }
-
-    if (action === 'tracks') {
-      const ids = Array.isArray(body.trackIds) ? body.trackIds.slice(0, 50) : [];
-      const items = await getTracks(ids, { token });
-      return res.status(200).json({ type: 'music_tracks', items });
-    }
-
-    if (action === 'play') {
-      const trackId = String(body.trackId || '');
-      const playback = await getPlaybackUrl(trackId, { token, preferCodec: body.codec || 'mp3' });
-      // Прогрев следующего трека — кнопка «следующий» сработает без паузы.
-      if (body.nextTrackId) prefetchPlaybackUrl(String(body.nextTrackId), { token });
-      return res.status(200).json({ type: 'music_playback', trackId, ...playback });
-    }
-
-    // Чистый префетч: клиент говорит «скоро понадобится», отвечаем мгновенно.
-    if (action === 'prefetch') {
-      const ids = Array.isArray(body.trackIds) ? body.trackIds.slice(0, 3) : [];
-      for (const id of ids) prefetchPlaybackUrl(String(id), { token });
-      return res.status(200).json({ type: 'music_prefetch', queued: ids.length });
-    }
-
-    /* ------------------------------------------------------------- коллекции */
-
-    if (action === 'playlist') {
-      const pl = body.playlistId
-        ? await getPlaylist(String(body.playlistId), { token })
-        : await searchPlaylist(String(body.query || ''), { token });
-      if (!pl) return res.status(404).json({ error: { message: 'Плейлист не найден' } });
-      return res.status(200).json({ type: 'music_collection', kind: 'playlist', ...pl });
-    }
-
-    if (action === 'artist') {
-      const ar = body.artistId
-        ? await getArtist(String(body.artistId), { token })
-        : await searchArtist(String(body.query || ''), { token });
-      if (!ar) return res.status(404).json({ error: { message: 'Исполнитель не найден' } });
-      return res.status(200).json({ type: 'music_collection', kind: 'artist', ...ar });
-    }
-
-    if (action === 'album') {
-      const al = body.albumId
-        ? await getAlbum(String(body.albumId), { token })
-        : await searchAlbum(String(body.query || ''), { token });
-      if (!al) return res.status(404).json({ error: { message: 'Альбом не найден' } });
-      return res.status(200).json({ type: 'music_collection', kind: 'album', ...al });
-    }
-
-    /* -------------------------------------------------------------- избранное */
-
-    if (action === 'liked') {
-      if (!auth.uid) return res.status(200).json({ type: 'music_tracks', items: [] });
-      const items = await getLikedTracks(auth.uid, { token });
-      return res.status(200).json({ type: 'music_tracks', items });
-    }
-
-    if (action === 'like') {
-      if (!auth.uid) {
-        return res.status(400).json({
-          error: { message: 'Лайки доступны только со своим аккаунтом Яндекса' },
-        });
-      }
-      const r = await setLike(auth.uid, String(body.trackId || ''), body.like !== false, { token });
-      return res.status(200).json({ type: 'music_like', ...r });
-    }
-
-    return res.status(400).json({ error: { message: 'Неизвестное действие: ' + action } });
-
-  } catch (e) {
-    const status = e instanceof YandexError ? (e.status || 502) : 500;
-    const code = e instanceof YandexError ? e.code : 'internal';
-    // Лог без токенов и подписанных ссылок.
-    console.error('[music]', action, code, String(e && e.message || e).slice(0, 300));
-    return res.status(status).json({
-      type: 'music_error', code,
-      error: { message: String(e && e.message || 'Ошибка музыкального модуля') },
-    });
-  }
+/* ============ Одиночный трек: компактная «таблетка» ============ */
+.music-card--single { border-radius: 999px; padding: 5px; max-width: 430px; }
+.music-card--single .music-card__head { padding: 4px 14px 4px 4px; gap: 13px; }
+.music-card--single .music-card__cover { width: 46px; height: 46px; border-radius: 999px; }
+.music-card--single .music-card__title { font-size: 15px; font-weight: 700; }
+.music-card--single .music-card__sub { font-size: 13px; }
+.music-card--single .music-card__play { width: 38px; height: 38px; }
+@media (max-width: 760px) {
+  .music-card--single { max-width: 100%; }
+  .music-card--single .music-card__title { font-size: 14.5px; }
 }
