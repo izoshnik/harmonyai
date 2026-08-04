@@ -630,7 +630,7 @@ html[data-theme="light"] .voice-time{color:rgba(38,36,31,.72);}
 .msg-ai-wrap.bubble-in{animation:aiBubbleIn 0.28s cubic-bezier(0.22,0.61,0.36,1) both;}
 @keyframes streamCursorBlink{0%,100%{opacity:1;}50%{opacity:0.25;}}
 .msg-ai.is-streaming{caret-color:transparent;}
-/* ===== Блоки кода (Markdown) — тёмная «карточка» с шапкой и кнопкой копирования ===== */
+/* ===== Блоки кода (Markdown) — тёмная «карточка» с шапкой и кнопкой ����опирования ===== */
 .code-block{position:relative;margin:14px 0;border-radius:16px;overflow:hidden;background:#1b1c1f;border:1px solid rgba(255,255,255,.08);}
 .code-head{display:flex;align-items:center;justify-content:space-between;padding:9px 12px 9px 15px;background:transparent;}
 .code-lang{font-size:14px;font-weight:700;color:#e8e8ec;letter-spacing:.01em;font-family:'Inter',sans-serif;}
@@ -670,7 +670,7 @@ html[data-theme="light"] .msg-ai{color:#1a1a1a;}
   html[data-theme="dark"] .model-pill:hover{background:#22222a;}
   html[data-theme="dark"] .model-pill .pill-mode{color:#a9a9b6;}
   html[data-theme="dark"] .model-pill .pill-caret{color:#a9a9b6;}
-  /* Выпадающие меню моделей — тёмный фон, светлый текст, читаемые подписи */
+  /* Выпадающие меню модел��й — тёмный фон, светлый текст, читаемые подписи */
   html[data-theme="dark"] .desktop-model-drop,
   html[data-theme="dark"] .desktop-sub-drop{background:#17171c;border-color:rgba(255,255,255,.10);box-shadow:0 18px 40px rgba(0,0,0,.5);}
   html[data-theme="dark"] .desktop-copy span,
@@ -1888,7 +1888,7 @@ html[data-theme="light"] .photo-deleted-msg{
 
 /* ============================================================================
    Кнопки «+» (bar-icon) и микрофона — полностью БЕЗ обводки во всех состояниях.
-   Размеры, расположение, анимации и Liquid Glass (blur/фон/блик ::before) не
+   Р��змеры, расположение, анимации и Liquid Glass (blur/фон/блик ::before) не
    меняются: убираем только border/ring/outline. Ширина границы сохранена
    (transparent), поэтому геометрия кнопок не сдвигается.
    ========================================================================= */
@@ -3839,7 +3839,7 @@ async function parsePdfFile(file){
   return pages.join('\n\n');
 }
 async function parseDocxFile(file){
-  if(!window.mammoth)throw new Error('Модуль чтения DOCX ещё загружается — попробуйте через пару секунд');
+  if(!window.mammoth)throw new Error('Модуль чтения DOCX ещё загружается — попробуйте чере�� пару секунд');
   const arr=await file.arrayBuffer();
   const result=await window.mammoth.extractRawText({arrayBuffer:arr});
   return result.value||'';
@@ -4177,7 +4177,7 @@ function highlightSnippet(text,query){
 }
 function chatMenuGotoMsg(idx){
   closeChatMenu();
-  // Сопоставляем индекс в chatHistory с DOM-узлом сообщения (user/ai wrap по порядку).
+  // Сопоста��ляе�� индекс в chatHistory с DOM-узлом сообщения (user/ai wrap по порядку).
   const inner=document.getElementById('chatInner');
   if(!inner)return;
   const nodes=inner.querySelectorAll('.msg-user-wrap,.msg-ai-wrap');
@@ -4701,7 +4701,7 @@ const BASE_SYSTEM=`Ты HarmonyAI — музыкальный ИИ-помощни
 ГЕНЕРАЦИЯ НОТНЫХ СТАНОВ:
 1. Для нотного вывода всегда используй один или несколько блоков \`\`\`abc ... \`\`\`.
 1.1. Никогда не заменяй нотный стан ASCII-графикой, псевдотаблицей, текстовым "рисунком", списком нот по линиям или описанием вместо \`\`\`abc\`\`\`.
-1.2. Если запрос музыкальный, ответ считается неполным без хотя бы одного корректного блока \`\`\`abc\`\`\`, который можно визуализировать в настоящий нотный стан.
+1.2. Если запрос музыкальный, ответ считается неполным без хотя бы одного ��орректного блока \`\`\`abc\`\`\`, который можно визуализировать в настоящий нотный стан.
 2. В одном ответе можно использовать сколько угодно ABC-блоков. Не ограничивай количество станов, если материал длинный.
 3. Для длинных гамм, произведений и сложных примеров разбивай материал на несколько подряд идущих ABC-блоков по разделам, чтобы стан не ломался.
 4. Разрешены: гаммы в несколько октав, аккорды, арпеджио, интервалы, гармонические последовательности, короткие пьесы, многотактовые фрагменты, многоголосие, фортепианные фактуры.
@@ -5892,9 +5892,13 @@ function tChatErr(msg){
 // Раньше это были четыре одинаковые функции — оставлен один помощник, поведение не изменилось.
 function buildEndpointCandidates(path){
   const liveBase=PRIMARY_API_ORIGIN.replace(/\/$/,'');
-  const isLiveHost=window.location.hostname==='harmonyai-zeta.vercel.app';
   const endpoints=[];
-  if(window.location.protocol!=='file:'&&isLiveHost){
+  // Same-origin ВСЕГДА первый: фронт и API — один и тот же деплой Vercel.
+  // Раньше относительный путь добавлялся только на harmonyai-zeta.vercel.app,
+  // поэтому на любом другом домене (свой проект, preview-деплой) запросы шли
+  // ТОЛЬКО на чужой захардкоженный прод и падали с 'Failed to fetch' —
+  // отсюда и «Сервер чата недоступен».
+  if(window.location.protocol!=='file:'){
     endpoints.push(path);
   }
   endpoints.push(`${liveBase}${path}`);
@@ -6312,7 +6316,7 @@ function showLimitReached(check){
 // Вставляет <img> в бабл ассистента по URL из Storage.
 function appendImageToShell(msgEl,src){
   if(!msgEl)return;
-  // data-src хранит URL для просмотрщика; клик по фото на десктопе открывает модалку,
+  // data-src хранит URL для просмотрщика; клик по фото на десктопе открывает ��одалку,
   // на мобильном пока остаётся старое поведение (zoom-in курсор, без модалки —
   // полноэкранный просмотрщик мобильной версии не входит в эту задачу).
   msgEl.innerHTML=`<img class="msg-ai-img" src="${escapeHtml(src)}" data-src="${escapeHtml(src)}" alt="Сгенерированное изображение" loading="lazy">`;
@@ -6426,7 +6430,7 @@ async function pvShare(){
   }
 }
 // Редактировать: закрываем окно и прикрепляем это фото к полю ввода как attachment-чип.
-// Следующее отправленное сообщение считается правкой к этому фото, пока пользователь
+// Следующее отправ��енное сообщение считается правкой к этому фото, пока пользователь
 // не открепит фото крестиком на чипе.
 async function pvEdit(){
   const url=_pvState.url;if(!url)return;
@@ -6599,7 +6603,7 @@ async function handleImageGeneration(promptText){
 }
 
 /* ============================================================================
-   РАСПОЗНАВАНИЕ МУЗЫКИ / НОТНЫЙ ДИКТАНТ (Pro-only)
+   РАСПОЗНАВАНИЕ ��УЗЫКИ / НОТНЫЙ ДИКТАНТ (Pro-only)
    Path A (identify): AudD API на сервере, точное совпадение записи.
    Path B (identify + dictation): basic-pitch (TF.js через CDN) → MIDI ноты →
      - для diktation: MIDI → ABC, рендер через abcjs (уже подключён);
@@ -6627,7 +6631,7 @@ function setRecognizeMode(mode){
   const desc=document.getElementById('recDesc');
   if(desc){
     desc.textContent=mode==='dictation'
-      ? 'Сыграйте или спойте мелодию — приложение расшифрует её в нотный стан (двухголосие поддерживается).'
+      ? 'Сы��райте или спойте мелодию — приложение расшифрует её в нотный стан (двухголосие поддерживается).'
       : 'Приложение послушает запись (до 5 минут) и определит произведение, автора и период.';
   }
 }
@@ -6807,8 +6811,8 @@ function addVoiceMessageBubble(url,durSec,createdAt=messageNow()){
 
 function getRecognizeEndpoint(){
   const liveBase=PRIMARY_API_ORIGIN.replace(/\/$/,'');
-  const isLiveHost=window.location.hostname==='harmonyai-zeta.vercel.app';
-  if(window.location.protocol!=='file:'&&isLiveHost)return '/api/recognize';
+  // Same-origin первым — фронт и API живут на одном домене.
+  if(window.location.protocol!=='file:')return '/api/recognize';
   return liveBase+'/api/recognize';
 }
 
@@ -7249,7 +7253,7 @@ async function handleMusicMessage(text){
 
   /* --- ЗАПУСК МУЗЫКИ: один запрос к /api/music, мимо модели. --- */
   const g=document.getElementById('greetingWrap');if(g)g.style.display='none';
-  addUserBubble(text,[],{createdAt:messageNow()});
+  const userBub=addUserBubble(text,[],{createdAt:messageNow()});
   chatHistory.push({role:'user',content:text,createdAt:messageNow()});
 
   const shell=createAiBubbleShell({showActions:false});
@@ -7294,18 +7298,33 @@ async function handleMusicMessage(text){
       saveChat().catch(function(){});
       return true;
     }
-    // Любая другая ошибка — не теряем запрос, отдаём его обычному чату.
+    /* Любая другая ошибка (сервис упал, сеть, 500):
+       — явный музыкальный запрос («включи/найди X») НЕ отдаём текстовой модели:
+         именно это давало дубль сообщения и «молчание» ИИ. Честно сообщаем,
+         что музыкальный сервис недоступен.
+       — неявный (голое название) — молча возвращаем обычному чату, сначала
+         убрав из DOM уже нарисованный пузырь пользователя (раньше он оставался,
+         и чат рисовал сообщение дважды). */
     shell.wrap.remove();
-    chatHistory.pop();
-    return false;
+    if(intent.confidence==='low'){
+      if(userBub&&userBub.parentNode)userBub.parentNode.removeChild(userBub);
+      chatHistory.pop();
+      return false;
+    }
+    const merr='Музыкальный сервис сейчас недоступен. Проверьте переменные окружения Vercel (YANDEX_MUSIC_ENABLED, токен) или попробуйте позже.';
+    shell.msg.textContent=merr;
+    chatHistory.push({role:'assistant',content:merr,createdAt:messageNow()});
+    saveChat().catch(function(){});
+    return true;
   }
 
   if(!data||data.type==='music_not_found'){
     /* Голое название без глагола и ничего не нашлось — значит это был
-       не запрос музыки, а обычный вопрос. Молча отдаём его модели:
+       не запрос музыки, а обычный вопрос. Молча ��тдаём его модели:
        пользователь даже не узнает, что мы пробовали искать трек. */
     if(intent.confidence==='low'){
       shell.wrap.remove();
+      if(userBub&&userBub.parentNode)userBub.parentNode.removeChild(userBub);
       chatHistory.pop();
       return false;
     }
@@ -8066,9 +8085,10 @@ async function registerCurrentDevice(){
 }
 function buildLocaleApiCandidates(){
   const liveBase=PRIMARY_API_ORIGIN.replace(/\/$/,'');
-  const isLiveHost=window.location.hostname==='harmonyai-zeta.vercel.app';
   const endpoints=[];
-  if(window.location.protocol!=='file:'&&isLiveHost)endpoints.push('/api/detect-locale');
+  // Same-origin первым — иначе на любом домене, кроме захардкоженного прода,
+  // определение локали молча падало.
+  if(window.location.protocol!=='file:')endpoints.push('/api/detect-locale');
   endpoints.push(`${liveBase}/api/detect-locale`);
   return [...new Set(endpoints)];
 }
