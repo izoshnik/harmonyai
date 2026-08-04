@@ -20,6 +20,8 @@ function originAllowed(req) {
   if (!origin) return true; // некоторые webview не шлют заголовок — не блокируем жёстко
   try {
     const host = new URL(origin).hostname;
+    const selfHost = String(req.headers.host || '').split(':')[0];
+    if (selfHost && host === selfHost) return true; // same-origin всегда разрешён
     return ALLOWED_HOSTS.some(h => host === h || host.endsWith('.' + h));
   } catch (e) { return false; }
 }
@@ -205,7 +207,7 @@ function buildDocx(content) {
    Кириллица и прочие не-WinAnsi символы заменяются на '?' (best-effort),
    чтобы файл оставался валидным и никогда не падал. ASCII/латиница/базовая
    пунктуация отображаются корректно. Для полноценной кириллицы нужен
-   встроенный TTF-шрифт с CID — это выходит за рамки zero-dependency.
+   встроенный TTF-шрифт с CID — это ��ыходит за рамки zero-dependency.
    =========================================================================== */
 
 // Оставляем печатаемый WinAnsi-диапазон, всё прочее (в т.ч. кириллицу) → '?'.
