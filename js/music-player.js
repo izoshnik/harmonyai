@@ -76,7 +76,14 @@
     if (!bar) {
       bar = document.createElement('div');
       bar.id = 'musicPlayerBar';
-      document.body.appendChild(bar);
+      // Плеер живёт ВНУТРИ колонки чата: вставляем его в #main перед .chat-area,
+      // т.е. сразу под топбаром с кнопкой выбора модели. Он не fixed-панель
+      // на весь экран, не выходит за рамки чата и не перекрывает поле ввода.
+      var main = document.getElementById('main');
+      var chatArea = document.getElementById('chatArea');
+      if (main && chatArea) main.insertBefore(bar, chatArea);
+      else if (main) main.appendChild(bar);
+      else document.body.appendChild(bar);
     }
 
     bar.className = 'music-bar';
@@ -137,7 +144,10 @@
     audio = document.createElement('audio');
     audio.id = 'musicAudio';
     audio.preload = 'auto';
-    audio.crossOrigin = 'anonymous';
+    // ВАЖНО: crossOrigin НЕ задаём. Хосты Яндекса, отдающие mp3-поток, не
+    // присылают CORS-заголовки; с crossOrigin='anonymous' браузер БЛОКИРУЕТ
+    // загрузку аудио, и трек не играет вообще (в этом и была причина сбоя).
+    // Без атрибута файл грузится как обычный медиа-ресурс (no-cors).
     document.body.appendChild(audio);
 
     bindEvents();
