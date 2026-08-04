@@ -15,28 +15,39 @@
   --music-line: var(--border, rgba(255, 255, 255, .10));
 }
 
-/* ------------------------------------------------------------------ панель */
+/* ------------------------------------------------------------------ панель
+
+   Плеер живёт В ПОТОКЕ внутри колонки чата: JS вставляет его в #main перед
+   .chat-area — то есть сразу ПОД кнопкой выбора модели в топбаре.
+   Ширина ограничена рамками чата (как .chat-inner — 720px), поэтому панель
+   никогда не вылезает за пределы чата и не перекрывает поле ввода. */
 
 .music-bar {
-  position: fixed;
-  left: 0; right: 0; bottom: 0;
-  z-index: 9000;
+  position: relative;
+  z-index: 3;
+  width: min(720px, calc(100% - 32px));
+  margin: 6px auto 2px;
   background: var(--music-bg);
   color: var(--music-fg);
-  border-top: 1px solid var(--music-line);
+  border: 1px solid var(--music-line);
+  border-radius: 18px;
+  overflow: hidden;
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  box-shadow: 0 -8px 32px rgba(0, 0, 0, .28);
-  transform: translateY(110%);
-  transition: transform .26s cubic-bezier(.22, .8, .3, 1);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .22);
   font-size: 14px;
   user-select: none;
+  display: none;
 }
 
-.music-bar.is-visible { transform: translateY(0); }
-
-/* Чтобы панель не перекрывала поле ввода чата. */
-body.has-music-bar { padding-bottom: var(--music-bar-h); }
+.music-bar.is-visible {
+  display: block;
+  animation: music-bar-in .26s cubic-bezier(.22, .8, .3, 1);
+}
+@keyframes music-bar-in {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 
 /* --------------------------------------------------------------- прогресс */
 
@@ -282,6 +293,7 @@ body.has-music-bar { padding-bottom: var(--music-bar-h); }
 
 @media (max-width: 760px) {
   :root { --music-bar-h: 60px; }
+  .music-bar { width: calc(100% - 20px); margin-top: 4px; border-radius: 16px; }
   .music-bar__body { gap: 10px; padding: 6px 10px; }
   .music-bar__time,
   .music-vol,
@@ -292,7 +304,7 @@ body.has-music-bar { padding-bottom: var(--music-bar-h); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .music-bar { transition: none; }
+  .music-bar.is-visible { animation: none; }
   .music-bar.is-loading .music-btn--main { animation: none; }
 }
 
