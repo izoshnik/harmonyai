@@ -650,3 +650,12 @@ body.music-screen-open { overflow: hidden; }
   .music-screen__veil { background: rgba(8, 8, 10, .96); }
   .music-sheet__panel { background: rgba(28, 29, 33, .97); }
 }
+
+
+/* Текстовый ответ под карточкой трека.
+   Нужен для составных просьб вроде «найди Believer и расскажи, кто написал»:
+   карточка и ответ живут в ОДНОМ пузыре, а не в двух сообщениях. */
+.music-answer{margin-top:10px;line-height:1.55;}
+.music-answer:empty{display:none;}
+.music-answer > :first-child{margin-top:0;}
+.music-answer > :last-child{margin-bottom:0;}
