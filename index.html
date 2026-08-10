@@ -3096,6 +3096,7 @@ function ensureSignedInShell(session){
     curUser.nickname=curUser.nickname||nicknameBase;
     curUser.settings=curUser.settings||{};
   }
+  try{window.__hmUserId=uid;}catch(e){}
   document.getElementById('authWrap').classList.add('gone');
   document.getElementById('app').classList.add('show');
   window.__appShown=true;
@@ -3378,6 +3379,9 @@ function syncSignedInRoute(){
 // Нет сессии / выход: показываем /login и снимаем ранний флаг data-boot (см. <head>).
 function syncSignedOutRoute(){
   document.documentElement.removeAttribute('data-boot');
+  // Без сессии ссылки на аудио получить нельзя — не держим «мёртвый» бар
+  // поверх экрана входа (после выхода или при F5 без авторизации).
+  try{window.MusicPlayer&&window.MusicPlayer.close();}catch(e){}
   setRoute('/login',false);
 }
 window.addEventListener('popstate',()=>{
@@ -3442,6 +3446,9 @@ async function loadProfile(uid,email){
     const localNick=getLocalNickname(uid);
     curUser={id:uid,email,nickname:localNick||(email||'').split('@')[0]||'Пользователь',role:'user',settings:{},needsNickname:!localNick};
   }
+  // id нужен музыкальному клиенту ДО первого сообщения: иначе восстановленный
+  // после F5 плеер не знал, чей токен использовать, и Play молча не играл.
+  try{window.__hmUserId=curUser&&curUser.id?curUser.id:null;}catch(e){}
   if(curUser?.settings?.appearance)applyTheme(curUser.settings.appearance);
   // Применяем язык интерфейса из профиля (если задан и отличается от текущего).
   try{
@@ -3889,6 +3896,10 @@ async function parseGenericFile(file){
   throw new Error('Поддерживаются только image, pdf, md, txt и docx');
 }
 async function logOut(){
+  // Плеер привязан к аккаунту: без закрытия на экране входа оставался
+  // «мёртвый» бар, который не мог ничего сыграть.
+  try{window.MusicPlayer&&window.MusicPlayer.close();}catch(e){}
+  window.__hmUserId=null;
   await sb.auth.signOut();
   curUser=null;chatHistory=[];curChatId=null;chats=[];
   syncSignedOutRoute();
@@ -7297,6 +7308,54 @@ function startMusicQueue(payload){
   window.MusicPlayer.setQueue(items,bi<0?0:bi,payload.playback,payload.collection);
 }
 
+/* Текстовая половина составной просьбы («найди X и переведи»).
+   НЕ через requestChatReplyLive: там инструкция уходила последним system-
+   сообщением ПОСЛЕ всей истории — часть прокси такой диалог отклоняет,
+   а любой сбой стриминга молча съедал ответ, и пользователь видел только
+   карточку. Здесь — простой нестриминговый запрос, инструкция идёт обычным
+   user-сообщением (его принимают все модели), а сбой виден пользователю. */
+async function requestMusicAnswer(facts,answerRequest){
+  const instruction=
+    'Одной фразой я попросил найти музыку и задал вопрос. '+
+    'Трек уже найден и показан карточкой в этом же сообщении: '+facts+'. '+
+    'Не пиши «вот трек», не давай ссылок, не описывай карточку и не здоровайся — '+
+    'ответь только на вторую, содержательную часть моей просьбы'+
+    (answerRequest?(' ('+answerRequest+')'):'')+'. Коротко и по делу.';
+  const payload={
+    messages:[{role:'system',content:buildSystem()},...toWireHistory(chatHistory),{role:'user',content:instruction}],
+    model:curModel,
+    effort:curMode,
+    think:false,
+    stream:false,
+    webSearch:'off',
+    trainingMode:false,
+    userId:curUser?.id||null,
+    userEmail:curUser?.email||null
+  };
+  const endpoints=buildApiCandidates();
+  let lastError=null;
+  for(let i=0;i<endpoints.length;i++){
+    try{
+      const res=await withTimeout(
+        fetch(endpoints[i],{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),cache:'no-store',credentials:'omit'}),
+        CHAT_TIMEOUT_MS,
+        'Сервер слишком долго отвечает'
+      );
+      const data=await res.json().catch(function(){return null;});
+      if(!res.ok)throw new Error((data&&data.error&&data.error.message)||('Ошибка сервера ('+res.status+')'));
+      const reply=data&&data.choices&&data.choices[0]&&data.choices[0].message
+        ? String(data.choices[0].message.content||'').trim():'';
+      if(!reply)throw new Error('Модель вернула пустой ответ');
+      return reply;
+    }catch(e){
+      lastError=e;
+      const msg=String(e&&e.message||'').toLowerCase();
+      if(i<endpoints.length-1&&(msg.includes('failed to fetch')||msg.includes('load failed')||msg.includes('network')))continue;
+    }
+  }
+  throw lastError||new Error('Не удалось получить ответ от сервера');
+}
+
 /* Главный перехватчик. Возвращает true, если сообщение обработано музыкой. */
 async function handleMusicMessage(text){
   /* Один музыкальный сценарий за раз. Второй вызов (быстрый двойной Enter,
@@ -7517,18 +7576,12 @@ async function runMusicMessage(text){
     const facts=t
       ? ('«'+t.title+'» — '+t.artist+(t.album?(', альбом «'+t.album+'»'):''))
       : 'ничего конкретного';
-    const extra=[{role:'system',content:
-      'Пользователь одной фразой попросил найти музыку и задал вопрос. '+
-      'Трек уже найден и показан карточкой в этом же сообщении: '+facts+'. '+
-      'Не пиши «вот трек», не давай ссылок, не описывай карточку и не здоровайся — '+
-      'ответь только на содержательную часть просьбы'+
-      (intent.answerRequest?(' ('+intent.answerRequest+')'):'')+'. Коротко и по делу.'}];
+
 
     setGeneratingState(true);
     let answerText='';
     try{
-      const r=await requestChatReplyLive(answerEl,null,extra,'',{});
-      answerText=(r&&r.text)?String(r.text).trim():'';
+      answerText=await requestMusicAnswer(facts,intent.answerRequest||'');
     }catch(e){
       answerText='';
     }finally{
@@ -7536,6 +7589,8 @@ async function runMusicMessage(text){
     }
 
     if(answerText){
+      renderMd(answerEl,answerText);
+      scrollChat();
       // ОДНА запись в истории: и карточка, и текст ответа.
       chatHistory.push({role:'assistant',content:answerText,music:stored,createdAt:messageNow()});
       try{recordUsage(text,answerText);}catch(e){}
@@ -7543,8 +7598,9 @@ async function runMusicMessage(text){
       maybeGenerateChatTitle();
       return true;
     }
-    // Модель не ответила — оставляем хотя бы карточку, без пустого блока.
-    if(answerEl.parentNode)answerEl.parentNode.removeChild(answerEl);
+    // Модель не ответила — НЕ прячем это молча: честная строка под карточкой.
+    answerEl.textContent='Не удалось получить описание. Спросите меня об этом треке — отвечу в чате.';
+    scrollChat();
   }
 
   chatHistory.push({role:'assistant',content:musicLabelFor(intent,payload),
@@ -8302,6 +8358,8 @@ async function renderSettingsSessions(){
 }
 async function signOutEverywhere(){
   if(!window.confirm('Выйти из аккаунта на всех устройствах?'))return;
+  try{window.MusicPlayer&&window.MusicPlayer.close();}catch(e){}
+  window.__hmUserId=null;
   try{await sb.auth.signOut({scope:'global'});}catch(e){}
   location.reload();
 }
