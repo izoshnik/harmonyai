@@ -7235,8 +7235,11 @@ async function handleMusicMessage(text){
       case 'like': {
         const t=P.currentTrack();
         if(!t)return false;
-        window.MusicClient.like(t.trackId,true).catch(function(){});
-        reply='Добавил в избранное.';break;
+        /* Через плеер, а не напрямую через клиент: так сердечко в строке
+           и в окне трека сразу перекрашивается и не расходится с Яндексом. */
+        if(typeof P.like==='function')P.like(true);
+        else window.MusicClient.like(t.trackId,true).catch(function(){});
+        reply='Добавил в избранное — трек появится в «Мне нравится» в Яндекс.Музыке.';break;
       }
       default: return false;
     }
