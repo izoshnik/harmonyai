@@ -190,13 +190,13 @@ async function doResolve(kind, query, token) {
   const { items, bestMatch } = await searchTracks(q, { token, limit: 10 });
   if (!items.length || !bestMatch) return { type: 'music_not_found' };
 
-  // Греем ссылку следующего кандидата: если стартовый окажется недоступен,
-  // переход будет мгновенным.
-  const second = items.find((t) => t.trackId !== bestMatch.trackId);
-  if (second) prefetchPlaybackUrl(second.trackId, { token });
-
+  /* ОДИН трек — самый подходящий.
+     Раньше отдавался весь список из 10 позиций: в карточке была куча
+     почти одинаковых версий одной песни, а очередь плеера листала их
+     насквозь при любом сбое. Коллекций (альбом/артист/плейлист) это не
+     касается — там список и есть смысл запроса. */
   return {
-    items,
+    items: [bestMatch],
     bestMatch,
     collection: null,
     playback: await safePlayback(bestMatch.trackId, token),
