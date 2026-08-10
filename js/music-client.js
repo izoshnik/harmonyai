@@ -160,6 +160,21 @@
     return call('like', { trackId: trackId, like: liked !== false });
   }
 
+  /* Идентификаторы избранного — чтобы сердечко в плеере совпадало с
+     приложением Яндекс.Музыки. Ответ маленький, но ходить за ним на каждый
+     трек незачем: держим его в памяти вкладки одну минуту. */
+  var likedCache = { at: 0, promise: null };
+  function likedIds(force) {
+    var now = Date.now();
+    if (!force && likedCache.promise && now - likedCache.at < 60000) return likedCache.promise;
+    likedCache.at = now;
+    likedCache.promise = call('liked_ids', {}).then(function (d) {
+      return (d && Array.isArray(d.ids)) ? d.ids : [];
+    }).catch(function () { return []; });
+    return likedCache.promise;
+  }
+  function forgetLiked() { likedCache.at = 0; likedCache.promise = null; }
+
   global.MusicClient = {
     call: call,
     resolve: resolve,
@@ -173,7 +188,9 @@
     authPoll: authPoll,
     authToken: authToken,
     authDisconnect: authDisconnect,
-    like: like
+    like: like,
+    likedIds: likedIds,
+    forgetLiked: forgetLiked
   };
 
 })(typeof window !== 'undefined' ? window : globalThis);
