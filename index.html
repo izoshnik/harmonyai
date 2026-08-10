@@ -4241,6 +4241,14 @@ async function openChat(id){
       // Подписанной ссылки в истории нет, поэтому Play возьмёт свежую.
       const shell=createAiBubbleShell({showActions:false,createdAt:m.createdAt,historyIndex:idx});
       try{shell.msg.appendChild(buildMusicCard(m.music));}catch(e){shell.msg.textContent=txt||'';}
+      /* Под карточкой мог быть настоящий ответ модели («кто написал песню»).
+         Служебная подпись «Включаю: …» помечена musicLabel — её не рисуем. */
+      if(txt&&!m.musicLabel){
+        const ans=document.createElement('div');
+        ans.className='music-answer';
+        shell.msg.appendChild(ans);
+        try{renderMd(ans,normalizeReplyNotation(txt));}catch(e){ans.textContent=txt;}
+      }
     }
     else if(m.image){
       // Сообщение с сгенерированной картинкой — рендерим <img> по URL из Storage.
@@ -6060,6 +6068,9 @@ function toWireHistory(history,opts={}){
     if(forStorage)base.createdAt=m.createdAt||messageNow();
     if(forStorage&&m.generatedFile)base.generatedFile=m.generatedFile;
     if(forStorage&&m.music)base.music=m.music;
+    // Без этого флага после перезагрузки чата служебная подпись «Включаю: …»
+    // рисуется текстом под карточкой и выглядит как дубль сообщения.
+    if(forStorage&&m.musicLabel)base.musicLabel=true;
     if(m.role==='user'&&i===lastUserIdx){
       base.content=m.content;
       base.attachments=slimAttachments(m.attachments);
@@ -6994,6 +7005,11 @@ function openAbcEditor(holder,abcHolder,abc){
 
 async function sendMsg(){
   if(isGenerating){stopGeneration();return;}
+  /* Музыкальный сценарий длится секунды (классификатор + поиск в Яндексе),
+     а флаг isGenerating он поднимает не всегда. Без этой защиты второй
+     Enter во время поиска рисовал второй пузырь пользователя и вторую карточку —
+     это и было дублирование сообщений при поиске трека. */
+  if(window.__musicBusy)return;
   const ta=document.getElementById('msgTa');
   const text=ta.value.trim();
   if(!text&&!pendingAttachments.length)return;
@@ -7104,11 +7120,30 @@ function musicDur(sec){
 
 /* Карточка результата в пузыре ассистента. Строится один раз и из истории тоже. */
 function buildMusicCard(payload){
-  const items=Array.isArray(payload.items)?payload.items:[];
-  const head=payload.collection||payload.bestMatch||items[0]||{};
   // Одиночный трек показываем одной «таблеткой» без списка вариантов.
   // Список остаётся только для плейлистов, альбомов и артистов.
   const single=!payload.collection;
+  const rawItems=Array.isArray(payload.items)?payload.items.filter(Boolean):[];
+
+  /* Защита от дублей в самой карточке. Сервер теперь отдаёт один трек,
+     но в уже сохранённых чатах лежат старые списки из десятка версий. */
+  const seenItems=Object.create(null);
+  const uniqItems=rawItems.filter(function(t){
+    const key=String(t.trackId||'')+'|'+String(t.title||'').toLowerCase()+'|'+String(t.artist||'').toLowerCase();
+    if(seenItems[key])return false;
+    seenItems[key]=true;
+    return true;
+  });
+
+  // Для одиночного трека в карточке и в очереди — ровно одна запись.
+  const items=single?(function(){
+    const best=payload.bestMatch
+      ? uniqItems.filter(function(t){return t.trackId===payload.bestMatch.trackId;})[0]
+      : null;
+    return [best||payload.bestMatch||uniqItems[0]].filter(Boolean);
+  })():uniqItems;
+
+  const head=payload.collection||payload.bestMatch||items[0]||{};
   const card=document.createElement('div');
   card.className='music-card'+(single?' music-card--single':'');
 
@@ -7196,8 +7231,84 @@ async function renderMusicConnect(container,onConnected){
   setTimeout(tick,wait);
 }
 
-/* Главный перехватчик. Возвращает true, если фраза обработана без модели. */
+/* ============================================================================
+   КТО РЕШАЕТ, НУЖНА ЛИ МУЗЫКА
+
+   Раньше решал только регэксп-детектор по списку заготовленных фраз.
+   Он ловил «включи X», но ломался на живой речи: «найди Believer и расскажи,
+   кто его написал» отбрасывалось стоп-словом «расскажи» и трек не показывался.
+
+   Порядок теперь такой:
+     1. MusicIntents.detect() — мгновенный локальный разбор только для
+        однозначного: команд плееру и чистого «включи <название>». 0 мс, 0 токенов.
+     2. Всё остальное, что хоть издали похоже на музыку, уходит в /api/music-intent:
+        модель сама решает, показывать ли трек, вытаскивает чистый поисковый
+        запрос и отмечает, нужен ли КРОМЕ трека текстовый ответ.
+     3. Модель молчит или недоступна — работаем по старым правилам.
+        Музыка не должна ломаться из-за классификатора.
+   ========================================================================== */
+
+function buildMusicIntentApiCandidates(){return buildEndpointCandidates('/api/music-intent');}
+
+/** Спрашивает модель, музыкальный ли это запрос. null — «нет или не знаю». */
+async function classifyMusicIntent(text){
+  let nowPlaying='';
+  try{
+    const cur=(window.MusicPlayer&&window.MusicPlayer.isActive&&window.MusicPlayer.isActive())
+      ?window.MusicPlayer.currentTrack():null;
+    if(cur)nowPlaying=(cur.title||'')+' — '+(cur.artist||'');
+  }catch(e){nowPlaying='';}
+
+  const payload={message:text,history:toWireHistory(chatHistory).slice(-6),nowPlaying:nowPlaying};
+  const endpoints=buildMusicIntentApiCandidates();
+
+  for(let i=0;i<endpoints.length;i++){
+    try{
+      const res=await withTimeout(
+        fetch(endpoints[i],{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify(payload),cache:'no-store',credentials:'omit'}),
+        11000,'Классификатор музыки слишком долго отвечает'
+      );
+      if(!res.ok)continue;
+      let data=null;
+      try{data=await res.json();}catch(e){data=null;}
+      if(!data)continue;
+      return data.is_music?data:null;
+    }catch(e){ /* следующий адрес */ }
+  }
+  return null;
+}
+
+/** Подпись к карточке, когда текстового ответа не будет. */
+function musicLabelFor(intent,payload){
+  if(payload.bestMatch){
+    return (intent.autoplay===false?'Нашёл: ':'Включаю: ')+payload.bestMatch.title+' — '+payload.bestMatch.artist;
+  }
+  return 'Нашёл по запросу «'+payload.query+'»';
+}
+
+/** Ставит найденное в очередь плеера. */
+function startMusicQueue(payload){
+  const items=payload.items||[];
+  if(!items.length)return;
+  const bi=payload.bestMatch
+    ? items.findIndex(function(t){return t.trackId===payload.bestMatch.trackId;})
+    : 0;
+  window.MusicPlayer.setQueue(items,bi<0?0:bi,payload.playback,payload.collection);
+}
+
+/* Главный перехватчик. Возвращает true, если сообщение обработано музыкой. */
 async function handleMusicMessage(text){
+  /* Один музыкальный сценарий за раз. Второй вызов (быстрый двойной Enter,
+     клик по кнопке поверх Enter) молча глотаем — именно он давал второй
+     пузырь, второй поиск и вторую карточку того же трека. */
+  if(window.__musicBusy)return true;
+  window.__musicBusy=true;
+  try{ return await runMusicMessage(text); }
+  finally{ window.__musicBusy=false; }
+}
+
+async function runMusicMessage(text){
   /* curUser объявлен в этом же инлайн-скрипте и невидим файлам из js/.
      Без этой строки сервер не знает, чей токен сохранять и чей искать,
      и авторизация зацикливается. */
@@ -7205,8 +7316,40 @@ async function handleMusicMessage(text){
   catch(e){ window.__hmUserId=null; }
 
   if(!window.MusicIntents||!window.MusicClient||!window.MusicPlayer)return false;
-  const intent=window.MusicIntents.detect(text);
+
+  /* --- 1. Быстрый локальный разбор. --- */
+  let intent=window.MusicIntents.detect(text);
+
+  /* --- 2. Спорные случаи и всё живое — модели. --- */
+  const needModel=intent
+    ? (intent.type==='play'&&intent.confidence==='low')
+    : (typeof window.MusicIntents.looksMusicRelated==='function'
+        ? window.MusicIntents.looksMusicRelated(text)
+        : window.MusicIntents.hasMusicHint(text));
+
+  if(needModel){
+    const llm=await classifyMusicIntent(text);
+    if(llm&&llm.intent==='control'&&llm.control){
+      intent={type:'control',command:llm.control};
+    }else if(llm&&llm.query){
+      intent={
+        type:'play',
+        kind:llm.kind||'track',
+        query:llm.query,
+        confidence:llm.confidence==='low'?'low':'high',
+        // «найди» — показать карточку, «включи» — сразу играть.
+        autoplay:llm.intent!=='find',
+        wantAnswer:Boolean(llm.want_answer),
+        answerRequest:llm.answer_request||''
+      };
+    }else if(!llm&&intent&&intent.confidence==='low'){
+      // Модель сказала «это не музыка» — голое название не перехватываем.
+      return false;
+    }
+  }
+
   if(!intent)return false;
+  if(intent.type==='play'&&intent.autoplay===undefined)intent.autoplay=true;
 
   /* --- КОМАНДЫ ПЛЕЕРА: мгновенно, без сети и без токенов. --- */
   if(intent.type==='control'){
@@ -7254,7 +7397,7 @@ async function handleMusicMessage(text){
     return true;
   }
 
-  /* --- ЗАПУСК МУЗЫКИ: один запрос к /api/music, мимо модели. --- */
+  /* --- ПОИСК И ЗАПУСК: один запрос к /api/music. --- */
   const g=document.getElementById('greetingWrap');if(g)g.style.display='none';
   const userBub=addUserBubble(text,[],{createdAt:messageNow()});
   chatHistory.push({role:'user',content:text,createdAt:messageNow()});
@@ -7263,13 +7406,27 @@ async function handleMusicMessage(text){
   shell.msg.innerHTML='<div class="music-connect">Ищу…</div>';
   scrollChat();
 
+  /* Тихий откат в обычный чат. Убираем и свой пузырь, и ход пользователя:
+     иначе обычный путь нарисует его сообщение второй раз. */
+  const backToChat=function(){
+    try{shell.wrap.remove();}catch(e){}
+    if(userBub&&userBub.parentNode)userBub.parentNode.removeChild(userBub);
+    if(chatHistory.length&&chatHistory[chatHistory.length-1].role==='user')chatHistory.pop();
+    return false;
+  };
+
   let data;
   try{
     data=await window.MusicClient.resolve(intent.kind,intent.query);
   }catch(e){
     if(e&&e.type==='music_auth_required'){
-      /* После успешного подключения сами повторяем исходный запрос —
-         пользователь не должен ничего перепечатывать. */
+      /* После подключения сами повторяем исходный запрос.
+         Раньше здесь появлялись ДВА сообщения — «нужно подключить аккаунт»
+         и отдельный пузырь «Включаю: …». Теперь карточка заменяет содержимое
+         того же пузыря, а в истории остаётся ровно одна запись. */
+      const note={role:'assistant',content:'Для музыки нужно подключить аккаунт Яндекса.',
+        createdAt:messageNow()};
+      chatHistory.push(note);
       await renderMusicConnect(shell.msg,async function(){
         let d2=null;
         try{ d2=await window.MusicClient.resolve(intent.kind,intent.query); }catch(e2){ return; }
@@ -7277,43 +7434,32 @@ async function handleMusicMessage(text){
         const p2={kind:intent.kind,query:intent.query,items:d2.items||[],
           bestMatch:d2.bestMatch||null,collection:d2.collection||null,
           playback:d2.playback||null,_t:Date.now()};
-        const shell2=createAiBubbleShell({showActions:false});
-        shell2.msg.innerHTML='';
-        shell2.msg.appendChild(buildMusicCard(p2));
+        shell.msg.innerHTML='';
+        shell.msg.appendChild(buildMusicCard(p2));
         scrollChat();
-        if(p2.items.length){
-          const bi2=p2.bestMatch
-            ? p2.items.findIndex(function(t){return t.trackId===p2.bestMatch.trackId;})
-            : 0;
-          window.MusicPlayer.setQueue(p2.items,bi2<0?0:bi2,p2.playback,p2.collection);
-        }
-        chatHistory.push({role:'assistant',content:'Включаю: '+intent.query,
-          music:p2,createdAt:messageNow()});
+        if(intent.autoplay!==false)startMusicQueue(p2);
+        const s2=Object.assign({},p2);delete s2.playback;delete s2._t;
+        note.content=musicLabelFor(intent,p2);
+        note.music=s2;
+        note.musicLabel=true;
         saveChat().catch(function(){});
       });
-      chatHistory.push({role:'assistant',content:'Для музыки нужно подключить аккаунт Яндекса.',createdAt:messageNow()});
       saveChat().catch(function(){});
       return true;
     }
     if(e&&e.type==='music_disabled'){
-      shell.msg.textContent='Музыкальный модуль сейчас отключён.';
-      chatHistory.push({role:'assistant',content:'Музыкальный модуль сейчас отключён.',createdAt:messageNow()});
+      /* Модуль выключен. Прямую команду честно комментируем, а составную просьбу
+         отдаём обычному чату — человек всё равно получит ответ по существу. */
+      if(intent.wantAnswer||intent.confidence==='low')return backToChat();
+      const off='Музыкальный модуль сейчас отключён.';
+      shell.msg.textContent=off;
+      chatHistory.push({role:'assistant',content:off,createdAt:messageNow()});
       saveChat().catch(function(){});
       return true;
     }
-    /* Любая другая ошибка (сервис упал, сеть, 500):
-       — явный музыкальный запрос («включи/найди X») НЕ отдаём текстовой модели:
-         именно это давало дубль сообщения и «молчание» ИИ. Честно сообщаем,
-         что музыкальный сервис недоступен.
-       — неявный (голое название) — молча возвращаем обычному чату, сначала
-         убрав из DOM уже нарисованный пузырь пользователя (раньше он оставался,
-         и чат рисовал сообщение дважды). */
-    shell.wrap.remove();
-    if(intent.confidence==='low'){
-      if(userBub&&userBub.parentNode)userBub.parentNode.removeChild(userBub);
-      chatHistory.pop();
-      return false;
-    }
+    /* Любая другая ошибка (сервис упал, сеть, 500). Составную просьбу и неявный
+       запрос молча возвращаем в чат, явную команду комментируем. */
+    if(intent.confidence==='low'||intent.wantAnswer)return backToChat();
     const merr='Музыкальный сервис сейчас недоступен. Проверьте переменные окружения Vercel (YANDEX_MUSIC_ENABLED, токен) или попробуйте позже.';
     shell.msg.textContent=merr;
     chatHistory.push({role:'assistant',content:merr,createdAt:messageNow()});
@@ -7322,15 +7468,10 @@ async function handleMusicMessage(text){
   }
 
   if(!data||data.type==='music_not_found'){
-    /* Голое название без глагола и ничего не нашлось — значит это был
-       не запрос музыки, а обычный вопрос. Молча ��тдаём его модели:
-       пользователь даже не узнает, что мы пробовали искать трек. */
-    if(intent.confidence==='low'){
-      shell.wrap.remove();
-      if(userBub&&userBub.parentNode)userBub.parentNode.removeChild(userBub);
-      chatHistory.pop();
-      return false;
-    }
+    /* Ничего не нашли. Если это была не железная команда — отдаём фразу
+       обычному чату: пользователь получит ответ по существу вместо «Не нашёл…»
+       и без второго пузыря. */
+    if(intent.confidence==='low'||intent.wantAnswer)return backToChat();
     const miss='Не нашёл ничего по запросу «'+intent.query+'».';
     shell.msg.textContent=miss;
     chatHistory.push({role:'assistant',content:miss,createdAt:messageNow()});
@@ -7352,22 +7493,57 @@ async function handleMusicMessage(text){
   shell.msg.appendChild(buildMusicCard(payload));
   scrollChat();
 
-  // Автостарт — ведь пользователь сказал «включи», а не «найди».
-  if(payload.items.length){
-    const bi=payload.bestMatch
-      ? payload.items.findIndex(function(t){return t.trackId===payload.bestMatch.trackId;})
-      : 0;
-    window.MusicPlayer.setQueue(payload.items,bi<0?0:bi,payload.playback,payload.collection);
-  }
-
-  const label=payload.bestMatch
-    ? ('Включаю: '+payload.bestMatch.title+' — '+payload.bestMatch.artist)
-    : ('Нашёл по запросу «'+payload.query+'»');
+  // Автостарт только если просили включить. На «найди» просто показываем карточку.
+  if(intent.autoplay!==false)startMusicQueue(payload);
 
   // В историю кладём без подписанной ссылки — она всё равно протухнет.
   const stored=Object.assign({},payload);
   delete stored.playback; delete stored._t;
-  chatHistory.push({role:'assistant',content:label,music:stored,createdAt:messageNow()});
+
+  /* Вторая половина составной просьбы: «…и расскажи, кто его написал».
+     Ответ модели дописываем в ЭТОТ ЖЕ пузырь под карточкой: отдельное
+     сообщение выглядело бы как дубль, а история чата разъезжалась бы. */
+  if(intent.wantAnswer){
+    const answerEl=document.createElement('div');
+    answerEl.className='music-answer';
+    shell.msg.appendChild(answerEl);
+
+    const t=payload.bestMatch||payload.items[0]||null;
+    const facts=t
+      ? ('«'+t.title+'» — '+t.artist+(t.album?(', альбом «'+t.album+'»'):''))
+      : 'ничего конкретного';
+    const extra=[{role:'system',content:
+      'Пользователь одной фразой попросил найти музыку и задал вопрос. '+
+      'Трек уже найден и показан карточкой в этом же сообщении: '+facts+'. '+
+      'Не пиши «вот трек», не давай ссылок, не описывай карточку и не здоровайся — '+
+      'ответь только на содержательную часть просьбы'+
+      (intent.answerRequest?(' ('+intent.answerRequest+')'):'')+'. Коротко и по делу.'}];
+
+    setGeneratingState(true);
+    let answerText='';
+    try{
+      const r=await requestChatReplyLive(answerEl,null,extra,'',{});
+      answerText=(r&&r.text)?String(r.text).trim():'';
+    }catch(e){
+      answerText='';
+    }finally{
+      setGeneratingState(false);
+    }
+
+    if(answerText){
+      // ОДНА запись в истории: и карточка, и текст ответа.
+      chatHistory.push({role:'assistant',content:answerText,music:stored,createdAt:messageNow()});
+      try{recordUsage(text,answerText);}catch(e){}
+      saveChat().catch(function(){});
+      maybeGenerateChatTitle();
+      return true;
+    }
+    // Модель не ответила — оставляем хотя бы карточку, без пустого блока.
+    if(answerEl.parentNode)answerEl.parentNode.removeChild(answerEl);
+  }
+
+  chatHistory.push({role:'assistant',content:musicLabelFor(intent,payload),
+    music:stored,musicLabel:true,createdAt:messageNow()});
 
   saveChat().catch(function(){});
   maybeGenerateChatTitle();
