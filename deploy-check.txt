@@ -1,0 +1,9 @@
+harmonyai deploy-check
+build: 2026-08-11 catch-all-routing, no-proxy
+
+Если вы видите этот текст — задеплоена НОВАЯ версия:
+- vercel.json с catch-all rewrite (404 на /chat и /settings невозможен);
+- 12 функций API (лимит Hobby соблюдён).
+
+Если эта страница отдаёт 404 — вы смотрите на СТАРЫЙ деплой:
+Vercel → ваш проект → Deployments → последняя сборка должна быть Ready (зелёная).
