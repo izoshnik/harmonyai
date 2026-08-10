@@ -189,6 +189,19 @@ function buildMessages(userText, turns, nowPlaying) {
     '  это скорее всего просьба включить: is_music=true, intent="play", confidence="low".',
     '- Если сомневаешься между разговором и музыкой — выбирай is_music=false.',
     '',
+    'ПРИМЕРЫ СОСТАВНЫХ ПРОСЬБ (главный источник ошибок):',
+    '- «Найди и опиши как был написан трек Beliver» →',
+    '  {"is_music":true,"intent":"find","kind":"track","query":"Believer Imagine Dragons",',
+    '   "control":"","want_answer":true,"answer_request":"как создавалась песня","confidence":"high"}',
+    '- «Включи Believer и расскажи, кто его написал» →',
+    '  {"is_music":true,"intent":"play","kind":"track","query":"Believer Imagine Dragons",',
+    '   "control":"","want_answer":true,"answer_request":"кто автор песни","confidence":"high"}',
+    '- «Найди песню Группа крови и переведи текст» →',
+    '  {"is_music":true,"intent":"find","kind":"track","query":"Группа крови Кино",',
+    '   "control":"","want_answer":true,"answer_request":"перевод и смысл текста","confidence":"high"}',
+    'Ключевое правило: вторая просьба НЕ отменяет поиск. Глагол «найди»/«включи»',
+    'важнее, чем «расскажи»/«опиши» рядом с ним. Название всё равно вынеси в query.',
+    '',
     'Отвечай ТОЛЬКО валидным JSON, без markdown-обёртки и пояснений.'
   ].join('\n');
 
