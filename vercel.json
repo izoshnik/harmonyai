@@ -3,6 +3,10 @@
   "trailingSlash": false,
   "rewrites": [
     {
+      "source": "/api/harmony",
+      "destination": "/api/chat"
+    },
+    {
       "source": "/subscribe",
       "destination": "/subscribe.html"
     },
