@@ -7339,11 +7339,16 @@ async function runMusicMessage(text){
         confidence:llm.confidence==='low'?'low':'high',
         // «найди» — показать карточку, «включи» — сразу играть.
         autoplay:llm.intent!=='find',
-        wantAnswer:Boolean(llm.want_answer),
-        answerRequest:llm.answer_request||''
+        /* Модель уточняет запрос, но не должна терять вторую просьбу,
+           которую локальный разбор уже нашёл. Поэтому флаги объединяются. */
+        wantAnswer:Boolean(llm.want_answer)||Boolean(intent&&intent.wantAnswer),
+        answerRequest:llm.answer_request||(intent&&intent.answerRequest)||'',
+        explicit:Boolean(intent&&intent.explicit)
       };
-    }else if(!llm&&intent&&intent.confidence==='low'){
-      // Модель сказала «это не музыка» — голое название не перехватываем.
+    }else if(!llm&&intent&&intent.confidence==='low'&&!intent.explicit){
+      /* Модель сказала «это не музыка» — голое название не перехватываем.
+         Но если во фразе был явный глагол («найди … и расскажи …»),
+         разбор уверен в себе и работает даже когда классификатор лёг. */
       return false;
     }
   }
