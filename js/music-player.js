@@ -768,6 +768,7 @@
     show();
 
     var track = current();
+    if (!track) { hide(); renderPlayButton(); return; }
     var c = client();
     if (!presetPlayback && !c) { notify('Музыкальный сервис недоступен'); return; }
     var p = presetPlayback
@@ -799,7 +800,11 @@
         renderPlayButton();
         return;
       }
-      notify(err && err.message ? err.message : 'Не удалось воспроизвести трек');
+      if (err && err.type === 'music_auth_required') {
+        notify('Подключите Яндекс Музыку в настройках профиля');
+      } else {
+        notify(err && err.message ? err.message : 'Не удалось воспроизвести трек');
+      }
     });
   }
 
@@ -990,8 +995,13 @@
     if (!s || !s.queue || !s.queue.length) return;
 
     ensureDom();
-    state.queue = s.queue;
+    // Битые записи (без trackId) — из очереди вон: они убивали play()
+    // молчным TypeError на track.trackId.
+    state.queue = s.queue.filter(function (t) { return t && t.trackId != null; });
+    if (!state.queue.length) return;
     state.index = typeof s.index === 'number' ? s.index : 0;
+    // Индекс мог указывать за пределы очереди (старое сохранение) — выравниваем.
+    if (state.index < 0 || state.index >= state.queue.length) state.index = 0;
     state.shuffle = Boolean(s.shuffle);
     state.repeat = s.repeat || 'off';
     state.volume = typeof s.volume === 'number' ? s.volume : 1;
