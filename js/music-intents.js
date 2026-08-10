@@ -148,6 +148,11 @@
      считается второй просьбой только после союза или если за ним идёт вопрос. */
   var REQUEST_FOLLOW = new RegExp('^(?:про|об|обо|о|как|кто|что|когда|почему|зачем|где|чем|чей|истори|смысл|перевод|значение|факт)(?![' + LTR + ']*[a-zа-яё]{6})', 'i');
 
+  /* Эти глаголы НЕ бывают началом названия песни — снимаем и без союза:
+     «найди переведи numb» = «найди и переведи numb». «Скажи не молчи»
+     сюда не входит — его по-прежнему защищает REQUEST_FOLLOW. */
+  var BARE_EXTRA_HEAD = headRe('переведи|перевести|опиши(?:те)?|описать|объясни(?:те)?|объяснить|поясни(?:те)?|разбери|разобрать|уточни|explain|describe');
+
   /* Квалификаторы типа сущности. */
   var KIND_HEAD = [
     ['playlist', headRe('плейлист(?:ы)?|плэйлист|подборку|подборка|playlist')],
@@ -218,7 +223,7 @@
       m = EXTRA_VERB_HEAD.exec(text);
       if (m) {
         var tail = text.slice(m[0].length);
-        if (afterConnector || REQUEST_FOLLOW.test(tail)) {
+        if (afterConnector || REQUEST_FOLLOW.test(tail) || BARE_EXTRA_HEAD.test(m[0])) {
           wantAnswer = true;
           request.push(m[0].trim());
           text = tail;
