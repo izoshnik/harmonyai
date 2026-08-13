@@ -30,6 +30,7 @@ import {
   getAlbum,
   searchAlbum,
   getLikedTrackIds,
+  getLikedLibrary,
   setLike,
   getAccountStatus,
   YandexError,
@@ -315,6 +316,20 @@ export default async function handler(req, res) {
         const uid = await ensureUid(resolved);
         if (!uid) return res.status(200).json({ ids: [], personal: false });
         return res.status(200).json({ ids: await getLikedTrackIds(uid, { token }), personal: true });
+      }
+
+      /* Полный список «Мне нравится» для экрана плейлистов. */
+      case 'liked_tracks': {
+        // Тот же принцип, что и у liked_ids: на общем токене чужое избранное
+        // показывать нельзя — отдаём пусто с пометкой personal:false.
+        if (resolved.source !== 'user') {
+          return res.status(200).json({ items: [], total: 0, personal: false });
+        }
+        const uid = await ensureUid(resolved);
+        if (!uid) return res.status(200).json({ items: [], total: 0, personal: false });
+        const limit = Math.min(Math.max(Number(body.limit) || 100, 1), 300);
+        const lib = await getLikedLibrary(uid, { token, limit });
+        return res.status(200).json({ items: lib.items, total: lib.total, personal: true });
       }
 
       case 'like': {
