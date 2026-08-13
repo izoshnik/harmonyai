@@ -328,6 +328,8 @@
 
     audio.addEventListener('timeupdate', renderProgress);
     audio.addEventListener('progress', renderBuffered);
+    audio.addEventListener('play', emitChange);
+    audio.addEventListener('pause', emitChange);
     audio.addEventListener('durationchange', renderProgress);
     audio.addEventListener('ended', onEnded);
     audio.addEventListener('error', onAudioError);
@@ -601,6 +603,7 @@
     renderModes();
     setMediaMetadata(t);
     renderQueue();
+    emitChange();
   }
 
   function renderModes() {
@@ -683,6 +686,7 @@
     c.likedIds(force).then(function (ids) {
       state.liked = new Set((ids || []).map(String));
       renderLike();
+      emitChange();
     }).catch(function () { /* избранное недоступно — сердечко просто пустое */ });
   }
 
@@ -1027,6 +1031,111 @@
     }
   }
 
+  /* ------------------------------------------------- очередь извне
+
+     Экран плейлиста живёт в другом модуле, но очередь и лайки должны
+     оставаться общими — иначе сердечки и список разъедутся. */
+
+  /** Любое изменение состояния — сигнал для внешних экранов. */
+  function emitChange() {
+    try {
+      document.dispatchEvent(new CustomEvent('music:state'));
+    } catch (e) { /* старый браузер — внешний экран просто не перерисуется сам */ }
+  }
+
+  function indexOfTrack(trackId) {
+    var key = String(trackId);
+    for (var i = 0; i < state.queue.length; i++) {
+      if (state.queue[i] && String(state.queue[i].trackId) === key) return i;
+    }
+    return -1;
+  }
+
+  function isInQueue(trackId) { return indexOfTrack(trackId) >= 0; }
+
+  function queueIds() {
+    return state.queue.map(function (t) { return String(t.trackId); });
+  }
+
+  function addToQueue(track) {
+    if (!track || !track.trackId) return false;
+    ensureDom();
+    if (isInQueue(track.trackId)) return false;
+    state.queue.push(track);
+
+    // Очередь была пуста — значит «добавить» равно «начать слушать»:
+    // показывать пустой плеер без звука было бы странно.
+    if (state.queue.length === 1 || state.index < 0) {
+      show();
+      syncLiked();
+      playAt(state.queue.length - 1);
+    } else {
+      renderQueue();
+      save();
+    }
+    emitChange();
+    return true;
+  }
+
+  function removeFromQueue(trackId) {
+    var i = indexOfTrack(trackId);
+    if (i < 0) return false;
+
+    if (i !== state.index) {
+      state.queue.splice(i, 1);
+      if (i < state.index) state.index--;
+      renderQueue();
+      save();
+      emitChange();
+      return true;
+    }
+
+    // Убираем то, что играет: либо переходим к следующему, либо закрываемся.
+    state.queue.splice(i, 1);
+    if (!state.queue.length) { close(); emitChange(); return true; }
+    if (state.index >= state.queue.length) state.index = 0;
+    playAt(state.index);
+    emitChange();
+    return true;
+  }
+
+  function isTrackLiked(trackId) {
+    return Boolean(state.liked && state.liked.has(String(trackId)));
+  }
+
+  /**
+   * Лайк не только текущего трека: в плейлисте сердечко ставят строкам,
+   * которые сейчас не играют. Логика та же, что у toggleLike: сначала UI,
+   * потом сервер, при ошибке — честный откат.
+   */
+  function likeTrack(track, force) {
+    var c = client();
+    var id = String((track && track.trackId) ? track.trackId : (track || ''));
+    if (!id || !c) return false;
+
+    if (!state.liked) state.liked = new Set();
+    var want = typeof force === 'boolean' ? force : !state.liked.has(id);
+
+    if (want) state.liked.add(id); else state.liked.delete(id);
+    renderLike();
+    emitChange();
+
+    c.like(id, want).then(function () {
+      if (typeof c.forgetLiked === 'function') c.forgetLiked();
+      notify(want ? 'Добавлено в избранное Яндекс.Музыки' : 'Убрано из избранного');
+    }).catch(function (e) {
+      if (want) state.liked.delete(id); else state.liked.add(id);
+      renderLike();
+      emitChange();
+      if (e && e.type === 'music_auth_required') {
+        notify('Чтобы лайк попал в вашу Яндекс.Музыку, подключите аккаунт Яндекса в настройках.');
+      } else {
+        notify('Не удалось изменить избранное');
+      }
+    });
+    return want;
+  }
+
   /* ------------------------------------------------------------------ экспорт */
 
   global.MusicPlayer = {
@@ -1046,6 +1155,12 @@
     expand: expand,
     collapse: collapse,
     like: toggleLike,
+    likeTrack: likeTrack,
+    isTrackLiked: isTrackLiked,
+    addToQueue: addToQueue,
+    removeFromQueue: removeFromQueue,
+    isInQueue: isInQueue,
+    queueIds: queueIds,
     syncLiked: syncLiked,
     isActive: function () { return state.queue.length > 0; },
     isPlaying: function () { return state.playing; },
