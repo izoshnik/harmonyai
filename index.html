@@ -43,6 +43,7 @@ try{
 <script defer src="js/music-intents.js"></script>
 <script defer src="js/music-client.js"></script>
 <script defer src="js/music-player.js"></script>
+<script defer src="js/music-playlists.js"></script>
 <style>
 /* Шрифты подключены через <link rel="stylesheet"> в <head> — быстрее, чем @import внутри CSS. */
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -3449,6 +3450,8 @@ async function loadProfile(uid,email){
   // id нужен музыкальному клиенту ДО первого сообщения: иначе восстановленный
   // после F5 плеер не знал, чей токен использовать, и Play молча не играл.
   try{window.__hmUserId=curUser&&curUser.id?curUser.id:null;}catch(e){}
+  // Свои плейлисты и «Найдено в HarmonyAi» едут за пользователем между устройствами.
+  try{ if(window.MusicPlaylists) window.MusicPlaylists.hydrate(curUser?.settings?.musicPlaylists); }catch(e){}
   if(curUser?.settings?.appearance)applyTheme(curUser.settings.appearance);
   // Применяем язык интерфейса из профиля (если задан и отличается от текущего).
   try{
@@ -7154,6 +7157,11 @@ function buildMusicCard(payload){
     return [best||payload.bestMatch||uniqItems[0]].filter(Boolean);
   })():uniqItems;
 
+  /* Всё, что показалось в чате, попадает в плейлист «Найдено в HarmonyAi».
+     Вызывается и при новом поиске, и при отрисовке старой переписки — так туда
+     попадёт и то, что нашлось до появления плейлистов. Повторы модуль отбрасывает сам. */
+  try{ if(window.MusicPlaylists) window.MusicPlaylists.remember(items); }catch(e){}
+
   const head=payload.collection||payload.bestMatch||items[0]||{};
   const card=document.createElement('div');
   card.className='music-card'+(single?' music-card--single':'');
@@ -7778,6 +7786,11 @@ function renderSettingsMain(){
           <div class="s-row-text">Подключения</div>
           <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
         </div>
+        <div class="s-row" onclick="renderSettingsPlaylists()">
+          <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 7h11M4 12h11M4 17h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M20 7.5v6.2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="18" cy="15.4" r="2.2" stroke="currentColor" stroke-width="2"/></svg></div>
+          <div class="s-row-text">Плейлисты</div>
+          <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+        </div>
       </div>
     </div>
     <div class="s-sect">
@@ -8031,6 +8044,23 @@ function cancelSubscription(){
 }
 
 /* ------------------------------------------------------------ Подключения */
+
+/* Сами экраны плейлистов живут в js/music-playlists.js — здесь только вход,
+   чтобы не тащить ещё один большой экран в и без того большой index.html. */
+function renderSettingsPlaylists(){
+  const el=document.getElementById('settingsContent');
+  if(!el)return;
+  if(!window.MusicPlaylists){
+    el.innerHTML=`
+    <div class="sth">
+      <div class="sth-back" onclick="renderSettingsMain()"><svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="sth-title">Плейлисты</div>
+    </div>
+    <div class="pl-empty">Модуль плейлистов не загрузился — обновите страницу.</div>`;
+    return;
+  }
+  window.MusicPlaylists.renderList(el);
+}
 
 function renderSettingsConnections(){
   const el=document.getElementById('settingsContent');
