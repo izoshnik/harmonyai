@@ -659,3 +659,374 @@ body.music-screen-open { overflow: hidden; }
 .music-answer:empty{display:none;}
 .music-answer > :first-child{margin-top:0;}
 .music-answer > :last-child{margin-bottom:0;}
+
+/* ====================================================== Плейлисты (окно настроек)
+
+   Экраны живут внутри окна настроек, поэтому цвета берём из темы проекта
+   (--bg2 / --border / --text), а не из тёмной палитры плеера: список треков —
+   часть интерфейса, а не медиа-поверхность. Исключение — шапка плейлиста
+   с размытой обложкой: она намеренно тёмная в обеих темах.
+   ========================================================================== */
+
+/* Кнопка справа в шапке: «создать плейлист» и «ещё». */
+.pl-head-btn {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  line-height: 0;
+  font: inherit;
+  -webkit-appearance: none;
+  appearance: none;
+  transition: background .12s;
+}
+.pl-head-btn:hover { background: var(--hover); }
+.pl-head-btn svg { display: block; width: 18px; height: 18px; }
+
+/* ---------------------------------------------------------- список плейлистов */
+
+.pl-rows {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.pl-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  transition: background .12s;
+}
+.pl-row + .pl-row { border-top: 1px solid var(--border2); }
+.pl-row:hover { background: var(--hover); }
+
+.pl-row__cover {
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  object-fit: cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--hover);
+  overflow: hidden;
+}
+.pl-row__cover.is-empty { background: linear-gradient(135deg, rgba(124, 92, 255, .35), rgba(124, 92, 255, .12)); }
+
+.pl-cover--liked { background: linear-gradient(140deg, #ff4d6d, #c9184a); color: #fff; }
+.pl-cover--liked svg { width: 24px; height: 24px; display: block; }
+
+.pl-cover--found {
+  background: linear-gradient(140deg, #f3f4f6, #c7ccd4);
+  color: #14161a;
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: .5px;
+}
+
+.pl-row__meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.pl-row__title { font-size: 14.5px; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-row__sub { font-size: 12.5px; color: var(--text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-row__chev { color: var(--text2); flex-shrink: 0; line-height: 0; }
+
+.pl-note {
+  margin-top: 12px;
+  padding: 0 2px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text2);
+}
+
+/* ------------------------------------------------------------ шапка плейлиста */
+
+.pl-hero {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 14px;
+  isolation: isolate;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+}
+
+/* Сильное размытие обложки — шапка каждый раз перекрашивается в цвет альбома. */
+.pl-hero__bg {
+  position: absolute;
+  inset: -30%;
+  z-index: 0;
+  background-size: cover;
+  background-position: center;
+  filter: blur(34px) saturate(1.5);
+  transform: scale(1.15);
+  opacity: .85;
+}
+.pl-hero__veil {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(180deg, rgba(10, 11, 13, .35), rgba(10, 11, 13, .78));
+}
+.pl-hero__inner {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+}
+
+.pl-hero__cover {
+  width: 74px;
+  height: 74px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  object-fit: cover;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .38);
+  background: rgba(255, 255, 255, .12);
+}
+.pl-hero__cover.is-empty { background: rgba(255, 255, 255, .14); }
+
+.pl-hero__meta { flex: 1; min-width: 0; }
+.pl-hero__title {
+  font-size: 21px;
+  font-weight: 800;
+  line-height: 1.2;
+  color: #fff;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.pl-hero__sub { margin-top: 5px; font-size: 12.5px; color: rgba(255, 255, 255, .72); }
+
+.pl-hero__play {
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #ffdb4d;
+  color: #16171a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, .3);
+  transition: transform .12s;
+}
+.pl-hero__play:hover { transform: scale(1.05); }
+.pl-hero__play:active { transform: scale(.96); }
+.pl-hero__play svg { width: 26px; height: 26px; display: block; margin-left: 2px; }
+
+/* ------------------------------------------------------------- жанровые чипы */
+
+.pl-chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 10px;
+  margin-bottom: 4px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.pl-chips::-webkit-scrollbar { display: none; }
+
+.pl-chip {
+  flex-shrink: 0;
+  padding: 7px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text2);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+  transition: background .12s, color .12s, border-color .12s;
+}
+.pl-chip:hover { background: var(--hover); color: var(--text); }
+.pl-chip.is-on { border-color: var(--text); color: var(--text); font-weight: 600; }
+
+/* ---------------------------------------------------------------- список треков */
+
+.pl-tracks { display: flex; flex-direction: column; padding-bottom: 24px; }
+
+.pl-track {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 4px;
+  border-radius: 10px;
+  transition: background .12s;
+}
+.pl-track:hover { background: var(--hover); }
+.pl-track.is-current .pl-track__title { color: var(--accent, #7c5cff); font-weight: 700; }
+.pl-track.is-off { opacity: .45; }
+
+.pl-track__cover {
+  position: relative;
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--hover);
+  cursor: pointer;
+  line-height: 0;
+}
+.pl-track__cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* Кружок play/pause появляется поверх обложки — отдельная кнопка не нужна. */
+.pl-track__state {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, .45);
+  color: #fff;
+  opacity: 0;
+  transition: opacity .12s;
+}
+.pl-track__state svg { width: 20px; height: 20px; display: block; }
+.pl-track__cover:hover .pl-track__state,
+.pl-track.is-current .pl-track__state { opacity: 1; }
+
+.pl-track__meta { flex: 1; min-width: 0; cursor: pointer; }
+.pl-track__title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pl-track__artist {
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: var(--text2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pl-track__like,
+.pl-track__dots {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+  transition: background .12s, color .12s;
+}
+.pl-track__like svg,
+.pl-track__dots svg { width: 20px; height: 20px; display: block; }
+.pl-track__like:hover,
+.pl-track__dots:hover { background: var(--hover); color: var(--text); }
+.pl-track__like.is-on { color: var(--music-red, #ff375f); }
+
+.pl-empty {
+  padding: 26px 6px;
+  text-align: center;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text2);
+}
+
+/* -------------------------------------------------------------- меню «три точки» */
+
+.pl-menu {
+  position: fixed;
+  z-index: 100000;
+  min-width: 216px;
+  max-width: 280px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg2);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, .34);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pl-menu__row {
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font-size: 13.5px;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background .12s;
+}
+.pl-menu__row:hover { background: var(--hover); }
+.pl-menu__row.is-danger { color: #ff5c5c; }
+
+/* ------------------------------------------------------------------ уведомление */
+
+.pl-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--music-bar-h, 56px) + 24px);
+  transform: translate(-50%, 12px);
+  z-index: 100001;
+  max-width: min(92vw, 420px);
+  padding: 11px 16px;
+  border-radius: 12px;
+  background: rgba(24, 25, 28, .94);
+  color: #f4f6f8;
+  font-size: 13.5px;
+  line-height: 1.45;
+  text-align: center;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .38);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .18s, transform .18s;
+}
+.pl-toast.is-on { opacity: 1; transform: translate(-50%, 0); }
+
+/* На узких экранах шапка ниже, а кнопка воспроизведения крупнее под палец. */
+@media (max-width: 600px) {
+  .pl-hero__inner { padding: 14px; gap: 12px; }
+  .pl-hero__cover { width: 66px; height: 66px; }
+  .pl-hero__title { font-size: 19px; }
+  .pl-track__like, .pl-track__dots { width: 38px; height: 38px; }
+  .pl-menu { min-width: 200px; }
+}
