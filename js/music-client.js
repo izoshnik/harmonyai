@@ -175,6 +175,25 @@
   }
   function forgetLiked() { likedCache.at = 0; likedCache.promise = null; }
 
+  /* Полный список «Мне нравится» для экрана плейлиста. Кэш короткий:
+     лайки меняются и из приложения Яндекс.Музыки. */
+  function likedTracks(limit) {
+    var n = limit || 100;
+    return C.wrap('likedTracks:' + n, function () {
+      return call('liked_tracks', { limit: n });
+    }, 60000);
+  }
+
+  /* Метаданные по списку id — нужны, чтобы добрать жанры у треков из старых чатов,
+     где жанр ещё не сохранялся. */
+  function tracksByIds(ids) {
+    var list = (ids || []).map(String).filter(Boolean);
+    if (!list.length) return Promise.resolve([]);
+    return call('tracks', { trackIds: list }).then(function (d) {
+      return (d && Array.isArray(d.items)) ? d.items : [];
+    });
+  }
+
   global.MusicClient = {
     call: call,
     resolve: resolve,
@@ -190,6 +209,8 @@
     authDisconnect: authDisconnect,
     like: like,
     likedIds: likedIds,
+    likedTracks: likedTracks,
+    tracksByIds: tracksByIds,
     forgetLiked: forgetLiked
   };
 
