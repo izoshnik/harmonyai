@@ -2412,6 +2412,32 @@ html[data-theme="messenger"] .s-row.s-row-accent .s-row-text{color:#7c3aed;}
 /* Desktop: меню режимов стало выше — четыре пункта вместо двух */
 .desktop-sub-drop#desktopModeSub{min-width:238px;}
 .desktop-option .desktop-check{flex:0 0 auto;}
+
+
+/* =========================================================================
+   PRO-бейдж в выборе моделей — синий (patch11).
+   Применяется к панели Adanatos, desktop-меню «Больше моделей» и
+   мобильному листу моделей. Бейдж постоянный: при нажатии не пропадает.
+   ========================================================================= */
+.ada-panel .pro-locked::after{
+  color:#8fc6ff;background:rgba(47,143,255,.16);border-color:rgba(47,143,255,.45);
+}
+#desktopModelsSub .desktop-option.pro-locked::after{
+  color:#8fc6ff;background:rgba(47,143,255,.14);border-color:rgba(47,143,255,.40);
+}
+.mm-opt.pro-locked::after{
+  color:#8fc6ff!important;background:rgba(47,143,255,.14)!important;border-color:rgba(47,143,255,.40)!important;
+}
+html[data-theme="light"] .ada-panel .pro-locked::after,
+html[data-theme="light"] #desktopModelsSub .desktop-option.pro-locked::after,
+html[data-theme="light"] .mm-opt.pro-locked::after{
+  color:#1d6fd1;background:rgba(47,143,255,.12);border-color:rgba(47,143,255,.38);
+}
+html[data-theme="messenger"] .ada-panel .pro-locked::after,
+html[data-theme="messenger"] #desktopModelsSub .desktop-option.pro-locked::after,
+html[data-theme="messenger"] .mm-opt.pro-locked::after{
+  color:#0e7fd4;background:rgba(26,127,174,.12);border-color:rgba(26,127,174,.40);
+}
 </style>
 </head>
 <body>
@@ -2986,7 +3012,7 @@ function normEffort(v){
   return EFFORT_LEVELS.indexOf(s)>=0?s:'low';
 }
 /* High/Ultra — платные уровни (раньше так был закрыт Max). Low и Medium — всем. */
-function effortNeedsPro(v){const e=normEffort(v);return e==='high'||e==='ultra';}
+function effortNeedsPro(v){return false;/* Все режимы бесплатны (patch11) */}
 /* Выбранный уровень сохраняется для следующих сообщений и сессий. */
 try{const savedEffort=localStorage.getItem(EFFORT_KEY);if(savedEffort)curMode=normEffort(savedEffort);}catch(e){}
 // Поиск в интернете: 'auto' — ИИ сама решает; 'on' — принудительно включён; 'off' — выключен.
@@ -3373,7 +3399,7 @@ function isProUser(){
 }
 function requireProOr(callback){
   if(isProUser()){callback&&callback();return true;}
-  if(typeof showNotification==='function'){showNotification('promo_limits',1);}
+  if(typeof goToDynatos==='function'){goToDynatos();}
   return false;
 }
 let trainingMode=false;
@@ -4791,9 +4817,9 @@ function backToMobileModelScreen(){
   document.getElementById('mmScreenModel')?.classList.add('active');
 }
 function selectModel(m){
-  // Dynatos (pro) — только для роли pro/developer/admin/moderator.
+  // Dynatos — платная модель: без Pro сразу открываем окно подписки.
   if(m==='pro'&&!isProUser()){
-    if(typeof showNotification==='function')showNotification('promo_limits',1);
+    if(typeof goToDynatos==='function')goToDynatos();
     return;
   }
   curModel=m;
@@ -4849,11 +4875,7 @@ function fitDesktopSubs(){
 }
 function selectMode(m){
   const next=normEffort(m);
-  // Глубокие уровни (High/Ultra, ранее Max) — только Pro-роли.
-  if(effortNeedsPro(next)&&!isProUser()){
-    if(typeof showNotification==='function')showNotification('promo_limits',1);
-    return;
-  }
+  // Все режимы размышления бесплатны (patch11).
   curMode=next;
   try{localStorage.setItem(EFFORT_KEY,curMode);}catch(e){}
   refreshModelUI();
@@ -4863,9 +4885,9 @@ function selectMode(m){
 }
 function toggleThink(e){
   if(e&&e.stopPropagation)e.stopPropagation();
-  // Режим Думать — только Pro-роли.
+  // Режим Думать — Pro-функция: без Pro открываем окно подписки.
   if(!thinkOn&&!isProUser()){
-    if(typeof showNotification==='function')showNotification('promo_limits',1);
+    if(typeof goToDynatos==='function')goToDynatos();
     return;
   }
   thinkOn=!thinkOn;
@@ -4952,9 +4974,9 @@ function syncMobileComposerUI(effortNow){
   const track=document.getElementById('adaEffTrack');
   if(track)track.style.setProperty('--eff-idx',String(Math.max(0,EFFORT_LEVELS.indexOf(eff))));
   setText('adaEffHint',EFFORT_HINT[eff]||'');
-  /* Pro-гейт ровно такой же, как был: Dynatos и глубокие уровни High/Ultra. */
+  /* Pro-гейт: платной остаётся только модель Dynatos (patch11). */
   const locked=!isProUser();
-  ['adaModelPro','adaEff_high','adaEff_ultra'].forEach(function(id){
+  ['adaModelPro'].forEach(function(id){
     const el=document.getElementById(id);
     if(!el)return;
     el.classList.toggle('pro-locked',locked);
@@ -5152,7 +5174,7 @@ function refreshModelUI(){
   /* Pro-гейт: помечаем недоступные для User опции классом .locked с tooltip. */
   const locked=!isProUser();
   const proTip='Доступно в Pro';
-  ['desktopCkPro','desktopCkHigh','desktopCkUltra','desktopThinkSw','mmOptPro','mmOptMax','mmThinkSw','attachThinkSw'].forEach(id=>{
+  ['desktopCkPro','desktopThinkSw','mmOptPro','mmThinkSw','attachThinkSw'].forEach(id=>{
     const el=document.getElementById(id);
     if(!el)return;
     el.classList.toggle('locked',locked);
@@ -7134,7 +7156,7 @@ const REC_MAX_MS=5*60*1000; // До 5 минут записи.
 
 function openRecognizeModal(){
   // Pro-гейт: обычному пользователю показываем апселл, ничего не открываем.
-  if(!isProUser()){showNotification('promo_limits',1);return;}
+  if(!isProUser()){if(typeof goToDynatos==='function')goToDynatos();return;}
   document.getElementById('recOverlay')?.classList.add('open');
   setRecognizeMode(_rec.mode||'identify');
   setRecStatus('');
