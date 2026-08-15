@@ -24,10 +24,10 @@
   --music-hi: rgba(255, 255, 255, .18);
 
   /* Цвета карточек в чате берём из темы проекта. */
-  --music-card-bg: var(--panel, var(--bg-secondary, #14161a));
-  --music-card-fg: var(--text, var(--text-primary, #e9edf2));
-  --music-card-dim: var(--text-secondary, #99a2ad);
-  --music-accent: var(--accent, var(--primary, #7c5cff));
+  --music-card-bg: var(--bg2, #14161a);
+  --music-card-fg: var(--text, #e9edf2);
+  --music-card-dim: var(--text2, #99a2ad);
+  --music-accent: var(--accent, #2f8fff);
   --music-line: var(--border, rgba(255, 255, 255, .10));
 }
 
@@ -178,7 +178,7 @@
 .music-screen {
   position: fixed;
   inset: 0;
-  z-index: 4000;
+  z-index: 900;
   color: var(--music-fg);
   overflow: hidden;
   opacity: 0;
@@ -458,6 +458,7 @@
 
 .music-queue {
   max-height: 34vh;
+  max-height: 34dvh;
   overflow-y: auto;
   padding-bottom: 4px;
   -webkit-overflow-scrolling: touch;
@@ -625,7 +626,7 @@ body.music-screen-open { overflow: hidden; }
 
 /* Низкие экраны: обложка уступает место кнопкам, чтобы ничего не срезалось. */
 @media (max-height: 620px) {
-  .music-screen__art img { max-width: min(52vh, 260px); }
+  .music-screen__art img { max-width: min(52vh, 260px); max-width: min(52dvh, 260px); }
   .music-screen__title { font-size: 18px; }
   .music-main { width: 58px; height: 58px; }
   .music-main svg { width: 26px; height: 26px; }
@@ -967,7 +968,7 @@ body.music-screen-open { overflow: hidden; }
 
 .pl-menu {
   position: fixed;
-  z-index: 100000;
+  z-index: 940;
   min-width: 216px;
   max-width: 280px;
   padding: 6px;
@@ -1006,7 +1007,7 @@ body.music-screen-open { overflow: hidden; }
   left: 50%;
   bottom: calc(var(--music-bar-h, 56px) + 24px);
   transform: translate(-50%, 12px);
-  z-index: 100001;
+  z-index: 960;
   max-width: min(92vw, 420px);
   padding: 11px 16px;
   border-radius: 12px;
@@ -1030,3 +1031,15 @@ body.music-screen-open { overflow: hidden; }
   .pl-track__like, .pl-track__dots { width: 38px; height: 38px; }
   .pl-menu { min-width: 200px; }
 }
+
+/* ============ АУДИТ (раунд 7): плейлисты на мобильных ============ */
+@media (max-width: 600px) {
+  .pl-track__like, .pl-track__dots { width: 42px; height: 42px; }
+  .pl-menu__row { min-height: 44px; }
+  .pl-chip { padding: 9px 15px; }
+  /* правый край ленты жанров растворяется — видно, что её можно листать */
+  .pl-chips{-webkit-mask-image:linear-gradient(to right,#000 86%,transparent 100%);
+            mask-image:linear-gradient(to right,#000 86%,transparent 100%);}
+}
+/* тост поднимается только когда плеер виден (класс раньше ничего не делал) */
+body:not(.has-music-bar) .pl-toast{bottom:24px;}
