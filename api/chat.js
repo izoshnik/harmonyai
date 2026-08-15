@@ -4,6 +4,43 @@ export const config = {
 
 // Adanatos (free) всегда отвечает на gpt-5.4, Dynatos (pro) — на gpt-5.5.
 // Режимы low/max НЕ меняют модель, они меняют только таймаут/глубину (см. selectRoute/handler).
+/* ===== REASONING EFFORT ====================================================
+   Единый внутренний параметр: low | medium | high | ultra.
+   'max' — старое значение фронта, приводится к 'high' (обратная совместимость
+   со старыми вкладками, которые ещё шлют effort:'max'). */
+const EFFORT_ORDER = ['low', 'medium', 'high', 'ultra'];
+function normalizeEffort(value) {
+  if (typeof value !== 'string') return 'low'; // любой нестроковый ввод — безопасный уровень
+  const raw = value.toLowerCase().trim();
+  if (raw === 'max') return 'high';
+  return EFFORT_ORDER.includes(raw) ? raw : 'low';
+}
+function isDeepEffort(effort) {
+  return effort === 'high' || effort === 'ultra';
+}
+/* Провайдеры поддерживают разные уровни: OpenAI-совместимый reasoning_effort
+   принимает low|medium|high. Для ultra берём ближайший доступный ('high')
+   и дополнительно снимаем лимиты токенов/времени ниже по коду.
+   Для low параметр не отправляется вообще — это самый быстрый путь. */
+function reasoningParamFor(effort) {
+  const e = normalizeEffort(effort);
+  if (e === 'low') return '';
+  if (e === 'medium') return 'medium';
+  return 'high';
+}
+/* Если модель не знает reasoning_effort — повторяем запрос без параметра,
+   чтобы выбор уровня никогда не ломал ответ. */
+function isUnsupportedReasoning(message) {
+  const low = String(message == null ? '' : message).toLowerCase();
+  if (!low) return false;
+  return low.includes('reasoning_effort')
+    || low.includes('reasoning effort')
+    || low.includes('unrecognized request argument')
+    || low.includes('extra fields not permitted')
+    || (low.includes('unsupported') && low.includes('parameter'))
+    || (low.includes('unknown') && low.includes('parameter'));
+}
+
 const MODEL_CHAINS = {
   adanatos: [
     process.env.ADANATOS_MODEL || 'claude-haiku-4-5-20251001',
@@ -658,10 +695,11 @@ async function callGemini(apiKey, modelName, body, timeoutMs = 35000) {
   return { response, data };
 }
 
-async function callOpenAI(apiKey, modelName, messages, timeoutMs = 35000, maxTokens = 0) {
+async function callOpenAI(apiKey, modelName, messages, timeoutMs = 35000, maxTokens = 0, reasoningEffort = '') {
   const baseUrl = String(readEnv('OPENAI_BASE_URL') || 'https://api.codex-api.online/v1').replace(/\/+$/, '');
   const body = { model: modelName, messages };
   if (maxTokens > 0) body.max_tokens = maxTokens;
+  if (reasoningEffort) body.reasoning_effort = reasoningEffort;
   const response = await withTimeout(
     fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
@@ -680,14 +718,38 @@ async function callOpenAI(apiKey, modelName, messages, timeoutMs = 35000, maxTok
   } catch (error) {
     data = {};
   }
+  // Модель не поддерживает уровень reasoning — повторяем без параметра.
+  if (reasoningEffort && !response.ok && isUnsupportedReasoning(data && data.error && data.error.message)) {
+    delete body.reasoning_effort;
+    const retry = await withTimeout(
+      fetch(`${baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`
+        },
+        body: JSON.stringify(body)
+      }),
+      timeoutMs,
+      `OpenAI request timed out for ${modelName}`
+    );
+    let retryData = {};
+    try {
+      retryData = await retry.json();
+    } catch (error) {
+      retryData = {};
+    }
+    return { response: retry, data: retryData };
+  }
   return { response, data };
 }
 
-async function callOpenAIStream(apiKey, modelName, messages, timeoutMs = 65000, maxTokens = 0) {
+async function callOpenAIStream(apiKey, modelName, messages, timeoutMs = 65000, maxTokens = 0, reasoningEffort = '') {
   const baseUrl = String(readEnv('OPENAI_BASE_URL') || 'https://api.codex-api.online/v1').replace(/\/+$/, '');
   const body = { model: modelName, messages, stream: true };
   if (maxTokens > 0) body.max_tokens = maxTokens;
-  return await withTimeout(
+  if (reasoningEffort) body.reasoning_effort = reasoningEffort;
+  const streamResponse = await withTimeout(
     fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
@@ -699,6 +761,31 @@ async function callOpenAIStream(apiKey, modelName, messages, timeoutMs = 65000, 
     timeoutMs,
     `OpenAI stream timed out for ${modelName}`
   );
+  // Тот же fallback для стрима: уровень reasoning не должен ломать запрос.
+  if (reasoningEffort && !streamResponse.ok) {
+    let errText = '';
+    try {
+      errText = await streamResponse.clone().text();
+    } catch (error) {
+      errText = '';
+    }
+    if (isUnsupportedReasoning(errText)) {
+      delete body.reasoning_effort;
+      return await withTimeout(
+        fetch(`${baseUrl}/chat/completions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${apiKey}`
+          },
+          body: JSON.stringify(body)
+        }),
+        timeoutMs,
+        `OpenAI stream timed out for ${modelName}`
+      );
+    }
+  }
+  return streamResponse;
 }
 
 function isQuotaExceeded(status, message = '') {
@@ -818,18 +905,18 @@ function findAnswerMarker(text = '') {
 
 // Обёртка с SSE keep-alive: пинг-комментарий каждые 15 секунд, чтобы прокси и браузер
 // не обрывали соединение во время долгих пауз модели (главная причина «застрявшего» стриминга).
-async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs, query, largeContext = false, captureReasoning = false, maxTokens = 0, headersAlreadySent = false) {
+async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs, query, largeContext = false, captureReasoning = false, maxTokens = 0, headersAlreadySent = false, reasoningEffort = '') {
   const heartbeat = setInterval(() => {
     try { if (res.headersSent && !res.writableEnded) res.write(': ping\n\n'); } catch (e) {}
   }, 15000);
   try {
-    return await streamOpenAIToClientInner(res, apiKey, modelName, messages, timeoutMs, query, largeContext, captureReasoning, maxTokens, headersAlreadySent);
+    return await streamOpenAIToClientInner(res, apiKey, modelName, messages, timeoutMs, query, largeContext, captureReasoning, maxTokens, headersAlreadySent, reasoningEffort);
   } finally {
     clearInterval(heartbeat);
   }
 }
 
-async function streamOpenAIToClientInner(res, apiKey, modelName, messages, timeoutMs, query, largeContext = false, captureReasoning = false, maxTokens = 0, headersAlreadySent = false) {
+async function streamOpenAIToClientInner(res, apiKey, modelName, messages, timeoutMs, query, largeContext = false, captureReasoning = false, maxTokens = 0, headersAlreadySent = false, reasoningEffort = '') {
   let fullText = '';
   let gotAnyDelta = false;
   let headersSent = Boolean(headersAlreadySent);
@@ -862,7 +949,7 @@ async function streamOpenAIToClientInner(res, apiKey, modelName, messages, timeo
     // 8-12с было недостаточно даже просто на установление соединения и первый токен под нагрузкой.
     // На "тихих" попытках продолжения тоже даём адекватное время на старт ответа.
     const connectTimeoutMs = attempt === 0 ? Math.max(timeoutMs, 45000) : 45000;
-    const upstream = await callOpenAIStream(apiKey, modelName, currentMessages, connectTimeoutMs, maxTokens);
+    const upstream = await callOpenAIStream(apiKey, modelName, currentMessages, connectTimeoutMs, maxTokens, reasoningEffort);
 
     if (!upstream.ok) {
       if (attempt === 0) {
@@ -1003,7 +1090,7 @@ async function streamOpenAIToClientInner(res, apiKey, modelName, messages, timeo
     // Прежде чем сдаваться — пробуем один обычный (нестримовый) запрос: он надёжнее под нагрузкой,
     // и если он успевает — пользователь всё равно получает ответ, а не ошибку.
     try {
-      const { response, data } = await callOpenAI(apiKey, modelName, messages, Math.max(timeoutMs, 45000), maxTokens);
+      const { response, data } = await callOpenAI(apiKey, modelName, messages, Math.max(timeoutMs, 45000), maxTokens, reasoningEffort);
       const raw = data?.choices?.[0]?.message?.content || '';
       if (response.ok && !data?.error && raw.trim()) {
         const finalRaw = captureReasoning ? stripReasoningPrefix(raw) : raw;
@@ -1239,7 +1326,8 @@ export default async function handler(req, res) {
     // Max и «Думать» разрешены всем. Только Dynatos остаётся серверно защищённым.
     // Прямой запрос model:'pro' от FREE не получает платную модель.
     if (!isProRole(profile) && model === 'pro') model = 'lite';
-    effort = effort === 'max' ? 'max' : 'low';
+    // Единый параметр: low | medium | high | ultra ('max' → 'high').
+    effort = normalizeEffort(effort);
     think = Boolean(think);
     const query = lastUserText(messages);
     const isQuick = isSimpleQuery(query);
@@ -1262,7 +1350,7 @@ export default async function handler(req, res) {
     let feedbackRows = [];
     let chunks = [];
 
-    if (wantsContext || think || effort === 'max' || trainingMode) {
+    if (wantsContext || think || isDeepEffort(effort) || trainingMode) {
       const ownerId = profile?.id || userId || '';
       // Fetch docs, memories, and feedback in parallel
       const [docsResult, memoriesResult, feedbackResult] = await Promise.all([
@@ -1303,8 +1391,13 @@ export default async function handler(req, res) {
     // Режим "Думать" и effort=max сознательно получают намного больше времени, т.к. там нужна
     // реальная глубина рассуждений, а не скорость.
     let modelTimeoutMs;
-    if (think || effort === 'max') {
+    if (effort === 'ultra') {
+      // Ultra — самый медленный и ресурсоёмкий уровень: даём максимум времени.
+      modelTimeoutMs = wantsStaff ? 80000 : 110000;
+    } else if (think || effort === 'high') {
       modelTimeoutMs = wantsStaff ? 60000 : 75000;
+    } else if (effort === 'medium') {
+      modelTimeoutMs = wantsStaff ? 50000 : 58000;
     } else if (isQuick && !isLargeContext) {
       // Простые вопросы, не связанные с пользователем: быстрый путь без Supabase.
       // Потолок ожидания поднят, чтобы апстрим-модель успевала выдать первый токен под нагрузкой,
@@ -1324,8 +1417,10 @@ export default async function handler(req, res) {
     // Ограничиваем длину ответа, чтобы простые вопросы отвечались быстро и не «висели».
     // Сложные режимы (думать/max/нотация/большой контекст) получают большой потолок.
     let maxTokens;
-    if (think || effort === 'max' || isLargeContext || wantsStaff || isNotationHeavy) {
+    if (think || isDeepEffort(effort) || isLargeContext || wantsStaff || isNotationHeavy) {
       maxTokens = 0; // без ограничения — нужна полная глубина
+    } else if (effort === 'medium') {
+      maxTokens = 4096; // средний уровень: запас на развёрнутый структурированный ответ
     } else if (isQuick) {
       maxTokens = 800; // короткий быстрый ответ на простой вопрос
     } else {
@@ -1385,7 +1480,7 @@ export default async function handler(req, res) {
       const openAiMessages = mapMessagesForOpenAI(messages, mergedSystem);
       for (const modelName of route.models) {
         if (stream) {
-          const streamResult = await streamOpenAIToClient(res, route.apiKey, modelName, openAiMessages, modelTimeoutMs, query, isLargeContext, Boolean(think), maxTokens, webHeadersSent);
+          const streamResult = await streamOpenAIToClient(res, route.apiKey, modelName, openAiMessages, modelTimeoutMs, query, isLargeContext, Boolean(think), maxTokens, webHeadersSent, reasoningParamFor(effort));
           if (streamResult.ok) {
             const replyTokens = Math.max(1, Math.ceil(String(streamResult.text || '').length / 4));
             await insertUsageEvent(userId, model, promptTokens + replyTokens, 1);
@@ -1420,7 +1515,7 @@ export default async function handler(req, res) {
           }
           continue;
         }
-        const { response, data } = await callOpenAI(route.apiKey, modelName, openAiMessages, modelTimeoutMs, maxTokens);
+        const { response, data } = await callOpenAI(route.apiKey, modelName, openAiMessages, modelTimeoutMs, maxTokens, reasoningParamFor(effort));
         const errorMessage = data?.error?.message || '';
         if (!response.ok || data.error) {
           lastError = { status: response.status || 500, message: errorMessage || `Ошибка модели ${modelName}`, model: modelName };
