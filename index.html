@@ -2334,6 +2334,84 @@ html[data-theme="messenger"] .s-row.s-row-accent .s-row-text{color:#7c3aed;}
 @media(prefers-reduced-motion:reduce){
   .ada-panel,.ada-eff-thumb,.mchip{transition:none!important;}
 }
+
+
+/* =========================================================================
+   MOBILE COMPOSER v2.1 (patch10)
+   — Верхний ряд в одну линию: [+] [текст] [мик] [отправить]
+     (textarea с width:100% при flex-wrap выталкивала кнопки по строкам).
+   — Компактные чипы 32px как в референсе.
+   — Панель Adanatos плотная: контент сквозь неё не просвечивает.
+   — Один PRO-бейдж (глобальный .pro-locked::after + бывший b::after давали два).
+   ========================================================================= */
+@media(max-width:768px){
+  .input-box{row-gap:2px;padding:7px 8px 5px 10px;}
+  .input-box textarea{flex:1 1 0;min-width:0;width:auto;}
+  .input-box .bar-left,.input-box .bar-right{flex:0 0 auto;}
+  .input-box .bar-right{gap:6px;}
+
+  .mrow{gap:6px;margin-top:1px;padding-top:6px;}
+  .mchip{min-height:32px;height:32px;padding:0 11px;gap:5px;font-size:12.5px;}
+  .mchip svg{width:13.5px;height:13.5px;}
+  .mchip .mchip-caret{width:12px;height:12px;}
+  .mchip-model{padding:0 9px 0 12px;}
+
+  .ada-panel{box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 24px 54px rgba(0,0,0,.58);}
+
+  /* PRO-бейдж: один, в правом верхнем углу карточки/кнопки */
+  .ada-seg-btn.pro-locked b::after{content:none;}
+  .ada-panel .pro-locked{opacity:1;}
+  .ada-panel .pro-locked b,.ada-panel .pro-locked i{opacity:.55;}
+  .ada-seg-btn,.ada-eff-btn{position:relative;}
+  .ada-panel .pro-locked::after{
+    content:'PRO';position:absolute;top:8px;right:8px;margin-left:0;flex-shrink:0;
+    font-size:8.5px;font-weight:800;letter-spacing:.5px;line-height:1;
+    color:#d3b3ff;background:rgba(164,114,255,.16);border:1px solid rgba(164,114,255,.34);
+    border-radius:6px;padding:3px 5px;
+  }
+  .ada-eff-btn.pro-locked::after{top:auto;right:auto;left:50%;bottom:3px;transform:translateX(-50%);font-size:7.5px;padding:1.5px 4px;}
+}
+
+/* Тёмная тема (дефолт): плотная панель + контрастные тексты */
+@media(max-width:768px){
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .ada-panel{
+    background:rgba(14,14,18,.96);
+    -webkit-backdrop-filter:blur(30px) saturate(160%);
+    backdrop-filter:blur(30px) saturate(160%);
+    border-color:rgba(255,255,255,.13);
+  }
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .ada-title{color:#ececf1;}
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .ada-x{color:#c9c9d1;}
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .ada-seg-btn{background:rgba(255,255,255,.055);border-color:rgba(255,255,255,.11);}
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .ada-seg-btn b{color:#f3f3f5;}
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .ada-seg-btn i{color:#9d9da6;}
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .ada-seg-btn.on{background:rgba(47,143,255,.20);border-color:rgba(47,143,255,.6);}
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .ada-seg-btn.on i{color:#b9d6ff;}
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .ada-eff{background:rgba(0,0,0,.42);border-color:rgba(255,255,255,.10);}
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .ada-eff-btn{color:#c6c6ce;}
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .ada-eff-btn.on{color:#fff;}
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .ada-hint{color:#9d9da6;}
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .mchip{background:rgba(255,255,255,.045);border-color:rgba(255,255,255,.10);}
+
+  /* Светлая тема: плотность и чипы */
+  html[data-theme="light"] .ada-panel{background:rgba(250,249,246,.97);}
+  html[data-theme="light"] .ada-seg-btn{background:rgba(20,18,12,.05);}
+  html[data-theme="light"] .ada-panel .pro-locked::after{color:#7c3aed;background:rgba(124,58,237,.10);border-color:rgba(124,58,237,.3);}
+  html[data-theme="light"] .mchip{background:rgba(20,18,12,.045);border-color:rgba(20,18,12,.13);color:#26241f;}
+  html[data-theme="light"] .mchip.on{background:rgba(44,42,36,.10);border-color:rgba(44,42,36,.4);color:#26241f;}
+  html[data-theme="light"] .mchip.off{opacity:.5;}
+
+  /* Мессенджер-тема */
+  html[data-theme="messenger"] .ada-panel{background:rgba(244,249,253,.97);}
+  html[data-theme="messenger"] .ada-panel .pro-locked::after{color:#1a7fae;background:rgba(26,127,174,.10);border-color:rgba(26,127,174,.32);}
+  html[data-theme="messenger"] .mchip{background:rgba(36,161,222,.06);border-color:rgba(55,110,150,.2);color:#17212b;}
+  html[data-theme="messenger"] .mchip.on{background:rgba(26,127,174,.15);border-color:rgba(26,127,174,.5);color:#17212b;}
+  html[data-theme="messenger"] .mchip.off{opacity:.5;}
+}
+
+/* Desktop: меню режимов стало выше — четыре пункта вместо двух */
+.desktop-sub-drop#desktopModeSub{min-width:238px;}
+.desktop-option .desktop-check{flex:0 0 auto;}
 </style>
 </head>
 <body>
@@ -2543,12 +2621,20 @@ html[data-theme="messenger"] .s-row.s-row-accent .s-row-text{color:#7c3aed;}
                 </div>
                 <div class="desktop-sub-drop" id="desktopModeSub">
                   <div class="desktop-option" onclick="selectMode('low')">
-                    <div class="desktop-copy"><strong>Low</strong><span>Обычный</span></div>
+                    <div class="desktop-copy"><strong>Low</strong><span>Быстрый ответ</span></div>
                     <span class="desktop-check on" id="desktopCkLow">✓</span>
                   </div>
-                  <div class="desktop-option" onclick="selectMode('max')">
-                    <div class="desktop-copy"><strong>Max</strong><span>Для сложных задач</span></div>
-                    <span class="desktop-check" id="desktopCkMax">✓</span>
+                  <div class="desktop-option" onclick="selectMode('medium')">
+                    <div class="desktop-copy"><strong>Medium</strong><span>Баланс скорости и качества</span></div>
+                    <span class="desktop-check" id="desktopCkMedium">✓</span>
+                  </div>
+                  <div class="desktop-option" onclick="selectMode('high')">
+                    <div class="desktop-copy"><strong>High</strong><span>Глубокое мышление</span></div>
+                    <span class="desktop-check" id="desktopCkHigh">✓</span>
+                  </div>
+                  <div class="desktop-option" onclick="selectMode('ultra')">
+                    <div class="desktop-copy"><strong>Ultra</strong><span>Максимальное качество</span></div>
+                    <span class="desktop-check" id="desktopCkUltra">✓</span>
                   </div>
                   <div class="md-divider"></div>
                   <div class="desktop-think">
@@ -5038,11 +5124,10 @@ function refreshModelUI(){
   const fullModel=curModel==='lite'?'Adanatos':'Dynatos';
   const effortNow=normEffort(curMode);
   if(curMode!==effortNow)curMode=effortNow;
-  // Desktop-меню не менялось — там остаются две подписи Low/Max.
-  const modeLabel=effortNow==='low'?'Low':'Max';
+  const modeLabel=EFFORT_LABEL[effortNow]||'Low';
   setText('pillName',fullModel);
   setText('pillNameDesktop',fullModel);
-  setText('pillMode',shortModel);
+  setText('pillMode',shortModel+' · '+modeLabel);
   setText('desktopModelCurrent',fullModel);
   setText('desktopModeLabel',modeLabel);
   setText('mmModeLabel',modeLabel);
@@ -5053,7 +5138,9 @@ function refreshModelUI(){
   toggleClass('desktopCkLite','on',curModel==='lite');
   toggleClass('desktopCkPro','on',curModel==='pro');
   toggleClass('desktopCkLow','on',effortNow==='low');
-  toggleClass('desktopCkMax','on',effortNow!=='low');
+  toggleClass('desktopCkMedium','on',effortNow==='medium');
+  toggleClass('desktopCkHigh','on',effortNow==='high');
+  toggleClass('desktopCkUltra','on',effortNow==='ultra');
   toggleClass('mmOptLite','active',curModel==='lite');
   toggleClass('mmOptPro','active',curModel==='pro');
   toggleClass('mmOptLow','active',effortNow==='low');
@@ -5065,7 +5152,7 @@ function refreshModelUI(){
   /* Pro-гейт: помечаем недоступные для User опции классом .locked с tooltip. */
   const locked=!isProUser();
   const proTip='Доступно в Pro';
-  ['desktopCkPro','desktopCkMax','desktopThinkSw','mmOptPro','mmOptMax','mmThinkSw','attachThinkSw'].forEach(id=>{
+  ['desktopCkPro','desktopCkHigh','desktopCkUltra','desktopThinkSw','mmOptPro','mmOptMax','mmThinkSw','attachThinkSw'].forEach(id=>{
     const el=document.getElementById(id);
     if(!el)return;
     el.classList.toggle('locked',locked);
