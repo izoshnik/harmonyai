@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>HarmonyAI</title>
 <script>
 // Применяем сохранённую тему ДО отрисовки, чтобы не было "вспышки" неправильной темы.
@@ -37,7 +37,7 @@ try{
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="i18n.js"></script>
-<script src="i18n_dict.js"></script>
+<script src="i18_dict.js"></script>
 <link rel="stylesheet" href="css/music-player.css">
 <script defer src="js/music-cache.js"></script>
 <script defer src="js/music-intents.js"></script>
@@ -74,6 +74,8 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans
   --drop-bg:#1a1a1f;
   --drop-shadow:0 8px 32px rgba(0,0,0,0.5);
   --check:#22c55e;
+  --muted:var(--text2);
+  --accent:#2f8fff;
   --font-base:15px;
 }
 /* ===================== ДЕСКТОП — СВЕТЛАЯ ===================== */
@@ -97,6 +99,8 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans
     --drop-bg:#ffffff;
     --drop-shadow:0 8px 32px rgba(0,0,0,0.10);
     --check:#16a34a;
+    --muted:var(--text2);
+    --accent:#2563eb;
   }
 }
 
@@ -125,13 +129,15 @@ html[data-theme="dark"]{
   --drop-bg:#1a1a1f;
   --drop-shadow:0 8px 32px rgba(0,0,0,0.5);
   --check:#22c55e;
+  --muted:var(--text2);
+  --accent:#2f8fff;
 }
 html[data-theme="light"]{
   --bg:#f7f6f3;
   --bg2:#f0eee9;
   --bg3:rgba(20,18,12,0.04);
   --text:#26241f;
-  --text2:#7a766c;
+  --text2:#6b6660;
   --text-ai:#26241f;
   --border:rgba(20,18,12,0.10);
   --border2:rgba(20,18,12,0.06);
@@ -145,17 +151,19 @@ html[data-theme="light"]{
   --drop-bg:#ffffff;
   --drop-shadow:0 8px 32px rgba(20,18,12,0.12);
   --check:#16a34a;
+  --muted:var(--text2);
+  --accent:#2563eb;
 }
 html[data-theme="messenger"]{
   --bg:#eaf3fa;
   --bg2:#ffffff;
   --bg3:rgba(36,161,222,.08);
   --text:#17212b;
-  --text2:#708499;
+  --text2:#5a6b7d;
   --text-ai:#17212b;
   --border:rgba(55,110,150,.16);
   --border2:rgba(55,110,150,.09);
-  --send-bg:#229ed9;
+  --send-bg:#1a7fae;
   --send-txt:#ffffff;
   --user-bg:#d9fdd3;
   --user-txt:#17212b;
@@ -165,6 +173,8 @@ html[data-theme="messenger"]{
   --drop-bg:#ffffff;
   --drop-shadow:0 12px 36px rgba(45,86,120,.18);
   --check:#229ed9;
+  --muted:var(--text2);
+  --accent:#229ed9;
 }
 html[data-theme="messenger"] body{background:linear-gradient(180deg,#dcecf7 0%,#edf5fa 45%,#e4f0f7 100%);}
 html[data-theme="messenger"] .sidebar{background:rgba(255,255,255,.94);border-right-color:rgba(50,105,145,.14);}
@@ -1013,7 +1023,7 @@ html[data-theme="light"] .attach-opt:hover{background:rgba(20,18,12,.05);}
 /* Попап со списком просмотренных сайтов */
 .src-overlay{position:fixed;inset:0;z-index:640;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);opacity:0;visibility:hidden;transition:opacity .2s,visibility .2s;}
 .src-overlay.show{opacity:1;visibility:visible;}
-.src-modal{background:var(--drop-bg);border:1px solid var(--border);border-radius:20px;padding:20px;width:min(92vw,460px);max-height:78vh;overflow-y:auto;box-shadow:var(--drop-shadow);display:flex;flex-direction:column;gap:12px;transform:translateY(10px) scale(.98);transition:transform .2s;}
+.src-modal{background:var(--drop-bg);border:1px solid var(--border);border-radius:20px;padding:20px;width:min(92vw,460px);max-height:78vh;max-height:78dvh;overflow-y:auto;box-shadow:var(--drop-shadow);display:flex;flex-direction:column;gap:12px;transform:translateY(10px) scale(.98);transition:transform .2s;}
 .src-overlay.show .src-modal{transform:none;}
 .src-head{display:flex;align-items:center;gap:9px;}
 .src-head-ic{width:24px;height:24px;border-radius:7px;background:linear-gradient(135deg,#10b981,#059669);display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;}
@@ -1138,7 +1148,7 @@ html[data-theme="light"] .attach-opt:hover{background:rgba(20,18,12,.05);}
 }
 
 /* Send */
-.send-btn{width:34px;height:34px;border-radius:50%;background:#2563eb;color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:opacity .15s;flex-shrink:0;box-shadow:0 2px 8px rgba(37,99,235,.35);}
+.send-btn{width:40px;height:40px;border-radius:50%;background:#2563eb;color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:opacity .15s;flex-shrink:0;box-shadow:0 2px 8px rgba(37,99,235,.35);}
 .send-btn:hover{opacity:.8;}
 
 /* Disclaimer */
@@ -1193,7 +1203,7 @@ html[data-theme="light"] .attach-opt:hover{background:rgba(20,18,12,.05);}
   .bar-icon:hover{background:transparent!important;}
   .bar-icon svg{width:20px;height:20px;}
   .desktop-only-pill{display:none!important;}
-  .send-btn{width:32px;height:32px;}
+  .send-btn{width:40px;height:40px;}
   /* Иконка микрофона (Распознать музыку) — без фона, только контур */
   .mic-btn{width:22px;height:22px;background:transparent!important;border:none;color:#ffffff;display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer;}
   .mic-btn svg{width:18px;height:20px;}
@@ -1213,8 +1223,8 @@ html[data-theme="light"] .attach-opt:hover{background:rgba(20,18,12,.05);}
   .mmp-think-copy{display:flex;flex-direction:column;gap:2px;}
   .mmp-think-title{font-size:14px;font-weight:700;color:var(--text);}
   .mmp-think-sub{font-size:11px;color:var(--text2);line-height:1.35;}
-  .send-btn{position:static;transform:none;width:32px;height:32px;border-radius:50%;background:#2f8fff;color:#fff;border:none;box-shadow:none;margin-bottom:0;display:flex;align-items:center;justify-content:center;}
-  .send-btn svg{width:16px;height:16px;}
+  .send-btn{position:static;transform:none;width:40px;height:40px;border-radius:50%;background:#2f8fff;color:#fff;border:none;box-shadow:none;margin-bottom:0;display:flex;align-items:center;justify-content:center;}
+  .send-btn svg{width:18px;height:18px;}
   .send-btn.is-stop{background:#fff;color:#111;box-shadow:0 10px 22px rgba(0,0,0,.24);}
   .send-btn:disabled{opacity:.5;cursor:default;box-shadow:none;}
   .disclaimer{display:none;}
@@ -1257,7 +1267,7 @@ html[data-theme="light"] .attach-opt:hover{background:rgba(20,18,12,.05);}
 .settings-overlay.open{display:flex;}
 @media(min-width:769px){
   .settings-overlay{background:rgba(0,0,0,.4);align-items:center;justify-content:center;}
-  .settings-box{background:var(--bg2);border:1px solid var(--border);border-radius:20px;width:440px;max-height:85vh;overflow-y:auto;padding:24px;box-shadow:var(--drop-shadow);display:none;}
+  .settings-box{background:var(--bg2);border:1px solid var(--border);border-radius:20px;width:440px;max-height:85vh;max-height:85dvh;overflow-y:auto;padding:24px;box-shadow:var(--drop-shadow);display:none;}
   .settings-overlay.open .settings-box{display:block;}
 }
 @media(max-width:768px){
@@ -1457,7 +1467,7 @@ html[data-theme="light"] .limit-reached{background:rgba(239,68,68,.07);border-co
 /* Dropdown overlay for pers */
 .pers-drop-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:400;display:none;align-items:flex-end;justify-content:center;}
 .pers-drop-overlay.open{display:flex;}
-.pers-drop-sheet{background:var(--bg2);border-radius:20px 20px 0 0;padding:16px 16px 30px;width:100%;max-height:70vh;overflow-y:auto;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);}
+.pers-drop-sheet{background:var(--bg2);border-radius:20px 20px 0 0;padding:16px 16px 30px;width:100%;max-height:70vh;max-height:70dvh;overflow-y:auto;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);}
 .pers-drop-overlay.open .pers-drop-sheet{transform:translateY(0);}
 .pds-title{font-size:16px;font-weight:700;color:var(--text);margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border);}
 .pds-opt{padding:14px 12px;border-radius:12px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:background .12s;border-bottom:1px solid var(--border2);}
@@ -1493,8 +1503,8 @@ html[data-theme="light"] .limit-reached{background:rgba(239,68,68,.07);border-co
   .mobile-only-setting{display:none;}
 }
 @media(max-width:768px){
-  .send-btn{width:32px!important;height:32px!important;min-width:32px!important;min-height:32px!important;border-radius:50%!important;}
-  .send-btn svg{width:16px!important;height:16px!important;}
+  .send-btn{width:40px!important;height:40px!important;min-width:40px!important;min-height:40px!important;border-radius:50%!important;}
+  .send-btn svg{width:18px!important;height:18px!important;}
 }
 
 /* Заблокированные Pro-опции для роли user: приглушаем и показываем «замочек».
@@ -1633,7 +1643,7 @@ html[data-theme="light"] .notif-card{background:#fff;border-color:rgba(20,18,12,
 /* ===== Mobile model bottom-sheet (liquid glass) ===== */
 .mm-overlay{position:fixed;inset:0;z-index:700;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.5);backdrop-filter:blur(6px);opacity:0;visibility:hidden;transition:opacity .22s,visibility .22s;}
 .mm-overlay.open{opacity:1;visibility:visible;}
-.mm-sheet{width:100%;max-width:560px;max-height:88vh;overflow-y:auto;background:rgba(24,24,29,.72);backdrop-filter:blur(28px) saturate(160%);-webkit-backdrop-filter:blur(28px) saturate(160%);border:1px solid rgba(255,255,255,.10);border-top-left-radius:28px;border-top-right-radius:28px;box-shadow:0 -18px 48px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.06);padding:10px 18px 28px;transform:translateY(16px);transition:transform .25s cubic-bezier(.2,.9,.3,1.1);}
+.mm-sheet{width:100%;max-width:560px;max-height:88vh;max-height:88dvh;overflow-y:auto;background:rgba(24,24,29,.72);backdrop-filter:blur(28px) saturate(160%);-webkit-backdrop-filter:blur(28px) saturate(160%);border:1px solid rgba(255,255,255,.10);border-top-left-radius:28px;border-top-right-radius:28px;box-shadow:0 -18px 48px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.06);padding:10px 18px 28px;transform:translateY(16px);transition:transform .25s cubic-bezier(.2,.9,.3,1.1);}
 .mm-overlay.open .mm-sheet{transform:translateY(0);}
 @media(min-width:769px){
   .mm-overlay{align-items:center;}
@@ -1788,7 +1798,7 @@ html[data-theme="light"] .pv-action:hover .pv-action-circle{background:rgba(20,1
 /* Мобильные/узкие экраны: модалка занимает больше места, кнопки крупнее */
 @media(max-width:768px){
   .pv-overlay{padding:0;}
-  .pv-window{max-width:100vw;max-height:100vh;border-radius:0;border:none;}
+  .pv-window{max-width:100vw;max-height:100vh;max-height:100dvh;border-radius:0;border:none;}
   .pv-action-circle{width:52px;height:52px;}
   .pv-action-circle svg{width:24px;height:24px;}
 }
@@ -2048,14 +2058,14 @@ html[data-theme="light"] .photo-deleted-msg{
   }
   .bar-icon:hover,.bar-icon:active,.mic-btn:hover,.mic-btn:active{background:rgba(255,255,255,.12);color:#fff;}
   html:not([data-theme="light"]):not([data-theme="messenger"]) .send-btn{
-    width:38px!important;height:38px!important;min-width:38px!important;min-height:38px!important;
+    width:40px!important;height:40px!important;min-width:40px!important;min-height:40px!important;
     background:rgba(8,76,253,.30)!important;
     -webkit-backdrop-filter:var(--lg-blur);backdrop-filter:var(--lg-blur);
     border:1px solid rgba(8,76,253,.55)!important;
     box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 8px 20px rgba(8,76,253,.22);
     color:#fff!important;
   }
-  html:not([data-theme="light"]):not([data-theme="messenger"]) .send-btn svg{width:17px!important;height:17px!important;color:#fff;}
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .send-btn svg{width:18px!important;height:18px!important;color:#fff;}
 
   /* ---------- MODEL BOTTOM-SHEET ---------- */
   .mm-overlay{background:rgba(0,0,0,.55);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);}
@@ -2126,6 +2136,52 @@ html[data-theme="light"] .photo-deleted-msg{
     .mobile-glossy .bubble{animation:none;}
   }
 }
+
+/* ============ АУДИТ (раунд 7): тап-зоны на мобильных ============
+   Замеры в браузере показали кнопки 20–38px при рекомендуемых 44px,
+   причём в одной строке соседствовали 34/38/40px — выглядело разнокалиберно. */
+@media(max-width:768px){
+  .bar-icon{width:40px;height:40px;}
+  .mic-btn{width:40px;height:40px;}
+  .sth-back,.sth-close{width:40px;height:40px;}
+  .topbar-btn,.sb-icon-btn{min-width:40px;min-height:40px;}
+  /* переключатели были 38×22 — тесно для пальца */
+  .sw{width:46px;height:28px;border-radius:14px;}
+  .sw::after{width:24px;height:24px;}
+  .sw.on::after{transform:translateX(18px);}
+  /* карандаш на аватаре: вид остаётся маленьким, зона нажатия — 44px */
+  .prof-ava-edit{width:28px;height:28px;}
+  .prof-ava-edit::after{content:'';position:absolute;left:50%;top:50%;
+    transform:translate(-50%,-50%);width:44px;height:44px;border-radius:50%;}
+  /* кликабельная строка имя/e-mail в настройках имела высоту 18px */
+  div.mobile-only[role="button"]{min-height:44px;display:flex;
+    flex-direction:column;justify-content:center;}
+
+  /* КРИТИЧНО (читаемость): настройки на мобильных заливались #000!important
+     для всех тем сразу, а тематическая замена была только для тёмной.
+     В светлой и messenger получался чёрный фон с тёмно-серым текстом:
+     имя пользователя и заголовки секций были практически не видны. */
+  html[data-theme="light"] .settings-overlay{background:var(--bg)!important;}
+  html[data-theme="messenger"] .settings-overlay{background:var(--bg)!important;}
+  html[data-theme="light"] .prof-ava-edit{border-color:var(--bg);}
+  html[data-theme="messenger"] .prof-ava-edit{border-color:var(--bg);}
+}
+
+/* ============ АУДИТ (раунд 7): контраст и читаемость ============ */
+/* красная кнопка «Выйти»: #ef4444 на светлом фоне давала 3.25:1 */
+html[data-theme="light"] .logout-btn,
+html[data-theme="messenger"] .logout-btn{border-color:#c81e1e;color:#c81e1e;}
+html[data-theme="light"] .logout-btn:hover,
+html[data-theme="messenger"] .logout-btn:hover{background:rgba(200,30,30,.08);}
+/* дисклеймер ИИ и бета-плашка стояли на opacity .5 при шрифте 11–12px */
+.disclaimer{opacity:.7;}
+.auth-beta{opacity:.7;}
+/* строка «Перейти на Pro»: бледно-сиреневый #a78bfa на светлой карточке
+   давал 2.35:1 — текст почти растворялся в фоне */
+html[data-theme="light"] .s-row.s-row-accent .s-row-icon,
+html[data-theme="light"] .s-row.s-row-accent .s-row-text,
+html[data-theme="messenger"] .s-row.s-row-accent .s-row-icon,
+html[data-theme="messenger"] .s-row.s-row-accent .s-row-text{color:#7c3aed;}
 </style>
 </head>
 <body>
@@ -2878,7 +2934,16 @@ function fmtResetHuman(d){
 }
 
 /* marked setup */
-if(typeof marked!=='undefined') marked.setOptions({breaks:true,gfm:true});
+if(typeof marked==='undefined'||!marked.Renderer){
+  /* CDN не ответил (блокировка, оффлайн, CSP) — раньше падал весь скрипт. */
+  window.marked={
+    Renderer:function(){},
+    setOptions:function(){},
+    use:function(){},
+    parse:function(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');}
+  };
+}
+marked.setOptions({breaks:true,gfm:true});
 
 /* ===== Блоки кода: подсветка + шапка с названием языка и кнопкой «Копировать» =====
    Кнопка видна сразу, но КОПИРОВАНИЕ доступно только после полного завершения
@@ -8790,9 +8855,7 @@ function emojisLabel(v){
   const map={default:'По умолчанию',none:'Нет',some:'Немного',many:'Много'};
   return map[v]||'По умолчанию';
 }
-function escapeHtml(t){
-  const d=document.createElement('div');d.textContent=t;return d.innerHTML;
-}
+/* Строгий escapeHtml объявлен выше. Дублирующее определение через textContent удалено: оно перекрывало строгую версию и не экранировало кавычки. */
 
 /* Pers dropdown overlay */
 const PERS_OPT_DATA={
