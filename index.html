@@ -2438,6 +2438,78 @@ html[data-theme="messenger"] #desktopModelsSub .desktop-option.pro-locked::after
 html[data-theme="messenger"] .mm-opt.pro-locked::after{
   color:#0e7fd4;background:rgba(26,127,174,.12);border-color:rgba(26,127,174,.40);
 }
+
+/* === Новый блок размышления === */
+.tr {
+  max-width: 360px;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--text2);
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 4px 0;
+}
+.trHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--text2);
+}
+.trChevron {
+  display: inline-flex;
+  transition: transform 0.2s ease;
+}
+.trChevron.open {
+  transform: rotate(180deg);
+}
+.trCollapsible {
+  overflow: hidden;
+  transition: max-height 0.25s ease;
+  max-height: 0;
+}
+.trCollapsible.open {
+  max-height: 180px;
+}
+.trInner {
+  padding-top: 4px;
+  overflow-y: auto;
+  max-height: 180px;
+  scrollbar-width: none;
+}
+.trInner::-webkit-scrollbar {
+  display: none;
+}
+.trStream {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.trSentence {
+  opacity: 0;
+  animation: fadeIn 0.2s ease forwards;
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.trShimmer {
+  background: linear-gradient(90deg, var(--text2) 0%, var(--text) 50%, var(--text2) 100%);
+  background-size: 200% auto;
+  animation: shimmer 1.5s linear infinite;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
 </style>
 </head>
 <body>
@@ -2807,7 +2879,7 @@ html[data-theme="messenger"] .mm-opt.pro-locked::after{
   </div>
 </div>
 
-<!-- ===================== МИНИ-ОКНО «Размышление модели» ===================== -->
+<!-- <!-- ===================== МИНИ-ОКНО «Размышление модели» ===================== -->
 <div class="trace-popover" id="thinkPopover" role="dialog" aria-label="Размышление модели">
   <div class="trace-popover-head">
     <div class="trace-popover-title">Размышление модели</div>
@@ -2818,7 +2890,7 @@ html[data-theme="messenger"] .mm-opt.pro-locked::after{
   <div class="trace-popover-body" id="thinkPopoverBody"></div>
 </div>
 
-<!-- ===================== МИНИ-ОКНО «Веб-поиск» ===================== -->
+ --><!-- ===================== МИНИ-ОКНО «Веб-поиск» ===================== -->
 <div class="trace-popover" id="searchPopover" role="dialog" aria-label="Веб-поиск">
   <div class="trace-popover-head">
     <div class="trace-popover-title">Веб-поиск</div>
@@ -6338,64 +6410,107 @@ function formatReasoningText(text){
     .replace(/\n{3,}/g,'\n\n')
     .replace(/[ \t]{2,}/g,' ');
 }
-function ensureReasoningLine(msgEl){
-  const wrap=msgEl.closest('.msg-ai-wrap');
-  if(!wrap)return null;
-  let line=wrap.querySelector('.trace-line.think');
-  if(!line){
-    line=document.createElement('div');
-    line.className='trace-line think live';
-    line._text='';
-    line._startedAt=Date.now();
-    line._done=false;
-    line.innerHTML=`<span class="trace-line-icon">💭</span><span class="trace-line-txt">Думаю…</span><span class="trace-line-arrow">›</span>`;
-    // Если параллельно есть search-line, ставим think-строку после неё, иначе перед msgEl.
-    const searchLine=wrap.querySelector('.trace-line.search');
-    if(searchLine)searchLine.after(line);
-    else wrap.insertBefore(line,msgEl);
-    line.addEventListener('click',()=>openThinkPopover(line));
+
+function ensureReasoningLine(msgEl) {
+  const wrap = msgEl.closest('.msg-ai-wrap');
+  if (!wrap) return null;
+  let block = wrap.querySelector('.tr');
+  if (!block) {
+    block = document.createElement('div');
+    block.className = 'tr';
+    const header = document.createElement('div');
+    header.className = 'trHeader trShimmer';
+    const label = document.createElement('span');
+    label.className = 'trLabel';
+    label.textContent = 'Размышляет...';
+    const verb = document.createElement('span');
+    verb.className = 'trVerb';
+    verb.textContent = '⋅';
+    const chevron = document.createElement('span');
+    chevron.className = 'trChevron';
+    chevron.innerHTML = '▾';
+    header.appendChild(label);
+    header.appendChild(verb);
+    header.appendChild(chevron);
+    const collapsible = document.createElement('div');
+    collapsible.className = 'trCollapsible';
+    const inner = document.createElement('div');
+    inner.className = 'trInner';
+    const stream = document.createElement('div');
+    stream.className = 'trStream';
+    inner.appendChild(stream);
+    collapsible.appendChild(inner);
+    block.appendChild(header);
+    block.appendChild(collapsible);
+    block._stream = stream;
+    block._inner = inner;
+    block._collapsible = collapsible;
+    block._header = header;
+    block._chevron = chevron;
+    block._label = label;
+    block._sentences = [];
+    block._open = false;
+    block._done = false;
+    block._startedAt = Date.now();
+    header.addEventListener('click', function() {
+      block._open = !block._open;
+      block._collapsible.classList.toggle('open', block._open);
+      block._chevron.classList.toggle('open', block._open);
+      if (block._open) {
+        block._inner.scrollTop = block._inner.scrollHeight;
+      }
+    });
+    const searchLine = wrap.querySelector('.trace-line.search');
+    if (searchLine) searchLine.after(block);
+    else wrap.insertBefore(block, msgEl);
   }
-  return line;
+  return block;
 }
-function appendReasoningChunk(msgEl,text){
-  if(!text)return;
-  const line=ensureReasoningLine(msgEl);
-  if(!line)return;
-  line._text+=text;
-  // Если параллельно есть web-search строка — префикс «🌐 Смотрю site… » мы уже даём в ней,
-  // а эта строка отвечает конкретно за размышление модели.
-  if(_thinkPopoverLine===line){
-    const body=document.getElementById('thinkPopoverBody');
-    if(body){body.textContent=formatReasoningText(line._text);body.scrollTop=body.scrollHeight;}
+
+
+function appendReasoningChunk(msgEl, text) {
+  if (!text) return;
+  const block = ensureReasoningLine(msgEl);
+  if (!block) return;
+  const stream = block._stream;
+  const sentence = document.createElement('span');
+  sentence.className = 'trSentence';
+  sentence.textContent = text;
+  stream.appendChild(sentence);
+  block._sentences.push(sentence);
+  if (block._open) {
+    requestAnimationFrame(function() {
+      block._inner.scrollTop = block._inner.scrollHeight;
+    });
   }
-  scrollChat();
 }
-function finalizeReasoningTrace(msgEl){
-  const wrap=msgEl.closest('.msg-ai-wrap');
-  const line=wrap&&wrap.querySelector('.trace-line.think');
-  if(!line)return;
-  if(!line._text&&!line._done){line.remove();return;}
-  line._done=true;
-  line._durationMs=Date.now()-(line._startedAt||Date.now());
-  line.classList.remove('live');
-  const t=line.querySelector('.trace-line-txt');
-  if(t)t.textContent='Думал на протяжении '+fmtThinkDuration(line._durationMs);
+
+
+function finalizeReasoningTrace(msgEl) {
+  const wrap = msgEl.closest('.msg-ai-wrap');
+  const block = wrap && wrap.querySelector('.tr');
+  if (!block) return;
+  block._done = true;
+  const duration = Date.now() - (block._startedAt || Date.now());
+  const sec = Math.round(duration / 1000);
+  const label = block._label;
+  if (sec > 0) {
+    label.textContent = 'Думал на протяжении ' + sec + 'с';
+  } else {
+    label.textContent = 'Думал';
+  }
+  if (!block._open) {
+    block._collapsible.classList.remove('open');
+    block._chevron.classList.remove('open');
+  }
+  block._header.classList.remove('trShimmer');
 }
+
 
 // Мини-окно с полным текстом размышления.
 let _thinkPopoverLine=null;
-function openThinkPopover(line){
-  _thinkPopoverLine=line;
-  const body=document.getElementById('thinkPopoverBody');
-  if(body)body.textContent=formatReasoningText(line._text||'');
-  document.getElementById('thinkPopover')?.classList.add('open');
-  // Прокручиваем в самый низ, если размышление ещё стримится.
-  if(body)requestAnimationFrame(()=>{body.scrollTop=body.scrollHeight;});
-}
-function closeThinkPopover(){
-  _thinkPopoverLine=null;
-  document.getElementById('thinkPopover')?.classList.remove('open');
-}
+function openThinkPopover(line) { /* replaced by new UI */ }
+function closeThinkPopover() { /* replaced by new UI */ }
 function showTyping(kind='text',steps=[]){
   const inner=getChatInner();
   const d=document.createElement('div');d.className='thinking';d.id='typEl';
