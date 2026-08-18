@@ -1595,37 +1595,6 @@ html[data-theme="light"] .rec-modal{background:rgba(252,251,249,.96);border-colo
 .reco-abc-save{padding:8px 14px;border-radius:10px;background:#0a84ff;color:#fff;font-size:12.5px;font-weight:600;border:none;cursor:pointer;font-family:inherit;}
 .reco-abc-cancel{padding:8px 14px;border-radius:10px;background:transparent;color:var(--text2);font-size:12.5px;font-weight:600;border:1px solid var(--border);cursor:pointer;font-family:inherit;}
 
-/* ===== КОМПАКТНЫЕ INLINE-СТРОКИ «Думаю…» / «Смотрю сайт…» ===== */
-/* Одна строка серого 13px italic, курсор pointer, hover — лёгкое подчёркивание. */
-.trace-line{align-self:stretch;font-size:13px;line-height:1.5;color:var(--text2);font-style:italic;padding:2px 2px 4px;margin:0 0 4px;cursor:pointer;user-select:none;display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap;transition:opacity .15s;}
-.trace-line:hover{opacity:.85;}
-.trace-line:hover .trace-line-txt{text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px;}
-.trace-line .trace-line-icon{flex-shrink:0;}
-.trace-line .trace-line-arrow{margin-left:2px;opacity:.7;}
-
-/* ===== МИНИ-ОКНА (Размышление / Веб-поиск) — стеклянный попап сверху чата ===== */
-.trace-popover{position:fixed;left:50%;top:70px;transform:translateX(-50%) translateY(-10px);width:min(420px,92vw);max-height:420px;z-index:720;background:rgba(24,24,29,.86);backdrop-filter:blur(28px) saturate(160%);-webkit-backdrop-filter:blur(28px) saturate(160%);border:1px solid rgba(255,255,255,.10);border-radius:20px;box-shadow:0 22px 60px rgba(0,0,0,.44);padding:16px 16px 14px;opacity:0;visibility:hidden;transition:opacity .18s ease-out,transform .18s ease-out,visibility .18s;display:flex;flex-direction:column;}
-html[data-theme="light"] .trace-popover{background:rgba(252,251,249,.95);border-color:rgba(20,18,12,.08);box-shadow:0 22px 60px rgba(20,18,12,.18);}
-.trace-popover.open{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0);}
-.trace-popover-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;flex-shrink:0;}
-.trace-popover-title{font-size:14px;font-weight:700;color:var(--text);letter-spacing:-.2px;}
-.trace-popover-close{width:28px;height:28px;border-radius:8px;background:transparent;border:none;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;transition:background .12s,color .12s;}
-.trace-popover-close:hover{background:var(--hover);color:var(--text);}
-.trace-popover-body{font-size:13px;line-height:1.6;color:var(--text2);overflow-y:auto;max-height:320px;white-space:pre-wrap;overflow-wrap:anywhere;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Inter',sans-serif;padding-right:4px;}
-.trace-popover-body:empty::before{content:'Модель ещё не начала размышления…';opacity:.6;}
-/* Список источников веб-поиска в мини-окне */
-.trace-src-list{display:flex;flex-direction:column;gap:6px;}
-.trace-src-item{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);text-decoration:none;color:var(--text);font-size:12.5px;line-height:1.35;transition:background .12s;}
-html[data-theme="light"] .trace-src-item{background:rgba(20,18,12,.03);border-color:rgba(20,18,12,.06);}
-.trace-src-item:hover{background:rgba(255,255,255,.07);}
-.trace-src-fav{width:16px;height:16px;flex-shrink:0;border-radius:3px;background:rgba(255,255,255,.06);object-fit:contain;}
-.trace-src-info{flex:1;min-width:0;}
-.trace-src-title{font-size:12.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.trace-src-host{font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.trace-src-status{font-size:11px;flex-shrink:0;opacity:.7;}
-.trace-src-status.done{color:#22c55e;}
-.trace-src-status.live{color:#0a84ff;}
-
 /* ===== ПРОМО-УВЕДОМЛЕНИЯ (появляются над строкой ввода) ===== */
 .notif-host{position:fixed;left:0;right:0;bottom:0;z-index:750;pointer-events:none;display:flex;justify-content:center;padding:0 12px calc(90px + env(safe-area-inset-bottom,0px));}
 @media(min-width:769px){.notif-host{padding-bottom:110px;}}
@@ -2442,14 +2411,47 @@ html[data-theme="messenger"] .mm-opt.pro-locked::after{
   color:#0e7fd4;background:rgba(26,127,174,.12);border-color:rgba(26,127,174,.40);
 }
 
-/* === HM-REASONING-V2 =====================================================
-   Блок размышления модели. Без карточки, без рамки, без фона.
-   Цвета берутся из тем проекта, отдельного prefers-color-scheme нет.
+/* === HM-REASONING-V3 =====================================================
+   Блок размышления модели: капсула-пилюля с «объективом» из трёх орбов и
+   мерцающим лейблом. Цвета берутся из тем проекта — отдельного
+   prefers-color-scheme нет, иначе явно выбранная тема ломалась бы.
+   Токены объявлены четыре раза: :root (мобильная тёмная по умолчанию),
+   десктопный медиа-запрос (светлая по умолчанию) и три явные темы.
+   Атрибутный селектор специфичнее медиа-запроса, поэтому явная тема всегда
+   побеждает, в каком бы порядке правила ни стояли.
    ------------------------------------------------------------------------ */
-:root{--tr-ink:#8e8e98;--tr-sh-a:#a1a1a1;--tr-sh-b:rgba(161,161,161,.45);}
-html[data-theme="dark"]{--tr-ink:#888892;--tr-sh-a:#a1a1a1;--tr-sh-b:rgba(161,161,161,.45);}
-html[data-theme="light"]{--tr-ink:#6b6660;--tr-sh-a:#8a8a8a;--tr-sh-b:rgba(138,138,138,.42);}
-html[data-theme="messenger"]{--tr-ink:#668096;--tr-sh-a:#8ba0b2;--tr-sh-b:rgba(139,160,178,.45);}
+:root{
+  --tr-ink:#8e8e98;--tr-sh-a:#a1a1a1;--tr-sh-b:rgba(161,161,161,.45);
+  --tr-pill-bg:#1a1a1a;
+  --tr-pill-shadow:0 0 0 .5px rgba(255,255,255,.12),0 1px 2px rgba(0,0,0,.4),0 2px 4px rgba(0,0,0,.3);
+  --tr-pill-hover:#212121;
+}
+@media(min-width:769px){
+  :root{
+    --tr-ink:#6b6660;--tr-sh-a:#8a8a8a;--tr-sh-b:rgba(138,138,138,.42);
+    --tr-pill-bg:#ffffff;
+    --tr-pill-shadow:0 0 0 .5px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.05),0 2px 4px rgba(0,0,0,.02);
+    --tr-pill-hover:#fbfbfa;
+  }
+}
+html[data-theme="dark"]{
+  --tr-ink:#888892;--tr-sh-a:#a1a1a1;--tr-sh-b:rgba(161,161,161,.45);
+  --tr-pill-bg:#1a1a1a;
+  --tr-pill-shadow:0 0 0 .5px rgba(255,255,255,.12),0 1px 2px rgba(0,0,0,.4),0 2px 4px rgba(0,0,0,.3);
+  --tr-pill-hover:#212121;
+}
+html[data-theme="light"]{
+  --tr-ink:#6b6660;--tr-sh-a:#8a8a8a;--tr-sh-b:rgba(138,138,138,.42);
+  --tr-pill-bg:#ffffff;
+  --tr-pill-shadow:0 0 0 .5px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.05),0 2px 4px rgba(0,0,0,.02);
+  --tr-pill-hover:#fbfbfa;
+}
+html[data-theme="messenger"]{
+  --tr-ink:#668096;--tr-sh-a:#8ba0b2;--tr-sh-b:rgba(139,160,178,.45);
+  --tr-pill-bg:#ffffff;
+  --tr-pill-shadow:0 0 0 .5px rgba(55,110,150,.18),0 1px 2px rgba(45,86,120,.08),0 2px 4px rgba(45,86,120,.04);
+  --tr-pill-hover:#f6fbfe;
+}
 
 .tr{align-self:flex-start;display:block;width:-moz-fit-content;width:fit-content;max-width:min(360px,100%);margin:0 0 6px;padding:0;background:none;border:none;opacity:0;}
 /* Устойчивое состояние — opacity:1; анимация отвечает только за появление.
@@ -2457,16 +2459,57 @@ html[data-theme="messenger"]{--tr-ink:#668096;--tr-sh-a:#8ba0b2;--tr-sh-b:rgba(1
 .tr.is-in{opacity:1;animation:trBlockIn .28s cubic-bezier(.4,0,.2,1);}
 @keyframes trBlockIn{from{opacity:0;transform:translateY(2px);}to{opacity:1;transform:none;}}
 
-.trHeader{display:inline-flex;align-items:center;gap:5px;padding:1px 0;background:none;border:none;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;}
-.trHeader:focus-visible{outline:1px solid var(--tr-ink);outline-offset:3px;border-radius:6px;}
-.trLabel{font-size:13px;line-height:18px;font-weight:500;font-style:normal;color:var(--tr-ink);white-space:nowrap;}
+/* Капсула. Кольцо-волосок сделано тенью, а не border — так оно не влияет на
+   раскладку и не «прыгает» при смене состояния. */
+.trHeader{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 11px 0 5px;border-radius:999px;background:var(--tr-pill-bg);box-shadow:var(--tr-pill-shadow);border:none;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;transition:background .18s ease;}
+.trHeader:hover{background:var(--tr-pill-hover);}
+.trHeader:focus-visible{outline:1px solid var(--tr-ink);outline-offset:2px;}
+.trLabel{display:inline-flex;align-items:center;font-size:11.5px;line-height:1;font-weight:425;font-style:normal;color:var(--tr-ink);white-space:nowrap;}
 .trVerb{font-style:normal;}
-.trChevron{display:inline-flex;align-items:center;justify-content:center;color:var(--tr-ink);opacity:.7;transition:transform .28s cubic-bezier(.4,0,.2,1);}
+.trChevron{display:inline-flex;align-items:center;justify-content:center;color:var(--tr-ink);opacity:.65;transition:transform .28s cubic-bezier(.4,0,.2,1),opacity .18s ease;}
+.trHeader:hover .trChevron{opacity:.85;}
 .tr.is-open .trChevron{transform:rotate(180deg);}
 
+/* Объектив: сцена 28×28 сжимается до 20×20 через --orb-k, поэтому размеры
+   орбов и амплитуда их хода задаются в одной системе координат.
+   contain:strict — орбы с blur не должны перерисовывать соседей. */
+.trGlyph{--orb-k:.714;position:relative;display:block;flex:none;width:20px;height:20px;overflow:hidden;contain:strict;color:var(--tr-ink);}
+.trLens{position:absolute;left:0;top:0;width:28px;height:28px;transform-origin:0 0;transform:scale(var(--orb-k));}
+.trShape{--orb-d:7px;position:absolute;left:50%;top:50%;width:var(--orb-d);height:var(--orb-d);
+  /* Сдвиг на половину своего размера: --orb-d остаётся единственной ручкой
+     размера, и орб при этом сам держится в центре сцены. */
+  margin:calc(var(--orb-d) / -2) 0 0 calc(var(--orb-d) / -2);border-radius:50%;background:currentColor;opacity:0;}
+/* handoff — орбы по очереди проходят фокальную плоскость слева направо,
+   как передача работы дальше. Blur читается как удалённость. */
+.tr.is-live .trShape{animation:trOrbHandoff 2.8s linear infinite both;}
+.tr.is-live .trShapeA{animation-delay:0s;}
+/* Полцикла разницы: один орб всегда в фокусе, пока второй невидим на краю,
+   поэтому точку склейки цикла не видно. */
+.tr.is-live .trShapeC{animation-delay:-1.4s;}
+/* Третий держит центр и «дышит» — фон-глубина позади движения. */
+.tr.is-live .trShapeB{animation-name:trOrbBreathe;animation-duration:3.6s;animation-delay:0s;}
+/* Входит маленьким слева, в фокальной плоскости ровно 1× (без пульсации),
+   затем уменьшается и растворяется справа. */
+@keyframes trOrbHandoff{
+  0%{opacity:0;filter:blur(2.4px);transform:translateX(-11px) scale(.55);animation-timing-function:cubic-bezier(.33,1,.68,1);}
+  22%{opacity:1;filter:blur(0);transform:translateX(-1px) scale(1);animation-timing-function:linear;}
+  37%{opacity:1;filter:blur(0);transform:translateX(0) scale(1);animation-timing-function:linear;}
+  52%{opacity:1;filter:blur(0);transform:translateX(1px) scale(1);animation-timing-function:cubic-bezier(.33,1,.68,1);}
+  70%{opacity:0;filter:blur(2.4px);transform:translateX(11px) scale(.55);}
+  100%{opacity:0;filter:blur(2.4px);transform:translateX(11px) scale(.55);}
+}
+@keyframes trOrbBreathe{
+  0%,100%{opacity:.16;filter:blur(2.4px);transform:scale(1.2);}
+  50%{opacity:.32;filter:blur(1.6px);transform:scale(.98);}
+}
+/* Размышление закончено — движение снимается, остаётся один спокойный орб. */
+.tr.is-done .trShape{animation:none;}
+.tr.is-done .trShapeA,.tr.is-done .trShapeC{opacity:0;}
+.tr.is-done .trShapeB{opacity:.5;filter:none;transform:none;}
+
 .trCollapsible{overflow:hidden;max-height:0;opacity:0;transition:max-height .3s cubic-bezier(.4,0,.2,1),opacity .22s ease;}
-.tr.is-open .trCollapsible{max-height:210px;opacity:1;}
-.trInner{padding:6px 0 2px;}
+.tr.is-open .trCollapsible{max-height:214px;opacity:1;}
+.trInner{padding:8px 2px 2px 5px;}
 .trViewport{max-height:180px;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;-ms-overflow-style:none;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
 .trViewport::-webkit-scrollbar{width:0;height:0;display:none;}
 .trStream{display:flex;flex-direction:column;gap:3px;}
@@ -2479,11 +2522,182 @@ html[data-theme="messenger"]{--tr-ink:#668096;--tr-sh-a:#8ba0b2;--tr-sh-b:rgba(1
 
 @media(max-width:768px){.tr{max-width:min(360px,88vw);}}
 @media(prefers-reduced-motion:reduce){
-  .trCollapsible,.trChevron{transition-duration:.01ms;}
+  .trCollapsible,.trChevron,.trHeader{transition-duration:.01ms;}
   .tr.is-in,.trSentence{animation:none;}
+  /* Орбы замирают: остаётся один статичный круг в центре.
+     Селекторы намеренно повторяют форму «.tr.is-live .trShape» — с более
+     коротким «.tr .trShape» правило проигрывало по специфичности и анимация
+     продолжала идти вопреки настройке системы. */
+  .tr.is-live .trShape,.tr.is-done .trShape{animation:none;filter:none;transform:none;opacity:0;}
+  .tr.is-live .trShapeB,.tr.is-done .trShapeB{opacity:.5;}
   .tr.is-live .trVerb,.hmThinkLabel{animation:none;color:var(--tr-ink);-webkit-text-fill-color:currentColor;background:none;}
 }
-/* === /HM-REASONING-V2 =================================================== */
+/* === /HM-REASONING-V3 =================================================== */
+
+/* === HM-WEBSEARCH ========================================================
+   Встроенный раскрывающийся список веб-поиска — заменил модальное мини-окно.
+   Два отличия от присланного CSS, обе вынужденные:
+   • prefers-color-scheme заменён на токены тем проекта и объявлен четыре раза
+     (см. комментарий к HM-REASONING-V3), иначе выбранная вручную тема ломалась
+     бы при системной «тёмной»;
+   • color-mix() раскрыт в явные rgba — Safari до 16.4 его не понимает, а без
+     градиента текст с background-clip:text стал бы полностью прозрачным.
+   ------------------------------------------------------------------------ */
+.ws{
+  --ws-text:#f2f4f8;--ws-text-45:rgba(242,244,248,.45);--ws-text-50:rgba(242,244,248,.5);
+  --ws-muted:#9aa4b4;--ws-subtle:#6b7484;--ws-border:#232834;--ws-success:#34d399;
+  --ws-ease:cubic-bezier(.32,.72,0,1);
+  align-self:stretch;display:flex;flex-direction:column;gap:4px;margin:0 0 6px;
+  font:13px/1.4 -apple-system,BlinkMacSystemFont,'SF Pro Text','Inter',system-ui,sans-serif;
+  color:var(--ws-text);
+}
+@media(min-width:769px){
+  .ws{
+    --ws-text:#0b0d12;--ws-text-45:rgba(11,13,18,.45);--ws-text-50:rgba(11,13,18,.5);
+    --ws-muted:#a1a1a1;--ws-subtle:#a1a1a1;--ws-border:#e6e8ec;--ws-success:#15a06a;
+  }
+}
+html[data-theme="dark"] .ws{
+  --ws-text:#f2f4f8;--ws-text-45:rgba(242,244,248,.45);--ws-text-50:rgba(242,244,248,.5);
+  --ws-muted:#9aa4b4;--ws-subtle:#6b7484;--ws-border:#232834;--ws-success:#34d399;
+}
+html[data-theme="light"] .ws{
+  --ws-text:#0b0d12;--ws-text-45:rgba(11,13,18,.45);--ws-text-50:rgba(11,13,18,.5);
+  --ws-muted:#a1a1a1;--ws-subtle:#a1a1a1;--ws-border:#e6e8ec;--ws-success:#15a06a;
+}
+html[data-theme="messenger"] .ws{
+  --ws-text:#22394d;--ws-text-45:rgba(34,57,77,.45);--ws-text-50:rgba(34,57,77,.5);
+  --ws-muted:#7d94a8;--ws-subtle:#9ab0c2;--ws-border:#dceaf3;--ws-success:#15a06a;
+}
+
+.ws.is-in{animation:trBlockIn .28s cubic-bezier(.4,0,.2,1);}
+.wsRow{display:flex;align-items:center;gap:6px;min-height:20px;}
+.wsRow>svg{flex:none;color:var(--ws-muted);margin-left:-1px;}
+/* min-width/overflow тут не для красоты: без них объявленный ниже
+   text-overflow:ellipsis не срабатывает и длинный запрос ломает строку. */
+.wsLabel{display:inline-flex;align-items:center;gap:4px;flex:0 1 auto;min-width:0;overflow:hidden;font-weight:550;color:var(--ws-text);white-space:nowrap;}
+.wsQuote{min-width:0;overflow:hidden;text-overflow:ellipsis;}
+/* Сжиматься при нехватке места должен запрос, а не подпись: «Ищу в инт…» вместо
+   обрезанного запроса читалось бы как поломка. */
+.wsLead{flex:none;}
+.wsShimmer{overflow:hidden;text-overflow:ellipsis;background:linear-gradient(90deg,var(--ws-text-45) 0%,var(--ws-text) 44%,var(--ws-text-45) 80%);background-size:220% 100%;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;animation:ws-shimmer 2.7s linear infinite;}
+.wsShimmer.isDone{animation:none;background:none;-webkit-text-fill-color:var(--ws-text);color:var(--ws-text);}
+.wsChevron{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;flex:none;padding:0;border:none;background:none;color:var(--ws-subtle);cursor:pointer;border-radius:4px;transition:color .16s var(--ws-ease),transform .28s var(--ws-ease);}
+.wsChevron:hover{color:var(--ws-muted);}
+.wsChevron:focus-visible{outline:1px solid var(--ws-muted);outline-offset:1px;}
+.wsChevron[aria-expanded="false"]{transform:rotate(180deg);}
+.wsCollapsible{display:grid;grid-template-rows:1fr;opacity:1;transition:grid-template-rows .32s var(--ws-ease),opacity .22s var(--ws-ease);}
+.wsCollapsible.isCollapsed{grid-template-rows:0fr;opacity:0;pointer-events:none;}
+.wsCollapsibleInner{min-height:0;overflow:hidden;}
+.wsResults{position:relative;display:flex;gap:6px;align-items:stretch;}
+.wsRail{flex:none;width:1px;align-self:stretch;border-left:1px solid var(--ws-border);margin-left:5.5px;}
+.wsList{flex:1;list-style:none;margin:0;padding:4px 0 2px 6px;display:flex;flex-direction:column;gap:6px;min-width:0;}
+.wsSite{display:flex;align-items:center;gap:6px;font-size:12px;line-height:18px;color:var(--ws-muted);min-width:0;text-decoration:none;opacity:0;transform:translateY(4px);animation:ws-enter .34s var(--ws-ease) forwards;}
+.wsSite[data-state="done"]{cursor:pointer;}
+.wsBullet{position:relative;width:12px;height:12px;flex:none;display:inline-flex;align-items:center;justify-content:center;}
+.wsDots{position:absolute;inset:0;display:inline-flex;align-items:center;justify-content:center;color:var(--ws-subtle);opacity:1;transition:opacity .32s var(--ws-ease);pointer-events:none;}
+.wsDots svg,.wsCheck svg,.wsGlobe svg{flex:none;}
+.wsSite[data-state="loading"] .wsDots,.wsSite[data-state="done"] .wsDots{opacity:0;}
+.wsGlobe{position:absolute;inset:0;display:inline-flex;align-items:center;justify-content:center;color:var(--ws-subtle);opacity:0;transform:scale(.88);transition:opacity .32s var(--ws-ease),transform .36s var(--ws-ease);}
+.wsSite[data-state="loading"] .wsGlobe{opacity:1;transform:scale(1);}
+.wsSite[data-state="done"] .wsGlobe{opacity:0;transform:scale(.775);transition:opacity .22s var(--ws-ease),transform .26s var(--ws-ease);}
+.wsCheck{display:inline-flex;align-items:center;justify-content:center;color:var(--ws-success);opacity:0;transform:scale(1.175);transition:opacity .24s var(--ws-ease) .06s,transform .28s var(--ws-ease) .06s;}
+.wsSite[data-state="done"] .wsCheck{opacity:1;transform:scale(1);}
+.wsTitle{color:var(--ws-text);font-weight:450;white-space:nowrap;flex:none;}
+.wsSite[data-state="pending"] .wsTitle{color:var(--ws-muted);}
+.wsSite[data-state="loading"] .wsTitle{background:linear-gradient(90deg,var(--ws-text-50) 0%,var(--ws-text) 44%,var(--ws-text-50) 80%);background-size:220% 100%;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;animation:ws-shimmer 2.7s linear infinite;}
+.wsSep{color:var(--ws-subtle);flex:none;}
+.wsUrl{color:var(--ws-muted);flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:color .16s var(--ws-ease);}
+.wsArrow{display:inline-flex;flex:none;color:var(--ws-subtle);margin-left:-2px;opacity:0;transform:rotate(45deg) translate(0,2px);transition:opacity .16s var(--ws-ease),transform .22s var(--ws-ease);}
+.wsSite[data-state="done"]:hover .wsArrow{opacity:1;transform:rotate(45deg) translate(0,0);}
+.wsSite[data-state="done"]:hover .wsUrl{color:var(--ws-text);}
+@keyframes ws-shimmer{0%{background-position:-200% 0;}100%{background-position:200% 0;}}
+@keyframes ws-enter{to{opacity:1;transform:translateY(0);}}
+@media(prefers-reduced-motion:reduce){
+  .ws.is-in{animation:none;}
+  .wsShimmer,.wsSite[data-state="loading"] .wsTitle{animation:none;background:none;-webkit-text-fill-color:var(--ws-text);color:var(--ws-text);}
+  .wsSite{animation:none;opacity:1;transform:none;}
+}
+/* === /HM-WEBSEARCH ======================================================= */
+
+/* === HM-IMAGEGEN =========================================================
+   Плейсхолдер генерации изображения. Размеры канвы совпадают с итоговой
+   картинкой (.msg-ai-img: 320px десктоп / 220px мобильный, 1:1 при 1024×1024),
+   поэтому в момент подстановки готового изображения раскладка не прыгает.
+   Токены — как у остальных компонентов, по темам проекта, четырьмя блоками.
+   ------------------------------------------------------------------------ */
+.igWrap{
+  --ig-text:#f2f4f8;--ig-text-45:rgba(242,244,248,.45);
+  --ig-muted:#9aa4b4;
+  --ig-surface:#14171e;--ig-border:rgba(255,255,255,.07);
+  --ig-dot:rgba(255,255,255,.10);--ig-glow:rgba(126,160,255,.22);
+  --ig-chip:rgba(10,12,16,.55);
+  --ig-ease:cubic-bezier(.32,.72,0,1);
+  display:flex;flex-direction:column;gap:7px;margin:4px 0;min-width:0;
+  font:12px/1.4 -apple-system,BlinkMacSystemFont,'SF Pro Text','Inter',system-ui,sans-serif;
+}
+@media(min-width:769px){
+  .igWrap{
+    --ig-text:#0b0d12;--ig-text-45:rgba(11,13,18,.45);
+    --ig-muted:#8a8a8a;
+    --ig-surface:#f4f5f7;--ig-border:rgba(20,18,12,.07);
+    --ig-dot:rgba(20,18,12,.10);--ig-glow:rgba(88,124,224,.16);
+    --ig-chip:rgba(255,255,255,.72);
+  }
+}
+html[data-theme="dark"] .igWrap{
+  --ig-text:#f2f4f8;--ig-text-45:rgba(242,244,248,.45);
+  --ig-muted:#9aa4b4;
+  --ig-surface:#14171e;--ig-border:rgba(255,255,255,.07);
+  --ig-dot:rgba(255,255,255,.10);--ig-glow:rgba(126,160,255,.22);
+  --ig-chip:rgba(10,12,16,.55);
+}
+html[data-theme="light"] .igWrap{
+  --ig-text:#0b0d12;--ig-text-45:rgba(11,13,18,.45);
+  --ig-muted:#8a8a8a;
+  --ig-surface:#f4f5f7;--ig-border:rgba(20,18,12,.07);
+  --ig-dot:rgba(20,18,12,.10);--ig-glow:rgba(88,124,224,.16);
+  --ig-chip:rgba(255,255,255,.72);
+}
+html[data-theme="messenger"] .igWrap{
+  --ig-text:#22394d;--ig-text-45:rgba(34,57,77,.45);
+  --ig-muted:#7d94a8;
+  --ig-surface:#f2f8fc;--ig-border:rgba(55,110,150,.10);
+  --ig-dot:rgba(45,86,120,.12);--ig-glow:rgba(56,132,196,.18);
+  --ig-chip:rgba(255,255,255,.78);
+}
+
+/* width задан фиксированно, а не через 100%: пузырь .msg-ai сжимается по
+   содержимому, и при width:100% сторона квадрата зависела бы от длины промпта
+   (короткий промпт — маленькая канва), а подстановка готовой картинки на 320px
+   дёргала бы раскладку. max-width:100% оставляет запас для узких экранов. */
+.igCanvas{position:relative;width:320px;max-width:100%;aspect-ratio:1/1;border-radius:12px;overflow:hidden;background:var(--ig-surface);box-shadow:inset 0 0 0 1px var(--ig-border);}
+/* Точечная сетка «пустого холста». Слой нарочно больше канвы (inset:-14px),
+   чтобы сдвиг через transform не открывал пустую полосу у края. */
+.igDots{position:absolute;inset:-14px;background-image:radial-gradient(var(--ig-dot) 1px,transparent 1.15px);background-size:12px 12px;animation:ig-drift 9s linear infinite;}
+.igGlow{position:absolute;left:0;top:0;width:150%;aspect-ratio:1/1;background:radial-gradient(circle at 50% 50%,var(--ig-glow) 0%,transparent 62%);filter:blur(6px);opacity:.5;animation:ig-glow 3.6s ease-in-out infinite;}
+.igRes{position:absolute;right:8px;bottom:8px;padding:3px 7px;border-radius:6px;background:var(--ig-chip);color:var(--ig-muted);font-size:10.5px;line-height:1;font-weight:500;letter-spacing:.02em;font-variant-numeric:tabular-nums;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);}
+.igMeta{display:flex;flex-direction:column;gap:2px;max-width:320px;min-width:0;}
+.igLabel{font-size:12px;font-weight:500;background:linear-gradient(90deg,var(--ig-text-45) 0%,var(--ig-text) 44%,var(--ig-text-45) 80%);background-size:220% 100%;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;animation:ws-shimmer 2.7s linear infinite;}
+/* line-clamp: длинный промпт (классификатор отдаёт развёрнутый) не должен
+   вырастать в абзац под картинкой. */
+.igPrompt{font-size:11.5px;color:var(--ig-muted);overflow:hidden;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+@media(max-width:768px){
+  .igCanvas{width:220px;}
+  .igMeta{max-width:220px;}
+}
+@keyframes ig-drift{from{transform:translate3d(0,0,0);}to{transform:translate3d(12px,12px,0);}}
+@keyframes ig-glow{
+  0%{transform:translate(-22%,-16%) scale(.86);opacity:.42;}
+  50%{transform:translate(-2%,-6%) scale(1.04);opacity:.9;}
+  100%{transform:translate(-22%,-16%) scale(.86);opacity:.42;}
+}
+@media(prefers-reduced-motion:reduce){
+  .igDots{animation:none;}
+  .igGlow{animation:none;opacity:.55;transform:translate(-14%,-12%) scale(.95);}
+  .igLabel{animation:none;background:none;-webkit-text-fill-color:var(--ig-text);color:var(--ig-text);}
+}
+/* === /HM-IMAGEGEN ======================================================== */
 </style>
 </head>
 <body>
@@ -2851,28 +3065,6 @@ html[data-theme="messenger"]{--tr-ink:#668096;--tr-sh-a:#8ba0b2;--tr-sh-b:rgba(1
       <button class="cmp-confirm-btn danger" onclick="confirmChatDelete()">Удалить</button>
     </div>
   </div>
-</div>
-
-<!-- <!-- ===================== МИНИ-ОКНО «Размышление модели» ===================== -->
-<div class="trace-popover" id="thinkPopover" role="dialog" aria-label="Размышление модели">
-  <div class="trace-popover-head">
-    <div class="trace-popover-title">Размышление модели</div>
-    <button class="trace-popover-close" onclick="closeThinkPopover()" aria-label="Закрыть">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 5l14 14M19 5L5 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-    </button>
-  </div>
-  <div class="trace-popover-body" id="thinkPopoverBody"></div>
-</div>
-
- --><!-- ===================== МИНИ-ОКНО «Веб-поиск» ===================== -->
-<div class="trace-popover" id="searchPopover" role="dialog" aria-label="Веб-поиск">
-  <div class="trace-popover-head">
-    <div class="trace-popover-title">Веб-поиск</div>
-    <button class="trace-popover-close" onclick="closeSearchPopover()" aria-label="Закрыть">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 5l14 14M19 5L5 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-    </button>
-  </div>
-  <div class="trace-popover-body" id="searchPopoverBody"><div class="trace-src-list" id="searchPopoverList"></div></div>
 </div>
 
 <!-- ===================== MOBILE MODEL BOTTOM-SHEET ===================== -->
@@ -4127,7 +4319,9 @@ function updateComposerPlaceholder(){
   else if(docCount>1&&!imageCount)ta.placeholder=`Прикреплено файлов: ${docCount} — можете задать вопрос по их содержимому...`;
   else if(imageCount===1&&!docCount)ta.placeholder='Фото прикреплено — напишите вопрос...';
   else if(imageCount>1&&!docCount)ta.placeholder=`Прикреплено фото: ${imageCount} — напишите вопрос...`;
-  else ta.placeholder='Введите сообщение..';
+  // Дефолт должен совпадать с placeholder в разметке (#msgTa), иначе после
+  // первой же отправки брендовая подпись подменялась старой строкой.
+  else ta.placeholder='Спросить HarmonyAI';
 }
 function clearPendingAttachments(){
   pendingAttachments=[];
@@ -5244,17 +5438,6 @@ document.addEventListener('click',e=>{
   if(!e.target.closest('.mac-btn'))
     document.querySelectorAll('.more-menu.open').forEach(x=>x.classList.remove('open'));
 });
-// Закрытие мини-окон Размышления/Веб-поиска по клику вне.
-document.addEventListener('click',e=>{
-  const thinkPop=document.getElementById('thinkPopover');
-  if(thinkPop&&thinkPop.classList.contains('open')&&!e.target.closest('#thinkPopover')&&!e.target.closest('.trace-line.think')){
-    closeThinkPopover();
-  }
-  const searchPop=document.getElementById('searchPopover');
-  if(searchPop&&searchPop.classList.contains('open')&&!e.target.closest('#searchPopover')&&!e.target.closest('.trace-line.search')){
-    closeSearchPopover();
-  }
-});
 // Escape закрывает открытые попапы (меню «+», bottom-sheet моделей).
 document.addEventListener('keydown',e=>{
   if(e.key!=='Escape')return;
@@ -5262,10 +5445,6 @@ document.addEventListener('keydown',e=>{
   if(dropOpen)closeModelMenus();
   const mm=document.getElementById('mmOverlay');
   if(mm&&mm.classList.contains('open'))closeMobileModelSheet();
-  const thinkPop=document.getElementById('thinkPopover');
-  if(thinkPop&&thinkPop.classList.contains('open'))closeThinkPopover();
-  const searchPop=document.getElementById('searchPopover');
-  if(searchPop&&searchPop.classList.contains('open'))closeSearchPopover();
 });
 
 /* ===== SYSTEM PROMPT ===== */
@@ -5812,9 +5991,24 @@ function inlineMd(text){
     .replace(/^[-*]\s+(.+)$/gm,'• $1')
     .replace(/\n/g,'<br>');
 }
+// Служебный маркер «===ОТВЕТ===» отделяет рассуждения от ответа на сервере. В видимом
+// тексте его быть не должно ни в какой форме. Сервер уже вычищает его, но клиентская
+// страховка нужна: старый закэшированный деплой или сохранённая история чата могут
+// содержать маркер, и пользователь увидит служебный мусор посреди ответа.
+const ANSWER_MARKER_STRIP_RE=[
+  // Обрамлённый: ===ОТВЕТ===, **---ANSWER---**
+  /(?:\*\*|__)?[ \t]*(?:={2,}|-{3,})[ \t]*(?:ОТВЕТ|ANSWER|OTVET)[ \t]*(?:={2,}|-{3,})[ \t]*(?:\*\*|__)?/gi,
+  // Строка целиком из маркера: **ОТВЕТ**, ### Ответ, [ОТВЕТ], Ответ:
+  /^[ \t]*(?:#{1,6}[ \t]*)?(?:\*\*|__|\[)?[ \t]*(?:ОТВЕТ|ANSWER|OTVET)[ \t]*(?:\*\*|__|\]|:)?[ \t]*$/gim
+];
+function stripAnswerMarkers(text){
+  let out=String(text||'');
+  for(const re of ANSWER_MARKER_STRIP_RE)out=out.replace(re,'');
+  return out.replace(/[ \t]+\n/g,'\n').replace(/\n{3,}/g,'\n\n');
+}
 function normalizeReplyNotation(text){
   let blockIndex=0;
-  return String(text||'')
+  return stripAnswerMarkers(text)
     .split(/(```\s*abc[\r\n]+[\s\S]*?```)/gi)
     .map(part=>{
       const abcMatch=part.match(/```\s*abc[\r\n]+([\s\S]*?)```/i);
@@ -6242,7 +6436,7 @@ async function regenMsg(item){
   removeContinueButton(wrap);
   if(chatHistory.length&&chatHistory[chatHistory.length-1].role==='assistant')chatHistory.pop();
   msgEl.innerHTML='';msgEl.style.whiteSpace='pre-wrap';msgEl._segCache=[];
-  wrap.querySelectorAll('.search-trace,.think-trace,.tr,.trace-line').forEach(el=>el.remove());
+  wrap.querySelectorAll('.search-trace,.think-trace,.tr,.ws').forEach(el=>el.remove());
   showTyping('regen');
   setGeneratingState(true);
   try{
@@ -6259,10 +6453,12 @@ async function regenMsg(item){
     setGeneratingState(false);
   }
 }
-/* ===== КОМПАКТНЫЕ ИНДИКАТОРЫ ПОИСКА И РАЗМЫШЛЕНИЯ (одна строка + мини-окно) =====
-   Раньше была многострочная «карточка» .search-trace / .think-trace.
-   Теперь — одна серая строка италиком в потоке чата; полный текст открывается
-   в мини-окне сверху (позиция ~ модалка выбора модели). */
+/* ===== ВЕБ-ПОИСК — встроенный раскрывающийся список (HM-WEBSEARCH) =====
+   Раньше строка-италик открывала модальное мини-окно, и весь прогресс был
+   спрятан за кликом. Теперь он виден на месте: сайты появляются в состоянии
+   pending, по очереди уходят в loading (глобус) и done (галочка).
+   Имена ensureSearchTraceLine / showSearchTrace / markSearchTraceThinking /
+   finalizeSearchTrace сохранены — их зовут из SSE-обработчика. */
 
 // --- WEB SEARCH ---
 function sourcesWord(n){
@@ -6271,99 +6467,275 @@ function sourcesWord(n){
   if(n10>=2&&n10<=4&&(n100<10||n100>=20))return'сайта';
   return'сайтов';
 }
-function ensureSearchTraceLine(msgEl){
-  const wrap=msgEl.closest('.msg-ai-wrap');
-  if(!wrap)return null;
-  let line=wrap.querySelector('.trace-line.search');
-  if(!line){
-    line=document.createElement('div');
-    line.className='trace-line search live';
-    // Хранилище истории «Смотрю host…» — используется в мини-окне пока поиск идёт.
-    line._browsed=[];
-    line._sources=[];
-    line._done=false;
-    line.innerHTML=`<span class="trace-line-icon">🌐</span><span class="trace-line-txt">Ищу в интернете…</span><span class="trace-line-arrow">›</span>`;
-    wrap.insertBefore(line,msgEl);
-    line.addEventListener('click',()=>openSearchPopover(line));
-  }
-  return line;
+
+const WS_ICON_GLOBE='<svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6"></circle><path d="M2.2 8h11.6"></path><path d="M8 2c1.7 1.6 2.6 3.6 2.6 6S9.7 12.4 8 14C6.3 12.4 5.4 10.4 5.4 8S6.3 3.6 8 2Z"></path></svg>';
+const WS_ICON_GLOBE_SM='<svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6"></circle><path d="M2.2 8h11.6"></path><path d="M8 2c1.7 1.6 2.6 3.6 2.6 6S9.7 12.4 8 14C6.3 12.4 5.4 10.4 5.4 8S6.3 3.6 8 2Z"></path></svg>';
+// Шеврон смотрит вверх («свернуть»); CSS разворачивает его на 180° при aria-expanded="false".
+const WS_ICON_CHEVRON='<svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 7.25 L6 4.25 L9 7.25"></path></svg>';
+const WS_ICON_DOTS='<svg viewBox="0 0 12 12" width="12" height="12" fill="currentColor" aria-hidden="true" focusable="false"><circle cx="2.2" cy="6" r=".9"></circle><circle cx="6" cy="6" r=".9"></circle><circle cx="9.8" cy="6" r=".9"></circle></svg>';
+const WS_ICON_CHECK='<svg viewBox="0 0 12 12" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2.4 6.4 L4.7 8.7 L9.6 3.5"></path></svg>';
+// Стрелка нарисована вверх: CSS докручивает её на 45° и получается «↗» внешней ссылки.
+const WS_ICON_ARROW='<svg viewBox="0 0 12 12" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 9.6 V2.6"></path><path d="M3.2 5.4 L6 2.6 L8.8 5.4"></path></svg>';
+
+// Хостом ключуются строки списка: в search_browse / search_browse_done сервер
+// присылает только хост, без полного URL.
+function wsHostOf(url){
+  try{return new URL(String(url)).hostname.replace(/^www\./,'');}catch(e){return '';}
 }
-function setSearchLineText(line,text){
-  const t=line?.querySelector('.trace-line-txt');
-  if(t)t.textContent=text;
-}
-function showSearchTrace(msgEl,phase,query,browsed,total){
-  const line=ensureSearchTraceLine(msgEl);
-  if(!line)return;
-  if(phase==='query'){
-    setSearchLineText(line,'Ищу в интернете…');
-    line._lastQuery=query||'';
-  }else if(phase==='browse'){
-    const host=query||'сайт';
-    setSearchLineText(line,'Смотрю '+host+'… Думаю');
-    if(!line._browsed.includes(host))line._browsed.push(host);
-  }else if(phase==='sources'){
-    const n=browsed||total||0;
-    setSearchLineText(line,n?('Просмотрел '+n+' '+sourcesWord(n)):'Просмотрел сайты');
-  }
-  // Если попап открыт — синхронно обновляем его содержимое.
-  refreshSearchPopover(line);
-  scrollChat();
-}
-function markSearchTraceThinking(msgEl){
-  // Ничего специально не делаем: строка уже показывает актуальный статус.
-  const wrap=msgEl.closest('.msg-ai-wrap');
-  const line=wrap&&wrap.querySelector('.trace-line.search');
-  if(line)line.classList.add('thinking');
-}
-function finalizeSearchTrace(msgEl){
-  const wrap=msgEl.closest('.msg-ai-wrap');
-  const line=wrap&&wrap.querySelector('.trace-line.search');
-  if(!line)return;
-  line._done=true;
-  line.classList.remove('live');
-  const sources=line._sources.length?line._sources:(msgEl._searchSources||[]);
-  if(!sources.length){line.remove();return;}
-  setSearchLineText(line,'Просмотрел '+sources.length+' '+sourcesWord(sources.length));
-  refreshSearchPopover(line);
+// Правая часть строки: заголовок страницы, а если его нет — путь из URL.
+// Пустая правая часть выглядела бы как обрубленная строка.
+function wsSubtitleOf(site){
+  const title=String(site&&site.title||'').trim();
+  if(title)return title;
+  try{
+    const u=new URL(String(site&&site.url||''));
+    const path=String(u.pathname||'').replace(/\/+$/,'');
+    if(path&&path!=='/')return decodeURIComponent(path.slice(1)).replace(/[-_/]+/g,' ');
+    return u.hostname.replace(/^www\./,'');
+  }catch(e){return String(site&&site.host||'');}
 }
 
-// Открытие/закрытие мини-окна веб-поиска.
-let _searchPopoverLine=null;
-function openSearchPopover(line){
-  _searchPopoverLine=line;
-  refreshSearchPopover(line);
-  document.getElementById('searchPopover')?.classList.add('open');
-}
-function closeSearchPopover(){
-  _searchPopoverLine=null;
-  document.getElementById('searchPopover')?.classList.remove('open');
-}
-function refreshSearchPopover(line){
-  if(!_searchPopoverLine||_searchPopoverLine!==line)return;
-  const listEl=document.getElementById('searchPopoverList');
-  if(!listEl)return;
-  const sources=line._sources.length?line._sources:[];
-  const browsedHosts=line._browsed||[];
-  // Если готовых источников ещё нет — показываем текущие «Смотрю host…».
-  if(!sources.length&&browsedHosts.length){
-    listEl.innerHTML=browsedHosts.map(host=>{
-      const fav='https://www.google.com/s2/favicons?domain='+encodeURIComponent(host)+'&sz=32';
-      return `<div class="trace-src-item"><img class="trace-src-fav" src="${escapeHtml(fav)}" onerror="this.style.visibility='hidden'"><div class="trace-src-info"><div class="trace-src-title">${escapeHtml(host)}</div><div class="trace-src-host">${escapeHtml(host)}</div></div><span class="trace-src-status live">🔄 в процессе</span></div>`;
-    }).join('');
-    return;
+function setWsOpen(ws,open){
+  if(!ws||!ws._coll)return;
+  ws._coll.classList.toggle('isCollapsed',!open);
+  if(ws._chevron){
+    ws._chevron.setAttribute('aria-expanded',open?'true':'false');
+    ws._chevron.setAttribute('aria-label',open?'Свернуть список сайтов':'Показать список сайтов');
   }
-  if(!sources.length){
-    listEl.innerHTML='<div style="font-size:13px;color:var(--text2);padding:14px 4px;text-align:center;opacity:.7;">Пока сайтов нет…</div>';
-    return;
+}
+// Пока пользователь сам не трогал шеврон, список раскрыт ровно тогда, когда
+// есть что показывать и поиск ещё идёт.
+function wsSyncOpen(ws){
+  if(!ws||ws._userToggled)return;
+  setWsOpen(ws,!ws._done&&ws._sites.length>0);
+}
+function wsSetLabel(ws,lead,query){
+  if(!ws)return;
+  if(ws._lead)ws._lead.textContent=lead;
+  if(ws._quote)ws._quote.textContent=query?('«'+query+'»'):'';
+}
+
+function ensureSearchTraceLine(msgEl){
+  const wrap=msgEl&&msgEl.closest?msgEl.closest('.msg-ai-wrap'):null;
+  if(!wrap)return null;
+  const existing=wrap.querySelector('.ws');
+  if(existing)return existing;
+
+  const ws=document.createElement('div');
+  ws.className='ws';
+  ws._sites=[];    // [{host,url,title,state,el}]
+  ws._sources=[];  // финальный список источников от сервера (search_sources)
+  ws._done=false;
+  ws._userToggled=false;
+  ws._lastQuery='';
+
+  const row=document.createElement('div');
+  row.className='wsRow';
+  // Иконка вставляется как настоящий <svg>, а не внутрь span: на неё нацелен
+  // селектор .wsRow>svg.
+  row.insertAdjacentHTML('beforeend',WS_ICON_GLOBE);
+
+  const label=document.createElement('span');
+  label.className='wsLabel';
+  const lead=document.createElement('span');
+  lead.className='wsShimmer wsLead';
+  lead.textContent='Ищу в интернете';
+  const quote=document.createElement('span');
+  quote.className='wsShimmer wsQuote';
+  label.appendChild(lead);
+  label.appendChild(quote);
+
+  const chevron=document.createElement('button');
+  chevron.type='button';
+  chevron.className='wsChevron';
+  chevron.innerHTML=WS_ICON_CHEVRON;
+
+  row.appendChild(label);
+  row.appendChild(chevron);
+
+  const coll=document.createElement('div');
+  coll.className='wsCollapsible';
+  const collInner=document.createElement('div');
+  collInner.className='wsCollapsibleInner';
+  const results=document.createElement('div');
+  results.className='wsResults';
+  const rail=document.createElement('span');
+  rail.className='wsRail';
+  const list=document.createElement('div');
+  list.className='wsList';
+  results.appendChild(rail);
+  results.appendChild(list);
+  collInner.appendChild(results);
+  coll.appendChild(collInner);
+
+  ws.appendChild(row);
+  ws.appendChild(coll);
+
+  ws._lead=lead;
+  ws._quote=quote;
+  ws._chevron=chevron;
+  ws._coll=coll;
+  ws._list=list;
+  // Сайтов ещё нет — стартуем свёрнутыми (до вставки в DOM, чтобы не мигнуло).
+  setWsOpen(ws,false);
+
+  const toggle=function(e){
+    if(e){e.preventDefault();e.stopPropagation();}
+    if(!ws._sites.length)return;
+    ws._userToggled=true;
+    setWsOpen(ws,coll.classList.contains('isCollapsed'));
+  };
+  chevron.addEventListener('click',toggle);
+  row.addEventListener('click',function(e){
+    if(e.target.closest('.wsChevron'))return;
+    toggle(e);
+  });
+
+  wrap.insertBefore(ws,msgEl);
+  requestAnimationFrame(function(){ws.classList.add('is-in');});
+  return ws;
+}
+
+function wsFindSite(ws,host,state){
+  const sites=(ws&&ws._sites)||[];
+  for(let i=0;i<sites.length;i++){
+    if(sites[i].host!==host)continue;
+    if(state&&sites[i].state!==state)continue;
+    return sites[i];
   }
-  listEl.innerHTML=sources.map(s=>{
-    let host='';
-    try{host=new URL(s.url).hostname.replace(/^www\./,'');}catch(e){host=s.url||'';}
-    const fav='https://www.google.com/s2/favicons?domain='+encodeURIComponent(host)+'&sz=32';
-    const title=escapeHtml(s.title||host||'Источник');
-    return `<a class="trace-src-item" href="${escapeHtml(s.url)}" target="_blank" rel="noopener noreferrer"><img class="trace-src-fav" src="${escapeHtml(fav)}" onerror="this.style.visibility='hidden'"><div class="trace-src-info"><div class="trace-src-title">${title}</div><div class="trace-src-host">${escapeHtml(host)}</div></div><span class="trace-src-status done">✓ просмотрен</span></a>`;
-  }).join('');
+  return null;
+}
+function wsSetSiteState(entry,state){
+  if(!entry||entry.state===state)return;
+  entry.state=state;
+  entry.el.dataset.state=state;
+  // Ссылку даём только просмотренному сайту: у pending/loading и курсор не
+  // pointer, а <a> без href не фокусируется и не открывается по Enter.
+  if(state==='done'&&entry.url)entry.el.setAttribute('href',entry.url);
+  else entry.el.removeAttribute('href');
+}
+function wsAddSite(ws,site){
+  const host=String(site&&site.host||'')||wsHostOf(site&&site.url);
+  if(!ws||!host)return null;
+  const el=document.createElement('a');
+  el.className='wsSite';
+  el.dataset.state='pending';
+  el.target='_blank';
+  el.rel='noopener noreferrer';
+
+  const bullet=document.createElement('span');
+  bullet.className='wsBullet';
+  const dots=document.createElement('span');
+  dots.className='wsDots';
+  dots.innerHTML=WS_ICON_DOTS;
+  const globe=document.createElement('span');
+  globe.className='wsGlobe';
+  globe.innerHTML=WS_ICON_GLOBE_SM;
+  const check=document.createElement('span');
+  check.className='wsCheck';
+  check.innerHTML=WS_ICON_CHECK;
+  bullet.appendChild(dots);
+  bullet.appendChild(globe);
+  bullet.appendChild(check);
+
+  const titleEl=document.createElement('span');
+  titleEl.className='wsTitle';
+  titleEl.textContent=host;
+  const sep=document.createElement('span');
+  sep.className='wsSep';
+  sep.textContent='·';
+  const urlEl=document.createElement('span');
+  urlEl.className='wsUrl';
+  urlEl.textContent=wsSubtitleOf(site);
+  const arrow=document.createElement('span');
+  arrow.className='wsArrow';
+  arrow.innerHTML=WS_ICON_ARROW;
+
+  el.appendChild(bullet);
+  el.appendChild(titleEl);
+  el.appendChild(sep);
+  el.appendChild(urlEl);
+  el.appendChild(arrow);
+
+  const entry={host:host,url:String(site&&site.url||''),title:String(site&&site.title||''),state:'pending',el:el,urlEl:urlEl};
+  ws._sites.push(entry);
+  ws._list.appendChild(el);
+  return entry;
+}
+
+// search_found: сервер нашёл сайты и только собирается их читать.
+function showSearchFound(msgEl,sites){
+  const ws=ensureSearchTraceLine(msgEl);
+  if(!ws)return;
+  const arr=Array.isArray(sites)?sites:[];
+  for(let i=0;i<arr.length;i++){
+    const site=arr[i];
+    if(!site)continue;
+    const url=String(site.url||'');
+    if(url&&ws._sites.some(function(s){return s.url===url;}))continue;
+    wsAddSite(ws,site);
+  }
+  wsSyncOpen(ws);
+  scrollChat();
+}
+// search_browse_done: конкретная страница прочитана.
+function markSearchSiteDone(msgEl,host){
+  const wrap=msgEl&&msgEl.closest?msgEl.closest('.msg-ai-wrap'):null;
+  const ws=wrap&&wrap.querySelector('.ws');
+  if(!ws||!host)return;
+  const entry=wsFindSite(ws,host,'loading')||wsFindSite(ws,host,'pending');
+  if(entry)wsSetSiteState(entry,'done');
+}
+
+function showSearchTrace(msgEl,phase,query,browsed,total){
+  const ws=ensureSearchTraceLine(msgEl);
+  if(!ws)return;
+  if(phase==='query'){
+    ws._lastQuery=String(query||'');
+    wsSetLabel(ws,'Ищу в интернете',ws._lastQuery);
+  }else if(phase==='browse'){
+    const host=String(query||'');
+    let entry=host?wsFindSite(ws,host,'pending'):null;
+    // Хоста может не быть в списке (например сервер ещё старой версии и
+    // search_found не приходил) — тогда добавляем строку на ходу. Если хост
+    // уже есть, но не в pending, ничего не трогаем: это повтор события.
+    if(!entry&&host&&!wsFindSite(ws,host))entry=wsAddSite(ws,{host:host,url:'https://'+host,title:''});
+    if(entry)wsSetSiteState(entry,'loading');
+    wsSyncOpen(ws);
+  }else if(phase==='sources'){
+    const n=browsed||total||0;
+    wsSetLabel(ws,n?('Просмотрел '+n+' '+sourcesWord(n)):'Просмотрел сайты',ws._lastQuery);
+  }
+  scrollChat();
+}
+
+// Поиск закончился. Страницы, которые не успели прочитать, всё равно попали в
+// контекст сниппетами — поэтому закрываем галочкой все строки, а не часть.
+function wsSettle(ws){
+  if(!ws||ws._done)return;
+  ws._done=true;
+  for(let i=0;i<ws._sites.length;i++)wsSetSiteState(ws._sites[i],'done');
+  if(ws._lead)ws._lead.classList.add('isDone');
+  if(ws._quote)ws._quote.classList.add('isDone');
+}
+function markSearchTraceThinking(msgEl){
+  // search_done: сайты просмотрены, дальше модель думает над ответом. Мерцание
+  // гасим, но список пока оставляем раскрытым — он ещё интересен.
+  const wrap=msgEl&&msgEl.closest?msgEl.closest('.msg-ai-wrap'):null;
+  const ws=wrap&&wrap.querySelector('.ws');
+  if(ws)wsSettle(ws);
+}
+function finalizeSearchTrace(msgEl){
+  const wrap=msgEl&&msgEl.closest?msgEl.closest('.msg-ai-wrap'):null;
+  const ws=wrap&&wrap.querySelector('.ws');
+  if(!ws)return;
+  wsSettle(ws);
+  const sources=(ws._sources&&ws._sources.length)?ws._sources:((msgEl&&msgEl._searchSources)||[]);
+  // Считаем реально открытые страницы — ровно те, что видно в списке.
+  const n=ws._sites.length||sources.length;
+  if(!n){ws.remove();return;}
+  wsSetLabel(ws,'Просмотрел '+n+' '+sourcesWord(n),'');
+  if(!ws._userToggled)setWsOpen(ws,false);
 }
 
 // --- REASONING (Думать) --- HM-REASONING-V2
@@ -6386,11 +6758,18 @@ function fmtThinkDuration(ms){
 }
 
 // Приводим текст размышления к читаемому виду: убираем служебный маркер ответа,
-// рваные переносы и лишние пробелы, чтобы в мини-окне был нормальный связный текст.
+// markdown-мусор, рваные переносы и лишние пробелы, чтобы в мини-окне был связный текст.
+// Модели любят вставлять в поток мыслей «**» и склеивать слова через них
+// («summary****Finalizing»), поэтому на месте снятой разметки оставляем пробел.
 function formatReasoningText(text){
-  return String(text==null?'':text)
-    .replace(/(?:\*\*)?={2,}\s*ОТВЕТ\s*={2,}(?:\*\*)?/gi,'')
+  return stripAnswerMarkers(String(text==null?'':text))
     .replace(/\r/g,'')
+    // Разделители-разметка между словами превращаем в пробел, иначе слова склеятся.
+    .replace(/(\S)(?:\*{2,}|_{2,})(\S)/g,'$1 $2')
+    .replace(/\*{1,3}|_{2,}|~{2}|`{1,3}/g,'')
+    // Ведущие решётки заголовков и маркеры списков — в мыслях они только мешают читать.
+    .replace(/^[ \t]*#{1,6}[ \t]*/gm,'')
+    .replace(/^[ \t]*[-*•][ \t]+/gm,'')
     .replace(/[ \t]+\n/g,'\n')
     .replace(/\n{3,}/g,'\n\n')
     .replace(/[ \t]{2,}/g,' ');
@@ -6460,6 +6839,21 @@ function ensureReasoningBlock(msgEl){
   header.setAttribute('tabindex','0');
   header.setAttribute('aria-expanded','false');
 
+  // «Объектив»: три орба на разной глубине внутри окна 20×20.
+  // Сцена 28×28 сжимается через --orb-k, поэтому амплитуда хода и размеры
+  // орбов описаны в одной системе координат (см. HM-REASONING-V3).
+  const glyph=document.createElement('span');
+  glyph.className='trGlyph';
+  glyph.setAttribute('aria-hidden','true');
+  const lens=document.createElement('span');
+  lens.className='trLens';
+  ['trShapeA','trShapeB','trShapeC'].forEach(function(cls){
+    const shape=document.createElement('span');
+    shape.className='trShape '+cls;
+    lens.appendChild(shape);
+  });
+  glyph.appendChild(lens);
+
   const label=document.createElement('span');
   label.className='trLabel';
   const verb=document.createElement('span');
@@ -6471,6 +6865,7 @@ function ensureReasoningBlock(msgEl){
   chevron.className='trChevron';
   chevron.innerHTML=TR_CHEVRON;
 
+  header.appendChild(glyph);
   header.appendChild(label);
   header.appendChild(chevron);
 
@@ -6513,7 +6908,8 @@ function ensureReasoningBlock(msgEl){
     tr._userScrolled=!atBottom;
   },{passive:true});
 
-  const searchLine=wrap.querySelector('.trace-line.search')||wrap.querySelector('.search-trace');
+  // Блок размышления встаёт под списком веб-поиска, если тот есть.
+  const searchLine=wrap.querySelector('.ws')||wrap.querySelector('.search-trace');
   if(searchLine&&searchLine.parentNode===wrap)searchLine.after(tr);
   else wrap.insertBefore(tr,msgEl);
 
@@ -6608,6 +7004,19 @@ function finalizeReasoningTrace(msgEl){
   if(tr)finalizeReasoningBlock(tr);
 }
 
+// Сервер сообщил, что модель не выделила ответ маркером: то, что пришло как «рассуждения»,
+// на самом деле её обычный ответ. Оставить серый блок значит показать один и тот же текст
+// дважды, поэтому блок убираем — текст никуда не теряется, он придёт как ответ.
+function dropReasoningBlock(msgEl){
+  if(!msgEl||!msgEl.closest)return;
+  const wrap=msgEl.closest('.msg-ai-wrap');
+  const tr=wrap&&wrap.querySelector('.tr');
+  if(!tr)return;
+  if(tr._raf){cancelAnimationFrame(tr._raf);tr._raf=0;}
+  tr._done=true;
+  tr.remove();
+}
+
 // Страховка: закрываем любое "живое" размышление при остановке, ошибке или обрыве.
 function hmFinalizeLiveReasoning(){
   const nodes=document.querySelectorAll('.tr.is-live');
@@ -6644,11 +7053,6 @@ function hmRehighlightPending(){
 if(typeof window!=='undefined'){
   window.addEventListener('load',function(){try{hmRehighlightPending();}catch(e){}},{once:true});
 }
-
-// Старый поповер размышления удалён, но на него ещё ссылается разметка.
-let _thinkPopoverLine=null;
-function openThinkPopover(){}
-function closeThinkPopover(){_thinkPopoverLine=null;}
 
 function trReadLastUserText(){
   try{
@@ -7044,21 +7448,27 @@ async function requestChatReplyLive(msgEl,actionsEl,extraMessages=[],prefixText=
               try{payloadChunk=JSON.parse(raw);}catch(e){continue;}
               if(!payloadChunk||typeof payloadChunk!=='object')continue;
               if(payloadChunk.type==='search_query'){
-                // ИИ начала поиск: показываем блок размышления «Ищу в интернете…»
+                // ИИ начала поиск: показываем блок «Ищу в интернете «запрос»».
                 if(!gotSearchTrace){hideTyping();gotSearchTrace=true;}
                 showSearchTrace(msgEl,'query',payloadChunk.query||'');
+              }else if(payloadChunk.type==='search_found'){
+                // Сайты найдены, но ещё не прочитаны — список появляется в pending.
+                if(!gotSearchTrace){hideTyping();gotSearchTrace=true;}
+                showSearchFound(msgEl,payloadChunk.sites);
               }else if(payloadChunk.type==='search_browse'){
-                // ИИ читает конкретный сайт: «Смотрю <host>…»
+                // ИИ читает конкретный сайт: у его строки крутится глобус.
                 if(!gotSearchTrace){hideTyping();gotSearchTrace=true;}
                 showSearchTrace(msgEl,'browse',payloadChunk.host||'');
+              }else if(payloadChunk.type==='search_browse_done'){
+                // Страница прочитана — галочка именно у неё, а не у всех сразу.
+                markSearchSiteDone(msgEl,payloadChunk.host||'');
               }else if(payloadChunk.type==='search_sources'){
-                // ИИ просмотрела сайты: обновляем строку «Просмотрел N сайтов».
-                // Сохраняем источники, чтобы пользователь мог открыть попап по клику.
+                // ИИ просмотрела сайты: обновляем лейбл «Просмотрел N сайтов».
                 const sources=Array.isArray(payloadChunk.sources)?payloadChunk.sources:[];
                 lastSearchSources=sources;
                 msgEl._searchSources=sources;
                 const wrap=msgEl.closest('.msg-ai-wrap');
-                const searchLine=wrap&&wrap.querySelector('.trace-line.search');
+                const searchLine=wrap&&wrap.querySelector('.ws');
                 if(searchLine)searchLine._sources=sources;
                 showSearchTrace(msgEl,'sources',null,payloadChunk.browsed||sources.length,sources.length);
               }else if(payloadChunk.type==='search_done'){
@@ -7068,6 +7478,11 @@ async function requestChatReplyLive(msgEl,actionsEl,extraMessages=[],prefixText=
                 if(!gotReasoning){hideTyping();gotReasoning=true;}
                 if(gotSearchTrace)markSearchTraceThinking(msgEl);
                 appendReasoningChunk(msgEl,payloadChunk.text||'');
+              }else if(payloadChunk.type==='reasoning_reset'){
+                // Модель не выделила ответ маркером — «мысли» оказались самим ответом.
+                // Убираем серый блок, чтобы текст не показался дважды.
+                dropReasoningBlock(msgEl);
+                gotReasoning=false;
               }else if(payloadChunk.type==='delta'){
                 if(!gotDelta){
                   hideTyping();
@@ -7075,7 +7490,8 @@ async function requestChatReplyLive(msgEl,actionsEl,extraMessages=[],prefixText=
                   if(gotReasoning)finalizeReasoningTrace(msgEl);
                   gotDelta=true;
                 }
-                typer.push(payloadChunk.text||'');
+                // Служебный маркер не должен мелькнуть в ответе даже на кадр.
+                typer.push(stripAnswerMarkers(payloadChunk.text||''));
               }else if(payloadChunk.type==='done'){
                 streamFinished=true;
                 hideTyping();
@@ -7160,6 +7576,61 @@ function showLimitReached(check){
 }
 /* ===== ГЕНЕРАЦИЯ ИЗОБРАЖЕНИЯ (Cloudflare Workers AI, отдельный путь) ===== */
 // Вставляет <img> в бабл ассистента по URL из Storage.
+// Оба провайдера отдают квадрат 1024×1024 (api/generate-image.js), поэтому
+// подпись честная, а не декоративная.
+const IG_DEFAULT_RESOLUTION='1024 × 1024';
+
+// Плейсхолдер на время генерации: вместо «печатает…» видно, что именно
+// генерируется и какого размера будет результат. appendImageToShell позже
+// перезаписывает innerHTML этого же пузыря, поэтому убирать плейсхолдер вручную
+// не нужно.
+function renderImageGenPlaceholder(msgEl,prompt,resolution){
+  if(!msgEl)return null;
+  const wrap=document.createElement('div');
+  wrap.className='igWrap';
+
+  const canvas=document.createElement('div');
+  canvas.className='igCanvas';
+  canvas.setAttribute('role','img');
+  canvas.setAttribute('aria-label','Генерирую изображение');
+  const dots=document.createElement('span');
+  dots.className='igDots';
+  dots.setAttribute('aria-hidden','true');
+  const glow=document.createElement('span');
+  glow.className='igGlow';
+  glow.setAttribute('aria-hidden','true');
+  const res=document.createElement('span');
+  res.className='igRes';
+  res.textContent=resolution||IG_DEFAULT_RESOLUTION;
+  canvas.appendChild(dots);
+  canvas.appendChild(glow);
+  canvas.appendChild(res);
+
+  const meta=document.createElement('div');
+  meta.className='igMeta';
+  const label=document.createElement('span');
+  label.className='igLabel';
+  label.textContent='Генерирую изображение';
+  meta.appendChild(label);
+  const clean=String(prompt==null?'':prompt).trim();
+  if(clean){
+    const promptEl=document.createElement('span');
+    promptEl.className='igPrompt';
+    promptEl.textContent='«'+clean+'»';
+    meta.appendChild(promptEl);
+  }
+
+  wrap.appendChild(canvas);
+  wrap.appendChild(meta);
+  msgEl.innerHTML='';
+  // Пузырь по умолчанию pre-wrap (текстовые ответы) — для блочной вёрстки это
+  // добавляло бы лишние пустые строки.
+  msgEl.style.whiteSpace='normal';
+  msgEl.appendChild(wrap);
+  scrollChat();
+  return wrap;
+}
+
 function appendImageToShell(msgEl,src){
   if(!msgEl)return;
   // data-src хранит URL для просмотрщика; клик по фото на десктопе открывает ��одалку,
@@ -7383,10 +7854,12 @@ function showImageLimitReached(check){
 async function handleImageGeneration(promptText){
   const limit=checkImageLimit();
   if(limit.blocked){showImageLimitReached(limit);return;}
-  showTyping('image');
   setGeneratingState(true);
   activeAbortController=new AbortController();
   const shell=createAiBubbleShell({showActions:false});
+  // Вместо безликого «печатает…» — плейсхолдер с самим промптом и разрешением.
+  hideTyping();
+  renderImageGenPlaceholder(shell.msg,promptText);
   const endpoints=buildImageApiCandidates();
   const payload={prompt:promptText,userId:curUser?.id||null,model:curModel};
   let lastError=null;
@@ -7838,6 +8311,30 @@ function openAbcEditor(holder,abcHolder,abc){
   ta.focus();
 }
 
+/* Забрать текст из композера и сразу очистить поле.
+   Раньше очистка стояла ПОСЛЕ await-ов (классификатор интента, поиск в Яндексе),
+   и всё это время отправленный текст висел в поле ввода — при поиске трека это
+   выглядело так, будто сообщение не ушло. Поэтому: читаем и чистим одним шагом,
+   до любых сетевых вызовов. */
+function takeComposerText(){
+  const ta=document.getElementById('msgTa');
+  if(!ta)return '';
+  const text=ta.value.trim();
+  ta.value='';
+  ta.style.height='auto';
+  updateComposerPlaceholder();
+  return text;
+}
+// Вернуть текст в поле, если отправка не состоялась (например, исчерпан лимит):
+// терять уже набранное сообщение нельзя.
+function restoreComposerText(text){
+  const ta=document.getElementById('msgTa');
+  if(!ta||!text)return;
+  ta.value=text;
+  taResize(ta);
+  updateComposerPlaceholder();
+}
+
 async function sendMsg(){
   if(isGenerating){stopGeneration();return;}
   /* Музыкальный сценарий длится секунды (классификатор + поиск в Яндексе),
@@ -7845,8 +8342,9 @@ async function sendMsg(){
      Enter во время поиска рисовал второй пузырь пользователя и вторую карточку —
      это и было дублирование сообщений при поиске трека. */
   if(window.__musicBusy)return;
-  const ta=document.getElementById('msgTa');
-  const text=ta.value.trim();
+  // Поле чистим сразу, до всех await-ов: дальше идут сетевые вызовы (музыка,
+  // intent-классификатор), и текст не должен оставаться в композере на это время.
+  const text=takeComposerText();
   if(!text&&!pendingAttachments.length)return;
 
   // МУЗЫКА — САМЫЙ ПЕРВЫЙ ПРОВЕРЯЕМЫЙ ПУТЬ.
@@ -7857,11 +8355,7 @@ async function sendMsg(){
   if(text&&!pendingAttachments.length&&typeof handleMusicMessage==='function'){
     let musicHandled=false;
     try{ musicHandled=await handleMusicMessage(text); }catch(e){ musicHandled=false; }
-    if(musicHandled){
-      ta.value='';ta.style.height='auto';
-      updateComposerPlaceholder();
-      return;
-    }
+    if(musicHandled)return;
   }
 
   // ПРОМО-УВЕДОМЛЕНИЕ после первого сообщения в сессии (~12% для не-Pro).
@@ -7880,7 +8374,6 @@ async function sendMsg(){
     addUserBubble(text,pendingAttachments.slice());
     chatHistory.push({role:'user',content:text,attachments:pendingAttachments.map(cloneAttachmentForHistory),createdAt:messageNow()});
     await saveChat();
-    const ta2=document.getElementById('msgTa');if(ta2){ta2.value='';ta2.style.height='auto';}
     clearPendingAttachments();renderComposerAttachments();updateComposerPlaceholder();
     await runAssistantReply(text);
     // Дописываем префикс в самое начало последнего ответа модели (лёгкое пояснение).
@@ -7892,7 +8385,6 @@ async function sendMsg(){
     return;
   }
   if(wantsImage&&text){
-    ta.value='';ta.style.height='auto';
     clearPendingAttachments();renderComposerAttachments();updateComposerPlaceholder();
     const prevImageMode=imageGenModeActive;
     setImageMode(false); // сброс режима, чтобы следующее обычное сообщение ушло как текст
@@ -7933,7 +8425,7 @@ async function sendMsg(){
     return;
   }
 
-  await handleTextReply();
+  await handleTextReply(text);
 }
 
 // Собственно запрос текстового ответа модели и его стриминг в бабл ассистента.
@@ -8477,15 +8969,19 @@ async function runAssistantReply(displayText){
 // Обычный текстовый путь отправки: лимиты, вложения, фиксация пользовательского хода
 // в истории, затем стриминг ответа модели Codex. Вынесен отдельно, чтобы intent-классификатор
 // мог провалиться сюда (через runAssistantReply), если решит, что генерация изображения не нужна.
-async function handleTextReply(){
+async function handleTextReply(pendingText){
   const ta=document.getElementById('msgTa');
-  const text=ta.value.trim();
+  // Текст приходит параметром из sendMsg — композер к этому моменту уже очищен.
+  // Фолбэк на чтение поля оставлен для прямого вызова функции.
+  const text=(pendingText!=null?String(pendingText):ta.value).trim();
   if(!text&&!pendingAttachments.length)return;
 
   // Проверка лимитов до отправки
   const limit=checkLimit();
-  if(limit.blocked){showLimitReached(limit);return;}
-  ta.value='';ta.style.height='auto';
+  // Отправка не состоялась — возвращаем набранное в поле, иначе текст пропал бы.
+  if(limit.blocked){showLimitReached(limit);restoreComposerText(text);return;}
+  // Только для фолбэк-пути: при вызове из sendMsg поле уже пустое.
+  if(pendingText==null){ta.value='';ta.style.height='auto';updateComposerPlaceholder();}
 
   const imageAttachments=pendingAttachments.filter(item=>item.kind==='image');
   const docAttachments=pendingAttachments.filter(item=>item.kind==='document');
