@@ -500,15 +500,29 @@ async function buildWebSearchContext(query, res) {
   // чтобы посылать клиенту событие search_browse («Смотрю <host>…») перед каждым
   // запросом — пользователь видит, какой конкретно сайт сейчас читает ИИ.
   const toFetch = results.slice(0, SEARCH_MAX_PAGES_TO_FETCH);
+
+  // Список найденного отдаём СРАЗУ, до загрузки страниц: иначе клиент узнаёт о сайтах
+  // только когда всё уже прочитано, и показать поэтапно «нашёл → читаю → прочитал»
+  // просто не из чего.
+  if (res) {
+    writeSseEvent(res, {
+      type: 'search_found',
+      sites: toFetch.map((r) => {
+        let host = '';
+        try { host = new URL(r.url).hostname.replace(/^www\./, ''); } catch (e) { host = ''; }
+        return { url: r.url, title: r.title, host };
+      }).filter((s) => s.host)
+    });
+  }
+
   const fetched = [];
   for (const r of toFetch) {
-    if (res) {
-      try {
-        const host = new URL(r.url).hostname.replace(/^www\./, '');
-        writeSseEvent(res, { type: 'search_browse', host });
-      } catch (e) { /* некорректный URL — просто пропускаем событие */ }
-    }
+    let host = '';
+    try { host = new URL(r.url).hostname.replace(/^www\./, ''); } catch (e) { host = ''; }
+    if (res && host) writeSseEvent(res, { type: 'search_browse', host });
     fetched.push({ url: r.url, title: r.title, text: await fetchPageText(r.url) });
+    // Страница прочитана — гасим «читаю» именно у этого сайта, а не у всех сразу.
+    if (res && host) writeSseEvent(res, { type: 'search_browse_done', host });
   }
 
   const browsed = fetched.filter((f) => f.text && f.text.length > 120).length;
@@ -580,9 +594,11 @@ function buildThinkInstruction() {
     '',
     'РЕЖИМ ДУМАТЬ ВКЛЮЧЁН.',
     'Сначала напиши ход рассуждений простым, связным и читаемым текстом: обычные полные предложения, без markdown-разметки, без обрывков слов и без служебных токенов.',
+    'В рассуждениях НЕ используй звёздочки (**), подчёркивания (__), решётки (#), списки и заголовки — только обычная проза. Каждое слово отделяй пробелом, не склеивай их.',
     'Рассуждения держи компактными (примерно 100-200 слов) — скорость ответа важнее длинных размышлений.',
     `Когда рассуждения закончены, выведи на отдельной строке ровно маркер ${REASONING_DELIMITER}`,
-    'Сразу после маркера дай финальный, чистый ответ для пользователя без повторения рассуждений.',
+    'Сразу после маркера дай финальный, чистый ответ для пользователя.',
+    'Ответ после маркера должен быть самодостаточным: НЕ пересказывай в нём свои рассуждения и не ссылайся на них — пользователь видит их отдельно.',
     'ОБЯЗАТЕЛЬНО: маркер и финальный ответ должны быть всегда. Даже если ты не уверен, как ответить лучше всего, — всё равно выведи маркер и дай лучший возможный ответ. Пустой ответ недопустим.',
     'Не используй маркер где-либо ещё, кроме этого единственного разделителя.'
   ].join('\n');
@@ -850,8 +866,12 @@ function hasAbcBlock(text = '') {
 
 function stripReasoningPrefix(text = '') {
   const marker = findAnswerMarker(text);
-  if (!marker) return text;
-  return String(text).slice(marker.index + marker.length).replace(/^\s+/, '');
+  // Маркера нет — модель не подчинилась формату; отдаём текст как есть,
+  // но всё равно прогоняем через зачистку (вдруг маркер написан неузнаваемо близко к форме).
+  if (!marker) return stripAllAnswerMarkers(text);
+  // Всё до первого маркера — рассуждения, они в ответ попадать не должны.
+  // Остаток чистим ещё раз: модель иногда повторяет маркер ниже по тексту.
+  return stripAllAnswerMarkers(String(text).slice(marker.index + marker.length));
 }
 
 async function repairNotationReplyIfNeeded(apiKey, modelName, query, replyText) {
@@ -893,14 +913,74 @@ function writeSseEvent(res, payload) {
 // Модель просят сначала писать реальные рассуждения, затем этот маркер, затем сам ответ.
 const REASONING_DELIMITER = '===ОТВЕТ===';
 
-// Модели часто пишут маркер неточно: с пробелами, жирным или другим числом «=».
-// Ловим все распространённые варианты, иначе финальный ответ целиком уходит в «размышления»
-// и пользователь остаётся без ответа.
-const ANSWER_MARKER_RE = /(?:\*\*)?={2,}\s*ОТВЕТ\s*={2,}(?:\*\*)?/i;
-function findAnswerMarker(text = '') {
-  const m = ANSWER_MARKER_RE.exec(String(text || ''));
-  if (!m) return null;
-  return { index: m.index, length: m[0].length };
+// Модели часто пишут маркер неточно: с пробелами, жирным, как markdown-заголовок,
+// с другим числом «=» или латиницей. Ловим все распространённые варианты — иначе финальный
+// ответ целиком уходит в «размышления» и пользователь остаётся без ответа.
+//
+// Две формы, по убыванию однозначности:
+//   1) FRAMED — обрамлённый маркер («===ОТВЕТ===», «**---ANSWER---**»). Такое сочетание
+//      в живом тексте не встречается, поэтому ищем его в любом месте строки.
+//   2) LOOSE — строка, состоящая ТОЛЬКО из маркера («**ОТВЕТ**», «### Ответ», «[ОТВЕТ]»,
+//      «Ответ:»). Промпт как раз требует отдельной строки, а привязка к границам строки
+//      не даёт обрезать настоящий ответ на слове «ответ» внутри обычного предложения.
+const ANSWER_MARKER_WORD = '(?:ОТВЕТ|ANSWER|OTVET)';
+const ANSWER_MARKER_FRAMED_SRC =
+  `(?:\\*\\*|__)?[ \\t]*(?:={2,}|-{3,})[ \\t]*${ANSWER_MARKER_WORD}[ \\t]*(?:={2,}|-{3,})[ \\t]*(?:\\*\\*|__)?`;
+const ANSWER_MARKER_LOOSE_SRC =
+  `^[ \\t]*(?:#{1,6}[ \\t]*)?(?:\\*\\*|__|\\[)?[ \\t]*${ANSWER_MARKER_WORD}[ \\t]*(?:\\*\\*|__|\\]|:)?[ \\t]*`;
+
+// Хвосты для потокового режима. В буфере лежит живой край стрима, поэтому маркер нельзя
+// считать найденным, пока он не ДОПИСАН до конца:
+//   • LOOSE требует настоящий перевод строки. Иначе «Ответ» на краю буфера (а следом придёт
+//     «ственность за это») сойдёт за маркер, и половина рассуждений уедет в ответ.
+//   • FRAMED требует, чтобы после него шёл символ, не продолжающий обрамление. Иначе
+//     недописанный «===ОТВЕТ==» распознается как маркер, и лишний «=» окажется в начале ответа.
+const MARKER_TAIL_LOOSE_STREAM = '(?=[ \\t]*\\r?\\n)';
+const MARKER_TAIL_FRAMED_STREAM = '(?=[^=\\-*_])';
+const MARKER_TAIL_LOOSE_FINAL = '(?=[ \\t]*(?:\\r?\\n|$))';
+
+// Ищем самое РАННЕЕ вхождение любой из форм: рассуждения идут первыми, значит первый
+// найденный маркер и есть граница «рассуждения → ответ».
+//
+// opts.atLineStart — начинается ли переданный текст с настоящего начала строки. При стриминге
+// в буфере лежит хвост, отрезанный посреди строки, — там «^» подложный, и без этого флага
+// обычное «Ответ:» в середине предложения сошло бы за маркер.
+// opts.streaming — текст ещё дописывается, требуем от маркера завершённости (см. выше).
+function findAnswerMarker(text = '', opts = {}) {
+  const src = String(text || '');
+  if (!src) return null;
+
+  const atLineStart = opts.atLineStart !== false;
+  const streaming = Boolean(opts.streaming);
+  const framedSrc = ANSWER_MARKER_FRAMED_SRC + (streaming ? MARKER_TAIL_FRAMED_STREAM : '');
+  const looseSrc = ANSWER_MARKER_LOOSE_SRC + (streaming ? MARKER_TAIL_LOOSE_STREAM : MARKER_TAIL_LOOSE_FINAL);
+
+  let best = null;
+  const framed = new RegExp(framedSrc, 'i').exec(src);
+  if (framed && framed[0]) best = { index: framed.index, length: framed[0].length };
+
+  const looseRe = new RegExp(looseSrc, 'gim');
+  let m;
+  while ((m = looseRe.exec(src))) {
+    if (!m[0]) { looseRe.lastIndex += 1; continue; }
+    // Совпадение в самом начале буфера годится только если это правда начало строки.
+    if (m.index === 0 && !atLineStart) continue;
+    if (!best || m.index < best.index) best = { index: m.index, length: m[0].length };
+    break;
+  }
+  return best;
+}
+
+// Вычищает ВСЕ вхождения маркера из готового текста. Последний рубеж: модель иногда печатает
+// маркер дважды, и второе вхождение осталось бы в видимом ответе.
+function stripAllAnswerMarkers(text = '') {
+  let out = String(text || '');
+  for (let i = 0; i < 8; i += 1) {
+    const marker = findAnswerMarker(out);
+    if (!marker) break;
+    out = out.slice(0, marker.index) + out.slice(marker.index + marker.length);
+  }
+  return out.replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
 }
 
 // Обёртка с SSE keep-alive: пинг-комментарий каждые 15 секунд, чтобы прокси и браузер
@@ -925,6 +1005,16 @@ async function streamOpenAIToClientInner(res, apiKey, modelName, messages, timeo
   // Состояние разбора рассуждений в реальном времени (только если captureReasoning=true)
   let rawAll = '';            // весь текст модели как есть (с маркером)
   let switchedToAnswer = !captureReasoning; // если не просили рассуждения — сразу режим ответа
+  // Начинается ли rawAll с настоящего начала строки. Пока ничего не отдали — да (это начало
+  // всего текста). После отправки куска в буфере остаётся хвост, отрезанный посреди строки, —
+  // там «^» подложный, и без этого флага обычное «Ответ:» в середине фразы сошло бы за маркер.
+  let rawAtLineStart = true;
+  // Провайдер отдал рассуждения отдельным полем (reasoning_content) — значит маркер в тексте
+  // ему не нужен: всё, что придёт в content, и есть ответ.
+  let sawNativeReasoning = false;
+  // Отправляли ли клиенту хоть одно событие `reasoning` — нужно, чтобы понять, есть ли что
+  // убирать, если модель так и не выделила ответ маркером.
+  let sentReasoningToClient = false;
 
   // Сколько молчит апстрим между токенами, прежде чем мы считаем это обрывом.
   // Большие документы и режим "Думать" — модель может надолго замолчать во время
@@ -1032,6 +1122,8 @@ async function streamOpenAIToClientInner(res, apiKey, modelName, messages, timeo
           const reasoningDelta = parsed?.choices?.[0]?.delta?.reasoning_content || parsed?.choices?.[0]?.delta?.reasoning || '';
           if (captureReasoning && !switchedToAnswer && typeof reasoningDelta === 'string' && reasoningDelta) {
             writeSseEvent(res, { type: 'reasoning', text: reasoningDelta });
+            sentReasoningToClient = true;
+            sawNativeReasoning = true;
           }
           let delta = parsed?.choices?.[0]?.delta?.content || '';
           if (Array.isArray(delta)) {
@@ -1040,6 +1132,13 @@ async function streamOpenAIToClientInner(res, apiKey, modelName, messages, timeo
           if (typeof delta === 'string' && delta) {
             gotAnyDelta = true;
             fullText += delta;
+
+            // Провайдер уже прислал рассуждения отдельным каналом — content целиком ответ,
+            // маркер искать не нужно. Без этого текст ответа уходил бы и в серый блок,
+            // и в сам ответ, то есть ровно тем задвоением, на которое жаловался пользователь.
+            if (captureReasoning && !switchedToAnswer && sawNativeReasoning) {
+              switchedToAnswer = true;
+            }
 
             if (!captureReasoning || switchedToAnswer) {
               writeSseEvent(res, { type: 'delta', text: delta });
@@ -1050,21 +1149,31 @@ async function streamOpenAIToClientInner(res, apiKey, modelName, messages, timeo
             // ВАЖНО: хвост живёт ТОЛЬКО в rawAll. Раньше он дублировался через pendingHold,
             // из-за чего в окно размышлений попадали задвоенные обрывки слов и «странный текст».
             rawAll += delta;
-            const marker = findAnswerMarker(rawAll);
+            const marker = findAnswerMarker(rawAll, { atLineStart: rawAtLineStart, streaming: true });
             if (!marker) {
-              // Держим в буфере только хвост, который может быть началом маркера
-              const holdLen = Math.min(rawAll.length, 24);
+              // Держим в буфере хвост, который может оказаться началом маркера. Запас с лихвой
+              // перекрывает самую длинную форму («**====ОТВЕТ====**»); задержка показа
+              // рассуждений на несколько десятков символов на глаз не заметна.
+              const holdLen = Math.min(rawAll.length, 48);
               const safeLen = rawAll.length - holdLen;
               if (safeLen > 0) {
-                writeSseEvent(res, { type: 'reasoning', text: rawAll.slice(0, safeLen) });
+                const emitted = rawAll.slice(0, safeLen);
+                writeSseEvent(res, { type: 'reasoning', text: emitted });
+                sentReasoningToClient = true;
+                // Новый буфер начинается с начала строки только если отрезали ровно по переводу строки.
+                rawAtLineStart = emitted.slice(-1) === '\n';
                 rawAll = rawAll.slice(safeLen);
               }
             } else {
               const reasoningPart = rawAll.slice(0, marker.index);
-              if (reasoningPart) writeSseEvent(res, { type: 'reasoning', text: reasoningPart });
+              if (reasoningPart) {
+                writeSseEvent(res, { type: 'reasoning', text: reasoningPart });
+                sentReasoningToClient = true;
+              }
               const answerPart = rawAll.slice(marker.index + marker.length).replace(/^\s+/, '');
               switchedToAnswer = true;
               rawAll = '';
+              rawAtLineStart = true;
               if (answerPart) writeSseEvent(res, { type: 'delta', text: answerPart });
             }
           }
@@ -1094,7 +1203,7 @@ async function streamOpenAIToClientInner(res, apiKey, modelName, messages, timeo
       const raw = data?.choices?.[0]?.message?.content || '';
       if (response.ok && !data?.error && raw.trim()) {
         const finalRaw = captureReasoning ? stripReasoningPrefix(raw) : raw;
-        const finalText = await repairNotationReplyIfNeeded(apiKey, modelName, query, finalRaw);
+        const finalText = stripAllAnswerMarkers(await repairNotationReplyIfNeeded(apiKey, modelName, query, finalRaw));
         if (!headersSent) {
           res.statusCode = 200;
           res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
@@ -1123,11 +1232,13 @@ async function streamOpenAIToClientInner(res, apiKey, modelName, messages, timeo
     };
   }
 
-  // Если маркер так и не пришёл (модель не подчинилась формату) — отдаём всё как ответ целиком
-  let finalRawText = fullText;
-  if (captureReasoning && !switchedToAnswer) {
-    finalRawText = stripReasoningPrefix(fullText);
-  }
+  // fullText — ВЕСЬ сырой текст модели: рассуждения + маркер + ответ. В режиме «Думать»
+  // его нужно обрезать по маркеру ВСЕГДА, а не только когда маркер не встретился в потоке.
+  // Раньше условие было инвертировано (`&& !switchedToAnswer`), поэтому при найденном маркере
+  // событие `done` увозило клиенту сырой текст, и тот заменял им уже настримленный чистый
+  // ответ — пользователь видел ход мыслей и служебный «===ОТВЕТ===» прямо в ответе.
+  // stripReasoningPrefix безопасен в обоих случаях: без маркера он лишь вычищает мусор.
+  const finalRawText = captureReasoning ? stripReasoningPrefix(fullText) : fullText;
 
   // Ответ оборвался из-за молчания модели даже после попыток незаметно продолжить — не "чиним"
   // нотацию повторным запросом (он может полностью переписать честный частичный текст), просто
@@ -1153,8 +1264,25 @@ async function streamOpenAIToClientInner(res, apiKey, modelName, messages, timeo
       // подстрахуемся ниже текстом, который уже успела написать модель
     }
     if (!String(finalText || '').trim()) {
-      finalText = sanitizeAssistantText(fullText) || 'Не удалось сформировать развёрнутый ответ. Попробуйте переформулировать вопрос.';
+      // Последний рубеж. В режиме «Думать» СЫРОЙ fullText отдавать нельзя: там лежат только
+      // рассуждения (ответа модель так и не дала), а они уже показаны в сером блоке —
+      // продублировать их в ответе значит ровно то, на что жаловался пользователь.
+      const salvaged = captureReasoning ? stripReasoningPrefix(fullText) : fullText;
+      finalText = sanitizeAssistantText(salvaged) || 'Не удалось сформировать развёрнутый ответ. Попробуйте переформулировать вопрос.';
     }
+  }
+
+  // Финальная зачистка: даже если маркер проскочил все проверки выше (модель написала его
+  // в неожиданной форме или повторила ниже по тексту) — в видимый ответ он не попадёт.
+  finalText = stripAllAnswerMarkers(finalText);
+
+  // Модель проигнорировала формат: маркера не было вообще, и всё, что мы отправили как
+  // «рассуждения», оказалось её обычным ответом. Показать этот текст и в сером блоке, и в
+  // ответе — то самое задвоение мыслей. Просим клиента убрать серый блок: текст не теряется,
+  // он остаётся ответом. Если рассуждения пришли отдельным каналом (sawNativeReasoning),
+  // блок настоящий — его не трогаем.
+  if (captureReasoning && !switchedToAnswer && sentReasoningToClient && !sawNativeReasoning) {
+    writeSseEvent(res, { type: 'reasoning_reset' });
   }
 
   writeSseEvent(res, { type: 'done', text: finalText, truncated: stalled });
@@ -1549,7 +1677,9 @@ export default async function handler(req, res) {
         const replyTokens = Math.max(1, Math.ceil(String(replyText || '').length / 4));
         await insertUsageEvent(userId, model, promptTokens + replyTokens, 1);
         return res.status(200).json({
-          choices: [{ message: { content: replyText } }]
+          // Нестримовый путь: серого блока здесь нет вовсе, поэтому маркер тем более
+          // не должен остаться в тексте — вычищаем все его вхождения.
+          choices: [{ message: { content: stripAllAnswerMarkers(replyText) } }]
         });
       }
     }
