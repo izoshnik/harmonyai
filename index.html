@@ -31,11 +31,11 @@ try{
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Courier+Prime:wght@400;700&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/abcjs@6.2.3/dist/abcjs-basic-min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/abcjs@6.2.3/dist/abcjs-basic-min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="i18n.js"></script>
 <script src="i18_dict.js"></script>
 <link rel="stylesheet" href="css/music-player.css">
@@ -445,6 +445,8 @@ button:active,.model-pill:active,.send-btn:active{
 /* Пока data-boot="app" (в localStorage найден токен Supabase) — экран входа скрыт ещё до проверки сессии,
    чтобы авторизованный пользователь никогда не видел «вспышку» регистрации. */
 html[data-boot="app"] .auth-wrap{display:none;}
+/* HM-REASONING-V2: промо-подложка тоже не должна мигать у вошедшего пользователя. */
+html[data-boot="app"] .mobile-glossy{display:none;}
 .auth-card{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:36px 28px;max-width:380px;width:100%;display:flex;flex-direction:column;gap:0;}
 .auth-screen{display:none;flex-direction:column;gap:0;}
 .auth-screen.active{display:flex;}
@@ -879,9 +881,10 @@ html[data-theme="light"] .cmp-search-bar input,html[data-theme="light"] .cmp-sea
 html[data-theme="light"] .cmp-confirm{background:rgba(252,251,249,.96);border-color:rgba(20,18,12,.08);}
 @media(prefers-reduced-motion:reduce){.chat-menu-pop,.cmp-confirm{transition:opacity .15s;}}
 
-/* Thinking (typing indicator) — компактно: одна строка серого текста 13px italic. */
-.thinking{display:flex;align-items:center;gap:6px;font-size:13px;font-style:italic;color:var(--text2);padding:2px 0 4px;}
-.thinking.think-text{font-weight:500;letter-spacing:.01em;font-style:italic;}
+/* Thinking (typing indicator) — HM-REASONING-V2: без курсива, с мягким shimmer. */
+.thinking{display:flex;align-items:center;gap:6px;font-size:13px;font-style:normal;color:var(--text2);padding:2px 0 4px;}
+.thinking.think-text{font-weight:500;letter-spacing:.01em;font-style:normal;}
+.hmThinkLabel{font-size:13px;line-height:18px;font-weight:500;font-style:normal;color:transparent;-webkit-text-fill-color:transparent;background:linear-gradient(90deg,var(--tr-sh-a) 0%,var(--tr-sh-a) 30%,var(--tr-sh-b) 45%,var(--tr-sh-b) 55%,var(--tr-sh-a) 70%,var(--tr-sh-a) 100%);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;animation:trShine 2.25s cubic-bezier(.25,.1,.25,1) infinite;}
 .think-dots{display:flex;gap:3px;}
 .think-dots span{width:3px;height:3px;border-radius:50%;background:var(--text2);animation:bop 1.2s infinite;}
 .think-dots span:nth-child(2){animation-delay:.2s;}
@@ -2439,77 +2442,48 @@ html[data-theme="messenger"] .mm-opt.pro-locked::after{
   color:#0e7fd4;background:rgba(26,127,174,.12);border-color:rgba(26,127,174,.40);
 }
 
-/* === Новый блок размышления === */
-.tr {
-  max-width: 360px;
-  font-size: 13px;
-  line-height: 20px;
-  color: var(--text2);
-  background: transparent;
-  border: none;
-  padding: 0;
-  margin: 4px 0;
+/* === HM-REASONING-V2 =====================================================
+   Блок размышления модели. Без карточки, без рамки, без фона.
+   Цвета берутся из тем проекта, отдельного prefers-color-scheme нет.
+   ------------------------------------------------------------------------ */
+:root{--tr-ink:#8e8e98;--tr-sh-a:#a1a1a1;--tr-sh-b:rgba(161,161,161,.45);}
+html[data-theme="dark"]{--tr-ink:#888892;--tr-sh-a:#a1a1a1;--tr-sh-b:rgba(161,161,161,.45);}
+html[data-theme="light"]{--tr-ink:#6b6660;--tr-sh-a:#8a8a8a;--tr-sh-b:rgba(138,138,138,.42);}
+html[data-theme="messenger"]{--tr-ink:#668096;--tr-sh-a:#8ba0b2;--tr-sh-b:rgba(139,160,178,.45);}
+
+.tr{align-self:flex-start;display:block;width:-moz-fit-content;width:fit-content;max-width:min(360px,100%);margin:0 0 6px;padding:0;background:none;border:none;opacity:0;}
+/* Устойчивое состояние — opacity:1; анимация отвечает только за появление.
+   Если анимации отключены или прерваны, блок всё равно видно. */
+.tr.is-in{opacity:1;animation:trBlockIn .28s cubic-bezier(.4,0,.2,1);}
+@keyframes trBlockIn{from{opacity:0;transform:translateY(2px);}to{opacity:1;transform:none;}}
+
+.trHeader{display:inline-flex;align-items:center;gap:5px;padding:1px 0;background:none;border:none;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;}
+.trHeader:focus-visible{outline:1px solid var(--tr-ink);outline-offset:3px;border-radius:6px;}
+.trLabel{font-size:13px;line-height:18px;font-weight:500;font-style:normal;color:var(--tr-ink);white-space:nowrap;}
+.trVerb{font-style:normal;}
+.trChevron{display:inline-flex;align-items:center;justify-content:center;color:var(--tr-ink);opacity:.7;transition:transform .28s cubic-bezier(.4,0,.2,1);}
+.tr.is-open .trChevron{transform:rotate(180deg);}
+
+.trCollapsible{overflow:hidden;max-height:0;opacity:0;transition:max-height .3s cubic-bezier(.4,0,.2,1),opacity .22s ease;}
+.tr.is-open .trCollapsible{max-height:210px;opacity:1;}
+.trInner{padding:6px 0 2px;}
+.trViewport{max-height:180px;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;-ms-overflow-style:none;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
+.trViewport::-webkit-scrollbar{width:0;height:0;display:none;}
+.trStream{display:flex;flex-direction:column;gap:3px;}
+.trSentence{font-size:13px;line-height:20px;font-weight:425;color:var(--tr-ink);opacity:.92;overflow-wrap:anywhere;animation:trFadeIn .26s ease;}
+@keyframes trFadeIn{from{opacity:0;}to{opacity:.92;}}
+
+/* Мягкий серый shimmer — только пока размышление идёт. Чистый CSS. */
+.tr.is-live .trVerb{color:transparent;-webkit-text-fill-color:transparent;background:linear-gradient(90deg,var(--tr-sh-a) 0%,var(--tr-sh-a) 30%,var(--tr-sh-b) 45%,var(--tr-sh-b) 55%,var(--tr-sh-a) 70%,var(--tr-sh-a) 100%);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;animation:trShine 2.25s cubic-bezier(.25,.1,.25,1) infinite;}
+@keyframes trShine{0%,18%{background-position:100% 0;}82%,100%{background-position:0% 0;}}
+
+@media(max-width:768px){.tr{max-width:min(360px,88vw);}}
+@media(prefers-reduced-motion:reduce){
+  .trCollapsible,.trChevron{transition-duration:.01ms;}
+  .tr.is-in,.trSentence{animation:none;}
+  .tr.is-live .trVerb,.hmThinkLabel{animation:none;color:var(--tr-ink);-webkit-text-fill-color:currentColor;background:none;}
 }
-.trHeader {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  user-select: none;
-  font-weight: 500;
-  font-size: 13px;
-  line-height: 18px;
-  color: var(--text2);
-}
-.trChevron {
-  display: inline-flex;
-  transition: transform 0.2s ease;
-}
-.trChevron.open {
-  transform: rotate(180deg);
-}
-.trCollapsible {
-  overflow: hidden;
-  transition: max-height 0.25s ease;
-  max-height: 0;
-}
-.trCollapsible.open {
-  max-height: 180px;
-}
-.trInner {
-  padding-top: 4px;
-  overflow-y: auto;
-  max-height: 180px;
-  scrollbar-width: none;
-}
-.trInner::-webkit-scrollbar {
-  display: none;
-}
-.trStream {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.trSentence {
-  opacity: 0;
-  animation: fadeIn 0.2s ease forwards;
-}
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-.trShimmer {
-  background: linear-gradient(90deg, var(--text2) 0%, var(--text) 50%, var(--text2) 100%);
-  background-size: 200% auto;
-  animation: shimmer 1.5s linear infinite;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-@keyframes shimmer {
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
-}
+/* === /HM-REASONING-V2 =================================================== */
 </style>
 </head>
 <body>
@@ -3862,7 +3836,7 @@ async function initSession(){
   try{
     ({data:{session}}=await withTimeout(
       sb.auth.getSession(),
-      8000,
+      4500,
       'Проверка сохранённой сессии заняла слишком много времени'
     ));
   }catch(e){
@@ -5615,6 +5589,8 @@ const IC_STOP='<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect
 
 function setGeneratingState(active){
   isGenerating=active;
+  // HM-REASONING-V2: стоп/ошибка/обрыв не должны оставлять вечное «Думаю».
+  if(!active){try{hmFinalizeLiveReasoning();}catch(e){}}
   const btn=document.getElementById('sendBtn');
   if(btn){
     btn.innerHTML=active?IC_STOP:IC_SEND;
@@ -5943,10 +5919,7 @@ function renderMd(el,text){
       const cvs=document.createElement('div');cvs.id=id;surface.appendChild(cvs);
       wrap.appendChild(surface);
       el.appendChild(wrap);
-      setTimeout(()=>{
-        try{window.ABCJS?.renderAbc(id,abcSrc,getAbcRenderOptions(surface,abcSrc));}
-        catch(e){cvs.textContent=abcSrc;}
-      },60);
+      hmRenderAbc(id,abcSrc,surface,cvs,60);
     }else if(part.trim()){
       const div=document.createElement('div');
       div.innerHTML=typeof marked!=='undefined'?marked.parse(part):part;
@@ -6014,7 +5987,7 @@ function renderStreamingSegments(el,text){
       const cvs=document.createElement('div');cvs.id=id;surface.appendChild(cvs);
       wrap.appendChild(surface);
       if(abcSrc){
-        setTimeout(()=>{try{window.ABCJS?.renderAbc(id,abcSrc,getAbcRenderOptions(surface,abcSrc));}catch(e){cvs.textContent=abcSrc;}},10);
+        hmRenderAbc(id,abcSrc,surface,cvs,10);
       }
       cache[i]={hash:h,type:'abc'};
     }else if(seg.type==='abc-pending'){
@@ -6269,7 +6242,7 @@ async function regenMsg(item){
   removeContinueButton(wrap);
   if(chatHistory.length&&chatHistory[chatHistory.length-1].role==='assistant')chatHistory.pop();
   msgEl.innerHTML='';msgEl.style.whiteSpace='pre-wrap';msgEl._segCache=[];
-  wrap.querySelectorAll('.search-trace,.think-trace').forEach(el=>el.remove());
+  wrap.querySelectorAll('.search-trace,.think-trace,.tr,.trace-line').forEach(el=>el.remove());
   showTyping('regen');
   setGeneratingState(true);
   try{
@@ -6393,17 +6366,29 @@ function refreshSearchPopover(line){
   }).join('');
 }
 
-// --- REASONING (Думать) ---
+// --- REASONING (Думать) --- HM-REASONING-V2
+// Рендер реальных reasoning-чанков модели (SSE type:'reasoning' из api/chat.js).
+// Ничего не симулируем: сюда попадает только то, что реально прислал сервер.
+const TR_MAX_SENTENCES=400;
+const TR_ABC_MAX_TRIES=60;
+const TR_CHEVRON='<svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" focusable="false"><path d="M3 4.75 L6 7.75 L9 4.75" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>';
+
+function trSecondsWord(n){const a=n%10,b=n%100;if(a===1&&b!==11)return'секунду';if(a>=2&&a<=4&&(b<12||b>14))return'секунды';return'секунд';}
+function trMinutesWord(n){const a=n%10,b=n%100;if(a===1&&b!==11)return'минуту';if(a>=2&&a<=4&&(b<12||b>14))return'минуты';return'минут';}
 function fmtThinkDuration(ms){
-  const s=Math.max(1,Math.round(ms/1000));
-  if(s<60)return s+'с';
+  const total=Number(ms);
+  const s=Math.max(1,Math.round((isFinite(total)?total:0)/1000));
+  if(s<60)return s+' '+trSecondsWord(s);
   const m=Math.floor(s/60),rem=s%60;
-  return m+'м '+rem+'с';
+  let out=m+' '+trMinutesWord(m);
+  if(rem)out+=' '+rem+' '+trSecondsWord(rem);
+  return out;
 }
-// Приводим текст размышлений к читаемому виду: убираем служебный маркер ответа,
+
+// Приводим текст размышления к читаемому виду: убираем служебный маркер ответа,
 // рваные переносы и лишние пробелы, чтобы в мини-окне был нормальный связный текст.
 function formatReasoningText(text){
-  return String(text||'')
+  return String(text==null?'':text)
     .replace(/(?:\*\*)?={2,}\s*ОТВЕТ\s*={2,}(?:\*\*)?/gi,'')
     .replace(/\r/g,'')
     .replace(/[ \t]+\n/g,'\n')
@@ -6411,118 +6396,322 @@ function formatReasoningText(text){
     .replace(/[ \t]{2,}/g,' ');
 }
 
-function ensureReasoningLine(msgEl) {
-  const wrap = msgEl.closest('.msg-ai-wrap');
-  if (!wrap) return null;
-  let block = wrap.querySelector('.tr');
-  if (!block) {
-    block = document.createElement('div');
-    block.className = 'tr';
-    const header = document.createElement('div');
-    header.className = 'trHeader trShimmer';
-    const label = document.createElement('span');
-    label.className = 'trLabel';
-    label.textContent = 'Размышляет...';
-    const verb = document.createElement('span');
-    verb.className = 'trVerb';
-    verb.textContent = '⋅';
-    const chevron = document.createElement('span');
-    chevron.className = 'trChevron';
-    chevron.innerHTML = '▾';
-    header.appendChild(label);
-    header.appendChild(verb);
-    header.appendChild(chevron);
-    const collapsible = document.createElement('div');
-    collapsible.className = 'trCollapsible';
-    const inner = document.createElement('div');
-    inner.className = 'trInner';
-    const stream = document.createElement('div');
-    stream.className = 'trStream';
-    inner.appendChild(stream);
-    collapsible.appendChild(inner);
-    block.appendChild(header);
-    block.appendChild(collapsible);
-    block._stream = stream;
-    block._inner = inner;
-    block._collapsible = collapsible;
-    block._header = header;
-    block._chevron = chevron;
-    block._label = label;
-    block._sentences = [];
-    block._open = false;
-    block._done = false;
-    block._startedAt = Date.now();
-    header.addEventListener('click', function() {
-      block._open = !block._open;
-      block._collapsible.classList.toggle('open', block._open);
-      block._chevron.classList.toggle('open', block._open);
-      if (block._open) {
-        block._inner.scrollTop = block._inner.scrollHeight;
+// Ручной сплиттер: regex-lookbehind не поддерживается старыми iOS Safari.
+function trSplitSentences(text){
+  const src=String(text||'');
+  const out=[];
+  let buf='';
+  for(let i=0;i<src.length;i++){
+    const ch=src.charAt(i);
+    if(ch==='\n'){
+      if(buf.trim())out.push(buf.trim());
+      buf='';
+      continue;
+    }
+    buf+=ch;
+    if(ch==='.'||ch==='!'||ch==='?'||ch==='…'){
+      const nxt=src.charAt(i+1);
+      if(nxt===''){break;}
+      if(nxt===' '||nxt==='\n'){
+        if(buf.trim())out.push(buf.trim());
+        buf='';
+        i++;
       }
-    });
-    const searchLine = wrap.querySelector('.trace-line.search');
-    if (searchLine) searchLine.after(block);
-    else wrap.insertBefore(block, msgEl);
+    }
   }
-  return block;
+  if(buf.trim())out.push(buf.trim());
+  return out;
 }
 
+function setReasoningOpen(tr,open){
+  if(!tr)return;
+  tr._open=!!open;
+  tr.classList.toggle('is-open',tr._open);
+  if(tr._header)tr._header.setAttribute('aria-expanded',tr._open?'true':'false');
+  if(tr._open)trAutoScroll(tr,true);
+}
 
-function appendReasoningChunk(msgEl, text) {
-  if (!text) return;
-  const block = ensureReasoningLine(msgEl);
-  if (!block) return;
-  const stream = block._stream;
-  const sentence = document.createElement('span');
-  sentence.className = 'trSentence';
-  sentence.textContent = text;
-  stream.appendChild(sentence);
-  block._sentences.push(sentence);
-  if (block._open) {
-    requestAnimationFrame(function() {
-      block._inner.scrollTop = block._inner.scrollHeight;
-    });
+function toggleReasoningBlock(tr){
+  if(!tr)return;
+  tr._userToggled=true;
+  setReasoningOpen(tr,!tr._open);
+}
+
+function trAutoScroll(tr,force){
+  const vp=tr&&tr._viewport;
+  if(!vp||!tr._open)return;
+  if(!force&&tr._userScrolled)return;
+  vp.scrollTop=vp.scrollHeight;
+}
+
+function ensureReasoningBlock(msgEl){
+  if(!msgEl||!msgEl.closest)return null;
+  const wrap=msgEl.closest('.msg-ai-wrap');
+  if(!wrap)return null;
+  let tr=wrap.querySelector('.tr');
+  if(tr)return tr;
+
+  tr=document.createElement('div');
+  tr.className='tr is-live';
+
+  const header=document.createElement('div');
+  header.className='trHeader';
+  header.setAttribute('role','button');
+  header.setAttribute('tabindex','0');
+  header.setAttribute('aria-expanded','false');
+
+  const label=document.createElement('span');
+  label.className='trLabel';
+  const verb=document.createElement('span');
+  verb.className='trVerb';
+  verb.textContent='Думаю';
+  label.appendChild(verb);
+
+  const chevron=document.createElement('span');
+  chevron.className='trChevron';
+  chevron.innerHTML=TR_CHEVRON;
+
+  header.appendChild(label);
+  header.appendChild(chevron);
+
+  const collapsible=document.createElement('div');
+  collapsible.className='trCollapsible';
+  const inner=document.createElement('div');
+  inner.className='trInner';
+  const viewport=document.createElement('div');
+  viewport.className='trViewport';
+  const stream=document.createElement('div');
+  stream.className='trStream';
+
+  viewport.appendChild(stream);
+  inner.appendChild(viewport);
+  collapsible.appendChild(inner);
+  tr.appendChild(header);
+  tr.appendChild(collapsible);
+
+  tr._header=header;
+  tr._verb=verb;
+  tr._viewport=viewport;
+  tr._stream=stream;
+  tr._text='';
+  tr._rendered=0;
+  tr._tailEl=null;
+  tr._raf=0;
+  tr._done=false;
+  tr._open=false;
+  tr._userToggled=false;
+  tr._userScrolled=false;
+  tr._startedAt=Date.now();
+
+  header.addEventListener('click',function(){toggleReasoningBlock(tr);});
+  header.addEventListener('keydown',function(e){
+    if(e.key==='Enter'||e.key===' '||e.key==='Spacebar'){e.preventDefault();toggleReasoningBlock(tr);}
+  });
+  // Если пользователь сам отлистал вверх — перестаём тянуть его вниз.
+  viewport.addEventListener('scroll',function(){
+    const atBottom=viewport.scrollHeight-viewport.scrollTop-viewport.clientHeight<=4;
+    tr._userScrolled=!atBottom;
+  },{passive:true});
+
+  const searchLine=wrap.querySelector('.trace-line.search')||wrap.querySelector('.search-trace');
+  if(searchLine&&searchLine.parentNode===wrap)searchLine.after(tr);
+  else wrap.insertBefore(tr,msgEl);
+
+  requestAnimationFrame(function(){
+    tr.classList.add('is-in');
+    setReasoningOpen(tr,true);
+  });
+  return tr;
+}
+
+// Обратная совместимость со старым именем.
+function ensureReasoningLine(msgEl){return ensureReasoningBlock(msgEl);}
+
+function flushReasoning(tr){
+  if(!tr)return;
+  tr._raf=0;
+  if(!tr.isConnected)return;
+  const stream=tr._stream;
+  if(!stream)return;
+
+  const clean=formatReasoningText(tr._text||'');
+  const parts=trSplitSentences(clean);
+  const complete=tr._done?parts.length:Math.max(0,parts.length-1);
+
+  for(let i=tr._rendered;i<complete;i++){
+    let el;
+    if(tr._tailEl){el=tr._tailEl;tr._tailEl=null;}
+    else{
+      el=document.createElement('div');
+      el.className='trSentence';
+      stream.appendChild(el);
+    }
+    el.textContent=parts[i];
+  }
+  if(complete>tr._rendered)tr._rendered=complete;
+
+  const tail=tr._done?'':(parts[complete]||'');
+  if(tail){
+    if(!tr._tailEl||!tr._tailEl.isConnected){
+      tr._tailEl=document.createElement('div');
+      tr._tailEl.className='trSentence';
+      stream.appendChild(tr._tailEl);
+    }
+    if(tr._tailEl.textContent!==tail)tr._tailEl.textContent=tail;
+  }else if(tr._tailEl){
+    tr._tailEl.remove();
+    tr._tailEl=null;
+  }
+
+  // Не даём DOM расти бесконечно на очень длинных размышлениях.
+  while(stream.childElementCount>TR_MAX_SENTENCES&&stream.firstElementChild!==tr._tailEl){
+    stream.removeChild(stream.firstElementChild);
+  }
+
+  trAutoScroll(tr);
+}
+
+function appendReasoningChunk(msgEl,text){
+  const raw=String(text==null?'':text);
+  if(!raw)return;
+  const tr=ensureReasoningBlock(msgEl);
+  if(!tr||tr._done)return;
+  tr._text=(tr._text||'')+raw;
+  // Пишем в DOM не чаще одного раза за кадр — иначе стриминг начинает дёргаться.
+  if(!tr._raf)tr._raf=requestAnimationFrame(function(){flushReasoning(tr);});
+}
+
+function finalizeReasoningBlock(tr){
+  if(!tr||tr._done)return;
+  tr._done=true;
+  if(tr._raf){cancelAnimationFrame(tr._raf);tr._raf=0;}
+  flushReasoning(tr);
+
+  tr._durationMs=Date.now()-(tr._startedAt||Date.now());
+  tr.classList.remove('is-live');
+
+  // Пустое размышление не должно оставлять висящую плашку.
+  if(!formatReasoningText(tr._text||'').trim()){tr.remove();return;}
+
+  const human='Думал '+fmtThinkDuration(tr._durationMs);
+  if(tr._verb)tr._verb.textContent=human;
+  if(tr._header)tr._header.setAttribute('aria-label',human);
+  tr.classList.add('is-done');
+  // Если пользователь уже раскрыл блок вручную — не закрываем.
+  if(!tr._userToggled)setReasoningOpen(tr,false);
+}
+
+function finalizeReasoningTrace(msgEl){
+  if(!msgEl||!msgEl.closest)return;
+  const wrap=msgEl.closest('.msg-ai-wrap');
+  const tr=wrap&&wrap.querySelector('.tr');
+  if(tr)finalizeReasoningBlock(tr);
+}
+
+// Страховка: закрываем любое "живое" размышление при остановке, ошибке или обрыве.
+function hmFinalizeLiveReasoning(){
+  const nodes=document.querySelectorAll('.tr.is-live');
+  for(let i=0;i<nodes.length;i++){
+    try{finalizeReasoningBlock(nodes[i]);}catch(e){}
   }
 }
 
-
-function finalizeReasoningTrace(msgEl) {
-  const wrap = msgEl.closest('.msg-ai-wrap');
-  const block = wrap && wrap.querySelector('.tr');
-  if (!block) return;
-  block._done = true;
-  const duration = Date.now() - (block._startedAt || Date.now());
-  const sec = Math.round(duration / 1000);
-  const label = block._label;
-  if (sec > 0) {
-    label.textContent = 'Думал на протяжении ' + sec + 'с';
-  } else {
-    label.textContent = 'Думал';
-  }
-  if (!block._open) {
-    block._collapsible.classList.remove('open');
-    block._chevron.classList.remove('open');
-  }
-  block._header.classList.remove('trShimmer');
+// abcjs и highlight.js теперь грузятся с defer — ждём их, а не молча ничего не рисуем.
+function hmRenderAbc(id,abcSrc,surface,cvs,delay){
+  let tries=0;
+  const run=function(){
+    if(window.ABCJS&&typeof window.ABCJS.renderAbc==='function'){
+      try{window.ABCJS.renderAbc(id,abcSrc,getAbcRenderOptions(surface,abcSrc));}
+      catch(e){try{cvs.textContent=abcSrc;}catch(e2){}}
+      return;
+    }
+    if(++tries>TR_ABC_MAX_TRIES){try{cvs.textContent=abcSrc;}catch(e3){}return;}
+    setTimeout(run,100);
+  };
+  setTimeout(run,delay||0);
 }
 
+function hmRehighlightPending(){
+  if(typeof hljs==='undefined')return;
+  const nodes=document.querySelectorAll('pre.code-pre code.hljs:not([data-hm-hl])');
+  for(let i=0;i<nodes.length;i++){
+    const el=nodes[i];
+    // Уже подсвеченные (есть дочерние span) не трогаем — иначе hljs ругается в консоль.
+    if(el.childElementCount>0){el.setAttribute('data-hm-hl','1');continue;}
+    try{hljs.highlightElement(el);el.setAttribute('data-hm-hl','1');}catch(e){}
+  }
+}
+if(typeof window!=='undefined'){
+  window.addEventListener('load',function(){try{hmRehighlightPending();}catch(e){}},{once:true});
+}
 
-// Мини-окно с полным текстом размышления.
+// Старый поповер размышления удалён, но на него ещё ссылается разметка.
 let _thinkPopoverLine=null;
-function openThinkPopover(line) { /* replaced by new UI */ }
-function closeThinkPopover() { /* replaced by new UI */ }
+function openThinkPopover(){}
+function closeThinkPopover(){_thinkPopoverLine=null;}
+
+function trReadLastUserText(){
+  try{
+    const nodes=document.querySelectorAll('.msg-user-wrap .msg-user');
+    const last=nodes[nodes.length-1];
+    return last?String(last.textContent||''):'';
+  }catch(e){return '';}
+}
+
+// Сложность определяется по типу задачи, а не по длине текста.
+function isComplexTask(text){
+  const t=String(text||'').trim();
+  if(!t)return false;
+
+  // Явно простые случаи: приветствия, короткие подтверждения, арифметика.
+  if(t.length<=28&&/^(привет|здравствуй|здравствуйте|хай|доброе утро|добрый день|добрый вечер|hi|hello|hey|спасибо|благодарю|пока|ок|окей|ok|да|нет|ага|понял|поняла)\b/i.test(t))return false;
+  if(t.length<=40&&/^[\s\d+\-*\/().,^%=?]+$/.test(t))return false;
+  if(t.length<=48&&/^(сколько будет|посчитай|сколько это)\s+[\s\d+\-*\/().,^%=?]+$/i.test(t))return false;
+  if(t.length<=60&&/^(переведи|translate)\b/i.test(t)&&!/текст|статью|документ|абзац/i.test(t))return false;
+
+  const deep=/(проанализируй|анализ|разбер|сравни|сравнение|спроектируй|архитектур|оптимизируй|рефактор|отрефактор|докажи|доказательств|обоснуй|выведи формул|пошагов|по шагам|поэтапно|составь план|разработай|стратеги|исследуй|в чём разница|в чем разница|почему именно|отладь|найди ошибк|исправь баг|напиши код|реализуй|алгоритм|сложность|рассчитай|вычисли|смет|бюджет|интеграци|миграци|уязвим|безопасност|оцени риск|плюсы и минусы|за и против)/i;
+  if(deep.test(t))return true;
+
+  // Код, разметка, SQL — почти всегда требуют реального разбора.
+  if(/```|\bSELECT\b|\bINSERT\b|\bUPDATE\b|\bCREATE TABLE\b|\bfunction\b|\bclass\b|=>|<\/[a-z]+>/i.test(t))return true;
+
+  if((t.match(/\?/g)||[]).length>=3)return true;
+  if((t.match(/^\s*(?:[-*•]|\d+[.)])\s+/gm)||[]).length>=3)return true;
+  if(t.length>700)return true;
+
+  return false;
+}
+
+function shouldShowThinkingLabel(){
+  try{
+    if(typeof thinkOn!=='undefined'&&thinkOn)return true;
+    if(typeof curMode!=='undefined'&&/^(high|ultra)$/i.test(String(curMode||'')))return true;
+  }catch(e){}
+  return isComplexTask(trReadLastUserText());
+}
+
 function showTyping(kind='text',steps=[]){
   const inner=getChatInner();
-  const d=document.createElement('div');d.className='thinking';d.id='typEl';
-  if(thinkOn){
-    d.classList.add('think-text');
-    d.innerHTML=`<div class="think-dots"><span></span><span></span><span></span></div><span>Думаю…</span>`;
+  if(!inner)return;
+  const d=document.createElement('div');
+  d.className='thinking';
+  d.id='typEl';
+  const dots='<div class="think-dots"><span></span><span></span><span></span></div>';
+  if(kind==='text'){
+    if(shouldShowThinkingLabel()){
+      d.classList.add('think-text');
+      d.innerHTML=dots+'<span class="hmThinkLabel">Думаю</span>';
+    }else{
+      // Простой запрос — никакого reasoning UI, только точки.
+      d.innerHTML=dots;
+    }
   }else{
-    const labelMap={file:'Читаю файл…', photo:'Смотрю фото…', image:'Рисую изображение…'};
+    const labelMap={file:'Читаю файл…',photo:'Смотрю фото…',image:'Рисую изображение…'};
     const label=labelMap[kind]||'';
-    d.innerHTML=`<div class="think-dots"><span></span><span></span><span></span></div>${label?`<span>${label}</span>`:''}`;
+    d.innerHTML=dots+(label?'<span>'+label+'</span>':'');
   }
-  inner.appendChild(d);scrollChat();
+  inner.appendChild(d);
+  if(typeof scrollChat==='function')scrollChat();
 }
 function hideTyping(){
   const t=document.getElementById('typEl');
