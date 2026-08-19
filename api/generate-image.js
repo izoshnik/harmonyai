@@ -2,6 +2,8 @@ export const config = {
   maxDuration: 60
 };
 
+import { PRO_IMAGE_MODEL, FREE_IMAGE_MODEL, UTILITY_MODEL, envModel } from '../lib/models.js';
+
 function readEnv(name) {
   return String(process.env[name] || '').trim();
 }
@@ -210,7 +212,7 @@ async function isPromptAllowedByAI(prompt) {
       fetch(`${baseUrl}/chat/completions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-        body: JSON.stringify({ model: 'gpt-5.4-mini', messages, max_tokens: 5, temperature: 0 })
+        body: JSON.stringify({ model: envModel('IMAGE_MODERATOR_MODEL', UTILITY_MODEL), messages, max_tokens: 5, temperature: 0 })
       }),
       20000, 'AI moderator timed out'
     );
@@ -236,7 +238,7 @@ function bytesToBase64(bytes) {
 async function generateViaCloudflare(prompt) {
   const accountId = readEnv('CLOUDFLARE_ACCOUNT_ID');
   const apiToken = readEnv('CLOUDFLARE_API_TOKEN');
-  const model = readEnv('CLOUDFLARE_IMAGE_MODEL') || '@cf/black-forest-labs/flux-1-schnell';
+  const model = readEnv('CLOUDFLARE_IMAGE_MODEL') || FREE_IMAGE_MODEL;
   if (!accountId || isPlaceholderValue(accountId) || !apiToken || isPlaceholderValue(apiToken)) {
     const err = new Error('Cloudflare credentials not configured');
     err.code = 'NO_CREDENTIALS';
@@ -280,7 +282,26 @@ async function generateViaCloudflare(prompt) {
   return { base64: bytesToBase64(new Uint8Array(buf)), mime: 'image/png' };
 }
 
-/* ---------- Генерация через OpenAI gpt-image-2 (Pro — Dynatos) ---------- */
+/* ---------- Генерация через gpt-image-2 (Pro — Dynatos) ----------
+   Идём через тот же OpenAI-совместимый шлюз, что и чат (OPENAI_BASE_URL,
+   по умолчанию api.codex-api.online) — прямой api.openai.com нашим ключом не
+   открывается. Отдельный хост/ключ можно задать через OPENAI_IMAGE_BASE_URL /
+   OPENAI_IMAGE_API_KEY, если картинки живут на другом провайдере.
+   response_format НЕ передаём: gpt-image возвращает b64_json по умолчанию и
+   на некоторых шлюзах ругается на этот параметр. Ответ принимаем в обоих
+   видах — b64_json и url (второй докачиваем сами). */
+
+async function fetchRemoteImageAsBase64(url) {
+  const response = await withTimeout(fetch(url), 25000, 'Image download timed out');
+  if (!response.ok) {
+    const err = new Error(`Image download failed ${response.status}`);
+    err.code = 'IMG_DOWNLOAD_ERROR'; err.status = response.status;
+    throw err;
+  }
+  const mime = (response.headers.get('content-type') || 'image/png').split(';')[0].trim() || 'image/png';
+  const buf = await response.arrayBuffer();
+  return { base64: bytesToBase64(new Uint8Array(buf)), mime };
+}
 
 async function generateViaOpenAI(prompt) {
   const apiKey = readEnv('OPENAI_IMAGE_API_KEY') || readEnv('OPENAI_API_KEY');
@@ -289,16 +310,18 @@ async function generateViaOpenAI(prompt) {
     err.code = 'NO_CREDENTIALS';
     throw err;
   }
+  const rawBase = readEnv('OPENAI_IMAGE_BASE_URL') || readEnv('OPENAI_BASE_URL');
+  const baseUrl = String(isPlaceholderValue(rawBase) ? 'https://api.codex-api.online/v1' : rawBase).replace(/\/+$/, '');
+  const model = envModel('OPENAI_IMAGE_MODEL', PRO_IMAGE_MODEL);
   const response = await withTimeout(
-    fetch('https://api.openai.com/v1/images/generations', {
+    fetch(`${baseUrl}/images/generations`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
-        model: 'gpt-image-2',
+        model,
         prompt,
         n: 1,
-        size: '1024x1024',
-        response_format: 'b64_json'
+        size: '1024x1024'
       })
     }),
     55000, 'OpenAI image request timed out'
@@ -310,13 +333,22 @@ async function generateViaOpenAI(prompt) {
     err.code = 'OAI_ERROR'; err.status = response.status;
     throw err;
   }
-  const b64 = data?.data?.[0]?.b64_json;
-  if (!b64) {
-    const err = new Error('OpenAI returned no image data');
-    err.code = 'OAI_NO_IMAGE';
-    throw err;
+  const item = data?.data?.[0] || {};
+  const b64 = item.b64_json || item.b64 || '';
+  if (b64) {
+    // Формат ответа отличается от шлюза к шлюзу: где-то mime_type, где-то output_format ("png"/"webp").
+    const mimeRaw = String(item.mime_type || '').trim().toLowerCase();
+    const fmt = String(item.output_format || '').trim().toLowerCase().replace(/^image\//, '');
+    let mime = 'image/png';
+    if (mimeRaw.startsWith('image/')) mime = mimeRaw;
+    else if (fmt) mime = 'image/' + fmt;
+    return { base64: b64, mime };
   }
-  return { base64: b64, mime: 'image/png' };
+  const url = item.url || item.image_url || '';
+  if (url) return await fetchRemoteImageAsBase64(url);
+  const err = new Error('OpenAI returned no image data');
+  err.code = 'OAI_NO_IMAGE';
+  throw err;
 }
 
 /* ---------- Supabase Storage ---------- */
