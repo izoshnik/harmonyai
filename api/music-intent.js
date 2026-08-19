@@ -2,6 +2,8 @@ export const config = {
   maxDuration: 30
 };
 
+import { UTILITY_MODEL, envModel } from '../lib/models.js';
+
 /* ============================================================================
    МУЗЫКАЛЬНЫЙ INTENT-КЛАССИФИКАТОР (LLM).
 
@@ -75,10 +77,19 @@ function withTimeout(promise, ms, message) {
   });
 }
 
-/* Пустой (не музыкальный) ответ — им же отвечаем на любую ошибку. */
-function noMusic() {
+/* Пустой (не музыкальный) ответ — им же отвечаем на любую ошибку.
+
+   decided — БЫЛО ЛИ РЕШЕНИЕ ПРИНЯТО. Раньше «модель прочитала фразу и решила,
+   что это не музыка» и «классификатор недоступен» (нет ключа, 5xx, таймаут)
+   отдавались одним и тем же телом, и клиент не мог их различить. Теперь
+   вердикт модели — decided:true (клиент ему подчиняется и уводит фразу в
+   обычный чат), а отказ инфраструктуры — decided:false (клиент откатывается
+   на локальные правила, и «включи Кино — Группа крови» продолжает работать
+   даже без OPENAI_API_KEY). */
+function noMusic(decided = false) {
   return {
     is_music: false,
+    decided: Boolean(decided),
     intent: 'none',
     kind: 'track',
     query: '',
@@ -181,6 +192,11 @@ function buildMessages(userText, turns, nowPlaying) {
     '- confidence: "high" — уверен; "low" — похоже на музыку, но возможна ошибка.',
     '',
     'ВАЖНЫЕ ГРАНИЦЫ (ошибка здесь дороже пропуска):',
+    '- ГЛАВНОЕ ПРАВИЛО: глагол поиска («найди», «поищи», «загугли», «посмотри») сам по себе',
+    '  НЕ делает запрос музыкальным. Музыкальным его делает ОБЪЕКТ: название записи,',
+    '  исполнитель, альбом, плейлист. Если после глагола идёт что угодно другое —',
+    '  инструкция, справка, товар, документ, погода, новости, рецепт, курс, поиск в',
+    '  интернете — это обычный запрос: is_music=false, intent="none", query="".',
     '- «Расскажи про Believer», «кто написал Believer», «разбери гармонию Believer»',
     '  БЕЗ просьбы найти/включить — это разговор: is_music=false.',
     '- Вопросы по теории, сольфеджио, нотации, истории музыки — всегда is_music=false.',
@@ -188,6 +204,17 @@ function buildMessages(userText, turns, nowPlaying) {
     '- Если пользователь написал одно голое название («Believer», «Imagine Dragons»),',
     '  это скорее всего просьба включить: is_music=true, intent="play", confidence="low".',
     '- Если сомневаешься между разговором и музыкой — выбирай is_music=false.',
+    '',
+    'ПРИМЕРЫ НЕМУЗЫКАЛЬНЫХ ЗАПРОСОВ С ГЛАГОЛОМ ПОИСКА (частая ошибка):',
+    '- «Найди в интернете как получить иностранную карту в РФ» →',
+    '  {"is_music":false,"intent":"none","kind":"track","query":"",',
+    '   "control":"","want_answer":false,"answer_request":"","confidence":"high"}',
+    '- «Загугли погоду в Москве на выходные» →',
+    '  {"is_music":false,"intent":"none","kind":"track","query":"",',
+    '   "control":"","want_answer":false,"answer_request":"","confidence":"high"}',
+    '- «Найди информацию про Шостаковича» → это справка, а не запись:',
+    '  {"is_music":false,"intent":"none","kind":"track","query":"",',
+    '   "control":"","want_answer":false,"answer_request":"","confidence":"high"}',
     '',
     'ПРИМЕРЫ СОСТАВНЫХ ПРОСЬБ (главный источник ошибок):',
     '- «Найди и опиши как был написан трек Beliver» →',
@@ -212,7 +239,7 @@ function buildMessages(userText, turns, nowPlaying) {
 }
 
 function normalizeResult(parsed) {
-  if (!parsed || typeof parsed !== 'object') return noMusic();
+  if (!parsed || typeof parsed !== 'object') return noMusic(false);
 
   let intent = String(parsed.intent || '').trim().toLowerCase();
   if (!['play', 'find', 'control', 'none'].includes(intent)) intent = 'none';
@@ -232,20 +259,22 @@ function normalizeResult(parsed) {
 
   // Согласованность важнее того, что сказала модель:
   // «музыкальный» ответ без запроса и без команды бесполезен.
+  // Это всё ещё РЕШЕНИЕ модели (decided:true) — фраза уходит в обычный чат.
   if (intent === 'control') {
-    if (!control) return noMusic();
+    if (!control) return noMusic(true);
     query = '';
   } else if (intent === 'play' || intent === 'find') {
-    if (!query || query.length < 2) return noMusic();
+    if (!query || query.length < 2) return noMusic(true);
   } else {
     isMusic = false;
   }
-  if (!isMusic) return noMusic();
+  if (!isMusic) return noMusic(true);
 
   const wantAnswer = intent === 'control' ? false : Boolean(parsed.want_answer);
 
   return {
     is_music: true,
+    decided: true,
     intent,
     kind,
     query,
@@ -272,17 +301,19 @@ export default async function handler(req, res) {
     const userText = normalizeText(message).slice(0, 600);
 
     // Пустое или явно длинное сообщение (письмо, текст песни, документ) — не команда.
-    if (!userText || userText.length > 400) return res.status(200).json(noMusic());
+    // Это осознанный вердикт, а не сбой: decided=true.
+    if (!userText || userText.length > 400) return res.status(200).json(noMusic(true));
 
     const apiKey = readEnv('OPENAI_API_KEY');
     const baseUrl = String(readEnv('OPENAI_BASE_URL') || 'https://api.codex-api.online/v1').replace(/\/+$/, '');
     if (!apiKey || isPlaceholderValue(apiKey) || isPlaceholderValue(baseUrl)) {
-      // Без ключа классификатор недоступен — клиент откатится на регэкспы.
-      return res.status(200).json(noMusic());
+      // Без ключа классификатор недоступен — decided=false, клиент откатится
+      // на локальные правила и явные музыкальные команды продолжат работать.
+      return res.status(200).json(noMusic(false));
     }
 
     const turns = recentTextTurns(Array.isArray(history) ? history : []);
-    const model = readEnv('MUSIC_INTENT_MODEL') || readEnv('INTENT_MODEL') || 'gpt-5.4-mini';
+    const model = envModel(['MUSIC_INTENT_MODEL', 'INTENT_MODEL'], UTILITY_MODEL);
 
     const response = await withTimeout(
       fetch(`${baseUrl}/chat/completions`, {
@@ -304,7 +335,7 @@ export default async function handler(req, res) {
 
     if (!response.ok) {
       console.warn('[music-intent] non-ok:', response.status);
-      return res.status(200).json(noMusic());
+      return res.status(200).json(noMusic(false));
     }
 
     let data = {};
@@ -312,8 +343,9 @@ export default async function handler(req, res) {
     const raw = String(data?.choices?.[0]?.message?.content || '').trim();
     return res.status(200).json(normalizeResult(extractJsonObject(raw)));
   } catch (error) {
-    // Fail-open: любая ошибка = «это не музыка», обычный чат продолжает работать.
+    // Fail-open: сбой не должен решать за пользователя. decided=false —
+    // клиент вернётся к локальным правилам, обычный чат работает как обычно.
     console.warn('[music-intent] error (fail-open):', compactErrorValue(error?.message));
-    return res.status(200).json(noMusic());
+    return res.status(200).json(noMusic(false));
   }
 }
