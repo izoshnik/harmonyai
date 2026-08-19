@@ -10,7 +10,9 @@
    Гейт по роли (isProRole из /api/chat) реализуем прямо здесь, чтобы не
    тащить чат-модуль. Free-роль → 403 сразу, без обращения к внешним API.
    ============================================================================ */
-a
+
+import { PRO_TEXT_MODEL, envModel } from '../lib/models.js';
+
 export const config = { maxDuration: 60 };
 
 // Лёгкая защита: разрешённые источники (Origin/Referer) + rate-limit по IP.
@@ -122,7 +124,7 @@ async function tryHeuristic({ mode, melodyDescription }) {
   const apiKey = readEnv('OPENAI_API_KEY');
   const baseUrl = (readEnv('OPENAI_BASE_URL') || 'https://api.codex-api.online/v1').replace(/\/+$/, '');
   if (!apiKey) return null;
-  const model = readEnv('RECOGNIZE_MODEL') || 'gpt-5.5';
+  const model = envModel('RECOGNIZE_MODEL', PRO_TEXT_MODEL);
 
   const system = [
     'Ты музыковед-эксперт, специализируешься на классической и академической музыке (Бах, Гайдн, Моцарт, Бетховен, романтики, XX век и т.д.), но знаешь и другие стили.',
@@ -178,7 +180,7 @@ async function enrichDescription(result) {
   const apiKey = readEnv('OPENAI_API_KEY');
   const baseUrl = (readEnv('OPENAI_BASE_URL') || 'https://api.codex-api.online/v1').replace(/\/+$/, '');
   if (!apiKey) return '';
-  const model = readEnv('RECOGNIZE_MODEL') || readEnv('DYNATOS_MODEL') || 'gpt-5.5';
+  const model = envModel(['RECOGNIZE_MODEL', 'DYNATOS_MODEL'], PRO_TEXT_MODEL);
   const title = String(result?.workGuess || '').trim();
   const artist = String(result?.composerGuess || '').trim();
   const year = String(result?.periodGuess || '').trim();
