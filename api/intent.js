@@ -2,6 +2,8 @@ export const config = {
   maxDuration: 30
 };
 
+import { UTILITY_MODEL, envModel } from '../lib/models.js';
+
 /* ============================================================================
    INTENT-КЛАССИФИКАТОР ДЛЯ ГЕНЕРАЦИИ ИЗОБРАЖЕНИЙ.
    Полностью изолирован от api/chat.js и api/generate-image.js — это отдельный
@@ -14,7 +16,7 @@ export const config = {
    Пайплайн:
      - Пред-фильтр по ключевым словам (дёшево, без вызова модели): если визуальных
        маркеров нет и режим не включён принудительно — сразу need_image=false.
-     - Иначе — один вызов mini-модели (gpt-5.4-mini) с JSON-системным промптом.
+     - Иначе — один вызов служебной модели (см. UTILITY_MODEL в lib/models.js) с JSON-системным промптом.
      - Жёсткий парсинг JSON (модель иногда оборачивает в ```json``` или добавляет текст).
      - Fail-open: при любой ошибке/недоступности — {need_image:false}, чтобы обычный
        текстовый ответ не ломался. Включённый режим (forceImage) при ошибке отдаёт
@@ -241,7 +243,7 @@ export default async function handler(req, res) {
 
     const turns = recentTextTurns(Array.isArray(history) ? history : []);
     const classifierMessages = buildClassifierMessages(userText, turns, Boolean(forceImage));
-    const classifierModel = readEnv('INTENT_MODEL') || 'gpt-5.4-mini';
+    const classifierModel = envModel('INTENT_MODEL', UTILITY_MODEL);
 
     try {
       const response = await withTimeout(
