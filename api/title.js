@@ -2,6 +2,8 @@ export const config = {
   maxDuration: 20
 };
 
+import { UTILITY_MODEL, envModel } from '../lib/models.js';
+
 /* ============================================================================
    ГЕНЕРАТОР НАЗВАНИЯ ЧАТА.
    Отдельный лёгкий путь: получает первое сообщение пользователя и первый ответ
@@ -160,7 +162,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ title: '' });
     }
 
-    const model = readEnv('TITLE_MODEL') || readEnv('INTENT_MODEL') || 'gpt-5.4-mini';
+    const model = envModel(['TITLE_MODEL', 'INTENT_MODEL'], UTILITY_MODEL);
     try {
       const response = await withTimeout(
         fetch(`${baseUrl}/chat/completions`, {
