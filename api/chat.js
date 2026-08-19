@@ -2,7 +2,9 @@ export const config = {
   maxDuration: 300
 };
 
-// Adanatos (free) всегда отвечает на gpt-5.4, Dynatos (pro) — на gpt-5.5.
+import { FREE_TEXT_MODEL, PRO_TEXT_MODEL, envModel } from '../lib/models.js';
+
+// Adanatos (free) отвечает на claude-haiku-4-5, Dynatos (pro) — на gpt-5.5 (см. lib/models.js).
 // Режимы low/max НЕ меняют модель, они меняют только таймаут/глубину (см. selectRoute/handler).
 /* ===== REASONING EFFORT ====================================================
    Единый внутренний параметр: low | medium | high | ultra.
@@ -41,14 +43,16 @@ function isUnsupportedReasoning(message) {
     || (low.includes('unknown') && low.includes('parameter'));
 }
 
+/* Обе цепочки идут через envModel(): даже если в переменных окружения осталось
+   старое значение (например gpt-5.4), оно будет отброшено, а не отправлено. */
 const MODEL_CHAINS = {
   adanatos: [
-    process.env.ADANATOS_MODEL || 'claude-haiku-4-5-20251001',
-    process.env.ADANATOS_FALLBACK || 'claude-haiku-4-5-20251001'
+    envModel('ADANATOS_MODEL', FREE_TEXT_MODEL),
+    envModel('ADANATOS_FALLBACK', FREE_TEXT_MODEL)
   ],
   dynatos: [
-    process.env.DYNATOS_MODEL || 'gpt-5.5',
-    process.env.DYNATOS_FALLBACK || 'gpt-5.4'
+    envModel('DYNATOS_MODEL', PRO_TEXT_MODEL),
+    envModel('DYNATOS_FALLBACK', PRO_TEXT_MODEL)
   ]
 };
 
@@ -593,6 +597,10 @@ function buildThinkInstruction() {
   return [
     '',
     'РЕЖИМ ДУМАТЬ ВКЛЮЧЁН.',
+    /* Язык рассуждений задаём явно: без этого требования модель почти всегда
+       думает по-английски, и пользователь видел англоязычный блок
+       «Размышление» над русским ответом. */
+    'ЯЗЫК: и рассуждения, и финальный ответ пиши на языке последнего сообщения пользователя. Если пользователь пишет по-русски — рассуждения тоже полностью по-русски, без английских слов и фраз. Никогда не переходи на английский по своей инициативе.',
     'Сначала напиши ход рассуждений простым, связным и читаемым текстом: обычные полные предложения, без markdown-разметки, без обрывков слов и без служебных токенов.',
     'В рассуждениях НЕ используй звёздочки (**), подчёркивания (__), решётки (#), списки и заголовки — только обычная проза. Каждое слово отделяй пробелом, не склеивай их.',
     'Рассуждения держи компактными (примерно 100-200 слов) — скорость ответа важнее длинных размышлений.',
@@ -1606,9 +1614,17 @@ export default async function handler(req, res) {
 
     if (route.provider === 'openai') {
       const openAiMessages = mapMessagesForOpenAI(messages, mergedSystem);
+      /* Когда включён режим «Думать», reasoning_effort НЕ отправляем.
+         Иначе провайдер стримит собственные рассуждения в delta.reasoning_content
+         (см. streamOpenAIToClientInner), а они не подчиняются системному промпту
+         и приходят по-английски — именно это и видел пользователь в блоке
+         «Размышление». Без параметра модель пишет рассуждения обычным текстом до
+         маркера, и язык задаёт buildThinkInstruction(). Уровень effort при этом
+         продолжает влиять на лимит токенов и таймауты. */
+      const reasoningParam = think ? '' : reasoningParamFor(effort);
       for (const modelName of route.models) {
         if (stream) {
-          const streamResult = await streamOpenAIToClient(res, route.apiKey, modelName, openAiMessages, modelTimeoutMs, query, isLargeContext, Boolean(think), maxTokens, webHeadersSent, reasoningParamFor(effort));
+          const streamResult = await streamOpenAIToClient(res, route.apiKey, modelName, openAiMessages, modelTimeoutMs, query, isLargeContext, Boolean(think), maxTokens, webHeadersSent, reasoningParam);
           if (streamResult.ok) {
             const replyTokens = Math.max(1, Math.ceil(String(streamResult.text || '').length / 4));
             await insertUsageEvent(userId, model, promptTokens + replyTokens, 1);
@@ -1643,7 +1659,7 @@ export default async function handler(req, res) {
           }
           continue;
         }
-        const { response, data } = await callOpenAI(route.apiKey, modelName, openAiMessages, modelTimeoutMs, maxTokens, reasoningParamFor(effort));
+        const { response, data } = await callOpenAI(route.apiKey, modelName, openAiMessages, modelTimeoutMs, maxTokens, reasoningParam);
         const errorMessage = data?.error?.message || '';
         if (!response.ok || data.error) {
           lastError = { status: response.status || 500, message: errorMessage || `Ошибка модели ${modelName}`, model: modelName };
