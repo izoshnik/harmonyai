@@ -7,7 +7,7 @@
      GET  /v1/models                 — список доступных моделей
 
    Формат — Anthropic Messages API: именно его ждут Claude Code, Cline,
-   Roo Code, OpenCode и другие клиенты. Перевод в формат апстрима делает
+   Roo Code, OpenCode и другие клиенты. Перод в формат апстрима делает
    lib/anthropic-bridge.js.
 
    ЧТО ГАРАНТИРУЕТ ЭТОТ ФАЙЛ.
