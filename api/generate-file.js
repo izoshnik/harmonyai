@@ -11,20 +11,13 @@
    (STORED-ZIP для .docx, самодельный PDF с base-14 Helvetica).
    ============================================================================ */
 
+import { originAllowed } from '../lib/origin.js';
+
 export const config = { maxDuration: 30 };
 
-/* -------- Лёгкая защита: разрешённые источники (как в recognize.js/title.js) -------- */
-const ALLOWED_HOSTS = ['harmonyai-zeta.vercel.app', 'localhost', '127.0.0.1'];
-function originAllowed(req) {
-  const origin = String(req.headers.origin || req.headers.referer || '').trim();
-  if (!origin) return true; // некоторые webview не шлют заголовок — не блокируем жёстко
-  try {
-    const host = new URL(origin).hostname;
-    const selfHost = String(req.headers.host || '').split(':')[0];
-    if (selfHost && host === selfHost) return true; // same-origin всегда разрешён
-    return ALLOWED_HOSTS.some(h => host === h || host.endsWith('.' + h));
-  } catch (e) { return false; }
-}
+/* Список разрешённых источников общий для всех эндпоинтов — lib/origin.js.
+   Раньше каждый файл держал свою копию с захардкоженным адресом деплоя,
+   и при переезде на harmonyai.ru их пришлось бы править по одному. */
 
 /* -------- Лёгкий in-memory rate-limit по IP (~20/мин) -------- */
 const RL_WINDOW_MS = 60 * 1000, RL_MAX = 20;

@@ -12,21 +12,12 @@
    ============================================================================ */
 
 import { PRO_TEXT_MODEL, envModel } from '../lib/models.js';
+import { originAllowed } from '../lib/origin.js';
 
 export const config = { maxDuration: 60 };
 
-// Лёгкая защита: разрешённые источники (Origin/Referer) + rate-limit по IP.
-const ALLOWED_HOSTS = ['harmonyai-zeta.vercel.app', 'localhost', '127.0.0.1'];
-function originAllowed(req) {
-  const origin = String(req.headers.origin || req.headers.referer || '').trim();
-  if (!origin) return true; // некоторые webview не шлют заголовок — не блокируем жёстко
-  try {
-    const host = new URL(origin).hostname;
-    const selfHost = String(req.headers.host || '').split(':')[0];
-    if (selfHost && host === selfHost) return true; // same-origin всегда разрешён
-    return ALLOWED_HOSTS.some(h => host === h || host.endsWith('.' + h));
-  } catch (e) { return false; }
-}
+// Список разрешённых источников — общий, из lib/origin.js (см. generate-file.js).
+
 const RL_WINDOW_MS = 60 * 1000, RL_MAX = 12; // распознавание тяжелее — не более 12/мин с IP
 const _rlStore = new Map();
 function rateLimited(req) {

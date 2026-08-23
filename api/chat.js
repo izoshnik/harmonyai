@@ -3,26 +3,46 @@ export const config = {
 };
 
 import { FREE_TEXT_MODEL, PRO_TEXT_MODEL, envModel } from '../lib/models.js';
+import { authenticateRequest } from '../lib/auth.js';
 
 // Adanatos (free) отвечает на claude-haiku-4-5, Dynatos (pro) — на gpt-5.5 (см. lib/models.js).
 // Режимы low/max НЕ меняют модель, они меняют только таймаут/глубину (см. selectRoute/handler).
 /* ===== REASONING EFFORT ====================================================
-   Единый внутренний параметр: low | medium | high | ultra.
-   'max' — старое значение фронта, приводится к 'high' (обратная совместимость
-   со старыми вкладками, которые ещё шлют effort:'max'). */
-const EFFORT_ORDER = ['low', 'medium', 'high', 'ultra'];
+   Четыре уровня, единые с интерфейсом: low | medium | max | extra.
+
+   Уровень — это РЕАЛЬНОЕ изменение усилия модели, а не оформление:
+     low    reasoning_effort не отправляется вообще — самый быстрый путь
+     medium reasoning_effort = 'medium', умеренный лимит токенов
+     max    reasoning_effort = 'high',   лимит токенов снят
+     extra  reasoning_effort = 'high',   лимит снят + максимальные таймаут
+            и контекстный бюджет (апстрим не различает уровни выше 'high',
+            поэтому дальше растёт то, что мы контролируем сами)
+
+   Старые значения 'high' и 'ultra' продолжают приниматься: их присылают
+   вкладки, открытые до обновления, и они лежат в localStorage у части
+   пользователей. 'high' → 'max', 'ultra' → 'extra'.
+   ========================================================================== */
+const EFFORT_ORDER = ['low', 'medium', 'max', 'extra'];
+const LEGACY_EFFORT = { high: 'max', ultra: 'extra' };
 function normalizeEffort(value) {
   if (typeof value !== 'string') return 'low'; // любой нестроковый ввод — безопасный уровень
   const raw = value.toLowerCase().trim();
-  if (raw === 'max') return 'high';
+  if (LEGACY_EFFORT[raw]) return LEGACY_EFFORT[raw];
   return EFFORT_ORDER.includes(raw) ? raw : 'low';
 }
 function isDeepEffort(effort) {
-  return effort === 'high' || effort === 'ultra';
+  return effort === 'max' || effort === 'extra';
 }
-/* Провайдеры поддерживают разные уровни: OpenAI-совместимый reasoning_effort
-   принимает low|medium|high. Для ultra берём ближайший доступный ('high')
-   и дополнительно снимаем лимиты токенов/времени ниже по коду.
+/* Не ниже указанного уровня. Нужно для режима «Думать»: блок размышлений без
+   роста усилия модели — оформление, а не работа. */
+function floorEffort(effort, minimum) {
+  const a = EFFORT_ORDER.indexOf(normalizeEffort(effort));
+  const b = EFFORT_ORDER.indexOf(normalizeEffort(minimum));
+  return EFFORT_ORDER[Math.max(a, b)] || 'low';
+}
+/* OpenAI-совместимый reasoning_effort принимает low|medium|high.
+   Для extra берём максимальный доступный ('high'), а разницу с max отыгрываем
+   лимитами токенов и времени ниже по коду.
    Для low параметр не отправляется вообще — это самый быстрый путь. */
 function reasoningParamFor(effort) {
   const e = normalizeEffort(effort);
@@ -601,10 +621,13 @@ function buildThinkInstruction() {
        думает по-английски, и пользователь видел англоязычный блок
        «Размышление» над русским ответом. */
     'ЯЗЫК: и рассуждения, и финальный ответ пиши на языке последнего сообщения пользователя. Если пользователь пишет по-русски — рассуждения тоже полностью по-русски, без английских слов и фраз. Никогда не переходи на английский по своей инициативе.',
-    'Сначала напиши ход рассуждений простым, связным и читаемым текстом: обычные полные предложения, без markdown-разметки, без обрывков слов и без служебных токенов.',
+    /* Формулировка «сводка для пользователя», а не «весь ход мыслей»: этот текст
+       показывается в интерфейсе, поэтому он должен быть написан ДЛЯ читателя.
+       Свою внутреннюю черновую цепочку рассуждений сюда выкладывать не нужно. */
+    'Сначала напиши краткую сводку своих рассуждений — как ты разбираешь задачу и почему выбираешь такой путь. Это текст ДЛЯ пользователя: простые полные предложения, связно и читаемо, без markdown-разметки, без обрывков слов и без служебных токенов.',
     'В рассуждениях НЕ используй звёздочки (**), подчёркивания (__), решётки (#), списки и заголовки — только обычная проза. Каждое слово отделяй пробелом, не склеивай их.',
-    'Рассуждения держи компактными (примерно 100-200 слов) — скорость ответа важнее длинных размышлений.',
-    `Когда рассуждения закончены, выведи на отдельной строке ровно маркер ${REASONING_DELIMITER}`,
+    'Сводку держи компактной (примерно 100-200 слов) — скорость ответа важнее длинных размышлений. Глубоко разбирайся в задаче, но в сводку выноси только выводы и ключевые шаги.',
+    `Когда сводка закончена, выведи на отдельной строке ровно маркер ${REASONING_DELIMITER}`,
     'Сразу после маркера дай финальный, чистый ответ для пользователя.',
     'Ответ после маркера должен быть самодостаточным: НЕ пересказывай в нём свои рассуждения и не ссылайся на них — пользователь видит их отдельно.',
     'ОБЯЗАТЕЛЬНО: маркер и финальный ответ должны быть всегда. Даже если ты не уверен, как ответить лучше всего, — всё равно выведи маркер и дай лучший возможный ответ. Пустой ответ недопустим.',
@@ -1017,12 +1040,57 @@ async function streamOpenAIToClientInner(res, apiKey, modelName, messages, timeo
   // всего текста). После отправки куска в буфере остаётся хвост, отрезанный посреди строки, —
   // там «^» подложный, и без этого флага обычное «Ответ:» в середине фразы сошло бы за маркер.
   let rawAtLineStart = true;
-  // Провайдер отдал рассуждения отдельным полем (reasoning_content) — значит маркер в тексте
-  // ему не нужен: всё, что придёт в content, и есть ответ.
+  // Провайдер отдал скрытый поток рассуждений (reasoning_content). Его ТЕКСТ клиенту не уходит
+  // (см. ниже), но сам факт — надёжный признак, что модель действительно думает.
   let sawNativeReasoning = false;
   // Отправляли ли клиенту хоть одно событие `reasoning` — нужно, чтобы понять, есть ли что
   // убирать, если модель так и не выделила ответ маркером.
   let sentReasoningToClient = false;
+
+  /* ===== ЖИЗНЕННЫЙ ЦИКЛ БЛОКА РАЗМЫШЛЕНИЙ ==================================
+     Порядок событий гарантируется здесь, а не догадками на клиенте:
+       reasoning_start → reasoning* / reasoning_progress → reasoning_end → delta*
+     reasoning_end отправляется РОВНО ОДИН РАЗ и всегда до первого delta в режиме
+     размышлений — поэтому текст ответа не может попасть в серый блок, а
+     рассуждения не могут попасть в ответ.
+
+     Время «Думал N» считает сервер: клиентский отсчёт начинался по первому
+     чанку и всегда давал «Думал 1 секунду». Здесь durationMs — фактическая
+     длительность работы модели над рассуждениями.
+     ========================================================================= */
+  let reasoningStartedAt = 0;
+  let reasoningEndSent = false;
+  let lastProgressAt = 0;
+
+  function beginReasoning() {
+    if (!captureReasoning || reasoningStartedAt) return;
+    reasoningStartedAt = Date.now();
+    writeSseEvent(res, { type: 'reasoning_start', at: reasoningStartedAt });
+  }
+
+  function endReasoning() {
+    if (!captureReasoning || reasoningEndSent) return;
+    reasoningEndSent = true;
+    const now = Date.now();
+    const startedAt = reasoningStartedAt || now;
+    writeSseEvent(res, {
+      type: 'reasoning_end',
+      at: now,
+      durationMs: Math.max(0, now - startedAt),
+      // Модель думала в скрытом канале, но сводку для пользователя не написала.
+      // Клиенту это нужно, чтобы показать честное «Думал N» с пустым содержимым,
+      // а не решить, что рассуждений не было вовсе.
+      hidden: Boolean(sawNativeReasoning && !sentReasoningToClient)
+    });
+  }
+
+  /* Модель проигнорировала формат: пишет ответ, а маркера ===ОТВЕТ=== нет и нет.
+     Раньше это выяснялось только в самом конце — пользователь видел растущий
+     серый блок и «ответ так и не пришёл». Теперь ловим по объёму: инструкция
+     просит сводку на 100-200 слов (≈700-1400 знаков), поэтому текст сверх
+     бюджета без маркера — это уже сам ответ. Переключаемся, отдав клиенту всё
+     накопленное. */
+  const SUMMARY_BUDGET_CHARS = 1800;
 
   // Сколько молчит апстрим между токенами, прежде чем мы считаем это обрывом.
   // Большие документы и режим "Думать" — модель может надолго замолчать во время
@@ -1125,13 +1193,28 @@ async function streamOpenAIToClientInner(res, apiKey, modelName, messages, timeo
             parsed = null;
           }
           if (!parsed) continue;
-          // Некоторые провайдеры стримят рассуждения отдельным полем — транслируем их клиенту,
-          // чтобы окно «Размышление модели» не оставалось пустым.
+          /* ===== СКРЫТЫЙ ПОТОК РАССУЖДЕНИЙ ПРОВАЙДЕРА ======================
+             Некоторые модели стримят внутреннюю цепочку рассуждений отдельным
+             полем delta.reasoning_content. Дословно пересылать её клиенту НЕЛЬЗЯ:
+             это приватная внутренняя цепочка модели, а не текст, написанный для
+             пользователя. Раньше она уходила в серый блок как есть — отсюда и
+             англоязычные обрывки в «Размышлении».
+
+             Используем её только как безопасный сигнал прогресса: она означает
+             «модель сейчас думает» и задаёт точку старта отсчёта времени.
+             Текста в reasoning_progress нет вообще — придумывать fake
+             chain-of-thought взамен мы тоже не будем.
+             ================================================================= */
           const reasoningDelta = parsed?.choices?.[0]?.delta?.reasoning_content || parsed?.choices?.[0]?.delta?.reasoning || '';
           if (captureReasoning && !switchedToAnswer && typeof reasoningDelta === 'string' && reasoningDelta) {
-            writeSseEvent(res, { type: 'reasoning', text: reasoningDelta });
-            sentReasoningToClient = true;
+            beginReasoning();
             sawNativeReasoning = true;
+            // Пинг прогресса — не чаще раза в 700 мс, чтобы не засорять поток.
+            const nowTick = Date.now();
+            if (nowTick - lastProgressAt > 700) {
+              lastProgressAt = nowTick;
+              writeSseEvent(res, { type: 'reasoning_progress', at: nowTick });
+            }
           }
           let delta = parsed?.choices?.[0]?.delta?.content || '';
           if (Array.isArray(delta)) {
@@ -1141,24 +1224,45 @@ async function streamOpenAIToClientInner(res, apiKey, modelName, messages, timeo
             gotAnyDelta = true;
             fullText += delta;
 
-            // Провайдер уже прислал рассуждения отдельным каналом — content целиком ответ,
-            // маркер искать не нужно. Без этого текст ответа уходил бы и в серый блок,
-            // и в сам ответ, то есть ровно тем задвоением, на которое жаловался пользователь.
-            if (captureReasoning && !switchedToAnswer && sawNativeReasoning) {
-              switchedToAnswer = true;
-            }
-
             if (!captureReasoning || switchedToAnswer) {
               writeSseEvent(res, { type: 'delta', text: delta });
               continue;
             }
+
+            // Первый видимый символ в режиме размышлений — тоже начало размышлений
+            // (провайдер мог не присылать скрытый поток вообще).
+            beginReasoning();
 
             // Накопили текст с потенциальным маркером — ищем его, придерживая хвост.
             // ВАЖНО: хвост живёт ТОЛЬКО в rawAll. Раньше он дублировался через pendingHold,
             // из-за чего в окно размышлений попадали задвоенные обрывки слов и «странный текст».
             rawAll += delta;
             const marker = findAnswerMarker(rawAll, { atLineStart: rawAtLineStart, streaming: true });
-            if (!marker) {
+            if (marker) {
+              const reasoningPart = rawAll.slice(0, marker.index);
+              if (reasoningPart) {
+                writeSseEvent(res, { type: 'reasoning', text: reasoningPart });
+                sentReasoningToClient = true;
+              }
+              const answerPart = rawAll.slice(marker.index + marker.length).replace(/^\s+/, '');
+              switchedToAnswer = true;
+              rawAll = '';
+              rawAtLineStart = true;
+              endReasoning();                       // строго до первого delta ответа
+              if (answerPart) writeSseEvent(res, { type: 'delta', text: answerPart });
+            } else if (fullText.length > SUMMARY_BUDGET_CHARS) {
+              /* Бюджет сводки исчерпан, маркера нет — модель формат не соблюдает
+                 и пишет обычный ответ. Убираем серый блок и отдаём накопленное как
+                 ответ: текст не теряется и не задваивается, а пользователь получает
+                 ответ сразу, а не после конца стрима. */
+              if (sentReasoningToClient) writeSseEvent(res, { type: 'reasoning_reset' });
+              sentReasoningToClient = false;
+              switchedToAnswer = true;
+              rawAll = '';
+              rawAtLineStart = true;
+              endReasoning();
+              writeSseEvent(res, { type: 'delta', text: fullText });
+            } else {
               // Держим в буфере хвост, который может оказаться началом маркера. Запас с лихвой
               // перекрывает самую длинную форму («**====ОТВЕТ====**»); задержка показа
               // рассуждений на несколько десятков символов на глаз не заметна.
@@ -1172,17 +1276,6 @@ async function streamOpenAIToClientInner(res, apiKey, modelName, messages, timeo
                 rawAtLineStart = emitted.slice(-1) === '\n';
                 rawAll = rawAll.slice(safeLen);
               }
-            } else {
-              const reasoningPart = rawAll.slice(0, marker.index);
-              if (reasoningPart) {
-                writeSseEvent(res, { type: 'reasoning', text: reasoningPart });
-                sentReasoningToClient = true;
-              }
-              const answerPart = rawAll.slice(marker.index + marker.length).replace(/^\s+/, '');
-              switchedToAnswer = true;
-              rawAll = '';
-              rawAtLineStart = true;
-              if (answerPart) writeSseEvent(res, { type: 'delta', text: answerPart });
             }
           }
         }
@@ -1220,6 +1313,7 @@ async function streamOpenAIToClientInner(res, apiKey, modelName, messages, timeo
           if (typeof res.flushHeaders === 'function') res.flushHeaders();
           headersSent = true;
         }
+        endReasoning();   // блок размышлений закрыт строго до ответа
         writeSseEvent(res, { type: 'delta', text: finalText });
         writeSseEvent(res, { type: 'done', text: finalText, truncated: false });
         res.end();
@@ -1229,6 +1323,7 @@ async function streamOpenAIToClientInner(res, apiKey, modelName, messages, timeo
       // игнорируем — ниже вернём стандартную ошибку, дадим шанс следующей модели в цепочке
     }
     if (headersSent) {
+      endReasoning();
       writeSseEvent(res, { type: 'error', message: 'Потоковый ответ прервался слишком рано. Попробуйте ещё раз.' });
       res.end();
     }
@@ -1284,14 +1379,21 @@ async function streamOpenAIToClientInner(res, apiKey, modelName, messages, timeo
   // в неожиданной форме или повторила ниже по тексту) — в видимый ответ он не попадёт.
   finalText = stripAllAnswerMarkers(finalText);
 
-  // Модель проигнорировала формат: маркера не было вообще, и всё, что мы отправили как
-  // «рассуждения», оказалось её обычным ответом. Показать этот текст и в сером блоке, и в
-  // ответе — то самое задвоение мыслей. Просим клиента убрать серый блок: текст не теряется,
-  // он остаётся ответом. Если рассуждения пришли отдельным каналом (sawNativeReasoning),
-  // блок настоящий — его не трогаем.
-  if (captureReasoning && !switchedToAnswer && sentReasoningToClient && !sawNativeReasoning) {
+  /* Модель проигнорировала формат — маркера не было вообще. Убираем серый блок:
+       • sentReasoningToClient — всё, что мы отправили как «рассуждения», на самом
+         деле её обычный ответ. Оставить его и в блоке, и в ответе = то самое
+         задвоение мыслей. Текст не теряется: он остаётся ответом.
+       • иначе (ничего не отправили) блок просто пустой и бессмысленный.
+     Исключение — скрытый поток рассуждений провайдера при пустой сводке: модель
+     действительно думала, поэтому честное «Думал N» без текста оставляем,
+     reasoning_end помечает это флагом hidden. */
+  if (captureReasoning && !switchedToAnswer && (sentReasoningToClient || !sawNativeReasoning)) {
     writeSseEvent(res, { type: 'reasoning_reset' });
   }
+  // Блок размышлений закрываем всегда: и когда он остался пустым (модель думала в скрытом
+  // канале и сразу дала ответ), и когда его только что убрали. Иначе на клиенте навсегда
+  // остаётся крутящийся индикатор «Думаю».
+  endReasoning();
 
   writeSseEvent(res, { type: 'done', text: finalText, truncated: stalled });
   res.end();
@@ -1431,7 +1533,7 @@ async function checkUsageAllowance(userId, profile, requestedModel) {
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-supabase-authorization');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -1458,11 +1560,20 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: { message: 'Пустой запрос к модели' } });
     }
 
+    /* Личность пользователя берём из подписанного токена Supabase, если клиент его
+       прислал. userId из тела запроса — совместимость со вкладками, открытыми до
+       обновления: они отправляют только тело, и ломать им чат нельзя. Токен
+       всегда важнее тела, поэтому подменить чужой id, прислав его в JSON, нельзя.
+       Денежные операции и API-ключи (api/account.js, api/v1.js, payment/*) токен
+       требуют безусловно — там подстановки id из тела нет вообще. */
+    const authedUser = await authenticateRequest(req);
+    if (authedUser?.id) userId = authedUser.id;
+
     const profile = await fetchProfile(userId);
     // Max и «Думать» разрешены всем. Только Dynatos остаётся серверно защищённым.
     // Прямой запрос model:'pro' от FREE не получает платную модель.
     if (!isProRole(profile) && model === 'pro') model = 'lite';
-    // Единый параметр: low | medium | high | ultra ('max' → 'high').
+    // Единый параметр: low | medium | max | extra (старые high/ultra отображаются на max/extra).
     effort = normalizeEffort(effort);
     think = Boolean(think);
     const query = lastUserText(messages);
@@ -1524,13 +1635,13 @@ export default async function handler(req, res) {
     // Цель: простые/обычные запросы (думать выкл, эффорт low) должны укладываться в 5-10 сек
     // ощущаемого времени ответа — таймаут здесь это потолок ожидания, а не искусственная задержка,
     // но более низкий потолок заставляет быстрее фейлиться на зависшем запросе и не "висеть" зря.
-    // Режим "Думать" и effort=max сознательно получают намного больше времени, т.к. там нужна
+    // Режим "Думать" и уровни max/extra сознательно получают намного больше времени, т.к. там нужна
     // реальная глубина рассуждений, а не скорость.
     let modelTimeoutMs;
-    if (effort === 'ultra') {
-      // Ultra — самый медленный и ресурсоёмкий уровень: даём максимум времени.
+    if (effort === 'extra') {
+      // Extra — самый медленный и ресурсоёмкий уровень: даём максимум времени.
       modelTimeoutMs = wantsStaff ? 80000 : 110000;
-    } else if (think || effort === 'high') {
+    } else if (think || effort === 'max') {
       modelTimeoutMs = wantsStaff ? 60000 : 75000;
     } else if (effort === 'medium') {
       modelTimeoutMs = wantsStaff ? 50000 : 58000;
@@ -1551,7 +1662,7 @@ export default async function handler(req, res) {
     // Для большого контекста (документ 300к+ символов) модели нужно больше времени
     if (isLargeContext) modelTimeoutMs = Math.max(modelTimeoutMs, 90000);
     // Ограничиваем длину ответа, чтобы простые вопросы отвечались быстро и не «висели».
-    // Сложные режимы (думать/max/нотация/большой контекст) получают большой потолок.
+    // Сложные режимы (думать/max/extra/нотация/большой контекст) получают большой потолок.
     let maxTokens;
     if (think || isDeepEffort(effort) || isLargeContext || wantsStaff || isNotationHeavy) {
       maxTokens = 0; // без ограничения — нужна полная глубина
@@ -1614,14 +1725,23 @@ export default async function handler(req, res) {
 
     if (route.provider === 'openai') {
       const openAiMessages = mapMessagesForOpenAI(messages, mergedSystem);
-      /* Когда включён режим «Думать», reasoning_effort НЕ отправляем.
-         Иначе провайдер стримит собственные рассуждения в delta.reasoning_content
-         (см. streamOpenAIToClientInner), а они не подчиняются системному промпту
-         и приходят по-английски — именно это и видел пользователь в блоке
-         «Размышление». Без параметра модель пишет рассуждения обычным текстом до
-         маркера, и язык задаёт buildThinkInstruction(). Уровень effort при этом
-         продолжает влиять на лимит токенов и таймауты. */
-      const reasoningParam = think ? '' : reasoningParamFor(effort);
+      /* reasoning_effort отправляем ВСЕГДА, когда уровень его подразумевает —
+         в том числе в режиме «Думать». Раньше в этом режиме параметр гасился,
+         и «Размышление» было чистым оформлением: модель работала ровно с тем же
+         усилием, что и без него. Уровень обязан менять реальную работу модели.
+
+         Прежняя причина отключения (провайдер стримил свои рассуждения в
+         delta.reasoning_content по-английски, и они попадали в серый блок)
+         устранена в streamOpenAIToClientInner: скрытый поток рассуждений больше
+         НЕ пересылается клиенту дословно, он используется только как сигнал
+         «модель думает» и как отсчёт времени. В сером блоке видно то, что модель
+         сама написала для пользователя до маркера ===ОТВЕТ=== — на языке,
+         который задаёт buildThinkInstruction().
+
+         Включённое «Думать» поднимает уровень минимум до medium: показывать блок
+         размышлений, не увеличив при этом усилие модели, — это и есть тот самый
+         визуальный эффект без содержания. */
+      const reasoningParam = reasoningParamFor(think ? floorEffort(effort, 'medium') : effort);
       for (const modelName of route.models) {
         if (stream) {
           const streamResult = await streamOpenAIToClient(res, route.apiKey, modelName, openAiMessages, modelTimeoutMs, query, isLargeContext, Boolean(think), maxTokens, webHeadersSent, reasoningParam);
