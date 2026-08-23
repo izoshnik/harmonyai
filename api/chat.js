@@ -6,7 +6,7 @@ import { FREE_TEXT_MODEL, PRO_TEXT_MODEL, envModel } from '../lib/models.js';
 import { authenticateRequest } from '../lib/auth.js';
 
 // Adanatos (free) отвечает на claude-haiku-4-5, Dynatos (pro) — на gpt-5.5 (см. lib/models.js).
-// Режимы low/max НЕ меняют модель, они меняют только таймаут/глубину (см. selectRoute/handler).
+// Режим low/max НЕ меняют модель, они меняют только таймаут/глубину (см. selectRoute/handler).
 /* ===== REASONING EFFORT ====================================================
    Четыре уровня, единые с интерфейсом: low | medium | max | extra.
 
