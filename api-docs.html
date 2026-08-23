@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>API — Harmony AI</title>
+<meta name="description" content="Документация Harmony AI API: адрес https://api.harmonyai.ru, модели dynatos и adanatos, совместимость с Anthropic Messages API, подключение Claude Code, Cline, Roo Code и других клиентов.">
+<link rel="canonical" href="https://harmonyai.ru/api">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Harmony AI API">
+<meta property="og:description" content="Совместимый с Anthropic Messages API шлюз: потоковые ответы, оплата по токенам, ключи sk-h-.">
+<meta property="og:url" content="https://harmonyai.ru/api">
+<meta name="theme-color" content="#ffffff">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230d0f14'/%3E%3Cpath d='M18 14h8v18h12V14h8v36h-8V39H26v11h-8z' fill='%23ffffff'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/css/site.css">
+</head>
+<body>
+
+<a class="skip-link" href="#main">Перейти к содержимому</a>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a class="brand" href="/">
+      <span class="brand-mark" aria-hidden="true">H</span>
+      Harmony AI
+    </a>
+
+    <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+      <a href="/api">API</a>
+      <a href="/api#reference">Документация</a>
+      <a href="/#pricing">Цены</a>
+      <a href="/#faq">FAQ</a>
+    </nav>
+
+    <div class="header-actions">
+      <a class="btn btn-ghost btn-sm btn-hide-sm" href="/api/dashboard">Кабинет</a>
+      <a class="btn btn-primary btn-sm" href="/login">Попробуйте&nbsp;↗</a>
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="siteNav" aria-label="Меню">
+        <span></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- ===== ГЕРОЙ ===== -->
+  <section class="hero">
+    <div class="wrap">
+      <div class="hero-inner">
+        <p class="eyebrow" style="margin-bottom:16px;">API</p>
+        <h1>Harmony AI API</h1>
+        <p class="lead">
+          Шлюз совместим с форматом Anthropic Messages API, поэтому Claude Code, Cline, Roo Code
+          и любой клиент, умеющий менять адрес сервера, подключаются без переделок.
+          Оплата — по фактическому числу токенов с баланса API.
+        </p>
+
+        <div class="code-block" style="max-width:520px;margin:0 auto 24px;text-align:left;">
+          <pre>https://api.harmonyai.ru</pre>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary btn-lg" type="button" id="createKeyBtn">Создать API-ключ</button>
+          <a class="btn btn-outline btn-lg" href="/api/dashboard">Личный кабинет&nbsp;→</a>
+        </div>
+        <p class="hero-note" id="keyHint">Ключ показывается один раз — сразу после создания.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== БЫСТРЫЙ СТАРТ ===== -->
+  <section class="section section-soft" id="start">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Быстрый старт</p>
+        <h2>Три шага до первого ответа</h2>
+      </div>
+
+      <div class="steps" style="margin-bottom:32px;">
+        <div class="step">
+          <h3>Создайте ключ</h3>
+          <p>Кнопка выше или <a href="/api/dashboard" style="color:var(--link);">кабинет</a>. Формат — <code>sk-h-…</code>.</p>
+        </div>
+        <div class="step">
+          <h3>Пополните баланс</h3>
+          <p>Баланс API отдельный от подписки Pro. Пополнение — в кабинете, от 100 ₽.</p>
+        </div>
+        <div class="step">
+          <h3>Укажите адрес</h3>
+          <p>Замените базовый URL клиента на <code>https://api.harmonyai.ru</code> и выберите модель.</p>
+        </div>
+      </div>
+
+      <div class="code-block">
+        <pre>curl https://api.harmonyai.ru/v1/messages \
+  -H "Authorization: Bearer $HARMONY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -H "anthropic-version: 2023-06-01" \
+  -d '{
+    "model": "adanatos",
+    "max_tokens": 1024,
+    "messages": [
+      { "role": "user", "content": "Привет! Объясни в двух предложениях, что такое SSE." }
+    ]
+  }'</pre>
+      </div>
+      <p style="font-size:14px;color:var(--text-3);margin-top:12px;">
+        Ключ вместо <code>$HARMONY_API_KEY</code> подставлять в командную строку не стоит: он
+        останется в истории оболочки. Держите его в переменной окружения или в файле настроек клиента.
+      </p>
+    </div>
+  </section>
+
+  <!-- ===== ПОДКЛЮЧЕНИЕ ===== -->
+  <section class="section" id="connect">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Подключение</p>
+        <h2>Готовые инструкции для клиентов</h2>
+        <p class="lead">
+          Везде принцип один: адрес сервера — <code>https://api.harmonyai.ru</code>,
+          ключ — <code>sk-h-…</code>, модель — <code>dynatos</code> или <code>adanatos</code>.
+        </p>
+      </div>
+
+      <!-- Claude Code -->
+      <div class="disc">
+        <button class="disc-head" type="button">
+          Claude Code (CLI)
+          <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="disc-body"><div class="disc-inner">
+          <p style="margin-bottom:14px;">macOS и Linux — в текущей сессии терминала:</p>
+          <div class="code-block">
+            <pre>export ANTHROPIC_BASE_URL="https://api.harmonyai.ru"
+export ANTHROPIC_AUTH_TOKEN="sk-h-ваш-ключ"
+export ANTHROPIC_MODEL="dynatos"
+export ANTHROPIC_DEFAULT_HAIKU_MODEL="adanatos"
+
+claude</pre>
+          </div>
+
+          <p style="margin:18px 0 14px;">Windows, PowerShell:</p>
+          <div class="code-block">
+            <pre>$env:ANTHROPIC_BASE_URL="https://api.harmonyai.ru"
+$env:ANTHROPIC_AUTH_TOKEN="sk-h-ваш-ключ"
+$env:ANTHROPIC_MODEL="dynatos"
+$env:ANTHROPIC_DEFAULT_HAIKU_MODEL="adanatos"
+
+claude</pre>
+          </div>
+
+          <div class="notice" style="margin-top:18px;">
+            Используйте именно <code>ANTHROPIC_AUTH_TOKEN</code>: его значение уходит в заголовок
+            <code>Authorization</code> с приставкой <code>Bearer</code> — как и ждёт шлюз.
+            Переменная <code>ANTHROPIC_API_KEY</code> отправляется в заголовке <code>X-Api-Key</code>;
+            он тоже принимается, но для ключей <code>sk-h-…</code> первый вариант привычнее.
+            <br><br>
+            <code>ANTHROPIC_DEFAULT_HAIKU_MODEL</code> нужен потому, что Claude Code выполняет часть
+            служебных задач «дешёвой» моделью. Без этой переменной он попросит модель, которой у нас нет,
+            и получит ошибку 404. По той же причине можно задать
+            <code>ANTHROPIC_DEFAULT_SONNET_MODEL</code> и <code>ANTHROPIC_DEFAULT_OPUS_MODEL</code>.
+          </div>
+        </div></div>
+      </div>
+
+      <!-- Claude Code: файл настроек -->
+      <div class="disc">
+        <button class="disc-head" type="button">
+          Claude Code — постоянные настройки в файле
+          <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="disc-body"><div class="disc-inner">
+          <p style="margin-bottom:14px;">
+            Чтобы не задавать переменные каждый раз, добавьте блок <code>env</code>
+            в <code>~/.claude/settings.json</code>:
+          </p>
+          <div class="code-block">
+            <pre>{
+  "env": {
+    "ANTHROPIC_BASE_URL": "https://api.harmonyai.ru",
+    "ANTHROPIC_AUTH_TOKEN": "sk-h-ваш-ключ",
+    "ANTHROPIC_MODEL": "dynatos",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "adanatos",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "dynatos",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "dynatos"
+  }
+}</pre>
+          </div>
+          <p style="font-size:14px;color:var(--text-3);margin-top:12px;">
+            Если одна и та же переменная задана и в оболочке, и в файле настроек, побеждает файл.
+            Переключить модель на ходу можно флагом <code>--model</code> или командой <code>/model</code>.
+          </p>
+        </div></div>
+      </div>
+
+      <!-- Cline -->
+      <div class="disc">
+        <button class="disc-head" type="button">
+          Cline (расширение VS Code)
+          <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="disc-body"><div class="disc-inner">
+          <ol style="display:grid;gap:10px;padding-left:20px;">
+            <li>Откройте настройки Cline (значок шестерёнки на панели расширения).</li>
+            <li><strong>API Provider</strong> → <code>Anthropic</code>.</li>
+            <li><strong>API Key</strong> → ваш <code>sk-h-…</code>.</li>
+            <li>Включите <strong>Use custom base URL</strong> и впишите <code>https://api.harmonyai.ru</code>.</li>
+            <li>В списке моделей выберите или введите <code>dynatos</code> либо <code>adanatos</code>.</li>
+          </ol>
+          <p style="font-size:14px;color:var(--text-3);margin-top:14px;">
+            Если поле модели предлагает только официальный список, введите идентификатор вручную —
+            шлюз принимает лишь <code>dynatos</code> и <code>adanatos</code>.
+          </p>
+        </div></div>
+      </div>
+
+      <!-- Roo Code -->
+      <div class="disc">
+        <button class="disc-head" type="button">
+          Roo Code (расширение VS Code)
+          <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="disc-body"><div class="disc-inner">
+          <ol style="display:grid;gap:10px;padding-left:20px;">
+            <li>Настройки Roo Code → раздел <strong>Providers</strong>.</li>
+            <li><strong>API Provider</strong> → <code>Anthropic</code>.</li>
+            <li><strong>API Key</strong> → ваш <code>sk-h-…</code>.</li>
+            <li>Отметьте <strong>Use custom base URL</strong> → <code>https://api.harmonyai.ru</code>.</li>
+            <li>Модель — <code>dynatos</code> для сложных задач, <code>adanatos</code> для быстрых.</li>
+          </ol>
+        </div></div>
+      </div>
+
+      <!-- Python SDK -->
+      <div class="disc">
+        <button class="disc-head" type="button">
+          Python — библиотека anthropic
+          <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="disc-body"><div class="disc-inner">
+          <div class="code-block">
+            <pre>from anthropic import Anthropic
+
+client = Anthropic(
+    base_url="https://api.harmonyai.ru",
+    api_key="sk-h-ваш-ключ",
+)
+
+with client.messages.stream(
+    model="dynatos",
+    max_tokens=2048,
+    messages=[{"role": "user", "content": "Разбери этот SQL-запрос"}],
+) as stream:
+    for text in stream.text_stream:
+        print(text, end="", flush=True)</pre>
+          </div>
+          <p style="font-size:14px;color:var(--text-3);margin-top:12px;">
+            Библиотека отправит ключ в заголовке <code>x-api-key</code> — шлюз принимает и его.
+          </p>
+        </div></div>
+      </div>
+
+      <!-- TypeScript SDK -->
+      <div class="disc">
+        <button class="disc-head" type="button">
+          TypeScript / JavaScript — @anthropic-ai/sdk
+          <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="disc-body"><div class="disc-inner">
+          <div class="code-block">
+            <pre>import Anthropic from '@anthropic-ai/sdk';
+
+const client = new Anthropic({
+  baseURL: 'https://api.harmonyai.ru',
+  apiKey: process.env.HARMONY_API_KEY,
+});
+
+const stream = await client.messages.stream({
+  model: 'adanatos',
+  max_tokens: 1024,
+  messages: [{ role: 'user', content: 'Напиши регулярку для e-mail' }],
+});
+
+for await (const event of stream) {
+  if (event.type === 'content_block_delta' &amp;&amp; event.delta.type === 'text_delta') {
+    process.stdout.write(event.delta.text);
+  }
+}</pre>
+          </div>
+        </div></div>
+      </div>
+
+      <!-- Другие клиенты -->
+      <div class="disc">
+        <button class="disc-head" type="button">
+          OpenCode, Gemini CLI, Codex и другие клиенты
+          <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="disc-body"><div class="disc-inner">
+          <p style="margin-bottom:14px;">
+            Подойдёт любой клиент, у которого есть провайдер <strong>Anthropic</strong> и возможность
+            заменить адрес сервера. Впишите в его настройки:
+          </p>
+          <div class="table-wrap">
+            <table class="tbl">
+              <tbody>
+                <tr><td>Провайдер / формат</td><td><code>anthropic</code> (Messages API)</td></tr>
+                <tr><td>Base URL</td><td><code>https://api.harmonyai.ru</code></td></tr>
+                <tr><td>Ключ</td><td><code>sk-h-…</code> в <code>Authorization: Bearer</code> или <code>x-api-key</code></td></tr>
+                <tr><td>Модель</td><td><code>dynatos</code> или <code>adanatos</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p style="font-size:14px;color:var(--text-3);margin-top:14px;">
+            Клиенты, ориентированные только на формат OpenAI (в том числе поле «Override OpenAI Base URL»
+            в некоторых редакторах), к этому адресу не подключатся: шлюз говорит на формате Anthropic.
+            Официальное приложение Claude сменить адрес сервера не позволяет — для работы через
+            Harmony AI используйте Claude Code или расширения выше.
+          </p>
+        </div></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===== СПРАВОЧНИК ===== -->
+  <section class="section section-soft" id="reference">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Справочник</p>
+        <h2>Эндпоинты и заголовки</h2>
+      </div>
+
+      <h3 style="margin-bottom:12px;">Авторизация</h3>
+      <div class="table-wrap" style="margin-bottom:14px;">
+        <table class="tbl">
+          <thead><tr><th>Заголовок</th><th>Значение</th></tr></thead>
+          <tbody>
+            <tr><td><code>Authorization</code></td><td><code>Bearer sk-h-…</code></td></tr>
+            <tr><td><code>x-api-key</code></td><td><code>sk-h-…</code> — альтернатива, используется SDK</td></tr>
+            <tr><td><code>anthropic-version</code></td><td><code>2023-06-01</code>. Можно не передавать — шлюз подставит сам</td></tr>
+            <tr><td><code>Content-Type</code></td><td><code>application/json</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="font-size:14px;color:var(--text-3);margin-bottom:34px;">
+        Достаточно одного из двух первых заголовков. Ключ проверяется по хешу; отозванный или
+        удалённый ключ перестаёт работать сразу.
+      </p>
+
+      <!-- messages -->
+      <h3 style="margin-bottom:10px;"><code>POST /v1/messages</code></h3>
+      <p style="margin-bottom:16px;">Основной эндпоинт. По умолчанию отвечает потоком (<code>text/event-stream</code>).</p>
+
+      <div class="table-wrap" style="margin-bottom:20px;">
+        <table class="tbl">
+          <thead><tr><th>Поле</th><th>Тип</th><th>Описание</th></tr></thead>
+          <tbody>
+            <tr><td><code>model</code></td><td>string</td><td>Обязательно. <code>dynatos</code> или <code>adanatos</code></td></tr>
+            <tr><td><code>max_tokens</code></td><td>integer</td><td>Обязательно. Ограничивается пределом модели (см. таблицу ниже)</td></tr>
+            <tr><td><code>messages</code></td><td>array</td><td>Обязательно. Роли <code>user</code> и <code>assistant</code>; содержимое — строка или блоки <code>text</code>, <code>image</code>, <code>tool_use</code>, <code>tool_result</code></td></tr>
+            <tr><td><code>system</code></td><td>string / array</td><td>Системная инструкция</td></tr>
+            <tr><td><code>stream</code></td><td>boolean</td><td><code>true</code> по умолчанию. <code>false</code> — один JSON-ответ</td></tr>
+            <tr><td><code>temperature</code></td><td>number</td><td>Передаётся модели как есть</td></tr>
+            <tr><td><code>top_p</code></td><td>number</td><td>Передаётся модели как есть</td></tr>
+            <tr><td><code>stop_sequences</code></td><td>array</td><td>До четырёх строк</td></tr>
+            <tr><td><code>tools</code></td><td>array</td><td>Описания инструментов с <code>input_schema</code></td></tr>
+            <tr><td><code>tool_choice</code></td><td>object</td><td><code>auto</code>, <code>any</code>, <code>none</code>, <code>{"type":"tool","name":"…"}</code></td></tr>
+            <tr><td><code>thinking</code></td><td>object</td><td><code>{"type":"enabled","budget_tokens":N}</code> — включает режим размышления. Больше бюджет — выше уровень усилий модели</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p style="margin-bottom:12px;">Ответ без потока:</p>
+      <div class="code-block" style="margin-bottom:20px;">
+        <pre>{
+  "id": "msg_…",
+  "type": "message",
+  "role": "assistant",
+  "model": "adanatos",
+  "content": [ { "type": "text", "text": "…" } ],
+  "stop_reason": "end_turn",
+  "usage": { "input_tokens": 24, "output_tokens": 118 }
+}</pre>
+      </div>
+
+      <p style="margin-bottom:12px;">Поток — стандартная последовательность событий:</p>
+      <div class="code-block" style="margin-bottom:14px;">
+        <pre>event: message_start
+event: content_block_start
+event: ping
+event: content_block_delta      // delta.type = text_delta | input_json_delta
+event: content_block_stop
+event: message_delta            // stop_reason + usage
+event: message_stop</pre>
+      </div>
+      <p style="font-size:14px;color:var(--text-3);margin-bottom:34px;">
+        Событие <code>ping</code> приходит раз в несколько секунд, чтобы соединение не закрыли
+        промежуточные прокси. Ошибка в середине потока приходит как <code>event: error</code>.
+        Итоговое число токенов — в <code>message_delta</code>.
+      </p>
+
+      <!-- count_tokens -->
+      <h3 style="margin-bottom:10px;"><code>POST /v1/messages/count_tokens</code></h3>
+      <p style="margin-bottom:14px;">
+        Оценка длины запроса без обращения к модели и без списания с баланса.
+        Принимает то же тело, что <code>/v1/messages</code>, и возвращает:
+      </p>
+      <div class="code-block" style="margin-bottom:14px;">
+        <pre>{ "input_tokens": 217 }</pre>
+      </div>
+      <div class="notice" style="margin-bottom:34px;">
+        Это <strong>оценка</strong>, а не точный подсчёт: у шлюза нет собственного токенизатора
+        модели. Для контроля бюджета — годится, для расчёта итоговой стоимости — используйте
+        <code>usage</code> из ответа.
+      </div>
+
+      <!-- models -->
+      <h3 style="margin-bottom:10px;"><code>GET /v1/models</code></h3>
+      <p style="margin-bottom:14px;">Список доступных моделей с тарифами и лимитами.</p>
+      <div class="code-block" style="margin-bottom:34px;">
+        <pre>{
+  "data": [
+    {
+      "type": "model",
+      "id": "dynatos",
+      "display_name": "Dynatos",
+      "description": "Флагманская модель: длинный контекст, сложные задачи, код",
+      "context_window": 200000,
+      "max_output_tokens": 64000,
+      "pricing": {
+        "input_usd_per_million_tokens": 0.6,
+        "output_usd_per_million_tokens": 7
+      }
+    }
+  ],
+  "has_more": false
+}</pre>
+      </div>
+
+      <!-- ошибки -->
+      <h3 style="margin-bottom:12px;">Ошибки</h3>
+      <p style="margin-bottom:14px;">
+        Формат — как у Anthropic API: <code>{ "type": "error", "error": { "type": …, "message": … } }</code>.
+      </p>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th>Код</th><th>type</th><th>Когда</th></tr></thead>
+          <tbody>
+            <tr><td class="num">400</td><td><code>invalid_request_error</code></td><td>Нет обязательного поля, неверный JSON, пустой <code>messages</code></td></tr>
+            <tr><td class="num">401</td><td><code>authentication_error</code></td><td>Ключ отсутствует, неверен или отозван</td></tr>
+            <tr><td class="num">402</td><td><code>invalid_request_error</code></td><td>Недостаточно средств. В ответе — текущий баланс и требуемая сумма</td></tr>
+            <tr><td class="num">404</td><td><code>not_found_error</code></td><td>Неизвестная модель или несуществующий путь</td></tr>
+            <tr><td class="num">405</td><td><code>invalid_request_error</code></td><td>Неподходящий HTTP-метод</td></tr>
+            <tr><td class="num">429</td><td><code>rate_limit_error</code></td><td>Слишком много запросов</td></tr>
+            <tr><td class="num">502</td><td><code>api_error</code></td><td>Сбой на стороне модели</td></tr>
+            <tr><td class="num">503</td><td><code>overloaded_error</code></td><td>Модель перегружена, стоит повторить позже</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== МОДЕЛИ И ТАРИФЫ ===== -->
+  <section class="section" id="models">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Модели и тарифы</p>
+        <h2>Сколько стоит запрос</h2>
+      </div>
+
+      <div class="table-wrap" style="margin-bottom:14px;">
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>Модель</th>
+              <th>Вход, за 1 млн</th>
+              <th>Выход, за 1 млн</th>
+              <th>Контекст</th>
+              <th>Макс. ответ</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>dynatos</code><br><span style="color:var(--text-3);font-size:14px;">Флагманская модель</span></td>
+              <td class="num" data-price="in:dynatos">$0.60</td>
+              <td class="num" data-price="out:dynatos">$7.00</td>
+              <td class="num">200 000</td>
+              <td class="num">64 000</td>
+            </tr>
+            <tr>
+              <td><code>adanatos</code><br><span style="color:var(--text-3);font-size:14px;">Быстрая и дешёвая</span></td>
+              <td class="num" data-price="in:adanatos">$0.50</td>
+              <td class="num" data-price="out:adanatos">$5.00</td>
+              <td class="num">200 000</td>
+              <td class="num">32 000</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p style="margin-bottom:16px;">
+        Стоимость запроса считается по формуле:
+      </p>
+      <div class="code-block" style="margin-bottom:16px;">
+        <pre>стоимость = (input_tokens / 1 000 000 × цена входа)
+          + (output_tokens / 1 000 000 × цена выхода)</pre>
+      </div>
+      <p style="font-size:15px;color:var(--text-2);">
+        Рубли считаются по фиксированному курсу <strong><span data-price="usd-rate">95,00</span> ₽ за $1</strong> — он не привязан
+        к бирже, поэтому расходы предсказуемы. Все суммы хранятся и складываются в целых числах,
+        без плавающей точки: округления «в свою пользу» в расчётах нет.
+        Вход и выход тарифицируются отдельно, никакой «средней цены за токен» не существует.
+      </p>
+    </div>
+  </section>
+
+  <!-- ===== БАЛАНС ===== -->
+  <section class="section section-soft" id="billing">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Баланс</p>
+        <h2>Как устроена оплата</h2>
+      </div>
+
+      <div class="grid grid-3">
+        <article class="card">
+          <h3>Баланс отдельно от Pro</h3>
+          <p>
+            Подписка за <span data-price="pro">299</span> ₽ открывает возможности чата на сайте и не начисляет баланс API.
+            Баланс API расходуется только на запросы к <code>/v1/…</code> и не включает Pro.
+          </p>
+        </article>
+        <article class="card">
+          <h3>Проверка до запроса</h3>
+          <p>
+            Баланс проверяется <strong>перед</strong> обращением к модели. Если средств не хватает,
+            запрос не уходит вообще и возвращается ошибка 402 с текущей и требуемой суммой.
+          </p>
+        </article>
+        <article class="card">
+          <h3>Списание по факту</h3>
+          <p>
+            После ответа списывается фактический расход по <code>usage</code> от модели.
+            Данные о расходе, присланные клиентом, не учитываются.
+          </p>
+        </article>
+      </div>
+
+      <p style="margin-top:26px;">
+        Пополнение — в <a href="/api/dashboard" style="color:var(--link);">личном кабинете</a>:
+        сумма от 100 ₽, оплата через ЮKassa. Баланс увеличивается только после подтверждения платежа
+        платёжной системой — возврат на сайт сам по себе ничего не начисляет.
+        Там же видны история пополнений и расход за последние 30 дней.
+      </p>
+    </div>
+  </section>
+
+  <!-- ===== БЕЗОПАСНОСТЬ ===== -->
+  <section class="section" id="security">
+    <div class="wrap-narrow">
+      <div class="section-head">
+        <p class="eyebrow">Безопасность</p>
+        <h2>Что происходит с ключом</h2>
+      </div>
+
+      <ul style="list-style:none;display:grid;gap:16px;font-size:15px;">
+        <li>
+          <strong>Ключ генерируется криптографически стойким источником случайности.</strong>
+          Ни времени создания, ни номера аккаунта, ни любых предсказуемых частей в нём нет.
+        </li>
+        <li>
+          <strong>Мы не храним ключ.</strong> В базе остаются только хеш, префикс для опознания
+          и служебные данные: имя, дата создания, дата последнего использования.
+        </li>
+        <li>
+          <strong>Полный ключ виден один раз</strong> — в окне сразу после создания.
+          Дальше в кабинете отображается только маска вида <code>sk-h-hd9d••••••••</code>.
+          Восстановить ключ невозможно: если он утерян, его перевыпускают.
+        </li>
+        <li>
+          <strong>Перевыпуск мгновенный.</strong> Старый ключ становится недействительным
+          в тот же момент, а его хеш помечается отозванным.
+        </li>
+        <li>
+          <strong>Ключи принадлежат аккаунту.</strong> Право владения проверяется на сервере при
+          каждой операции, а не только в интерфейсе — прочитать, удалить или перевыпустить
+          чужой ключ нельзя.
+        </li>
+      </ul>
+
+      <div class="notice notice-warn" style="margin-top:24px;">
+        Не публикуйте ключ в репозиториях, скриншотах и обращениях в поддержку.
+        Если он мог утечь — <a href="/api/dashboard">перевыпустите его</a>, это занимает секунду.
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a class="brand" href="/">
+          <span class="brand-mark" aria-hidden="true">H</span>
+          Harmony AI
+        </a>
+        <p>Универсальный AI-помощник для учёбы, работы, анализа, кода, файлов и творчества.</p>
+      </div>
+
+      <div class="footer-col">
+        <h4>Продукт</h4>
+        <ul>
+          <li><a href="/#features">Возможности</a></li>
+          <li><a href="/#pricing">Цены</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Разработчикам</h4>
+        <ul>
+          <li><a href="/api">API</a></li>
+          <li><a href="/api#reference">Документация</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Компания</h4>
+        <ul>
+          <li><a href="/about">О нас</a></li>
+          <li><a href="/contacts">Контакты</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Поддержка</h4>
+        <ul>
+          <li><a href="/#faq">FAQ</a></li>
+          <li><a href="/contacts">Связаться с нами</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <span>© <span data-year>2026</span> Harmony AI</span>
+      <span>
+        <a href="/legal/privacy.html">Политика конфиденциальности</a>
+        &nbsp;·&nbsp;
+        <a href="/legal/terms.html">Условия использования</a>
+      </span>
+    </div>
+  </div>
+</footer>
+
+<!-- ===== ОКНО НОВОГО КЛЮЧА =====
+     data-persistent="1" — окно не закрывается кликом по фону и по Escape.
+     Полный ключ показывается ровно здесь и больше нигде: закрыл — потерял. -->
+<div class="modal" id="newKeyModal" role="dialog" aria-modal="true" aria-labelledby="newKeyTitle" data-persistent="1">
+  <div class="modal-backdrop"></div>
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3 id="newKeyTitle">API-ключ создан</h3>
+    </div>
+
+    <div class="notice notice-warn" style="margin-bottom:18px;">
+      <strong>Сохраните этот ключ сейчас. Он показывается только один раз.</strong>
+      После закрытия окна полный ключ невозможно увидеть ни здесь, ни в личном кабинете.
+    </div>
+
+    <div class="field">
+      <label class="mono" for="newKeyValue" style="font-size:13px;color:var(--text-3);">Ваш ключ</label>
+      <input class="input mono" id="newKeyValue" type="password" readonly value="" autocomplete="off" spellcheck="false">
+    </div>
+
+    <div class="btn-row" style="margin-top:12px;">
+      <button class="btn btn-outline btn-sm" type="button" id="newKeyToggle" aria-pressed="false">Показать</button>
+      <button class="btn btn-outline btn-sm" type="button" id="newKeyCopy">Скопировать</button>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-primary" type="button" id="newKeyDone">Я сохранил ключ</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+<script src="/js/site-auth.js" defer></script>
+<script src="/js/site.js" defer></script>
+<script>
+/* ===== СОЗДАНИЕ КЛЮЧА С ЭТОЙ СТРАНИЦЫ =====
+   Требование: неавторизованный жмёт «Создать API-ключ» → уходит на существующий
+   /login → возвращается сюда → ключ создаётся сам. Авторизованный получает ключ
+   сразу, без перехода: окно открывается поверх /api.
+
+   Флаг намерения живёт в sessionStorage, а не в URL: так он не остаётся в истории
+   браузера и не сработает повторно в новой вкладке.
+
+   DOMContentLoaded, потому что все внешние скрипты помечены defer и выполняются
+   до этого события — к моменту запуска window.hm и window.hmAuth уже есть. */
+document.addEventListener('DOMContentLoaded', function () {
+  var PENDING = 'hm_pending_api_key';
+
+  var btn     = document.getElementById('createKeyBtn');
+  var hint    = document.getElementById('keyHint');
+  var modal   = document.getElementById('newKeyModal');
+  var input   = document.getElementById('newKeyValue');
+  var toggle  = document.getElementById('newKeyToggle');
+  var copyBtn = document.getElementById('newKeyCopy');
+  var done    = document.getElementById('newKeyDone');
+
+  function setHint(text, isError) {
+    if (!hint) return;
+    hint.textContent = text;
+    hint.style.color = isError ? 'var(--err)' : '';
+  }
+
+  function showKey(plain) {
+    input.value = plain;
+    input.type = 'password';
+    toggle.textContent = 'Показать';
+    toggle.setAttribute('aria-pressed', 'false');
+    window.hm.openModal(modal, btn);
+  }
+
+  async function createKey() {
+    btn.disabled = true;
+    setHint('Создаём ключ…');
+    var res = await window.hmAuth.account('keys.create', { name: 'Ключ' });
+    btn.disabled = false;
+
+    if (!res.ok || !res.data || !res.data.key) {
+      setHint(res.error || 'Не удалось создать ключ', true);
+      return;
+    }
+    setHint('Ключ создан. Список ключей — в личном кабинете.');
+    showKey(res.data.key);
+  }
+
+  btn.addEventListener('click', async function () {
+    await window.hmAuth.ready;
+    if (!window.hmAuth.user) {
+      /* Запоминаем намерение и уходим на существующий /login. */
+      try { sessionStorage.setItem(PENDING, '1'); } catch (e) {}
+      window.hmAuth.login('/api');
+      return;
+    }
+    createKey();
+  });
+
+  /* Показать / скрыть. Значение из поля не удаляем — иначе кнопка «Скопировать»
+     после переключения скопировала бы пустоту. */
+  toggle.addEventListener('click', function () {
+    var hidden = input.type === 'password';
+    input.type = hidden ? 'text' : 'password';
+    toggle.textContent = hidden ? 'Скрыть' : 'Показать';
+    toggle.setAttribute('aria-pressed', hidden ? 'true' : 'false');
+  });
+
+  copyBtn.addEventListener('click', async function () {
+    var ok = await window.hm.copyText(input.value);
+    copyBtn.textContent = ok ? 'Скопировано' : 'Не удалось';
+    setTimeout(function () { copyBtn.textContent = 'Скопировать'; }, 1600);
+  });
+
+  /* Закрытие затирает поле: значение не должно остаться в DOM страницы. */
+  done.addEventListener('click', function () {
+    input.value = '';
+    input.type = 'password';
+    window.hm.closeModal(modal);
+  });
+
+  /* Возврат после входа: намерение было, пользователь теперь есть — создаём. */
+  (async function resume() {
+    await window.hmAuth.ready;
+    var pending = false;
+    try { pending = sessionStorage.getItem(PENDING) === '1'; } catch (e) {}
+    if (!pending) return;
+    try { sessionStorage.removeItem(PENDING); } catch (e) {}
+    if (window.hmAuth.user) createKey();
+  })();
+});
+</script>
+
+</body>
+</html>
