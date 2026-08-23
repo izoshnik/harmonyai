@@ -873,6 +873,55 @@ html[data-theme="light"] .msg-ai{color:#1a1a1a;}
 .cmp-sr-text{font-size:13px;line-height:1.4;color:var(--text);}
 .cmp-sr-text mark{background:rgba(124,77,255,.4);color:#fff;border-radius:3px;padding:0 2px;}
 .cmp-sr-empty{padding:18px 8px;text-align:center;font-size:13px;color:var(--text2);}
+/* ===== ПОДЕЛИТЬСЯ ЧАТОМ — подэкран того же поповера =====
+   Устроен как инлайн-поиск: не отдельное модальное окно, а вторая «страница»
+   внутри меню, поэтому анимация открытия одна и та же и ничего не мигает. */
+.cmp-share{display:none;flex-direction:column;gap:10px;}
+.chat-menu-pop.sharing .cmp-title,.chat-menu-pop.sharing .cmp-list{display:none;}
+.chat-menu-pop.sharing .cmp-share{display:flex;}
+.cmp-share-head{font-size:14px;font-weight:800;color:var(--text);letter-spacing:-.2px;}
+.cmp-share-note{font-size:13px;line-height:1.45;color:var(--text2);padding:0 2px;}
+.cmp-share-note.err{color:#ff7b7b;}
+.cmp-share-link{display:flex;}
+.cmp-share-link input{flex:1;min-width:0;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09);
+  border-radius:11px;padding:9px 12px;color:var(--text);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:12.5px;outline:none;text-overflow:ellipsis;transition:border-color .16s,background .16s;}
+.cmp-share-link input:focus{border-color:rgba(124,77,255,.55);background:rgba(255,255,255,.09);}
+.cmp-share-actions{display:flex;flex-direction:column;gap:6px;}
+.cmp-share-btn{width:100%;padding:11px;border:none;border-radius:12px;background:rgba(255,255,255,.08);
+  color:var(--text);font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;
+  transition:background .14s,transform .12s cubic-bezier(.2,.8,.2,1),filter .16s;}
+.cmp-share-btn:hover{background:rgba(255,255,255,.13);}
+.cmp-share-btn:active{transform:scale(.975);}
+.cmp-share-btn.primary{background:linear-gradient(135deg,#7c4dff,#a06bff);color:#fff;}
+.cmp-share-btn.primary:hover{filter:brightness(1.07);background:linear-gradient(135deg,#7c4dff,#a06bff);}
+.cmp-share-btn.danger{color:#ff5c5c;}
+.cmp-share-btn.danger:hover{background:rgba(255,92,92,.13);}
+.cmp-share-btn[disabled]{opacity:.55;cursor:default;transform:none;}
+.cmp-share-hint{font-size:12px;line-height:1.45;color:var(--text2);opacity:.85;padding:2px 2px 0;}
+html[data-theme="light"] .cmp-share-link input,html[data-theme="light"] .cmp-share-btn{background:rgba(20,18,12,.05);}
+html[data-theme="light"] .cmp-share-btn:hover{background:rgba(20,18,12,.09);}
+html[data-theme="light"] .cmp-share-btn.primary{background:linear-gradient(135deg,#7c4dff,#a06bff);}
+/* ===== ЧУЖОЙ ЧАТ, ОТКРЫТЫЙ ПО ССЫЛКЕ (только чтение) =====
+   Строку ввода прячем: писать в чужую переписку нельзя ни при каких условиях.
+   Продолжить разговор можно только в новом чате своего аккаунта. */
+body.shared-view .input-wrap{display:none;}
+.shared-banner{display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  margin:0 auto 22px;padding:13px 16px;border-radius:16px;max-width:760px;
+  background:rgba(124,77,255,.10);border:1px solid rgba(124,77,255,.28);
+  animation:sharedBannerIn .26s cubic-bezier(.2,.8,.2,1) both;}
+.shared-banner-ic{display:flex;flex-shrink:0;color:#a06bff;}
+.shared-banner-txt{flex:1;min-width:180px;font-size:13.5px;line-height:1.45;color:var(--text2);}
+.shared-banner-txt b{color:var(--text);font-weight:800;}
+.shared-banner-btn{flex-shrink:0;padding:10px 15px;border:none;border-radius:12px;
+  background:linear-gradient(135deg,#7c4dff,#a06bff);color:#fff;
+  font-family:inherit;font-size:13.5px;font-weight:700;cursor:pointer;
+  transition:filter .16s,transform .12s cubic-bezier(.2,.8,.2,1);}
+.shared-banner-btn:hover{filter:brightness(1.07);}
+.shared-banner-btn:active{transform:scale(.97);}
+@keyframes sharedBannerIn{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:none;}}
+@media(prefers-reduced-motion:reduce){.shared-banner{animation:none;}}
+html[data-theme="light"] .shared-banner{background:rgba(124,77,255,.07);border-color:rgba(124,77,255,.22);}
 /* Подсветка найденного сообщения при переходе */
 .msg-flash{animation:msgFlash 1.6s ease-out;}
 @keyframes msgFlash{0%,20%{box-shadow:0 0 0 2px rgba(124,77,255,.7),0 0 22px rgba(124,77,255,.35);}100%{box-shadow:0 0 0 0 rgba(124,77,255,0);}}
@@ -900,7 +949,7 @@ html[data-theme="light"] .cmp-item:hover{background:rgba(20,18,12,.05);}
 html[data-theme="light"] .cmp-title{border-color:rgba(20,18,12,.08);}
 html[data-theme="light"] .cmp-search-bar input,html[data-theme="light"] .cmp-search-back{background:rgba(20,18,12,.05);}
 html[data-theme="light"] .cmp-confirm{background:rgba(252,251,249,.96);border-color:rgba(20,18,12,.08);}
-@media(prefers-reduced-motion:reduce){.chat-menu-pop,.cmp-confirm{transition:opacity .15s;}}
+@media(prefers-reduced-motion:reduce){.chat-menu-pop,.cmp-confirm,.cmp-confirm-overlay{transition:opacity .15s;}}
 
 /* Thinking (typing indicator) — HM-REASONING-V2: без курсива, с мягким shimmer. */
 .thinking{display:flex;align-items:center;gap:6px;font-size:13px;font-style:normal;color:var(--text2);padding:2px 0 4px;}
@@ -1309,12 +1358,17 @@ html[data-theme="light"] .attach-opt:hover{background:rgba(20,18,12,.05);}
 }
 
 /* ===================== SETTINGS ===================== */
-.settings-overlay{position:fixed;inset:0;z-index:300;background:var(--bg);display:none;flex-direction:column;}
-.settings-overlay.open{display:flex;}
+/* п.8: окно настроек открывается и закрывается плавно. display:none заменён на
+   visibility+opacity — переход по display браузер не анимирует, а visibility
+   так же надёжно убирает элемент из потока событий (кликов он не ловит). */
+.settings-overlay{position:fixed;inset:0;z-index:300;background:var(--bg);display:flex;flex-direction:column;
+  opacity:0;visibility:hidden;transition:opacity .2s ease-out,visibility .2s ease-out;}
+.settings-overlay.open{opacity:1;visibility:visible;}
 @media(min-width:769px){
   .settings-overlay{background:rgba(0,0,0,.4);align-items:center;justify-content:center;}
-  .settings-box{background:var(--bg2);border:1px solid var(--border);border-radius:20px;width:440px;max-height:85vh;max-height:85dvh;overflow-y:auto;padding:24px;box-shadow:var(--drop-shadow);display:none;}
-  .settings-overlay.open .settings-box{display:block;}
+  .settings-box{background:var(--bg2);border:1px solid var(--border);border-radius:20px;width:440px;max-height:85vh;max-height:85dvh;overflow-y:auto;padding:24px;box-shadow:var(--drop-shadow);display:block;
+    transform:scale(.965) translateY(8px);transition:transform .24s cubic-bezier(.2,.8,.2,1);}
+  .settings-overlay.open .settings-box{transform:none;}
 }
 @media(max-width:768px){
   .settings-box{flex:1;overflow-y:auto;padding:20px 16px 40px;display:flex;}
@@ -1545,8 +1599,9 @@ html[data-theme="light"] .limit-reached{background:rgba(239,68,68,.07);border-co
 .pers-sel-text{font-size:14px;font-weight:500;color:var(--text);}
 .pers-sel-chev{font-size:12px;color:var(--text2);margin-left:6px;}
 /* Dropdown overlay for pers */
-.pers-drop-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:400;display:none;align-items:flex-end;justify-content:center;}
-.pers-drop-overlay.open{display:flex;}
+.pers-drop-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:400;display:flex;align-items:flex-end;justify-content:center;
+  opacity:0;visibility:hidden;transition:opacity .22s ease-out,visibility .22s ease-out;}
+.pers-drop-overlay.open{opacity:1;visibility:visible;}
 .pers-drop-sheet{background:var(--bg2);border-radius:20px 20px 0 0;padding:16px 16px 30px;width:100%;max-height:70vh;max-height:70dvh;overflow-y:auto;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);}
 .pers-drop-overlay.open .pers-drop-sheet{transform:translateY(0);}
 .pds-title{font-size:16px;font-weight:700;color:var(--text);margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border);}
@@ -2317,7 +2372,7 @@ html[data-theme="messenger"] .s-row.s-row-accent .s-row-text{color:#7c3aed;}
   .ada-seg-btn i{font-size:11px;font-style:normal;line-height:1.2;color:rgba(255,255,255,.62);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .ada-seg-btn.on{background:rgba(47,143,255,.16);border-color:rgba(47,143,255,.5);}
   .ada-seg-btn.pro-locked b::after{content:' PRO';font-size:9px;font-weight:800;letter-spacing:.4px;color:#f5c451;}
-  /* Полноценный контрол с четырьмя позициями: LOW → MEDIUM → HIGH → ULTRA */
+  /* Полноценный контрол с четырьмя позициями: LOW → MEDIUM → MAX → EXTRA */
   .ada-eff{
     position:relative;display:flex;padding:4px;border-radius:16px;
     background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);
@@ -2777,6 +2832,33 @@ html[data-theme="messenger"] .igWrap{
   .igLabel{animation:none;background:none;-webkit-text-fill-color:var(--ig-text);color:var(--ig-text);}
 }
 /* === /HM-IMAGEGEN ======================================================== */
+
+/* ============================================================================
+   П.8: ЕДИНОЕ ПОВЕДЕНИЕ ПРИ prefers-reduced-motion
+
+   Системная настройка «уменьшить движение» ставится людьми с вестибулярными
+   расстройствами и укачиванием — для них движущиеся панели и всплывающие меню
+   действительно неприятны. Поэтому у всех окон, панелей, меню и оверлеев
+   убираем сдвиги и масштабирование, оставляя только быстрое проявление:
+   элемент по-прежнему появляется заметно, но не «летит».
+
+   Ниже перечислены именно интерфейсные слои, а не контент: анимации внутри
+   сообщений и индикаторов уже погашены в своих блоках.
+   ========================================================================= */
+@media(prefers-reduced-motion:reduce){
+  .chat-menu-pop,.chat-ctx-menu,.cmp-confirm,.cmp-confirm-overlay,
+  .settings-overlay,.settings-box,.pers-drop-overlay,.pers-drop-sheet,
+  .mm-overlay,.mm-sheet,.attach-overlay,.src-overlay,.rec-overlay,.fb-overlay,
+  .overlay{
+    transition-duration:.12s!important;
+    transform:none!important;
+  }
+  /* .sidebar сюда НЕ входит: у неё translateX(-100%) — это и есть скрытое
+     состояние, а не украшение. Обнулив transform, мы бы навсегда открыли
+     панель на мобильных. Просто ускоряем её выезд. */
+  .sidebar{transition-duration:.12s!important;}
+  .shared-banner{animation:none!important;}
+}
 </style>
 </head>
 <body>
@@ -3000,13 +3082,13 @@ html[data-theme="messenger"] .igWrap{
                     <div class="desktop-copy"><strong>Medium</strong><span>Баланс скорости и качества</span></div>
                     <span class="desktop-check" id="desktopCkMedium">✓</span>
                   </div>
-                  <div class="desktop-option" onclick="selectMode('high')">
-                    <div class="desktop-copy"><strong>High</strong><span>Глубокое мышление</span></div>
-                    <span class="desktop-check" id="desktopCkHigh">✓</span>
+                  <div class="desktop-option" onclick="selectMode('max')">
+                    <div class="desktop-copy"><strong>Max</strong><span>Глубокое мышление</span></div>
+                    <span class="desktop-check" id="desktopCkMax">✓</span>
                   </div>
-                  <div class="desktop-option" onclick="selectMode('ultra')">
-                    <div class="desktop-copy"><strong>Ultra</strong><span>Максимальное качество</span></div>
-                    <span class="desktop-check" id="desktopCkUltra">✓</span>
+                  <div class="desktop-option" onclick="selectMode('extra')">
+                    <div class="desktop-copy"><strong>Extra</strong><span>Максимальное качество</span></div>
+                    <span class="desktop-check" id="desktopCkExtra">✓</span>
                   </div>
                   <div class="md-divider"></div>
                   <div class="desktop-think">
@@ -3066,8 +3148,8 @@ html[data-theme="messenger"] .igWrap{
             <span class="ada-eff-thumb" aria-hidden="true"></span>
             <button type="button" class="ada-eff-btn on" id="adaEff_low" role="radio" aria-checked="true" onclick="selectMode('low')">Low</button>
             <button type="button" class="ada-eff-btn" id="adaEff_medium" role="radio" aria-checked="false" onclick="selectMode('medium')">Medium</button>
-            <button type="button" class="ada-eff-btn" id="adaEff_high" role="radio" aria-checked="false" onclick="selectMode('high')">High</button>
-            <button type="button" class="ada-eff-btn" id="adaEff_ultra" role="radio" aria-checked="false" onclick="selectMode('ultra')">Ultra</button>
+            <button type="button" class="ada-eff-btn" id="adaEff_max" role="radio" aria-checked="false" onclick="selectMode('max')">Max</button>
+            <button type="button" class="ada-eff-btn" id="adaEff_extra" role="radio" aria-checked="false" onclick="selectMode('extra')">Extra</button>
           </div>
           <div class="ada-hint" id="adaEffHint">Быстрый ответ</div>
         </div>
@@ -3125,6 +3207,12 @@ html[data-theme="messenger"] .igWrap{
       <span class="cmp-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-3.6-3.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
       <span>Найти в чате</span>
     </button>
+    <!-- Поделиться чатом: сервер выдаёт токен на чтение. Сам чат остаётся
+         приватным — по ссылке нельзя ни писать в него, ни удалить его. -->
+    <button class="cmp-item" onclick="chatMenuShare()">
+      <span class="cmp-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 13.5l6-3.6M9 10.5l6 3.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="6.5" cy="12" r="2.6" stroke="currentColor" stroke-width="1.7"/><circle cx="17.5" cy="6.5" r="2.6" stroke="currentColor" stroke-width="1.7"/><circle cx="17.5" cy="17.5" r="2.6" stroke="currentColor" stroke-width="1.7"/></svg></span>
+      <span>Поделиться чатом</span>
+    </button>
     <button class="cmp-item cmp-danger" onclick="chatMenuDelete()">
       <span class="cmp-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7V4.8c0-.44.36-.8.8-.8h4.4c.44 0 .8.36.8.8V7M6.5 7l1 13.2c.05.6.55 1.05 1.15 1.05h6.7c.6 0 1.1-.45 1.15-1.05L17.5 7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
       <span>Удалить</span>
@@ -3139,6 +3227,24 @@ html[data-theme="messenger"] .igWrap{
       <input type="text" id="cmpSearchInp" placeholder="Поиск по сообщениям…" autocomplete="off" oninput="chatMenuSearchRun(this.value)">
     </div>
     <div class="cmp-search-results" id="cmpSearchResults"></div>
+  </div>
+  <!-- Подэкран «Поделиться чатом» -->
+  <div class="cmp-share" id="cmpShare">
+    <div class="cmp-search-bar">
+      <button class="cmp-search-back" onclick="chatMenuShareBack()" aria-label="Назад">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="cmp-share-head">Поделиться чатом</div>
+    </div>
+    <div class="cmp-share-note" id="cmpShareNote">Создаём ссылку…</div>
+    <div class="cmp-share-link" id="cmpShareLinkWrap" hidden>
+      <input type="text" id="cmpShareLink" readonly aria-label="Ссылка на чат" onclick="this.select()">
+    </div>
+    <div class="cmp-share-actions" id="cmpShareActions" hidden>
+      <button class="cmp-share-btn primary" id="cmpShareCopy" onclick="chatMenuShareCopy()">Скопировать ссылку</button>
+      <button class="cmp-share-btn danger" id="cmpShareRevoke" onclick="chatMenuShareRevoke()">Отключить ссылку</button>
+    </div>
+    <div class="cmp-share-hint">По ссылке чат открывается только для чтения. Писать в него, переименовать или удалить сможете только вы.</div>
   </div>
 </div>
 
@@ -3323,20 +3429,25 @@ let curUser=null,curEmail='',resendTimer=null,resendLeft=0;
 let sidebarExpanded=false;
 let curModel='lite',curMode='low',thinkOn=false,dropOpen=false,modeSubOpen=false,modelsSubOpen=false;
 /* ===== EFFORT (уровень размышления) ==========================================
-   Единый внутренний параметр: low | medium | high | ultra.
-   Источник истины — тот же curMode, что и раньше: он уходит на бэкенд
-   полем effort в requestChatReply / requestChatReplyLive.
-   'max' — старое имя глубокого режима, приводим его к 'high'. */
-const EFFORT_LEVELS=['low','medium','high','ultra'];
-const EFFORT_LABEL={low:'Low',medium:'Medium',high:'High',ultra:'Ultra'};
-const EFFORT_HINT={low:'Быстрый ответ',medium:'Баланс',high:'Глубокое мышление',ultra:'Максимальное качество'};
+   Единый внутренний параметр: low | medium | max | extra. Ровно эти четыре
+   значения уходят на бэкенд полем effort в requestChatReply /
+   requestChatReplyLive и там превращаются в reasoning_effort провайдера.
+   Источник истины — тот же curMode, что и раньше.
+
+   'high' и 'ultra' — прежние имена двух верхних уровней. Читать их всё ещё нужно:
+   выбор пользователя лежит в localStorage, и после обновления страницы он не
+   должен молча сброситься на low. */
+const EFFORT_LEVELS=['low','medium','max','extra'];
+const EFFORT_LEGACY={high:'max',ultra:'extra'};
+const EFFORT_LABEL={low:'Low',medium:'Medium',max:'Max',extra:'Extra'};
+const EFFORT_HINT={low:'Быстрый ответ',medium:'Баланс',max:'Глубокое мышление',extra:'Максимальное качество'};
 const EFFORT_KEY='hm_effort_v1';
 function normEffort(v){
   const s=String(v==null?'':v).toLowerCase().trim();
-  if(s==='max')return 'high';
+  if(EFFORT_LEGACY[s])return EFFORT_LEGACY[s];
   return EFFORT_LEVELS.indexOf(s)>=0?s:'low';
 }
-/* High/Ultra — платные уровни (раньше так был закрыт Max). Low и Medium — всем. */
+/* Max/Extra — платные уровни (раньше так был закрыт Max). Low и Medium — всем. */
 function effortNeedsPro(v){return false;/* Все режимы бесплатны (patch11) */}
 /* Выбранный уровень сохраняется для следующих сообщений и сессий. */
 try{const savedEffort=localStorage.getItem(EFFORT_KEY);if(savedEffort)curMode=normEffort(savedEffort);}catch(e){}
@@ -3411,7 +3522,9 @@ const CHAT_TIMEOUT_MS=280000;
 // Сервер шлёт keep-alive пинги каждые 15с: если 45с полной тишины — соединение реально умерло,
 // нет смысла держать пользователя в ожидании дольше (раньше было 110с и стрим «застревал»).
 const STREAM_STALL_MS=45000;
-const PRIMARY_API_ORIGIN='https://harmonyai-zeta.vercel.app';
+/* Фолбэк-адрес API: используется, только если запрос по относительному пути
+   (same-origin) не удался — например, когда фронт открыт как локальный файл. */
+const PRIMARY_API_ORIGIN='https://harmonyai.ru';
 const KB_GLOBAL_KEY='harmonyai_global_kb_v1';
 const KB_USER_PREFIX='harmonyai_user_kb_v1_';
 const LOCAL_NICK_PREFIX='harmonyai_local_nickname_';
@@ -3728,6 +3841,10 @@ function requireProOr(callback){
   return false;
 }
 let trainingMode=false;
+/* Открыт чужой чат по ссылке «Поделиться»: {id,title} или null.
+   Пока он не null, строка ввода скрыта, а curChatId равен null — чтобы ни один
+   путь сохранения не мог записать чужую переписку в аккаунт читателя. */
+let sharedView=null;
 function withTimeout(promise,ms,message){
   let timer;
   return Promise.race([
@@ -4081,13 +4198,77 @@ function setRoute(path,push){
     else history.replaceState({route:path},'',path);
   }catch(e){}
 }
+/* ===== АДРЕС КОНКРЕТНОГО ЧАТА: /chat/<id> =====
+   currentRoute() приводит путь к нижнему регистру — для сравнения разделов это
+   удобно, но ID чата регистрозависим (a8F2kL9x ≠ a8f2kl9x), поэтому здесь
+   читаем pathname как есть. */
+function chatIdFromRoute(){
+  if(!ROUTING_ENABLED)return null;
+  const m=(window.location.pathname||'').match(/^\/chat\/([A-Za-z0-9_-]{4,64})\/?$/);
+  return m?m[1]:null;
+}
+function shareTokenFromUrl(){
+  try{
+    const t=new URLSearchParams(window.location.search).get('share');
+    return t&&/^[A-Za-z0-9_-]{16,128}$/.test(t)?t:null;
+  }catch(e){return null;}
+}
+function setChatRoute(id,push){
+  if(!ROUTING_ENABLED)return;
+  const path=id?'/chat/'+id:'/chat';
+  if((window.location.pathname||'')===path&&!window.location.search)return;
+  try{
+    // Параметр share из адреса убираем: чужая ссылка не должна остаться
+    // висеть в URL после того, как пользователь ушёл в свой чат.
+    if(push)history.pushState({route:path},'',path);
+    else history.replaceState({route:path},'',path);
+  }catch(e){}
+}
+/* Лендинг на «/» переадресует в чат только тех, кто здесь уже был. Флаг ставим
+   в момент реального показа оболочки чата, а не при регистрации: иначе только
+   что зарегистрировавшийся человек больше никогда не увидел бы главную. */
+function markChatSeen(){
+  try{localStorage.setItem('hm_seen_chat','1');}catch(e){}
+}
+/* После входа пользователь может ждать возврата на страницу, с которой пришёл
+   (?next=/api — например, чтобы там создался API-ключ). Пускаем только
+   собственные пути сайта: внешний адрес в next — открытая переадресация. */
+function consumeNextParam(){
+  if(!ROUTING_ENABLED)return null;
+  let next=null;
+  try{next=new URLSearchParams(window.location.search).get('next');}catch(e){return null;}
+  if(!next)return null;
+  // Только относительный путь; //host и /\host отсекаем — это внешний переход.
+  if(!/^\/[A-Za-z0-9_\-/.]*$/.test(next)||/^\/\//.test(next))return null;
+  if(next==='/login'||next==='/')return null;
+  return next;
+}
 // После показа оболочки чата: / и /login превращаются в /chat, /settings открывает настройки.
 function syncSignedInRoute(){
+  markChatSeen();
+
+  // 1) Возврат на страницу, с которой пришли на вход.
+  const next=consumeNextParam();
+  if(next){window.location.replace(next);return;}
+
   if(currentRoute()==='/settings'){
     routeNavigating=true;
     try{openSettings();}finally{routeNavigating=false;}
     return;
   }
+
+  // 2) Ссылка «Поделиться чатом» — открываем в режиме чтения.
+  const shareToken=shareTokenFromUrl();
+  if(shareToken){openSharedChat(shareToken);return;}
+
+  // 3) Прямая ссылка на свой чат /chat/<id>.
+  const chatId=chatIdFromRoute();
+  if(chatId){
+    // Не переписываем адрес: openChat сам решит, доступен ли чат.
+    openChat(chatId,{fromRoute:true});
+    return;
+  }
+
   setRoute('/chat',false);
 }
 // Нет сессии / выход: показываем /login и снимаем ранний флаг data-boot (см. <head>).
@@ -4096,6 +4277,9 @@ function syncSignedOutRoute(){
   // Без сессии ссылки на аудио получить нельзя — не держим «мёртвый» бар
   // поверх экрана входа (после выхода или при F5 без авторизации).
   try{window.MusicPlayer&&window.MusicPlayer.close();}catch(e){}
+  // Ссылку «Поделиться чатом» в адресе не затираем: после входа она сработает
+  // и человек увидит именно то, что ему прислали.
+  if(shareTokenFromUrl())return;
   setRoute('/login',false);
 }
 window.addEventListener('popstate',()=>{
@@ -4106,6 +4290,13 @@ window.addEventListener('popstate',()=>{
   try{
     if(r==='/settings'&&window.__appShown)openSettings();
     else if(ov&&ov.classList.contains('open'))closeSettings();
+    else if(window.__appShown){
+      // Кнопки «назад»/«вперёд» между чатами: /chat/<id> открывает чат,
+      // просто /chat — пустой новый.
+      const id=chatIdFromRoute();
+      if(id&&id!==curChatId)openChat(id,{fromRoute:true});
+      else if(!id&&r==='/chat'&&curChatId)newChat();
+    }
   }finally{routeNavigating=false;}
 });
 
@@ -4763,9 +4954,32 @@ function _chatCtxOutsideHandler(e){
 function closeChatContextMenu(){
   if(typeof closeUserMessageMenu==='function')closeUserMessageMenu();
   const menu=document.getElementById('chatCtxMenu');
-  if(menu)menu.remove();
+  if(menu)dismissPopEl(menu);
   document.removeEventListener('mousedown',_chatCtxOutsideHandler,{capture:true});
   document.removeEventListener('touchstart',_chatCtxOutsideHandler,{capture:true});
+}
+/* ===== ПЛАВНОЕ ЗАКРЫТИЕ ВСПЛЫВАЮЩИХ МЕНЮ ===================================
+   Меню открывались плавно (класс .open), а исчезали мгновенно — рывок был
+   хорошо заметен. Снимаем .open, ждём собственный переход элемента и только
+   потом убираем узел из DOM.
+
+   id снимаем сразу: пока меню догорает, getElementById не должен находить
+   уходящий узел, иначе повторное открытие получило бы два элемента с одним id.
+   pointer-events отключаем, чтобы по исчезающему меню нельзя было кликнуть.
+   ========================================================================= */
+function dismissPopEl(el){
+  if(!el||el.dataset.closing==='1')return;
+  el.dataset.closing='1';
+  el.removeAttribute('id');
+  el.style.pointerEvents='none';
+  el.classList.remove('open');
+  let reduce=false;
+  try{reduce=window.matchMedia('(prefers-reduced-motion:reduce)').matches;}catch(e){}
+  if(reduce){el.remove();return;}
+  let done=false;
+  const finish=()=>{if(done)return;done=true;el.remove();};
+  el.addEventListener('transitionend',finish,{once:true});
+  setTimeout(finish,240);
 }
 function positionChatCtxMenu(menu,anchorEl){
   const r=anchorEl.getBoundingClientRect();
@@ -4819,10 +5033,10 @@ function toggleChatMenu(e){
   if(pop.classList.contains('open')){closeChatMenu();return;}
   // Синхронизируем содержимое (тема + состояние закрепления).
   pop.classList.remove('searching');
+  pop.classList.remove('sharing');
   updateChatMenuTitle();
   refreshChatMenuPin();
-  positionChatMenuPop();
-  requestAnimationFrame(()=>{pop.classList.add('open');positionChatMenuPop();});
+  positionChatMenuPop();  requestAnimationFrame(()=>{pop.classList.add('open');positionChatMenuPop();});
   setTimeout(()=>{
     document.addEventListener('mousedown',_chatMenuOutside,{capture:true});
     document.addEventListener('touchstart',_chatMenuOutside,{capture:true});
@@ -4835,7 +5049,7 @@ function _chatMenuOutside(e){
 }
 function closeChatMenu(){
   const pop=document.getElementById('chatMenuPop');
-  if(pop){pop.classList.remove('open');pop.classList.remove('searching');}
+  if(pop){pop.classList.remove('open');pop.classList.remove('searching');pop.classList.remove('sharing');}
   document.removeEventListener('mousedown',_chatMenuOutside,{capture:true});
   document.removeEventListener('touchstart',_chatMenuOutside,{capture:true});
 }
@@ -4853,7 +5067,9 @@ function chatHasMessages(){
 function refreshChatMenuAvailability(){
   const btn=document.getElementById('chatMenuBtn');
   if(!btn)return;
-  const has=chatHasMessages();
+  // В режиме чтения чужого чата действий нет: закреплять, удалять и делиться
+  // чужой перепиской нельзя, поэтому кнопку меню просто не показываем.
+  const has=chatHasMessages()&&!sharedView;
   btn.classList.toggle('is-hidden',!has);
   btn.setAttribute('aria-hidden',has?'false':'true');
   btn.tabIndex=has?0:-1;
@@ -4889,6 +5105,155 @@ function confirmChatDelete(){
   const id=_chatDeleteTargetId;
   closeChatDeleteConfirm();
   if(id)deleteChatConfirmed(id);
+}
+/* ===== ПОДЕЛИТЬСЯ ЧАТОМ =====================================================
+   Токен ссылки выдаёт сервер (POST /api/account {action:'share.create'}), он же
+   проверяет, что чат принадлежит запросившему. Клиент никаких токенов не
+   придумывает и ничего о чужих чатах не знает.
+
+   Что даёт ссылка: чтение заголовка и переписки. Чего не даёт: писать в чат,
+   переименовывать, удалять, видеть аккаунт владельца.
+   ========================================================================= */
+let _shareLink='';
+function chatMenuShare(){
+  if(!curChatId){closeChatMenu();return;}
+  const pop=document.getElementById('chatMenuPop');
+  if(!pop)return;
+  pop.classList.remove('searching');
+  pop.classList.add('sharing');
+  shareNote('Создаём ссылку…',false);
+  shareShow(false);
+  positionChatMenuPop();
+  shareCreate(curChatId);
+}
+function chatMenuShareBack(){
+  const pop=document.getElementById('chatMenuPop');
+  if(pop){pop.classList.remove('sharing');positionChatMenuPop();}
+}
+function shareNote(text,isError){
+  const n=document.getElementById('cmpShareNote');
+  if(!n)return;
+  n.textContent=text;
+  n.classList.toggle('err',Boolean(isError));
+  n.hidden=!text;
+}
+function shareShow(on){
+  const wrap=document.getElementById('cmpShareLinkWrap');
+  const acts=document.getElementById('cmpShareActions');
+  if(wrap)wrap.hidden=!on;
+  if(acts)acts.hidden=!on;
+}
+async function shareCreate(chatId){
+  try{
+    const headers=await hmAuthHeaders();
+    const res=await fetch('/api/account',{method:'POST',headers,cache:'no-store',
+      body:JSON.stringify({action:'share.create',chatId})});
+    const data=await res.json().catch(()=>null);
+    if(!res.ok||!data||!data.url){
+      shareNote((data&&data.error)||'Не удалось создать ссылку. Попробуйте ещё раз.',true);
+      return;
+    }
+    _shareLink=data.url;
+    const inp=document.getElementById('cmpShareLink');
+    if(inp)inp.value=data.url;
+    shareNote(data.reused?'Ссылка на этот чат уже была создана — она ниже.':'Ссылка готова.',false);
+    shareShow(true);
+    positionChatMenuPop();
+  }catch(e){
+    shareNote('Нет связи с сервером.',true);
+  }
+}
+async function chatMenuShareCopy(){
+  if(!_shareLink)return;
+  const btn=document.getElementById('cmpShareCopy');
+  try{
+    await navigator.clipboard.writeText(_shareLink);
+  }catch(e){
+    const inp=document.getElementById('cmpShareLink');
+    if(inp){inp.select();try{document.execCommand('copy');}catch(e2){}}
+  }
+  if(btn){const t=btn.textContent;btn.textContent='Скопировано';setTimeout(()=>{btn.textContent=t;},1500);}
+}
+async function chatMenuShareRevoke(){
+  if(!curChatId)return;
+  const btn=document.getElementById('cmpShareRevoke');
+  if(btn){btn.disabled=true;btn.textContent='Отключаем…';}
+  try{
+    const headers=await hmAuthHeaders();
+    const res=await fetch('/api/account',{method:'POST',headers,cache:'no-store',
+      body:JSON.stringify({action:'share.revoke',chatId:curChatId})});
+    if(!res.ok)throw new Error('revoke failed');
+    _shareLink='';
+    shareShow(false);
+    shareNote('Ссылка отключена. Прежний адрес больше не открывается.',false);
+    positionChatMenuPop();
+  }catch(e){
+    shareNote('Не удалось отключить ссылку. Попробуйте ещё раз.',true);
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='Отключить ссылку';}
+  }
+}
+/* ===== ОТКРЫТИЕ ЧАТА ПО ЧУЖОЙ ССЫЛКЕ (только чтение) ========================
+   Чужой чат НЕ становится чатом читателя: в список чатов не попадает, в базу
+   под его user_id не пишется, прав на оригинал не даёт. Продолжить разговор
+   можно только кнопкой «Продолжить в своём чате» — она открывает новый,
+   собственный чат.
+   ========================================================================= */
+async function openSharedChat(token){
+  let data=null;
+  try{
+    const res=await fetch('/api/account?action=share&token='+encodeURIComponent(token),{cache:'no-store'});
+    data=await res.json().catch(()=>null);
+    if(!res.ok||!data||!data.chat)data=null;
+  }catch(e){data=null;}
+  if(!data){
+    // Ссылка отозвана, устарела или подделана — просто открываем свой пустой чат.
+    newChat();
+    toast('Ссылка недействительна или отозвана');
+    return;
+  }
+  closeSidebar();
+  trainingMode=false;
+  /* curChatId=null — принципиально: saveChat() не должен даже случайно
+     записать чужую переписку в аккаунт читателя. */
+  curChatId=null;
+  chatHistory=[];
+  recentAttachmentDocs=[];
+  sharedView={id:String(data.chat.id||''),title:String(data.chat.title||'Чат')};
+  document.body.classList.add('shared-view');
+
+  const inner=document.getElementById('chatInner');
+  if(inner)inner.innerHTML='';
+  const banner=document.createElement('div');
+  banner.className='shared-banner';
+  banner.innerHTML=`<span class="shared-banner-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 3l7.5 3.4v5.2c0 4.3-3 8.2-7.5 9.4-4.5-1.2-7.5-5.1-7.5-9.4V6.4L12 3z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M9.2 12.2l2 2 3.6-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+    <div class="shared-banner-txt"><b>${escapeHtml(sharedView.title)}</b><br>Чат открыт по ссылке — только для чтения.</div>
+    <button class="shared-banner-btn" type="button" id="sharedContinueBtn">Продолжить в своём чате</button>`;
+  inner?.appendChild(banner);
+  document.getElementById('sharedContinueBtn')?.addEventListener('click',continueSharedInOwnChat);
+
+  const history=Array.isArray(data.chat.history)?data.chat.history:[];
+  history.forEach(m=>{
+    const txt=typeof m.content==='string'?m.content:(Array.isArray(m.content)?m.content.find(c=>c.type==='text')?.text:'[фото]');
+    if(m.role==='user')addUserBubble(txt,[],{createdAt:m.createdAt});
+    else addAiBubble(normalizeReplyNotation(txt||''),false,{createdAt:m.createdAt});
+  });
+  updateTrainingPillUI();
+  renderChatList();
+  resetChatScrollFollow();
+  requestAnimationFrame(()=>scrollChat(true));
+}
+/* Читатель хочет продолжить — уводим его в НОВЫЙ чат его собственного аккаунта.
+   Историю чужого чата не переносим: это была бы копия приватной переписки. */
+function continueSharedInOwnChat(){
+  newChat();
+  toast('Открыт новый чат в вашем аккаунте');
+}
+/* Короткое всплывающее уведомление. Реализация одна на весь монолит — она
+   живёт в блоке просмотрщика фото (pvToast); здесь только понятное имя,
+   которым уже пользуется showFileError(). */
+function toast(text){
+  if(typeof pvToast==='function')pvToast(text);
 }
 /* --- Поиск по сообщениям текущего чата --- */
 function chatMenuFind(){
@@ -4984,12 +5349,25 @@ function deleteChatConfirmed(chatId){
     removeChatMetaFor(chatId);
   }).catch(()=>{});
 }
-async function openChat(id){
+async function openChat(id,opts){
   closeSidebar();
   trainingMode=false;
+  exitSharedView();
+  /* Владение проверяется здесь фильтром user_id и, независимо от клиента,
+     политиками RLS на таблице chats. Подменив ID в адресе, чужой чат получить
+     нельзя: запрос вернёт пустой результат. */
   const {data}=await sb.from('chats').select('history,updated_at').eq('id',id).eq('user_id',curUser.id).single();
-  if(!data)return;
+  if(!data){
+    // Пришли по ссылке на несуществующий или чужой чат — открываем пустой чат
+    // и честно говорим, что доступа нет.
+    if(opts&&opts.fromRoute){
+      newChat();
+      toast('Чат не найден или недоступен');
+    }
+    return;
+  }
   curChatId=id;
+  setChatRoute(id,!(opts&&opts.fromRoute));
   chatHistory=normalizeHistoryTimestamps(data.history||[],data.updated_at||messageNow());
   restoreRecentAttachmentsFromHistory(chatHistory);
   const inner=document.getElementById('chatInner');inner.innerHTML='';
@@ -5080,9 +5458,15 @@ function updateSidebarTrainingVisibility(){
   const btn=document.getElementById('sbTrainingBtn');
   if(btn)btn.style.display=hasTrainingAccess()?'flex':'none';
 }
+/* Выход из режима чтения чужого чата: снимаем флаг и возвращаем строку ввода. */
+function exitSharedView(){
+  sharedView=null;
+  try{document.body.classList.remove('shared-view');}catch(e){}
+}
 function openTraining(){
   if(!hasTrainingAccess())return;
   trainingMode=true;
+  exitSharedView();
   curChatId=null;chatHistory=[];recentAttachmentDocs=[];
   const inner=document.getElementById('chatInner');
   if(inner)inner.innerHTML=trainingGreetingHTML();
@@ -5096,8 +5480,11 @@ function exitTraining(){
 }
 function newChat(){
   trainingMode=false;
+  exitSharedView();
   curChatId=null;chatHistory=[];
   recentAttachmentDocs=[];
+  // Адрес возвращаем к /chat: /chat/<id> прошлого чата в строке остаться не должен.
+  setChatRoute(null,false);
   const inner=document.getElementById('chatInner');
   inner.innerHTML=`<div class="greeting-wrap" id="greetingWrap">
     <div class="greeting-mark mobile-only" aria-hidden="true"><svg width="22" height="26" viewBox="0 0 22 26" fill="none"><ellipse cx="5.5" cy="21" rx="5" ry="3.6" fill="currentColor"/><path d="M10 21V2.5C10 2.5 10 1.5 11.2 1.5C15 1.5 16.5 5.5 16.5 8.5C16.5 9.5 16 10 15.5 9.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div>
@@ -5112,6 +5499,32 @@ function newChat(){
   renderChatList();
   closeSidebar();
 }
+/* ===== УНИКАЛЬНЫЙ ID ЧАТА =====
+   ID попадает в адресную строку (/chat/<id>), поэтому он обязан быть
+   непредсказуемым. Прежняя схема 'chat_'+Date.now() позволяла перебрать
+   идентификаторы соседних чатов простым подбором времени; сам доступ закрыт
+   проверкой владельца на сервере, но угадываемые ID — лишняя подсказка
+   и лишний риск.
+
+   8 символов из алфавита в 62 знака ≈ 2,2·10^14 вариантов. crypto.getRandomValues —
+   криптографический источник; Math.random() здесь недопустим. Отбрасываем
+   значения, не попавшие в целое число полных периодов алфавита, иначе первые
+   буквы выпадали бы чаще остальных. */
+const CHAT_ID_ALPHABET='0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const CHAT_ID_LENGTH=8;
+function generateChatId(){
+  const n=CHAT_ID_ALPHABET.length;
+  const limit=Math.floor(256/n)*n; // 248 — граница несмещённой выборки
+  let out='';
+  const buf=new Uint8Array(CHAT_ID_LENGTH*2);
+  while(out.length<CHAT_ID_LENGTH){
+    crypto.getRandomValues(buf);
+    for(let i=0;i<buf.length&&out.length<CHAT_ID_LENGTH;i++){
+      if(buf[i]<limit)out+=CHAT_ID_ALPHABET[buf[i]%n];
+    }
+  }
+  return out;
+}
 async function saveChat(title){
   if(!curUser||chatHistory.length===0)return;
   // В базу сохраняем ОБЛЕГЧЁННУЮ историю: фото — как текстовые метки, длинные тексты/файлы —
@@ -5122,12 +5535,21 @@ async function saveChat(title){
   // при открытии чата; в модель URL не уходит (см. toWireHistory без флага в requestChatReplyLive).
   const slimHistory=toWireHistory(chatHistory,{keepImage:true,forStorage:true});
   if(!curChatId){
-    curChatId='chat_'+Date.now();
+    curChatId=generateChatId();
     // Название чата определяет ИИ по теме (maybeGenerateChatTitle), поэтому при создании
     // ставим нейтральный placeholder, а не первые слова промпта.
     const t=title||TITLE_PLACEHOLDER;
     const {error}=await sb.from('chats').insert({id:curChatId,user_id:curUser.id,title:t,history:slimHistory,updated_at:new Date().toISOString()});
-    if(!error){chats.unshift({id:curChatId,title:t});renderChatList();}
+    if(!error){
+      chats.unshift({id:curChatId,title:t});renderChatList();
+      // Адрес становится постоянной ссылкой на этот чат — но только после того,
+      // как запись действительно создана в базе.
+      setChatRoute(curChatId,true);
+    }else{
+      // Вставка не удалась — не оставляем призрачный ID в переменной, иначе
+      // следующий save попытался бы обновить несуществующую строку.
+      curChatId=null;
+    }
   }else{
     await sb.from('chats').update({history:slimHistory,updated_at:new Date().toISOString()}).eq('id',curChatId);
   }
@@ -5519,8 +5941,8 @@ function refreshModelUI(){
   toggleClass('desktopCkPro','on',curModel==='pro');
   toggleClass('desktopCkLow','on',effortNow==='low');
   toggleClass('desktopCkMedium','on',effortNow==='medium');
-  toggleClass('desktopCkHigh','on',effortNow==='high');
-  toggleClass('desktopCkUltra','on',effortNow==='ultra');
+  toggleClass('desktopCkMax','on',effortNow==='max');
+  toggleClass('desktopCkExtra','on',effortNow==='extra');
   toggleClass('mmOptLite','active',curModel==='lite');
   toggleClass('mmOptPro','active',curModel==='pro');
   toggleClass('mmOptLow','active',effortNow==='low');
@@ -5661,8 +6083,8 @@ function buildSystem(){
   const EFFORT_SYS={
     low:'\nРЕЖИМ LOW: повседневная задача. Отвечай сразу и по делу, максимум 3-4 предложения, без развёрнутых рассуждений.',
     medium:'\nРЕЖИМ MEDIUM: задача среднего уровня. Сначала продумай структуру, затем дай развёрнутый и аккуратно организованный ответ с примерами.',
-    high:'\nРЕЖИМ HIGH: сложная задача. Разбери её по шагам, проверь крайние случаи, сравни варианты и обоснуй выбор. Качество важнее скорости.',
-    ultra:'\nРЕЖИМ ULTRA: максимальный уровень размышления. Рассмотри несколько подходов, проверь свои выводы, найди слабые места и только потом дай финальный, максимально полный и точный ответ. Скорость не важна.'
+    max:'\nРЕЖИМ MAX: сложная задача. Разбери её по шагам, проверь крайние случаи, сравни варианты и обоснуй выбор. Качество важнее скорости.',
+    extra:'\nРЕЖИМ EXTRA: максимальный уровень размышления. Рассмотри несколько подходов, проверь свои выводы, найди слабые места и только потом дай финальный, максимально полный и точный ответ. Скорость не важна.'
   };
   sys+=EFFORT_SYS[normEffort(curMode)]||EFFORT_SYS.low;
   if(hasTrainingAccess())sys+='\nПользователь с ролью developer/admin. Его заметки и загруженные материалы считай приоритетными источниками знаний.';
@@ -6026,7 +6448,7 @@ function attachUserMessageLongPress(el){
 }
 function closeUserMessageMenu(){
   const menu=document.getElementById('userMsgCtxMenu');
-  if(menu)menu.remove();
+  if(menu)dismissPopEl(menu);
   document.removeEventListener('mousedown',_userMsgMenuOutside,{capture:true});
   document.removeEventListener('touchstart',_userMsgMenuOutside,{capture:true});
 }
@@ -7024,16 +7446,16 @@ const TR_MAX_SENTENCES=400;
 const TR_ABC_MAX_TRIES=60;
 const TR_CHEVRON='<svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" focusable="false"><path d="M3 4.75 L6 7.75 L9 4.75" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>';
 
-function trSecondsWord(n){const a=n%10,b=n%100;if(a===1&&b!==11)return'секунду';if(a>=2&&a<=4&&(b<12||b>14))return'секунды';return'секунд';}
-function trMinutesWord(n){const a=n%10,b=n%100;if(a===1&&b!==11)return'минуту';if(a>=2&&a<=4&&(b<12||b>14))return'минуты';return'минут';}
+/* Компактный формат длительности: «4с», «12с», «1 мин 08с».
+   Раньше здесь были склонения («Думал 1 секунду»), но вместе с неверным отсчётом
+   времени это давало одну и ту же строку на любой запрос. Формат сделан коротким
+   специально: он стоит в одну строку с заголовком блока. */
 function fmtThinkDuration(ms){
   const total=Number(ms);
   const s=Math.max(1,Math.round((isFinite(total)?total:0)/1000));
-  if(s<60)return s+' '+trSecondsWord(s);
+  if(s<60)return s+'с';
   const m=Math.floor(s/60),rem=s%60;
-  let out=m+' '+trMinutesWord(m);
-  if(rem)out+=' '+rem+' '+trSecondsWord(rem);
-  return out;
+  return m+' мин '+(rem<10?'0':'')+rem+'с';
 }
 
 // Приводим текст размышления к читаемому виду: убираем служебный маркер ответа,
@@ -7175,7 +7597,13 @@ function ensureReasoningBlock(msgEl){
   tr._open=false;
   tr._userToggled=false;
   tr._userScrolled=false;
+  /* Локальное время старта — только страховка на случай, если сервер не пришлёт
+     reasoning_start (старая версия функции, обрыв соединения). Настоящую
+     длительность считает сервер и присылает в reasoning_end.durationMs: раньше
+     отсчёт начинался здесь, по первому чанку, и «Думал» всегда показывал 1с. */
   tr._startedAt=Date.now();
+  tr._serverDurationMs=null;
+  tr._keepEmpty=false;
 
   header.addEventListener('click',function(){toggleReasoningBlock(tr);});
   header.addEventListener('keydown',function(e){
@@ -7267,11 +7695,18 @@ function finalizeReasoningBlock(tr){
   if(tr._raf){cancelAnimationFrame(tr._raf);tr._raf=0;}
   flushReasoning(tr);
 
-  tr._durationMs=Date.now()-(tr._startedAt||Date.now());
+  // Длительность берём с сервера — это фактическое время работы модели над
+  // рассуждениями. Локальный отсчёт остаётся запасным вариантом.
+  tr._durationMs=(tr._serverDurationMs!=null)
+    ?tr._serverDurationMs
+    :(Date.now()-(tr._startedAt||Date.now()));
   tr.classList.remove('is-live');
 
-  // Пустое размышление не должно оставлять висящую плашку.
-  if(!formatReasoningText(tr._text||'').trim()){tr.remove();return;}
+  // Пустое размышление не должно оставлять висящую плашку. Исключение — когда
+  // сервер сообщил, что модель думала в скрытом канале и сводки не написала
+  // (reasoning_end.hidden): время работы модели реально было, и показать его
+  // честнее, чем убрать блок.
+  if(!formatReasoningText(tr._text||'').trim()&&!tr._keepEmpty){tr.remove();return;}
 
   const human='Думал '+fmtThinkDuration(tr._durationMs);
   if(tr._verb)tr._verb.textContent=human;
@@ -7299,6 +7734,45 @@ function dropReasoningBlock(msgEl){
   if(tr._raf){cancelAnimationFrame(tr._raf);tr._raf=0;}
   tr._done=true;
   tr.remove();
+}
+
+/* ===== ЖИЗНЕННЫЙ ЦИКЛ БЛОКА РАЗМЫШЛЕНИЙ (события сервера) ==================
+   Порядок событий сервера:
+     reasoning_start → reasoning / reasoning_progress → reasoning_end → delta
+   reasoning_end гарантированно уходит строго до первого delta, поэтому текст
+   ответа не может попасть в серый блок. Клиент больше ничего не угадывает:
+   ни момент старта, ни длительность.
+   ========================================================================= */
+
+// Модель начала думать. Блок показываем сразу, даже если текста ещё нет:
+// в скрытом канале рассуждений текста для пользователя не будет вообще.
+function startReasoningBlock(msgEl,at){
+  const tr=ensureReasoningBlock(msgEl);
+  if(!tr)return null;
+  const stamp=Number(at);
+  if(isFinite(stamp)&&stamp>0)tr._serverStartedAt=stamp;
+  return tr;
+}
+
+// Прогресс скрытых рассуждений: текста в событии нет и быть не может —
+// внутреннюю цепочку рассуждений модели мы не показываем. Событие нужно только
+// чтобы блок «Думаю» появился и было видно, что работа идёт.
+function markReasoningProgress(msgEl){
+  const tr=ensureReasoningBlock(msgEl);
+  if(!tr||tr._done)return;
+  tr.classList.add('is-live');
+}
+
+// Рассуждения закончены: фиксируем реальную длительность с сервера и закрываем блок.
+function endReasoningBlock(msgEl,durationMs,hidden){
+  if(!msgEl||!msgEl.closest)return;
+  const wrap=msgEl.closest('.msg-ai-wrap');
+  const tr=wrap&&wrap.querySelector('.tr');
+  if(!tr)return;
+  const ms=Number(durationMs);
+  if(isFinite(ms)&&ms>=0)tr._serverDurationMs=ms;
+  if(hidden)tr._keepEmpty=true;
+  finalizeReasoningBlock(tr);
 }
 
 // Страховка: закрываем любое "живое" размышление при остановке, ошибке или обрыве.
@@ -7373,7 +7847,9 @@ function isComplexTask(text){
 function shouldShowThinkingLabel(){
   try{
     if(typeof thinkOn!=='undefined'&&thinkOn)return true;
-    if(typeof curMode!=='undefined'&&/^(high|ultra)$/i.test(String(curMode||'')))return true;
+    // Верхние два уровня — max/extra; high/ultra остаются на случай значения из
+    // localStorage, сохранённого до переименования.
+    if(typeof curMode!=='undefined'&&/^(max|extra|high|ultra)$/i.test(String(curMode||'')))return true;
   }catch(e){}
   return isComplexTask(trReadLastUserText());
 }
@@ -7490,7 +7966,7 @@ async function maybeGenerateChatTitle(){
     _titleInFlight=false;
   }
 }
-// Двухэтапная генерация: сначала спрашиваем intent-классификатор (api/intent.js),
+// Двухэтапная генерация: сначала спрашиваем intent-классификатор (lib/util-intent.js),
 // нужно ли вообще генерировать и хватает ли деталей. Возвращает:
 //   {need_image, clarify, image_prompt, clarify_question}
 // При любой ошибке/недоступности — fail-open: если режим включён (forceImage) — отдаём
@@ -7621,6 +8097,29 @@ function lastUserHasAttachments(){
   }
   return false;
 }
+/* ===== ЗАГОЛОВКИ АВТОРИЗАЦИИ ДЛЯ ЗАПРОСОВ К /api ===========================
+   Сервер должен узнавать пользователя из подписанного токена Supabase, а не из
+   поля userId в теле запроса: тело подделывается одной строкой в консоли.
+   Токен уходит в Authorization; заголовок x-supabase-authorization дублирует его
+   для прокси, которые срезают Authorization.
+
+   Ошибку получения сессии глотаем намеренно: неавторизованный чат (демо-режим,
+   истёкшая сессия) должен продолжать работать — сервер в этом случае просто
+   не получит токена. Fail-open здесь на месте, потому что деньги и API-ключи
+   живут в других эндпоинтах и токен требуют безусловно.
+   ========================================================================= */
+async function hmAuthHeaders(base){
+  const headers=Object.assign({'Content-Type':'application/json'},base||{});
+  try{
+    const {data:{session}}=await sb.auth.getSession();
+    const token=session?.access_token;
+    if(token){
+      headers['Authorization']='Bearer '+token;
+      headers['x-supabase-authorization']='Bearer '+token;
+    }
+  }catch(e){}
+  return headers;
+}
 async function requestChatReply(){
   activeAbortController=new AbortController();
   const payload={
@@ -7632,13 +8131,14 @@ async function requestChatReply(){
     userId:curUser?.id||null,
     userEmail:curUser?.email||null
   };
+  const authHeaders=await hmAuthHeaders();
   let lastError=null;
   const endpoints=buildApiCandidates();
   for(let i=0;i<endpoints.length;i++){
     const endpoint=endpoints[i];
     try{
       const res=await withTimeout(
-        fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),cache:'no-store',credentials:'omit',signal:activeAbortController.signal}),
+        fetch(endpoint,{method:'POST',headers:authHeaders,body:JSON.stringify(payload),cache:'no-store',credentials:'omit',signal:activeAbortController.signal}),
         CHAT_TIMEOUT_MS,
         'Сервер слишком долго отвечает'
       );
@@ -7685,12 +8185,13 @@ async function requestChatReplyLive(msgEl,actionsEl,extraMessages=[],prefixText=
     userEmail:curUser?.email||null
   };
   const endpoints=buildApiCandidates();
+  const authHeaders=await hmAuthHeaders();
   let lastError=null;
   for(let i=0;i<endpoints.length;i++){
     const endpoint=endpoints[i];
     try{
       const res=await withTimeout(
-        fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),cache:'no-store',credentials:'omit',signal:activeAbortController.signal}),
+        fetch(endpoint,{method:'POST',headers:authHeaders,body:JSON.stringify(payload),cache:'no-store',credentials:'omit',signal:activeAbortController.signal}),
         CHAT_TIMEOUT_MS,
         'Сервер слишком долго отвечает'
       );
@@ -7758,10 +8259,26 @@ async function requestChatReplyLive(msgEl,actionsEl,extraMessages=[],prefixText=
               }else if(payloadChunk.type==='search_done'){
                 // Поиск завершён — ИИ теперь думает над ответом (появляется стрелочка).
                 markSearchTraceThinking(msgEl);
+              }else if(payloadChunk.type==='reasoning_start'){
+                // Модель начала думать. Блок появляется сразу — даже если сводки
+                // ещё нет: скрытый канал рассуждений текста не даёт.
+                if(!gotReasoning){hideTyping();gotReasoning=true;}
+                if(gotSearchTrace)markSearchTraceThinking(msgEl);
+                startReasoningBlock(msgEl,payloadChunk.at);
+              }else if(payloadChunk.type==='reasoning_progress'){
+                // Безопасный сигнал прогресса без текста (см. api/chat.js).
+                if(!gotReasoning){hideTyping();gotReasoning=true;}
+                if(gotSearchTrace)markSearchTraceThinking(msgEl);
+                markReasoningProgress(msgEl);
               }else if(payloadChunk.type==='reasoning'){
                 if(!gotReasoning){hideTyping();gotReasoning=true;}
                 if(gotSearchTrace)markSearchTraceThinking(msgEl);
                 appendReasoningChunk(msgEl,payloadChunk.text||'');
+              }else if(payloadChunk.type==='reasoning_end'){
+                // Рассуждения закончены. Длительность — с сервера, а не по
+                // локальному таймеру: он всегда показывал «Думал 1с».
+                endReasoningBlock(msgEl,payloadChunk.durationMs,payloadChunk.hidden);
+                gotReasoning=false;
               }else if(payloadChunk.type==='reasoning_reset'){
                 // Модель не выделила ответ маркером — «мысли» оказались самим ответом.
                 // Убираем серый блок, чтобы текст не показался дважды.
@@ -9382,7 +9899,9 @@ function openSettings(){
 }
 function closeSettings(){
   document.getElementById('settingsOverlay').classList.remove('open');
-  if(!routeNavigating&&currentRoute()==='/settings')setRoute('/chat',false);
+  // Возвращаем адрес чата, а не просто /chat: иначе закрытие настроек
+  // выбрасывало бы /chat/<id> из строки и ссылка на чат терялась.
+  if(!routeNavigating&&currentRoute()==='/settings')setChatRoute(curChatId||null,false);
 }
 
 function getSettings(){return curUser?.settings||{};}
@@ -9554,8 +10073,9 @@ function renderSettingsMain(){
     </div>`;
 }
 function goToDynatos(){
-  // Открываем страницу оформления Pro в НОВОМ окне/вкладке.
-  window.open('https://harmonyai-zeta.vercel.app/subscribe','_blank','noopener,noreferrer');
+  // Открываем страницу оформления Pro в НОВОМ окне/вкладке. Путь относительный:
+  // страница живёт в том же деплое, и на любом домене ссылка остаётся верной.
+  window.open('/subscribe','_blank','noopener,noreferrer');
 }
 /* Deep link from the help center back button: /?screen=settings opens the settings screen
    as soon as the app is mounted, then strips the query so it does not stay in history. */
