@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Личный кабинет API — Harmony AI</title>
+<meta name="description" content="Управление API-ключами Harmony AI, баланс, пополнение и расход за последние 30 дней.">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#ffffff">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230d0f14'/%3E%3Cpath d='M18 14h8v18h12V14h8v36h-8V39H26v11h-8z' fill='%23ffffff'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/css/site.css">
+</head>
+<body>
+
+<a class="skip-link" href="#main">Перейти к содержимому</a>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a class="brand" href="/">
+      <span class="brand-mark" aria-hidden="true">H</span>
+      Harmony AI
+    </a>
+
+    <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+      <a href="/api">API</a>
+      <a href="/api#reference">Документация</a>
+      <a href="/#pricing">Цены</a>
+      <a href="/#faq">FAQ</a>
+    </nav>
+
+    <div class="header-actions">
+      <a class="btn btn-ghost btn-sm btn-hide-sm" href="/chat">Чат</a>
+      <button class="btn btn-outline btn-sm" type="button" id="signOutBtn">Выйти</button>
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="siteNav" aria-label="Меню">
+        <span></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="section">
+    <div class="wrap">
+
+      <!-- Пока читаем сессию и данные — скелет, чтобы страница не «прыгала». -->
+      <div id="loading">
+        <div class="skeleton" style="height:30px;width:260px;margin-bottom:26px;"></div>
+        <div class="grid grid-2" style="margin-bottom:26px;">
+          <div class="skeleton" style="height:150px;"></div>
+          <div class="skeleton" style="height:150px;"></div>
+        </div>
+        <div class="skeleton" style="height:220px;"></div>
+      </div>
+
+      <div id="loadError" class="hidden">
+        <h1 style="margin-bottom:14px;">Не удалось загрузить кабинет</h1>
+        <p class="lead" id="loadErrorText" style="margin-bottom:24px;"></p>
+        <div class="btn-row">
+          <button class="btn btn-primary" type="button" onclick="location.reload()">Обновить страницу</button>
+          <a class="btn btn-outline" href="/api">К документации</a>
+        </div>
+      </div>
+
+      <div id="app" class="hidden fade-in">
+
+        <div class="section-head" style="margin-bottom:26px;">
+          <p class="eyebrow">Личный кабинет</p>
+          <h1 style="margin-bottom:8px;">API</h1>
+          <p style="color:var(--text-2);">Аккаунт <span class="mono" id="userEmail"></span></p>
+        </div>
+
+        <!-- ===== БАЛАНС И ПОДПИСКА ===== -->
+        <div class="grid grid-2" style="margin-bottom:34px;">
+
+          <article class="card">
+            <p class="eyebrow" style="margin-bottom:10px;">Баланс API</p>
+            <p style="font-size:34px;font-weight:640;letter-spacing:-.02em;margin-bottom:6px;">
+              <span id="balanceValue">—</span> ₽
+            </p>
+            <p style="color:var(--text-3);font-size:14px;margin-bottom:18px;" id="balanceNote"></p>
+            <div class="btn-row">
+              <button class="btn btn-primary" type="button" data-modal-open="topupModal">Пополнить</button>
+              <a class="btn btn-ghost btn-sm" href="/api#billing">Как считается расход</a>
+            </div>
+          </article>
+
+          <article class="card">
+            <p class="eyebrow" style="margin-bottom:10px;">Подписка на чат</p>
+            <p style="font-size:22px;font-weight:600;margin-bottom:6px;" id="planValue">—</p>
+            <p style="color:var(--text-3);font-size:14px;margin-bottom:18px;" id="planNote">
+              Баланс API и подписка Pro независимы друг от друга.
+            </p>
+            <div class="btn-row" id="planActions"></div>
+          </article>
+
+        </div>
+
+        <!-- ===== КЛЮЧИ ===== -->
+        <div class="section-head" style="margin-bottom:18px;">
+          <h2 style="font-size:24px;">API-ключи</h2>
+        </div>
+
+        <div class="btn-row" style="margin-bottom:18px;">
+          <button class="btn btn-primary" type="button" id="createKeyBtn">Создать API-ключ</button>
+          <span id="keysMsg" style="align-self:center;font-size:14px;color:var(--text-3);"></span>
+        </div>
+
+        <div id="keysEmpty" class="card hidden" style="text-align:center;padding:34px 22px;">
+          <h3 style="margin-bottom:8px;">Ключей пока нет</h3>
+          <p style="color:var(--text-2);">
+            Создайте первый ключ — он понадобится, чтобы подключить
+            <a href="/api#connect" style="color:var(--link);">Claude Code или другой клиент</a>.
+          </p>
+        </div>
+
+        <div class="table-wrap hidden" id="keysWrap" style="margin-bottom:34px;">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>Ключ</th>
+                <th>Создан</th>
+                <th>Последнее использование</th>
+                <th>Запросов</th>
+                <th style="width:44px;"></th>
+              </tr>
+            </thead>
+            <tbody id="keysBody"></tbody>
+          </table>
+        </div>
+
+        <!-- ===== РАСХОД ===== -->
+        <div class="section-head" style="margin-bottom:18px;">
+          <h2 style="font-size:24px;">Расход за 30 дней</h2>
+        </div>
+        <div class="grid grid-4" id="usageCards" style="margin-bottom:18px;"></div>
+        <div class="table-wrap hidden" id="usageWrap" style="margin-bottom:34px;">
+          <table class="tbl">
+            <thead>
+              <tr><th>Модель</th><th>Запросов</th><th>Входных токенов</th><th>Выходных токенов</th><th>Стоимость</th></tr>
+            </thead>
+            <tbody id="usageBody"></tbody>
+          </table>
+        </div>
+
+        <!-- ===== ПЛАТЕЖИ ===== -->
+        <div class="section-head" style="margin-bottom:18px;">
+          <h2 style="font-size:24px;">Платежи</h2>
+        </div>
+        <div id="paymentsEmpty" class="card hidden" style="padding:26px 22px;color:var(--text-2);">
+          Платежей пока не было.
+        </div>
+        <div class="table-wrap hidden" id="paymentsWrap">
+          <table class="tbl">
+            <thead>
+              <tr><th>Операция</th><th>Сумма</th><th>Статус</th><th>Дата</th></tr>
+            </thead>
+            <tbody id="paymentsBody"></tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a class="brand" href="/">
+          <span class="brand-mark" aria-hidden="true">H</span>
+          Harmony AI
+        </a>
+        <p>Универсальный AI-помощник для учёбы, работы, анализа, кода, файлов и творчества.</p>
+      </div>
+
+      <div class="footer-col">
+        <h4>Продукт</h4>
+        <ul>
+          <li><a href="/#features">Возможности</a></li>
+          <li><a href="/#pricing">Цены</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Разработчикам</h4>
+        <ul>
+          <li><a href="/api">API</a></li>
+          <li><a href="/api#reference">Документация</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Компания</h4>
+        <ul>
+          <li><a href="/about">О нас</a></li>
+          <li><a href="/contacts">Контакты</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Поддержка</h4>
+        <ul>
+          <li><a href="/#faq">FAQ</a></li>
+          <li><a href="/contacts">Связаться с нами</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <span>© <span data-year>2026</span> Harmony AI</span>
+      <span>
+        <a href="/legal/privacy.html">Политика конфиденциальности</a>
+        &nbsp;·&nbsp;
+        <a href="/legal/terms.html">Условия использования</a>
+      </span>
+    </div>
+  </div>
+</footer>
+
+<!-- ===== ОКНО НОВОГО КЛЮЧА ===== -->
+<div class="modal" id="newKeyModal" role="dialog" aria-modal="true" aria-labelledby="newKeyTitle" data-persistent="1">
+  <div class="modal-backdrop"></div>
+  <div class="modal-card">
+    <div class="modal-head"><h3 id="newKeyTitle">API-ключ создан</h3></div>
+    <div class="notice notice-warn" style="margin-bottom:18px;">
+      <strong>Сохраните этот ключ сейчас. Он показывается только один раз.</strong>
+      После закрытия окна полный ключ невозможно увидеть — ни здесь, ни где-либо ещё.
+    </div>
+    <div class="field">
+      <label for="newKeyValue" style="font-size:13px;color:var(--text-3);">Ваш ключ</label>
+      <input class="input mono" id="newKeyValue" type="password" readonly value="" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="btn-row" style="margin-top:12px;">
+      <button class="btn btn-outline btn-sm" type="button" id="newKeyToggle" aria-pressed="false">Показать</button>
+      <button class="btn btn-outline btn-sm" type="button" id="newKeyCopy">Скопировать</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" type="button" id="newKeyDone">Я сохранил ключ</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ОКНО ПОПОЛНЕНИЯ ===== -->
+<div class="modal" id="topupModal" role="dialog" aria-modal="true" aria-labelledby="topupTitle">
+  <div class="modal-backdrop"></div>
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3 id="topupTitle">Пополнить баланс API</h3>
+      <button class="modal-close" type="button" data-modal-close aria-label="Закрыть">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+
+    <div class="btn-row" id="topupPresets" style="margin-bottom:16px;"></div>
+
+    <div class="field">
+      <label for="topupAmount">Сумма, ₽</label>
+      <input class="input" id="topupAmount" type="number" inputmode="numeric" step="1" value="500">
+      <span class="err-text hidden" id="topupError"></span>
+      <!-- Границы приходят с сервера (lib/pricing.js): в вёрстке их не держим. -->
+      <p id="topupLimits" style="font-size:13px;color:var(--text-3);margin-top:8px;"></p>
+    </div>
+
+    <p style="font-size:14px;color:var(--text-3);margin-top:12px;">
+      Оплата проходит через ЮKassa. Баланс увеличится после подтверждения платежа
+      платёжной системой — обычно в течение минуты.
+    </p>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" type="button" data-modal-close>Отмена</button>
+      <button class="btn btn-primary" type="button" id="topupSubmit">Перейти к оплате</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ОКНО ПЕРЕИМЕНОВАНИЯ ===== -->
+<div class="modal" id="renameModal" role="dialog" aria-modal="true" aria-labelledby="renameTitle">
+  <div class="modal-backdrop"></div>
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3 id="renameTitle">Название ключа</h3>
+      <button class="modal-close" type="button" data-modal-close aria-label="Закрыть">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <p style="color:var(--text-2);font-size:14px;margin-bottom:14px;">
+      Название нужно только вам — оно помогает не путать ключи разных проектов.
+    </p>
+    <div class="field">
+      <label for="renameValue">Название</label>
+      <input class="input" id="renameValue" type="text" maxlength="60" value="">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" type="button" data-modal-close>Отмена</button>
+      <button class="btn btn-primary" type="button" id="renameSubmit">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ОКНО ПОДТВЕРЖДЕНИЯ ОПАСНЫХ ДЕЙСТВИЙ ===== -->
+<div class="modal" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+  <div class="modal-backdrop"></div>
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3 id="confirmTitle">Подтвердите действие</h3>
+      <button class="modal-close" type="button" data-modal-close aria-label="Закрыть">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <p id="confirmText" style="color:var(--text-2);"></p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" type="button" data-modal-close>Отмена</button>
+      <button class="btn btn-danger" type="button" id="confirmSubmit">Подтвердить</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+<script src="/js/site-auth.js" defer></script>
+<script src="/js/site.js" defer></script>
+<script>
+/* ============================================================================
+   ЛИЧНЫЙ КАБИНЕТ API
+
+   Страница ничего не решает сама: все данные и все операции — через
+   /api/account, который проверяет и авторизацию, и владельца записи.
+   Здесь нет ни одного места, где сумма баланса или права на ключ считались бы
+   на клиенте: то, что пришло от сервера, только отображается.
+
+   Неавторизованного отправляем на существующий /login с параметром next —
+   второй системы входа мы не заводим.
+   ============================================================================ */
+document.addEventListener('DOMContentLoaded', function () {
+
+  var el = function (id) { return document.getElementById(id); };
+  var state = { overview: null, pricing: null, renameId: null, confirmAction: null };
+
+  /* ===== ФОРМАТИРОВАНИЕ ================================================== */
+  var MONTHS = ['января','февраля','марта','апреля','мая','июня',
+                'июля','августа','сентября','октября','ноября','декабря'];
+
+  function fmtDate(iso) {
+    if (!iso) return '—';
+    var d = new Date(iso);
+    if (isNaN(d)) return '—';
+    return d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear();
+  }
+  function fmtNum(n) {
+    return Number(n || 0).toLocaleString('ru-RU');
+  }
+  /* Рубли приходят с сервера строкой вида "299.00" — целые числа, посчитанные
+     в копейках. Здесь только оформление: запятая вместо точки и без ",00". */
+  function fmtRub(s) {
+    return String(s == null ? '' : s).replace('.', ',').replace(/,00$/, '');
+  }
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  /* ===== ЗАГРУЗКА ======================================================== */
+  async function load() {
+    var res = await window.hmAuth.account('overview');
+
+    if (res.status === 401) { window.hmAuth.login('/api/dashboard'); return; }
+    if (!res.ok) {
+      el('loading').classList.add('hidden');
+      el('loadErrorText').textContent = res.error || 'Сервер не ответил';
+      el('loadError').classList.remove('hidden');
+      return;
+    }
+
+    state.overview = res.data;
+    state.pricing = res.data.pricing || null;
+    render();
+
+    el('loading').classList.add('hidden');
+    el('app').classList.remove('hidden');
+  }
+
+  function render() {
+    var d = state.overview;
+
+    el('userEmail').textContent = d.email || '';
+
+    /* Баланс. Сервер присылает и микрорубли, и готовую строку — берём строку,
+       чтобы на клиенте не появилось собственной арифметики с копейками. */
+    var bal = d.balance || {};
+    el('balanceValue').textContent = bal.rub != null ? bal.rub : '0,00';
+    el('balanceNote').textContent = bal.updatedAt
+      ? 'Обновлён ' + fmtDate(bal.updatedAt)
+      : 'Пополните баланс, чтобы начать пользоваться API.';
+
+    renderPlan(d.plan || {});
+    renderKeys(d.keys || []);
+    renderUsage(d.usage);
+    renderPayments(d.payments || []);
+    renderPresets(d.topup || (state.pricing && state.pricing.topup) || {});
+  }
+
+  function renderPlan(plan) {
+    var isPro = plan.plan === 'pro';
+    el('planValue').textContent = isPro ? 'Pro' : 'Базовый доступ';
+    el('planNote').textContent = isPro
+      ? (plan.expiresAt ? 'Активна до ' + fmtDate(plan.expiresAt) : 'Активна')
+      : 'Подписка Pro открывает возможности чата. На баланс API она не влияет.';
+    // Цену берём из серверных тарифов (lib/pricing.js), а не из вёрстки:
+    // при смене PRO_PRICE_RUB кабинет не должен показывать старую цифру.
+    var proRub = fmtRub((state.pricing && state.pricing.proPriceRub) || '299');
+    el('planActions').innerHTML = isPro
+      ? '<a class="btn btn-ghost btn-sm" href="/subscribe">Управление подпиской</a>'
+      : '<a class="btn btn-outline" href="/subscribe">Оформить Pro — ' + esc(proRub) + ' ₽</a>';
+  }
+
+  /* ===== КЛЮЧИ ===========================================================
+     В таблице только маска. Полного ключа здесь нет и быть не может: сервер
+     хранит хеш, восстановить значение невозможно — только перевыпустить. */
+  function renderKeys(keys) {
+    var live = keys.filter(function (k) { return !k.revokedAt; });
+
+    el('keysEmpty').classList.toggle('hidden', live.length > 0);
+    el('keysWrap').classList.toggle('hidden', live.length === 0);
+
+    el('keysBody').innerHTML = live.map(function (k) {
+      var popId = 'keyPop_' + k.id;
+      return '<tr>' +
+        '<td><span class="mono">' + esc(k.masked) + '</span>' +
+          (k.name ? '<br><span style="color:var(--text-3);font-size:13px;">' + esc(k.name) + '</span>' : '') +
+        '</td>' +
+        '<td>' + fmtDate(k.createdAt) + '</td>' +
+        '<td>' + (k.lastUsedAt ? fmtDate(k.lastUsedAt) : '<span style="color:var(--text-3);">не использовался</span>') + '</td>' +
+        '<td class="num">' + fmtNum(k.requestCount) + '</td>' +
+        '<td style="position:relative;">' +
+          '<button class="btn btn-ghost btn-sm" type="button" data-pop="' + popId + '" aria-label="Действия с ключом">⋯</button>' +
+          '<div class="pop" id="' + popId + '" style="right:0;top:100%;">' +
+            '<button class="pop-item" type="button" data-act="rename" data-id="' + esc(k.id) + '">Переименовать</button>' +
+            '<button class="pop-item" type="button" data-act="rotate" data-id="' + esc(k.id) + '">Перевыпустить ключ</button>' +
+            '<div class="pop-sep"></div>' +
+            '<button class="pop-item danger" type="button" data-act="revoke" data-id="' + esc(k.id) + '">Отозвать</button>' +
+            '<button class="pop-item danger" type="button" data-act="delete" data-id="' + esc(k.id) + '">Удалить</button>' +
+          '</div>' +
+        '</td>' +
+      '</tr>';
+    }).join('');
+
+    /* Разметка создана только что — привязываем к ней меню и обработчики. */
+    window.hm.pop(el('keysBody'));
+    el('keysBody').querySelectorAll('[data-act]').forEach(function (b) {
+      b.addEventListener('click', function () { keyAction(b.dataset.act, b.dataset.id); });
+    });
+  }
+
+  function renderUsage(usage) {
+    var cards = el('usageCards');
+    if (!usage) {
+      cards.innerHTML = '<article class="card"><p style="color:var(--text-2);">Запросов пока не было.</p></article>';
+      el('usageWrap').classList.add('hidden');
+      return;
+    }
+    cards.innerHTML =
+      tile('Запросов', fmtNum(usage.requests)) +
+      tile('Входных токенов', fmtNum(usage.inputTokens)) +
+      tile('Выходных токенов', fmtNum(usage.outputTokens)) +
+      tile('Списано', (usage.costRub != null ? usage.costRub : '0,00') + ' ₽');
+
+    var rows = usage.byModel || [];
+    el('usageWrap').classList.toggle('hidden', rows.length === 0);
+    el('usageBody').innerHTML = rows.map(function (m) {
+      return '<tr>' +
+        '<td><code>' + esc(m.model) + '</code></td>' +
+        '<td class="num">' + fmtNum(m.requests) + '</td>' +
+        '<td class="num">' + fmtNum(m.inputTokens) + '</td>' +
+        '<td class="num">' + fmtNum(m.outputTokens) + '</td>' +
+        '<td class="num">' + (m.costRub != null ? m.costRub : '0,00') + ' ₽</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  function tile(label, value) {
+    return '<article class="card">' +
+      '<p class="eyebrow" style="margin-bottom:8px;">' + esc(label) + '</p>' +
+      '<p style="font-size:24px;font-weight:620;">' + esc(value) + '</p>' +
+    '</article>';
+  }
+
+  function renderPayments(list) {
+    el('paymentsEmpty').classList.toggle('hidden', list.length > 0);
+    el('paymentsWrap').classList.toggle('hidden', list.length === 0);
+
+    el('paymentsBody').innerHTML = list.map(function (p) {
+      var title = p.type === 'api_balance' ? 'Пополнение API' : 'Подписка Pro';
+      var sign = p.type === 'api_balance' ? '+' : '';
+      var badge = p.status === 'succeeded'
+        ? '<span class="badge badge-ok">Оплачено</span>'
+        : (p.status === 'canceled'
+            ? '<span class="badge badge-err">Отменён</span>'
+            : '<span class="badge badge-warn">Ожидает оплаты</span>');
+      return '<tr>' +
+        '<td>' + esc(title) +
+          (p.description ? '<br><span style="color:var(--text-3);font-size:13px;">' + esc(p.description) + '</span>' : '') +
+        '</td>' +
+        '<td class="num">' + sign + esc(p.amountRub) + ' ₽</td>' +
+        '<td>' + badge + '</td>' +
+        '<td>' + fmtDate(p.paidAt || p.createdAt) + '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  /* ===== ПОПОЛНЕНИЕ ======================================================
+     Наружу уходит ТОЛЬКО сумма. Ни числа кредитов, ни user_id клиент не
+     отправляет — начисление целиком на сервере, после подтверждения ЮKassa. */
+  function renderPresets(topup) {
+    var presets = topup.presets || [500, 1000, 2500, 5000];
+    el('topupPresets').innerHTML = presets.map(function (v) {
+      return '<button class="btn btn-outline btn-sm" type="button" data-amount="' + v + '">' + fmtNum(v) + ' ₽</button>';
+    }).join('');
+    el('topupPresets').querySelectorAll('[data-amount]').forEach(function (b) {
+      b.addEventListener('click', function () { el('topupAmount').value = b.dataset.amount; showTopupError(''); });
+    });
+
+    /* Границы суммы — из серверной конфигурации. Поле ввода тоже ограничиваем,
+       но решает всё равно сервер: пришедшую сумму он проверяет заново. */
+    var min = topup.minRub, max = topup.maxRub;
+    if (min && max) {
+      el('topupAmount').min = String(parseInt(min, 10) || '');
+      el('topupAmount').max = String(parseInt(max, 10) || '');
+      el('topupLimits').textContent = 'От ' + fmtNum(parseInt(min, 10)) + ' до ' + fmtNum(parseInt(max, 10)) + ' ₽ за одно пополнение.';
+    }
+  }
+
+  function showTopupError(text) {
+    var box = el('topupError');
+    box.textContent = text;
+    box.classList.toggle('hidden', !text);
+  }
+
+  el('topupSubmit').addEventListener('click', async function () {
+    var raw = el('topupAmount').value.trim();
+    var amount = Number(raw);
+
+    /* Первичная проверка — чтобы не гонять заведомо мусорный запрос.
+       Настоящую проверку границ делает сервер, и его отказ мы покажем. */
+    if (!raw || !Number.isFinite(amount) || amount <= 0 || Math.trunc(amount) !== amount) {
+      showTopupError('Введите сумму целым числом рублей');
+      return;
+    }
+    showTopupError('');
+
+    var btn = el('topupSubmit');
+    btn.disabled = true;
+    btn.textContent = 'Создаём платёж…';
+
+    var res = await window.hmAuth.createPayment({ type: 'api_balance', amount: amount });
+
+    btn.disabled = false;
+    btn.textContent = 'Перейти к оплате';
+
+    if (!res.ok) { showTopupError(res.error); return; }
+    location.href = res.confirmationUrl;
+  });
+
+  /* ===== ДЕЙСТВИЯ С КЛЮЧАМИ ============================================= */
+  function keyAction(act, id) {
+    if (act === 'rename') {
+      var key = (state.overview.keys || []).find(function (k) { return k.id === id; });
+      state.renameId = id;
+      el('renameValue').value = (key && key.name) || '';
+      window.hm.openModal('renameModal');
+      return;
+    }
+
+    if (act === 'rotate') {
+      askConfirm(
+        'Перевыпустить ключ?',
+        'Текущий ключ перестанет работать немедленно — все клиенты, где он прописан, ' +
+        'получат ошибку авторизации. Новый ключ будет показан один раз.',
+        'Перевыпустить',
+        async function () {
+          var res = await window.hmAuth.account('keys.rotate', { id: id });
+          if (!res.ok) { setKeysMsg(res.error, true); return; }
+          await load();
+          if (res.data && res.data.key) showKey(res.data.key);
+        }
+      );
+      return;
+    }
+
+    if (act === 'revoke') {
+      askConfirm(
+        'Отозвать ключ?',
+        'Ключ сразу перестанет работать. Запись о нём останется в истории, ' +
+        'но использовать его будет нельзя.',
+        'Отозвать',
+        async function () {
+          var res = await window.hmAuth.account('keys.revoke', { id: id });
+          if (!res.ok) { setKeysMsg(res.error, true); return; }
+          setKeysMsg('Ключ отозван.');
+          load();
+        }
+      );
+      return;
+    }
+
+    if (act === 'delete') {
+      askConfirm(
+        'Удалить ключ?',
+        'Ключ перестанет работать, а запись о нём будет удалена вместе со статистикой запросов. ' +
+        'Отменить это нельзя.',
+        'Удалить',
+        async function () {
+          var res = await window.hmAuth.account('keys.delete', { id: id });
+          if (!res.ok) { setKeysMsg(res.error, true); return; }
+          setKeysMsg('Ключ удалён.');
+          load();
+        }
+      );
+    }
+  }
+
+  function setKeysMsg(text, isError) {
+    var box = el('keysMsg');
+    box.textContent = text || '';
+    box.style.color = isError ? 'var(--err)' : 'var(--text-3)';
+    if (text && !isError) setTimeout(function () { box.textContent = ''; }, 3000);
+  }
+
+  el('renameSubmit').addEventListener('click', async function () {
+    var name = el('renameValue').value.trim();
+    var res = await window.hmAuth.account('keys.rename', { id: state.renameId, name: name });
+    window.hm.closeModal('renameModal');
+    if (!res.ok) { setKeysMsg(res.error, true); return; }
+    load();
+  });
+
+  function askConfirm(title, text, actionLabel, handler) {
+    el('confirmTitle').textContent = title;
+    el('confirmText').textContent = text;
+    el('confirmSubmit').textContent = actionLabel;
+    state.confirmAction = handler;
+    window.hm.openModal('confirmModal');
+  }
+
+  el('confirmSubmit').addEventListener('click', async function () {
+    var handler = state.confirmAction;
+    state.confirmAction = null;
+    window.hm.closeModal('confirmModal');
+    if (handler) await handler();
+  });
+
+  /* ===== СОЗДАНИЕ КЛЮЧА ================================================= */
+  el('createKeyBtn').addEventListener('click', async function () {
+    var btn = el('createKeyBtn');
+    btn.disabled = true;
+    setKeysMsg('Создаём ключ…');
+    var res = await window.hmAuth.account('keys.create', { name: 'Ключ' });
+    btn.disabled = false;
+    if (!res.ok || !res.data || !res.data.key) { setKeysMsg(res.error || 'Не удалось создать ключ', true); return; }
+    setKeysMsg('');
+    await load();
+    showKey(res.data.key);
+  });
+
+  function showKey(plain) {
+    var input = el('newKeyValue');
+    input.value = plain;
+    input.type = 'password';
+    el('newKeyToggle').textContent = 'Показать';
+    el('newKeyToggle').setAttribute('aria-pressed', 'false');
+    window.hm.openModal('newKeyModal');
+  }
+
+  el('newKeyToggle').addEventListener('click', function () {
+    var input = el('newKeyValue');
+    var hidden = input.type === 'password';
+    input.type = hidden ? 'text' : 'password';
+    el('newKeyToggle').textContent = hidden ? 'Скрыть' : 'Показать';
+    el('newKeyToggle').setAttribute('aria-pressed', hidden ? 'true' : 'false');
+  });
+
+  el('newKeyCopy').addEventListener('click', async function () {
+    var ok = await window.hm.copyText(el('newKeyValue').value);
+    el('newKeyCopy').textContent = ok ? 'Скопировано' : 'Не удалось';
+    setTimeout(function () { el('newKeyCopy').textContent = 'Скопировать'; }, 1600);
+  });
+
+  el('newKeyDone').addEventListener('click', function () {
+    el('newKeyValue').value = '';
+    el('newKeyValue').type = 'password';
+    window.hm.closeModal('newKeyModal');
+  });
+
+  el('signOutBtn').addEventListener('click', function () { window.hmAuth.signOut(); });
+
+  /* ===== СТАРТ ==========================================================
+     Требование: неавторизованный уходит на /login, а не видит пустой кабинет. */
+  (async function start() {
+    await window.hmAuth.ready;
+    if (!window.hmAuth.user) { window.hmAuth.login('/api/dashboard'); return; }
+    load();
+  })();
+});
+</script>
+
+</body>
+</html>
