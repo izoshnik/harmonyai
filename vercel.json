@@ -6,6 +6,46 @@
       "destination": "/api/chat"
     },
     {
+      "source": "/api/intent",
+      "destination": "/api/util?op=intent"
+    },
+    {
+      "source": "/api/music-intent",
+      "destination": "/api/util?op=music-intent"
+    },
+    {
+      "source": "/api/title",
+      "destination": "/api/util?op=title"
+    },
+    {
+      "source": "/api/detect-locale",
+      "destination": "/api/util?op=detect-locale"
+    },
+    {
+      "source": "/api/dashboard",
+      "destination": "/api-dashboard.html"
+    },
+    {
+      "source": "/api",
+      "destination": "/api-docs.html"
+    },
+    {
+      "source": "/v1/(.*)",
+      "destination": "/api/v1?path=$1"
+    },
+    {
+      "source": "/",
+      "destination": "/landing.html"
+    },
+    {
+      "source": "/about",
+      "destination": "/about.html"
+    },
+    {
+      "source": "/contacts",
+      "destination": "/contacts.html"
+    },
+    {
       "source": "/subscribe",
       "destination": "/subscribe.html"
     },
@@ -52,7 +92,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://esm.sh https://cdn.jsdelivr.net https://unpkg.com https://cdn.skypack.dev https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; connect-src 'self' https://harmonyai-zeta.vercel.app https://api.codex-api.online https://esm.sh https://cdn.jsdelivr.net https://unpkg.com https://api.audd.io https://*.supabase.co https://api.acoustid.org https://musicbrainz.org wss://*.supabase.co https://api.yookassa.ru http://ip-api.com; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://yookassa.ru; object-src 'none'"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://esm.sh https://cdn.jsdelivr.net https://unpkg.com https://cdn.skypack.dev https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; connect-src 'self' https://harmonyai.ru https://api.harmonyai.ru https://harmonyai-zeta.vercel.app https://api.codex-api.online https://esm.sh https://cdn.jsdelivr.net https://unpkg.com https://api.audd.io https://*.supabase.co https://api.acoustid.org https://musicbrainz.org wss://*.supabase.co https://api.yookassa.ru http://ip-api.com; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://yookassa.ru; object-src 'none'"
         }
       ]
     },
