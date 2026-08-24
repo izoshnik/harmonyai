@@ -274,9 +274,9 @@
 <body>
 <div class="wrap">
   <div class="back-row">
-    <a class="back-btn" href="/?screen=settings" id="backBtn" aria-label="Вернуться в настройки" title="Вернуться в настройки">
+    <a class="back-btn" href="/" id="backBtn" aria-label="Вернуться назад" title="Вернуться назад">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-      <span id="backLabel">Настройки</span>
+      <span id="backLabel">Назад</span>
     </a>
   </div>
   <div class="top">
@@ -314,11 +314,11 @@
 <script>
 /* ---- UI chrome translations (FAQ Q&A stay in Russian; FAQ translations can be added later) ---- */
 var I18N = {
-  ru:{name:"Русский", search:"Поиск статей...", site:"Сайт", sub:"Частые вопросы о сайте HarmonyAi", empty:"Ничего не найдено", back:"Настройки"},
-  en:{name:"English", search:"Search articles...", site:"Site", sub:"Frequently asked questions about HarmonyAi", empty:"Nothing found", back:"Settings"},
-  fr:{name:"Français", search:"Rechercher des articles...", site:"Site", sub:"Questions fréquentes sur HarmonyAi", empty:"Aucun résultat", back:"Paramètres"},
-  de:{name:"Deutsch", search:"Artikel suchen...", site:"Seite", sub:"Häufige Fragen zu HarmonyAi", empty:"Nichts gefunden", back:"Einstellungen"},
-  es:{name:"Español", search:"Buscar artículos...", site:"Sitio", sub:"Preguntas frecuentes sobre HarmonyAi", empty:"No se encontró nada", back:"Ajustes"}
+  ru:{name:"Русский", search:"Поиск статей...", site:"Сайт", sub:"Частые вопросы о сайте HarmonyAi", empty:"Ничего не найдено", back:"Назад"},
+  en:{name:"English", search:"Search articles...", site:"Site", sub:"Frequently asked questions about HarmonyAi", empty:"Nothing found", back:"Back"},
+  fr:{name:"Français", search:"Rechercher des articles...", site:"Site", sub:"Questions fréquentes sur HarmonyAi", empty:"Aucun résultat", back:"Retour"},
+  de:{name:"Deutsch", search:"Artikel suchen...", site:"Seite", sub:"Häufige Fragen zu HarmonyAi", empty:"Nichts gefunden", back:"Zurück"},
+  es:{name:"Español", search:"Buscar artículos...", site:"Sitio", sub:"Preguntas frecuentes sobre HarmonyAi", empty:"No se encontró nada", back:"Atrás"}
 };
 var LANG_ORDER = ["ru","en","fr","de","es"];
 
@@ -348,7 +348,7 @@ var FAQ = [
   ["Что входит в Pro-подписку?","Pro-подписка предоставляет доступ ко всем возможностям HarmonyAI без ограничений. Пользователи получают доступ к модели Dynatos, более качественной генерации изображений, функции распознавания музыки, отсутствию лимитов на использование сервиса, а также к новым функциям сразу после их официального выпуска. Кроме того, именно пользователи Pro первыми получают доступ к наиболее современным технологиям платформы."],
   ["Чем бесплатная версия отличается от Pro?","Бесплатная версия позволяет познакомиться с основными возможностями HarmonyAI, однако имеет ряд ограничений. Используется менее мощная модель Adanatos, отсутствует распознавание музыки, генерация изображений имеет более низкое качество, а также действуют лимиты на использование. Pro-подписка снимает все эти ограничения и открывает полный функционал сервиса."],
   ["Есть ли ограничения в бесплатной версии?","Да. Бесплатная версия HarmonyAI имеет ограничения по количеству запросов и некоторым функциям сервиса. Такие ограничения позволяют обеспечить стабильную работу платформы для всех пользователей. Если вам требуется постоянный доступ без лимитов, рекомендуется оформить Pro-подписку."],
-  ["Как оформить подписку?","Для оформления подписки откройте раздел «Настройки» и выберите пункт «Обновить подписку». Также оформить Pro можно на официальном сайте: <a href=\"https://harmonyai-zeta.vercel.app/subscribe\">https://harmonyai-zeta.vercel.app/subscribe</a>. После успешной оплаты подписка автоматически активируется для вашего аккаунта."],
+  ["Как оформить подписку?","Для оформления подписки откройте раздел «Настройки» и выберите пункт «Обновить подписку». Также оформить Pro можно на официальном сайте: <a href=\"https://harmonyai.ru/subscribe\">https://harmonyai.ru/subscribe</a>. После успешной оплаты подписка автоматически активируется для вашего аккаунта."],
   ["Как отменить подписку?","Если вы хотите отменить подписку, необходимо обратиться в службу поддержки. Специалисты помогут отключить автоматическое продление и ответят на все вопросы, связанные с подпиской. Ссылка на поддержку будет добавлена позднее."],
   ["Можно ли вернуть деньги за подписку?","Нет. После успешной оплаты стоимость подписки не возвращается. Перед оформлением рекомендуется внимательно ознакомиться с возможностями выбранного тарифа. Если во время оплаты произошел технический сбой, необходимо обратиться в службу поддержки для индивидуального рассмотрения ситуации."],
   ["Какие способы оплаты доступны?","На данный момент оплатить подписку можно банковской картой платежной системы «Мир» или через Систему быстрых платежей (СБП). В будущем список доступных способов оплаты может быть расширен."],
@@ -469,17 +469,18 @@ try{ saved = localStorage.getItem("hai_lang") || "ru"; }catch(e){}
 if(!I18N[saved]) saved = "ru";
 applyLang(saved);
 
-/* Return to settings.
-   Before: href="/settings" - an SPA-only route, so a direct request returned a Vercel 404.
-   Now: same-origin visitors just go back (chat state is preserved); anyone else lands on
-   the app root with ?screen=settings, which index.html parses on boot. */
+/* Возврат на предыдущую страницу.
+   Кнопка ведёт именно НАЗАД по истории браузера: человек приходит в FAQ из
+   разных мест (чат, лендинг, письмо), и жёсткая ссылка на один раздел уводила
+   бы его не туда, откуда он пришёл.
+   href="/" оставлен как запасной вариант: если истории нет (FAQ открыт по
+   прямой ссылке или в новой вкладке), кнопка сработает как обычная ссылка
+   на главную и не окажется мёртвой. */
 (function(){
   var btn = document.getElementById('backBtn');
   if(!btn) return;
   btn.addEventListener('click', function(e){
-    var sameOrigin = false;
-    try{ sameOrigin = !!document.referrer && new URL(document.referrer).origin === location.origin; }catch(err){}
-    if(sameOrigin && history.length > 1){ e.preventDefault(); history.back(); }
+    if(history.length > 1){ e.preventDefault(); history.back(); }
   });
 })();
 </script>
