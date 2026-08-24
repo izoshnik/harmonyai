@@ -2926,7 +2926,7 @@ html[data-theme="messenger"] .igWrap{
       <div class="auth-sub">ИИ для учеников музыкальной школы. Подходит не только для музыки — он умеет всё!</div>
       <button class="auth-btn-primary" onclick="goToEmail()">Продолжить с Email</button>
       <div class="auth-tos">Продолжая, вы соглашаетесь с нашей <a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Политикой Конфиденциальности</a> и <a href="/legal/terms.html" target="_blank" rel="noopener noreferrer">Условиями Пользования</a>.</div>
-      <div class="auth-beta">beta version 1.4</div>
+      <div class="auth-beta">beta version 0.7</div>
     </div>
     <!-- Экран 2: Email -->
     <div class="auth-screen" id="authS2">
@@ -2936,7 +2936,7 @@ html[data-theme="messenger"] .igWrap{
       <div class="auth-error" id="emailErr"></div>
       <button class="auth-btn-primary" id="btnSend" onclick="sendOTP()">Продолжить</button>
       <button class="auth-btn-secondary" onclick="showAuthS(1)">← Назад</button>
-      <div class="auth-beta">beta version 1.4</div>
+      <div class="auth-beta">beta version 0.7</div>
     </div>
     <!-- Экран 3: OTP -->
     <div class="auth-screen" id="authS3">
@@ -2954,7 +2954,7 @@ html[data-theme="messenger"] .igWrap{
       <button class="auth-btn-primary" id="btnVerify" onclick="verifyOTP()">Подтвердить</button>
       <div class="auth-resend" id="btnResend" onclick="resendOTP()">Не приходит код? Отправить снова</div>
       <button class="auth-btn-secondary" onclick="showAuthS(2)">← Изменить email</button>
-      <div class="auth-beta">beta version 1.4</div>
+      <div class="auth-beta">beta version 0.7</div>
     </div>
   </div>
 </div>
@@ -3954,15 +3954,46 @@ function buildOtpSendOptions(email){
   // Без него Supabase шлёт 6-значный OTP-код, который и ждёт экран верификации.
   return {email,options:{shouldCreateUser:true}};
 }
+/* Браузер отдаёт «Failed to fetch» на любой запрос, который не дошёл: обрыв
+   связи, VPN/блокировщик, а также ОТМЕНА при уходе со страницы. Отличаем такие
+   ошибки от ответов сервиса — на них можно повторить попытку, а вот на «неверный
+   email» или «слишком много попыток» повтор бессмысленен и пришлёт второе письмо. */
+function isNetworkIssue(err){
+  const low=String(err?.message||err||'').toLowerCase();
+  if(!low)return false;
+  return low.includes('failed to fetch')     // Chrome
+    ||low.includes('load failed')            // Safari
+    ||low.includes('networkerror')           // Firefox
+    ||low.includes('network request failed')
+    ||low.includes('fetch failed')
+    ||low.includes('aborted')
+    ||low.includes('abort');
+}
+/* Взведён перед уходом со страницы входа (?next=/api и т.п.). Браузер в этот
+   момент рвёт все незавершённые запросы, и SDK сообщает об этом как о сетевой
+   ошибке. Показывать её нельзя: человек уже уезжает на другую страницу, а
+   красная надпись успевает мигнуть у него перед глазами. */
+let authLeaving=false;
 function tErr(msg){
   const text=String(msg||'');
   const low=text.toLowerCase();
   if(!text)return 'Что-то пошло не так';
   if(low.includes('rate limit'))return 'Слишком много попыток — подождите';
-  if(low.includes('invalid email'))return 'Введите корректный email';
+  // «For security purposes, you can only request this after N seconds» —
+  // защита сервиса от частых писем, приходит чаще всех остальных ошибок.
+  if(low.includes('for security purposes'))return 'Слишком часто — подождите немного и попробуйте снова';
+  // Сервис пишет «Unable to validate email address: invalid format» — слова
+  // «invalid email» в нём нет, поэтому проверяем обе формулировки.
+  if(low.includes('invalid email')||low.includes('validate email')||low.includes('invalid format'))return 'Введите корректный email';
   if(low.includes('expired')||low.includes('token has'))return 'Код устарел — запросите новый';
   if(low.includes('invalid otp')||low.includes('invalid token'))return 'Неверный код';
   if(low.includes('session'))return 'Не удалось завершить вход — запросите новый код';
+  // Техническое «Failed to fetch» пользователю ничего не говорит — подсказываем,
+  // что делать: чаще всего мешает VPN, блокировщик рекламы или обрыв связи.
+  if(isNetworkIssue(text))return 'Нет связи с сервисом входа. Проверьте интернет, отключите VPN или блокировщик и попробуйте снова';
+  // Последняя страховка: интерфейс русский, английские строки сервиса наружу
+  // не пускаем. Исходный текст остаётся в консоли — для разбора.
+  if(!/[а-яё]/i.test(text)){console.warn('Ошибка входа:',text);return 'Не удалось выполнить вход — попробуйте ещё раз позже';}
   return text;
 }
 async function waitForSession(timeoutMs=6000){
@@ -4130,6 +4161,50 @@ async function verifyOtpVariants(email,code){
   throw lastError||new Error('Не удалось подтвердить код');
 }
 
+/* Отправка кода в обход SDK — тем же способом, каким уже подстрахована проверка
+   кода (см. verifyOtpDirect). Нужна, когда запрос SDK не дошёл до сервиса:
+   свой fetch без обёрток переживает и блокировку расширением конкретного
+   XHR-обработчика, и внутренние блокировки SDK между вкладками. */
+async function sendOtpDirect(email){
+  const res=await withTimeout(
+    fetch(`${SB_URL}/auth/v1/otp`,{
+      method:'POST',
+      mode:'cors',
+      headers:{
+        'Content-Type':'application/json',
+        apikey:SB_KEY,
+        Authorization:`Bearer ${SB_KEY}`
+      },
+      body:JSON.stringify({email,create_user:true})
+    }),
+    20000,
+    'Сервис авторизации слишком долго отвечает'
+  );
+  let data=null;
+  try{data=await res.json();}catch(e){data=null;}
+  if(!res.ok){
+    throw new Error(data?.msg||data?.error_description||data?.error||`Не удалось отправить код (${res.status})`);
+  }
+  return true;
+}
+/* Сначала SDK, при сетевом сбое — прямой запрос. Повторяем ТОЛЬКО когда ответа
+   не было вовсе: на любой ответ сервиса (неверный email, лимит писем) второй
+   попытки быть не должно, иначе человек получит два письма. */
+async function sendOtpVariants(email){
+  try{
+    const sendResult=await withTimeout(
+      sb.auth.signInWithOtp(buildOtpSendOptions(email)),
+      20000,
+      'Сервис авторизации слишком долго отвечает'
+    );
+    if(sendResult?.error)throw sendResult.error;
+    return true;
+  }catch(e){
+    if(authLeaving||!isNetworkIssue(e))throw e;
+    return await sendOtpDirect(email);
+  }
+}
+
 async function sendOTP(){
   const email=document.getElementById('emailInp').value.trim();
   const err=document.getElementById('emailErr');
@@ -4140,13 +4215,7 @@ async function sendOTP(){
   const requestNonce=++otpRequestNonce;
   try{
     clearOTP();
-    const sendResult=await withTimeout(
-      sb.auth.signInWithOtp(buildOtpSendOptions(email)),
-      20000,
-      'Сервис авторизации слишком долго отвечает'
-    );
-    const error=sendResult?.error||null;
-    if(error) throw error;
+    await sendOtpVariants(email);
     if(requestNonce!==otpRequestNonce)return;
     curEmail=email;
     document.getElementById('codeErr').style.display='none';
@@ -4154,6 +4223,8 @@ async function sendOTP(){
     setTimeout(()=>{const b=document.querySelectorAll('.otp-box')[0];if(b)b.focus();},100);
     startResend();
   }catch(e){
+    // Уходим со страницы — запрос оборвал браузер, а не сервис. Молчим.
+    if(authLeaving)return;
     err.textContent=tErr(e.message);err.style.display='block';
   }finally{
     btn.textContent='Продолжить';btn.disabled=false;
@@ -4181,6 +4252,7 @@ async function verifyOTP(){
     if(!session)throw new Error('Не удалось завершить вход — запросите новый код');
     beginSignedInState(session);
   }catch(e){
+    if(authLeaving)return;
     err.textContent=tErr(e.message);err.style.display='block';
   }finally{
     otpVerifyBusy=false;
@@ -4192,16 +4264,12 @@ async function resendOTP(){
   const requestNonce=++otpRequestNonce;
   try{
     clearOTP();
-    const resendResult=await withTimeout(
-      sb.auth.signInWithOtp(buildOtpSendOptions(curEmail)),
-      20000,
-      'Повторная отправка кода заняла слишком много времени'
-    );
-    if(resendResult?.error)throw resendResult.error;
+    await sendOtpVariants(curEmail);
     if(requestNonce!==otpRequestNonce)return;
     startResend();
     document.getElementById('codeErr').style.display='none';
   }catch(e){
+    if(authLeaving)return;
     const err=document.getElementById('codeErr');
     err.textContent=tErr(e.message);err.style.display='block';
   }
@@ -4307,8 +4375,11 @@ function syncSignedInRoute(){
   markChatSeen();
 
   // 1) Возврат на страницу, с которой пришли на вход.
+  // Это единственный переход отсюда с полной перезагрузкой: браузер оборвёт
+  // все незавершённые запросы экрана входа, поэтому предупреждаем их обработчики
+  // флагом — иначе отменённый запрос кода мигнёт красным «Failed to fetch».
   const next=consumeNextParam();
-  if(next){window.location.replace(next);return;}
+  if(next){authLeaving=true;window.location.replace(next);return;}
 
   if(currentRoute()==='/settings'){
     routeNavigating=true;
