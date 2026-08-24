@@ -85,6 +85,19 @@
      Возвращает { ok, status, data }; исключения не бросает, чтобы каждая
      кнопка в кабинете могла показать текст ошибки, а не молча сломаться. */
   auth.account = async function (action, body) {
+    /* Перед каждым обращением спрашиваем у клиента актуальную сессию. Страница
+       кабинета живёт долго (или поднимается из кэша браузера после возврата с
+       /login), а access-токен короткий: без этой строки первая же кнопка после
+       простоя уходила бы с мёртвым токеном и получала 401. */
+    try {
+      await auth.ready;
+      const client = makeClient();
+      if (client) {
+        const { data } = await client.auth.getSession();
+        apply(data && data.session);
+      }
+    } catch (e) { /* сеть подведёт — пусть решает сам запрос ниже */ }
+
     const method = body ? 'POST' : 'GET';
     const url = body ? '/api/account' : '/api/account?action=' + encodeURIComponent(action);
     const headers = { 'Content-Type': 'application/json' };
@@ -98,7 +111,7 @@
         body: body ? JSON.stringify(Object.assign({ action }, body)) : undefined
       });
     } catch (e) {
-      return { ok: false, status: 0, data: null, error: 'Нет связи с сервером' };
+      return { ok: false, status: 0, data: null, error: 'Нет связи с сервером — проверьте интернет, отключите VPN или блокировщик' };
     }
     try { data = await response.json(); } catch (e) { data = null; }
     return {
@@ -122,7 +135,7 @@
         body: JSON.stringify(payload)
       });
     } catch (e) {
-      return { ok: false, error: 'Нет связи с сервером' };
+      return { ok: false, error: 'Нет связи с сервером — проверьте интернет, отключите VPN или блокировщик' };
     }
     try { data = await response.json(); } catch (e) { data = null; }
     if (!response.ok || !data || !data.confirmationUrl) {
