@@ -399,43 +399,11 @@
 
 <script src="/js/site.js" defer></script>
 <script>
-/* ===== ВОЗВРАТ АКТИВНОГО ПОЛЬЗОВАТЕЛЯ В ЧАТ =====
-   Требование: первый визит на «/» показывает лендинг; тот, кто уже пользовался
-   чатом и остался авторизованным, попадает сразу в /chat.
-
-   Проверяем ДВА условия одновременно:
-     1) в localStorage есть живая сессия Supabase (ключ sb-<ref>-auth-token);
-     2) пользователь действительно открывал чат раньше (флаг hm_seen_chat).
-
-   Второе условие важно: только что зарегистрировавшийся человек, который ещё
-   не был в чате, должен увидеть лендинг, а не молчаливый редирект. Неавторизованных
-   этот код не касается вообще — они просто читают страницу.
-
-   Ссылка с параметром ?stay=1 отключает переадресацию: она нужна, чтобы
-   авторизованный пользователь мог вернуться и прочитать лендинг. */
-(function () {
-  try {
-    var params = new URLSearchParams(location.search);
-    if (params.get('stay') === '1') return;
-    if (location.pathname !== '/' && location.pathname !== '/index.html') return;
-    if (localStorage.getItem('hm_seen_chat') !== '1') return;
-
-    var token = null;
-    for (var i = 0; i < localStorage.length; i++) {
-      var k = localStorage.key(i);
-      if (k && /^sb-.*-auth-token$/.test(k)) { token = localStorage.getItem(k); break; }
-    }
-    if (!token) return;
-
-    /* Срок действия проверяем локально: сетевой запрос ради редиректа задержал бы
-       отрисовку, а истёкшую сессию всё равно перепроверит сам чат. */
-    var parsed = JSON.parse(token);
-    var expires = Number(parsed && (parsed.expires_at || (parsed.currentSession && parsed.currentSession.expires_at)) || 0);
-    if (expires && expires * 1000 < Date.now()) return;
-
-    location.replace('/chat');
-  } catch (e) { /* нет localStorage или битый JSON — просто показываем лендинг */ }
-})();
+/* ===== ГЛАВНАЯ СТРАНИЦА ВСЕГДА ПЕРВОЙ, БЕЗ ЛОГИНА =====
+   Требование: заход на «/» всегда показывает лендинг и НЕ требует авторизации.
+   Автоматический возврат уже авторизованного пользователя в /chat ОТКЛЮЧЁН —
+   в чат ведут только кнопки на странице. Так первый экран одинаков для всех:
+   публичная главная, а не молчаливый редирект и не форма входа. */
 </script>
 
 </body>
