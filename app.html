@@ -31,11 +31,10 @@ try{
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Courier+Prime:wght@400;700&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/abcjs@6.2.3/dist/abcjs-basic-min.js"></script>
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<!-- abcjs, pdf.js и mammoth здесь НЕ подключены: ~1,5 МБ, нужные редко.
+     Их подтягивает hmLoadLib() при первом обращении — см. «ЛЕНИВАЯ ЗАГРУЗКА». -->
 <script src="i18n.js"></script>
 <script src="i18_dict.js"></script>
 <link rel="stylesheet" href="css/music-player.css">
@@ -3422,7 +3421,40 @@ html[data-theme="messenger"] .igWrap{
 const SB_URL='https://cqthnymltqpcxtpiryka.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNxdGhueW1sdHFwY3h0cGlyeWthIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MjY3NzYsImV4cCI6MjA5NzAwMjc3Nn0.b-6lSdjT7XwWkt607ORwGfKYSn3CLZJB3mcs4QQUSoE';
 const sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-// pdf.js и mammoth подключены с defer (не блокируют первую отрисовку страницы);
+/* ===== ЛЕНИВАЯ ЗАГРУЗКА ТЯЖЁЛЫХ БИБЛИОТЕК =====
+   abcjs (ноты), pdf.js и mammoth (чтение PDF и DOCX) вместе весят около 1,5 МБ.
+   Раньше они висели в <head> тегами <script defer> и скачивались при КАЖДОМ
+   открытии страницы, хотя нужны редко — только когда пользователь прислал файл
+   или попросил нотный стан. Браузер тратил на их загрузку и разбор секунды
+   до первого отклика интерфейса.
+
+   Теперь модуль подгружается в момент первого обращения. Повторный вызов
+   возвращает уже готовый промис, поэтому загрузка идёт ровно один раз; при
+   сетевой ошибке промис забывается, и следующая попытка начнётся заново. */
+const HM_LAZY_LIBS={
+  abcjs:{url:'https://cdn.jsdelivr.net/npm/abcjs@6.2.3/dist/abcjs-basic-min.js',global:'ABCJS',title:'нотной записи'},
+  pdfjs:{url:'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',global:'pdfjsLib',title:'чтения PDF'},
+  mammoth:{url:'https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js',global:'mammoth',title:'чтения DOCX'}
+};
+const hmLazyLibPromises={};
+function hmLoadLib(name){
+  const lib=HM_LAZY_LIBS[name];
+  if(!lib)return Promise.reject(new Error('Неизвестный модуль: '+name));
+  if(window[lib.global])return Promise.resolve(window[lib.global]);
+  if(hmLazyLibPromises[name])return hmLazyLibPromises[name];
+  hmLazyLibPromises[name]=new Promise((resolve,reject)=>{
+    const el=document.createElement('script');
+    el.src=lib.url;
+    el.async=true;
+    el.onload=()=>{
+      if(window[lib.global])resolve(window[lib.global]);
+      else{delete hmLazyLibPromises[name];reject(new Error('Модуль '+lib.title+' загрузился, но не запустился'));}
+    };
+    el.onerror=()=>{delete hmLazyLibPromises[name];reject(new Error('Не удалось загрузить модуль '+lib.title));};
+    document.head.appendChild(el);
+  });
+  return hmLazyLibPromises[name];
+}
 // workerSrc для pdf.js настраивается лениво в parsePdfFile перед первым использованием.
 
 let curUser=null,curEmail='',resendTimer=null,resendLeft=0;
@@ -4183,7 +4215,7 @@ function startResend(){
 })();
 
 /* ===== МАРШРУТЫ (/login, /chat, /settings) =====
-   Приложение остаётся одностраничным: vercel.json переписывает эти пути на index.html,
+   Приложение остаётся одностраничным: vercel.json переписывает эти пути на app.html,
    а этот блок синхронизирует адресную строку с состоянием интерфейса. */
 const ROUTING_ENABLED=/^https?:$/.test(window.location.protocol);
 let routeNavigating=false; // true, когда открытие/закрытие вызвано popstate — history не трогаем
@@ -4746,10 +4778,11 @@ function removeAttachment(index){
   updateComposerPlaceholder();
 }
 async function parsePdfFile(file){
-  if(!window.pdfjsLib)throw new Error('Модуль чтения PDF ещё загружается — попробуйте через пару секунд');
-  if(!window.pdfjsLib.GlobalWorkerOptions.workerSrc)window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  // Модуль подтягиваем по факту выбора PDF, а не при загрузке страницы.
+  const pdfjsLib=await hmLoadLib('pdfjs');
+  if(!pdfjsLib.GlobalWorkerOptions.workerSrc)pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
   const arr=await file.arrayBuffer();
-  const pdf=await window.pdfjsLib.getDocument({data:arr}).promise;
+  const pdf=await pdfjsLib.getDocument({data:arr}).promise;
   const pages=[];
   for(let i=1;i<=pdf.numPages;i++){
     const page=await pdf.getPage(i);
@@ -4759,9 +4792,9 @@ async function parsePdfFile(file){
   return pages.join('\n\n');
 }
 async function parseDocxFile(file){
-  if(!window.mammoth)throw new Error('Модуль чтения DOCX ещё загружается — попробуйте чере�� пару секунд');
+  const mammothLib=await hmLoadLib('mammoth');
   const arr=await file.arrayBuffer();
-  const result=await window.mammoth.extractRawText({arrayBuffer:arr});
+  const result=await mammothLib.extractRawText({arrayBuffer:arr});
   return result.value||'';
 }
 async function parseTextFile(file){
@@ -7783,9 +7816,11 @@ function hmFinalizeLiveReasoning(){
   }
 }
 
-// abcjs и highlight.js теперь грузятся с defer — ждём их, а не молча ничего не рисуем.
+// abcjs грузится лениво (см. hmLoadLib) — запускаем загрузку и ждём её,
+// а не молча ничего не рисуем. Пока модуль в пути, показываем исходный текст нот.
 function hmRenderAbc(id,abcSrc,surface,cvs,delay){
   let tries=0;
+  hmLoadLib('abcjs').catch(()=>{});
   const run=function(){
     if(window.ABCJS&&typeof window.ABCJS.renderAbc==='function'){
       try{window.ABCJS.renderAbc(id,abcSrc,getAbcRenderOptions(surface,abcSrc));}
@@ -7891,7 +7926,7 @@ function tChatErr(msg){
     return 'Модель отвечает слишком долго. Попробуйте еще раз или отключите сложный режим.';
   }
   if(low.includes('failed to fetch')||low.includes('load failed')||low.includes('fetch')||low.includes('network')){
-    return 'Сервер чата недоступен. Проверьте деплой Vercel и файл api/chat.js, потом попробуйте ещё раз.';
+    return 'Сервер чата сейчас недоступен. Проверьте соединение и попробуйте ещё раз.';
   }
   return text||'Что-то пошло не так при запросе к модели';
 }
@@ -9068,13 +9103,14 @@ function renderRecognitionIntoBubble(shell,{mode,result,abc}){
     abcHolder.className='reco-abc-holder';
     abcHolder.dataset.abc=abc;
     shell.msg.appendChild(abcHolder);
-    if(window.ABCJS){
-      const id='reco-abc-'+(++abcCounter);
-      abcHolder.id=id;
-      try{window.ABCJS.renderAbc(id,abc,{responsive:'resize'});}catch(e){abcHolder.textContent=abc;}
-    }else{
-      abcHolder.innerHTML='<pre style="font-family:monospace;font-size:12px;color:var(--text2);white-space:pre-wrap;">'+escapeHtml(abc)+'</pre>';
-    }
+    // Пока модуль нот не загрузился, показываем текст ABC; как только придёт — дорисуем.
+    const abcId='reco-abc-'+(++abcCounter);
+    abcHolder.id=abcId;
+    abcHolder.innerHTML='<pre style="font-family:monospace;font-size:12px;color:var(--text2);white-space:pre-wrap;">'+escapeHtml(abc)+'</pre>';
+    hmLoadLib('abcjs').then(()=>{
+      try{abcHolder.innerHTML='';window.ABCJS.renderAbc(abcId,abc,{responsive:'resize'});}
+      catch(e){abcHolder.textContent=abc;}
+    }).catch(()=>{});
     const editBtn=document.createElement('button');
     editBtn.className='reco-abc-edit';
     editBtn.textContent='Редактировать ноты вручную';
@@ -9108,7 +9144,11 @@ function openAbcEditor(holder,abcHolder,abc){
   save.onclick=()=>{
     const newAbc=ta.value;
     abcHolder.dataset.abc=newAbc;
-    if(window.ABCJS&&abcHolder.id){try{window.ABCJS.renderAbc(abcHolder.id,newAbc,{responsive:'resize'});}catch(e){}}
+    if(abcHolder.id){
+      hmLoadLib('abcjs')
+        .then(()=>{try{window.ABCJS.renderAbc(abcHolder.id,newAbc,{responsive:'resize'});}catch(e){}})
+        .catch(()=>{});
+    }
     ta.remove();actions.remove();
   };
   cancel.onclick=()=>{ta.remove();actions.remove();};
@@ -9709,7 +9749,7 @@ async function runMusicMessage(text){
     }
     /* Любая другая ошибка (сервис упал, сеть, 500). */
     if(!reportMusicFailure)return backToChat();
-    const merr='Музыкальный сервис сейчас недоступен. Проверьте переменные окружения Vercel (YANDEX_MUSIC_ENABLED, токен) или попробуйте позже.';
+    const merr='Музыкальный сервис сейчас недоступен. Попробуйте немного позже.';
     shell.msg.textContent=merr;
     chatHistory.push({role:'assistant',content:merr,createdAt:messageNow()});
     saveChat().catch(function(){});
