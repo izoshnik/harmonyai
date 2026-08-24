@@ -4,13 +4,19 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>API — Harmony AI</title>
-<meta name="description" content="Документация Harmony AI API: адрес https://api.harmonyai.ru, модели dynatos и adanatos, совместимость с Anthropic Messages API, подключение Claude Code, Cline, Roo Code и других клиентов.">
+<meta name="description" content="Документация Harmony AI API: адрес https://api.harmonyai.ru, модели dynatos и adanatos, совместимость с Anthropic Messages API, готовые инструкции для Claude Code, Cursor, OpenCode, Python, PowerShell и терминала.">
 <link rel="canonical" href="https://harmonyai.ru/api">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Harmony AI API">
 <meta property="og:description" content="Совместимый с Anthropic Messages API шлюз: потоковые ответы, оплата по токенам, ключи sk-h-.">
 <meta property="og:url" content="https://harmonyai.ru/api">
 <meta name="theme-color" content="#ffffff">
+<!-- Соединение с CDN и сервисом входа открываем заранее, ещё во время разбора
+     HTML: DNS, TCP и TLS занимают заметную долю ожидания на мобильной сети,
+     а скрипты подключены с defer и стартуют позже. -->
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://cqthnymltqpcxtpiryka.supabase.co" crossorigin>
+<link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230d0f14'/%3E%3Cpath d='M18 14h8v18h12V14h8v36h-8V39H26v11h-8z' fill='%23ffffff'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="/css/site.css">
 </head>
@@ -51,7 +57,7 @@
         <p class="eyebrow" style="margin-bottom:16px;">API</p>
         <h1>Harmony AI API</h1>
         <p class="lead">
-          Шлюз совместим с форматом Anthropic Messages API, поэтому Claude Code, Cline, Roo Code
+          Шлюз совместим с форматом Anthropic Messages API, поэтому Claude Code, Cursor, OpenCode
           и любой клиент, умеющий менять адрес сервера, подключаются без переделок.
           Оплата — по фактическому числу токенов с баланса API.
         </p>
@@ -117,67 +123,116 @@
     <div class="wrap">
       <div class="section-head">
         <p class="eyebrow">Подключение</p>
-        <h2>Готовые инструкции для клиентов</h2>
+        <h2>Выберите свой инструмент</h2>
         <p class="lead">
           Везде принцип один: адрес сервера — <code>https://api.harmonyai.ru</code>,
           ключ — <code>sk-h-…</code>, модель — <code>dynatos</code> или <code>adanatos</code>.
+          Ниже — точные шаги для каждого клиента.
         </p>
       </div>
 
-      <!-- Claude Code -->
-      <div class="disc">
-        <button class="disc-head" type="button">
-          Claude Code (CLI)
-          <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-        <div class="disc-body"><div class="disc-inner">
-          <p style="margin-bottom:14px;">macOS и Linux — в текущей сессии терминала:</p>
-          <div class="code-block">
-            <pre>export ANTHROPIC_BASE_URL="https://api.harmonyai.ru"
+      <div class="ig" data-tabs="connect">
+
+        <!-- Список клиентов. Заголовки групп помечены role="presentation":
+             в дереве доступности остаются только сами вкладки. -->
+        <div class="ig-nav" role="tablist" aria-label="Способы подключения">
+          <p class="ig-nav-title" role="presentation" aria-hidden="true">Приложения</p>
+
+          <button class="ig-tab" type="button" role="tab" data-tab="claude-code"
+                  id="ig-t-claude-code" aria-controls="ig-p-claude-code" aria-selected="true">
+            <svg class="ig-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m4 17 5-5-5-5"/><path d="M13 19h7"/></svg>
+            <span>Claude Code</span>
+          </button>
+
+          <button class="ig-tab" type="button" role="tab" data-tab="claude-desktop"
+                  id="ig-t-claude-desktop" aria-controls="ig-p-claude-desktop" aria-selected="false">
+            <svg class="ig-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="4" width="19" height="13" rx="2"/><path d="M8.5 21h7M12 17v4"/></svg>
+            <span>Claude App Desktop</span>
+          </button>
+
+          <button class="ig-tab" type="button" role="tab" data-tab="cursor"
+                  id="ig-t-cursor" aria-controls="ig-p-cursor" aria-selected="false">
+            <svg class="ig-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m4.5 3 7.2 17 2.1-6.1 6.2-2.2z"/></svg>
+            <span>Cursor</span>
+          </button>
+
+          <button class="ig-tab" type="button" role="tab" data-tab="opencode"
+                  id="ig-t-opencode" aria-controls="ig-p-opencode" aria-selected="false">
+            <svg class="ig-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4H6.5a2 2 0 0 0-2 2v3.5l-2 2.5 2 2.5V18a2 2 0 0 0 2 2H8"/><path d="M16 4h1.5a2 2 0 0 1 2 2v3.5l2 2.5-2 2.5V18a2 2 0 0 1-2 2H16"/></svg>
+            <span>OpenCode</span>
+          </button>
+
+          <p class="ig-nav-title" role="presentation" aria-hidden="true">Код и терминал</p>
+
+          <button class="ig-tab" type="button" role="tab" data-tab="api"
+                  id="ig-t-api" aria-controls="ig-p-api" aria-selected="false">
+            <svg class="ig-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3.2 9.5h17.6M3.2 14.5h17.6"/><path d="M12 3a16 16 0 0 1 0 18 16 16 0 0 1 0-18"/></svg>
+            <span>API — cURL и SDK</span>
+          </button>
+
+          <button class="ig-tab" type="button" role="tab" data-tab="python"
+                  id="ig-t-python" aria-controls="ig-p-python" aria-selected="false">
+            <svg class="ig-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3v5h5"/><path d="M14 3H7.5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V8z"/><path d="m10.5 13-1.6 1.6 1.6 1.6m3-3.2 1.6 1.6-1.6 1.6"/></svg>
+            <span>Python</span>
+          </button>
+
+          <button class="ig-tab" type="button" role="tab" data-tab="powershell"
+                  id="ig-t-powershell" aria-controls="ig-p-powershell" aria-selected="false">
+            <svg class="ig-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="4" width="19" height="16" rx="2"/><path d="m7 10.5 2.4 2L7 14.5M12.5 14.5h4.5"/></svg>
+            <span>PowerShell</span>
+          </button>
+
+          <button class="ig-tab" type="button" role="tab" data-tab="terminal"
+                  id="ig-t-terminal" aria-controls="ig-p-terminal" aria-selected="false">
+            <svg class="ig-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="4" width="19" height="16" rx="2"/><path d="M2.5 8.2h19"/><path d="m6.5 12.5 2 2-2 2M11.5 16.5h5"/></svg>
+            <span>Терминал</span>
+          </button>
+        </div>
+
+        <div class="ig-body">
+
+          <!-- ===== Claude Code ===== -->
+          <section class="ig-panel" role="tabpanel" id="ig-p-claude-code" aria-labelledby="ig-t-claude-code" tabindex="0">
+            <div class="ig-head">
+              <h3>Claude Code</h3>
+              <span class="badge">CLI</span>
+            </div>
+            <p class="ig-lead">
+              Самый короткий путь: агент читает адрес сервера и ключ из переменных окружения,
+              переделывать ничего не нужно.
+            </p>
+
+            <ol class="ig-steps">
+              <li>
+                <span class="ig-step-t">Установите Claude Code</span>
+                <p>Нужен Node.js 18 или новее.</p>
+                <div class="code-block"><pre>npm install -g @anthropic-ai/claude-code</pre></div>
+              </li>
+
+              <li>
+                <span class="ig-step-t">Укажите адрес и ключ</span>
+                <p class="ig-os">macOS и Linux</p>
+                <div class="code-block"><pre>export ANTHROPIC_BASE_URL="https://api.harmonyai.ru"
 export ANTHROPIC_AUTH_TOKEN="sk-h-ваш-ключ"
 export ANTHROPIC_MODEL="dynatos"
-export ANTHROPIC_DEFAULT_HAIKU_MODEL="adanatos"
-
-claude</pre>
-          </div>
-
-          <p style="margin:18px 0 14px;">Windows, PowerShell:</p>
-          <div class="code-block">
-            <pre>$env:ANTHROPIC_BASE_URL="https://api.harmonyai.ru"
+export ANTHROPIC_DEFAULT_HAIKU_MODEL="adanatos"</pre></div>
+                <p class="ig-os">Windows, PowerShell</p>
+                <div class="code-block"><pre>$env:ANTHROPIC_BASE_URL="https://api.harmonyai.ru"
 $env:ANTHROPIC_AUTH_TOKEN="sk-h-ваш-ключ"
 $env:ANTHROPIC_MODEL="dynatos"
-$env:ANTHROPIC_DEFAULT_HAIKU_MODEL="adanatos"
+$env:ANTHROPIC_DEFAULT_HAIKU_MODEL="adanatos"</pre></div>
+              </li>
 
-claude</pre>
-          </div>
+              <li>
+                <span class="ig-step-t">Запустите</span>
+                <div class="code-block"><pre>claude</pre></div>
+                <p>Модель на ходу переключает флаг <code>--model</code> или команда <code>/model</code>.</p>
+              </li>
 
-          <div class="notice" style="margin-top:18px;">
-            Используйте именно <code>ANTHROPIC_AUTH_TOKEN</code>: его значение уходит в заголовок
-            <code>Authorization</code> с приставкой <code>Bearer</code> — как и ждёт шлюз.
-            Переменная <code>ANTHROPIC_API_KEY</code> отправляется в заголовке <code>X-Api-Key</code>;
-            он тоже принимается, но для ключей <code>sk-h-…</code> первый вариант привычнее.
-            <br><br>
-            <code>ANTHROPIC_DEFAULT_HAIKU_MODEL</code> нужен потому, что Claude Code выполняет часть
-            служебных задач «дешёвой» моделью. Без этой переменной он попросит модель, которой у нас нет,
-            и получит ошибку 404. По той же причине можно задать
-            <code>ANTHROPIC_DEFAULT_SONNET_MODEL</code> и <code>ANTHROPIC_DEFAULT_OPUS_MODEL</code>.
-          </div>
-        </div></div>
-      </div>
-
-      <!-- Claude Code: файл настроек -->
-      <div class="disc">
-        <button class="disc-head" type="button">
-          Claude Code — постоянные настройки в файле
-          <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-        <div class="disc-body"><div class="disc-inner">
-          <p style="margin-bottom:14px;">
-            Чтобы не задавать переменные каждый раз, добавьте блок <code>env</code>
-            в <code>~/.claude/settings.json</code>:
-          </p>
-          <div class="code-block">
-            <pre>{
+              <li>
+                <span class="ig-step-t">Чтобы не задавать переменные каждый раз</span>
+                <p>Перенесите их в <code>~/.claude/settings.json</code> — файл сильнее оболочки.</p>
+                <div class="code-block"><pre>{
   "env": {
     "ANTHROPIC_BASE_URL": "https://api.harmonyai.ru",
     "ANTHROPIC_AUTH_TOKEN": "sk-h-ваш-ключ",
@@ -186,91 +241,247 @@ claude</pre>
     "ANTHROPIC_DEFAULT_SONNET_MODEL": "dynatos",
     "ANTHROPIC_DEFAULT_OPUS_MODEL": "dynatos"
   }
-}</pre>
-          </div>
-          <p style="font-size:14px;color:var(--text-3);margin-top:12px;">
-            Если одна и та же переменная задана и в оболочке, и в файле настроек, побеждает файл.
-            Переключить модель на ходу можно флагом <code>--model</code> или командой <code>/model</code>.
-          </p>
-        </div></div>
-      </div>
+}</pre></div>
+              </li>
+            </ol>
 
-      <!-- Cline -->
-      <div class="disc">
-        <button class="disc-head" type="button">
-          Cline (расширение VS Code)
-          <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-        <div class="disc-body"><div class="disc-inner">
-          <ol style="display:grid;gap:10px;padding-left:20px;">
-            <li>Откройте настройки Cline (значок шестерёнки на панели расширения).</li>
-            <li><strong>API Provider</strong> → <code>Anthropic</code>.</li>
-            <li><strong>API Key</strong> → ваш <code>sk-h-…</code>.</li>
-            <li>Включите <strong>Use custom base URL</strong> и впишите <code>https://api.harmonyai.ru</code>.</li>
-            <li>В списке моделей выберите или введите <code>dynatos</code> либо <code>adanatos</code>.</li>
-          </ol>
-          <p style="font-size:14px;color:var(--text-3);margin-top:14px;">
-            Если поле модели предлагает только официальный список, введите идентификатор вручную —
-            шлюз принимает лишь <code>dynatos</code> и <code>adanatos</code>.
-          </p>
-        </div></div>
-      </div>
+            <div class="notice">
+              <strong>Зачем «лишние» переменные.</strong> Часть служебных задач Claude Code выполняет
+              «дешёвой» моделью и запрашивает её по имени из семейства Haiku. Такой модели у нас нет,
+              поэтому без <code>ANTHROPIC_DEFAULT_HAIKU_MODEL</code> в ответ придёт ошибка 404.
+              По той же причине полезны <code>ANTHROPIC_DEFAULT_SONNET_MODEL</code> и
+              <code>ANTHROPIC_DEFAULT_OPUS_MODEL</code>.
+              <br><br>
+              <strong>Про <code>ANTHROPIC_AUTH_TOKEN</code>.</strong> Его значение уходит в заголовок
+              <code>Authorization: Bearer</code> — как и ждёт шлюз. Переменная
+              <code>ANTHROPIC_API_KEY</code> отправляется в <code>x-api-key</code>; он тоже принимается,
+              но для ключей <code>sk-h-…</code> первый вариант привычнее.
+            </div>
+          </section>
 
-      <!-- Roo Code -->
-      <div class="disc">
-        <button class="disc-head" type="button">
-          Roo Code (расширение VS Code)
-          <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-        <div class="disc-body"><div class="disc-inner">
-          <ol style="display:grid;gap:10px;padding-left:20px;">
-            <li>Настройки Roo Code → раздел <strong>Providers</strong>.</li>
-            <li><strong>API Provider</strong> → <code>Anthropic</code>.</li>
-            <li><strong>API Key</strong> → ваш <code>sk-h-…</code>.</li>
-            <li>Отметьте <strong>Use custom base URL</strong> → <code>https://api.harmonyai.ru</code>.</li>
-            <li>Модель — <code>dynatos</code> для сложных задач, <code>adanatos</code> для быстрых.</li>
-          </ol>
-        </div></div>
-      </div>
+          <!-- ===== Claude App Desktop ===== -->
+          <section class="ig-panel" role="tabpanel" id="ig-p-claude-desktop" aria-labelledby="ig-t-claude-desktop" tabindex="0" hidden>
+            <div class="ig-head">
+              <h3>Claude App Desktop</h3>
+              <span class="badge">Приложение</span>
+            </div>
+            <p class="ig-lead">
+              Настольное приложение Claude Code для macOS и Windows берёт настройки из того же файла,
+              что и CLI, — достаточно прописать адрес шлюза и перезапустить программу.
+            </p>
 
-      <!-- Python SDK -->
-      <div class="disc">
-        <button class="disc-head" type="button">
-          Python — библиотека anthropic
-          <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-        <div class="disc-body"><div class="disc-inner">
-          <div class="code-block">
-            <pre>from anthropic import Anthropic
+            <ol class="ig-steps">
+              <li>
+                <span class="ig-step-t">Откройте файл настроек</span>
+                <p class="ig-os">macOS и Linux</p>
+                <div class="code-block"><pre>~/.claude/settings.json</pre></div>
+                <p class="ig-os">Windows</p>
+                <div class="code-block"><pre>%USERPROFILE%\.claude\settings.json</pre></div>
+                <p>Если файла нет — создайте его.</p>
+              </li>
 
-client = Anthropic(
-    base_url="https://api.harmonyai.ru",
-    api_key="sk-h-ваш-ключ",
-)
+              <li>
+                <span class="ig-step-t">Впишите блок <code>env</code></span>
+                <div class="code-block"><pre>{
+  "env": {
+    "ANTHROPIC_BASE_URL": "https://api.harmonyai.ru",
+    "ANTHROPIC_AUTH_TOKEN": "sk-h-ваш-ключ",
+    "ANTHROPIC_MODEL": "dynatos",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "adanatos",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "dynatos",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "dynatos"
+  }
+}</pre></div>
+              </li>
 
-with client.messages.stream(
-    model="dynatos",
-    max_tokens=2048,
-    messages=[{"role": "user", "content": "Разбери этот SQL-запрос"}],
-) as stream:
-    for text in stream.text_stream:
-        print(text, end="", flush=True)</pre>
-          </div>
-          <p style="font-size:14px;color:var(--text-3);margin-top:12px;">
-            Библиотека отправит ключ в заголовке <code>x-api-key</code> — шлюз принимает и его.
-          </p>
-        </div></div>
-      </div>
+              <li>
+                <span class="ig-step-t">Полностью закройте и снова откройте приложение</span>
+                <p>
+                  Файл настроек читается при запуске: пока окно не перезапущено, программа
+                  продолжает обращаться к прежнему серверу.
+                </p>
+              </li>
+            </ol>
 
-      <!-- TypeScript SDK -->
-      <div class="disc">
-        <button class="disc-head" type="button">
-          TypeScript / JavaScript — @anthropic-ai/sdk
-          <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-        <div class="disc-body"><div class="disc-inner">
-          <div class="code-block">
-            <pre>import Anthropic from '@anthropic-ai/sdk';
+            <div class="notice notice-warn">
+              <strong>Не путайте с приложением-чатом.</strong> Обычный клиент Claude для переписки
+              привязан к аккаунту Anthropic и сменить адрес сервера не позволяет — ключ
+              <code>sk-h-…</code> в него вставить некуда. Через Harmony AI работают только клиенты,
+              у которых базовый URL настраивается: Claude Code (CLI и настольное приложение),
+              расширения редакторов и собственный код.
+            </div>
+          </section>
+
+          <!-- ===== Cursor ===== -->
+          <section class="ig-panel" role="tabpanel" id="ig-p-cursor" aria-labelledby="ig-t-cursor" tabindex="0" hidden>
+            <div class="ig-head">
+              <h3>Cursor</h3>
+              <span class="badge">Редактор</span>
+            </div>
+            <p class="ig-lead">
+              Встроенные модели Cursor к чужому адресу не переключаются, зато редактор понимает
+              расширения VS Code — подключаемся через Cline или Roo Code.
+            </p>
+
+            <ol class="ig-steps">
+              <li>
+                <span class="ig-step-t">Установите расширение</span>
+                <p>
+                  <code>Ctrl/Cmd + Shift + X</code> → найдите <strong>Cline</strong>
+                  (или <strong>Roo Code</strong> — настройки те же) → <em>Install</em>.
+                </p>
+              </li>
+
+              <li>
+                <span class="ig-step-t">Откройте настройки расширения</span>
+                <p>Значок шестерёнки на его панели.</p>
+              </li>
+
+              <li>
+                <span class="ig-step-t">Заполните три поля</span>
+                <div class="table-wrap">
+                  <table class="tbl">
+                    <tbody>
+                      <tr><td>API Provider</td><td><code>Anthropic</code></td></tr>
+                      <tr><td>Use custom base URL</td><td>включить → <code>https://api.harmonyai.ru</code></td></tr>
+                      <tr><td>API Key</td><td><code>sk-h-ваш-ключ</code></td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </li>
+
+              <li>
+                <span class="ig-step-t">Выберите модель</span>
+                <p>
+                  <code>dynatos</code> для сложных задач, <code>adanatos</code> для быстрых.
+                  Если список предлагает только официальные названия — введите идентификатор вручную.
+                </p>
+              </li>
+            </ol>
+
+            <div class="notice">
+              <strong>Второй рабочий путь.</strong> Откройте встроенный терминал Cursor
+              (<code>Ctrl/Cmd + `</code>) и запустите там Claude Code с нашими переменными — редактор
+              для этого настраивать не нужно. Шаги — во вкладке «Claude Code».
+              <br><br>
+              Поле <strong>Override OpenAI Base URL</strong> в настройках самого Cursor не подойдёт:
+              оно ждёт формат OpenAI, а шлюз говорит на формате Anthropic.
+            </div>
+          </section>
+
+          <!-- ===== OpenCode ===== -->
+          <section class="ig-panel" role="tabpanel" id="ig-p-opencode" aria-labelledby="ig-t-opencode" tabindex="0" hidden>
+            <div class="ig-head">
+              <h3>OpenCode</h3>
+              <span class="badge">CLI</span>
+            </div>
+            <p class="ig-lead">
+              OpenCode умеет добавлять свои провайдеры. Описываем Harmony AI как провайдер
+              формата Anthropic — и обе модели появляются в общем списке.
+            </p>
+
+            <ol class="ig-steps">
+              <li>
+                <span class="ig-step-t">Откройте файл настроек</span>
+                <p>
+                  Общий для всех проектов — <code>~/.config/opencode/opencode.json</code>.
+                  Только для текущего — <code>opencode.json</code> в корне проекта.
+                </p>
+              </li>
+
+              <li>
+                <span class="ig-step-t">Добавьте провайдер</span>
+                <div class="code-block"><pre>{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "harmony": {
+      "npm": "@ai-sdk/anthropic",
+      "name": "Harmony AI",
+      "options": {
+        "baseURL": "https://api.harmonyai.ru/v1",
+        "apiKey": "sk-h-ваш-ключ"
+      },
+      "models": {
+        "dynatos":  { "name": "Dynatos" },
+        "adanatos": { "name": "Adanatos" }
+      }
+    }
+  }
+}</pre></div>
+              </li>
+
+              <li>
+                <span class="ig-step-t">Выберите модель в интерфейсе</span>
+                <div class="code-block"><pre>opencode</pre></div>
+                <p>Команда <code>/models</code> → раздел <strong>Harmony AI</strong>.</p>
+              </li>
+            </ol>
+
+            <div class="notice">
+              <strong>Обратите внимание на <code>/v1</code>.</strong> Здесь адрес указывается вместе
+              с ним — <code>https://api.harmonyai.ru/v1</code>, потому что библиотека дописывает
+              к нему только <code>/messages</code>. В Claude Code, наоборот, <code>/v1</code> нужно
+              опустить: он добавляет его сам.
+            </div>
+          </section>
+
+          <!-- ===== cURL и SDK ===== -->
+          <section class="ig-panel" role="tabpanel" id="ig-p-api" aria-labelledby="ig-t-api" tabindex="0" hidden>
+            <div class="ig-head">
+              <h3>API — cURL и SDK</h3>
+              <span class="badge">HTTP</span>
+            </div>
+            <p class="ig-lead">
+              Прямые запросы к шлюзу. Формат — Anthropic Messages API, так что подходит любая
+              библиотека, которая умеет его отправлять.
+            </p>
+
+            <div class="table-wrap">
+              <table class="tbl">
+                <tbody>
+                  <tr><td>Адрес</td><td><code>https://api.harmonyai.ru</code></td></tr>
+                  <tr><td>Эндпоинты</td><td><code>/v1/messages</code>, <code>/v1/messages/count_tokens</code>, <code>/v1/models</code></td></tr>
+                  <tr><td>Авторизация</td><td><code>Authorization: Bearer sk-h-…</code> или <code>x-api-key: sk-h-…</code></td></tr>
+                  <tr><td>Версия</td><td><code>anthropic-version: 2023-06-01</code></td></tr>
+                  <tr><td>Модели</td><td><code>dynatos</code>, <code>adanatos</code></td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <ol class="ig-steps" style="margin-top:22px;">
+              <li>
+                <span class="ig-step-t">Обычный запрос</span>
+                <div class="code-block"><pre>curl https://api.harmonyai.ru/v1/messages \
+  -H "Authorization: Bearer $HARMONY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -H "anthropic-version: 2023-06-01" \
+  -d '{
+    "model": "adanatos",
+    "max_tokens": 1024,
+    "messages": [
+      { "role": "user", "content": "Объясни, что такое SSE" }
+    ]
+  }'</pre></div>
+              </li>
+
+              <li>
+                <span class="ig-step-t">Потоковый ответ</span>
+                <p>Добавьте <code>"stream": true</code> и флаг <code>-N</code>, чтобы cURL не буферизовал вывод.</p>
+                <div class="code-block"><pre>curl -N https://api.harmonyai.ru/v1/messages \
+  -H "Authorization: Bearer $HARMONY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -H "anthropic-version: 2023-06-01" \
+  -d '{
+    "model": "dynatos",
+    "max_tokens": 2048,
+    "stream": true,
+    "messages": [{ "role": "user", "content": "Напиши хайку про кэш" }]
+  }'</pre></div>
+              </li>
+
+              <li>
+                <span class="ig-step-t">Официальный SDK — TypeScript и JavaScript</span>
+                <div class="code-block"><pre>import Anthropic from '@anthropic-ai/sdk';
 
 const client = new Anthropic({
   baseURL: 'https://api.harmonyai.ru',
@@ -287,41 +498,226 @@ for await (const event of stream) {
   if (event.type === 'content_block_delta' &amp;&amp; event.delta.type === 'text_delta') {
     process.stdout.write(event.delta.text);
   }
-}</pre>
-          </div>
-        </div></div>
+}</pre></div>
+              </li>
+
+              <li>
+                <span class="ig-step-t">Список моделей и подсчёт токенов</span>
+                <div class="code-block"><pre>curl https://api.harmonyai.ru/v1/models \
+  -H "Authorization: Bearer $HARMONY_API_KEY"</pre></div>
+                <p>Сколько токенов займёт запрос — до его отправки и без списания:</p>
+                <div class="code-block"><pre>curl https://api.harmonyai.ru/v1/messages/count_tokens \
+  -H "Authorization: Bearer $HARMONY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -H "anthropic-version: 2023-06-01" \
+  -d '{
+    "model": "dynatos",
+    "messages": [{ "role": "user", "content": "Длинный текст…" }]
+  }'</pre></div>
+              </li>
+            </ol>
+
+            <div class="notice notice-warn">
+              <strong>Формат OpenAI не поддерживается.</strong> Эндпоинта
+              <code>/v1/chat/completions</code> у шлюза нет, и клиенты, умеющие говорить только
+              на этом формате, к нему не подключатся. Нужен провайдер <code>anthropic</code>
+              с настраиваемым базовым адресом.
+            </div>
+          </section>
+
+          <!-- ===== Python ===== -->
+          <section class="ig-panel" role="tabpanel" id="ig-p-python" aria-labelledby="ig-t-python" tabindex="0" hidden>
+            <div class="ig-head">
+              <h3>Python</h3>
+              <span class="badge">SDK</span>
+            </div>
+            <p class="ig-lead">
+              Официальная библиотека <code>anthropic</code> работает со шлюзом без изменений —
+              достаточно передать <code>base_url</code>.
+            </p>
+
+            <ol class="ig-steps">
+              <li>
+                <span class="ig-step-t">Установите библиотеку</span>
+                <div class="code-block"><pre>pip install anthropic</pre></div>
+              </li>
+
+              <li>
+                <span class="ig-step-t">Положите ключ в переменную окружения</span>
+                <p class="ig-os">macOS и Linux</p>
+                <div class="code-block"><pre>export HARMONY_API_KEY="sk-h-ваш-ключ"</pre></div>
+                <p class="ig-os">Windows, PowerShell</p>
+                <div class="code-block"><pre>$env:HARMONY_API_KEY="sk-h-ваш-ключ"</pre></div>
+              </li>
+
+              <li>
+                <span class="ig-step-t">Потоковый ответ</span>
+                <div class="code-block"><pre>import os
+from anthropic import Anthropic
+
+client = Anthropic(
+    base_url="https://api.harmonyai.ru",
+    api_key=os.environ["HARMONY_API_KEY"],
+)
+
+with client.messages.stream(
+    model="dynatos",
+    max_tokens=2048,
+    messages=[{"role": "user", "content": "Разбери этот SQL-запрос"}],
+) as stream:
+    for text in stream.text_stream:
+        print(text, end="", flush=True)</pre></div>
+              </li>
+
+              <li>
+                <span class="ig-step-t">Обычный ответ и расход токенов</span>
+                <div class="code-block"><pre>msg = client.messages.create(
+    model="adanatos",
+    max_tokens=512,
+    messages=[{"role": "user", "content": "Привет!"}],
+)
+
+print(msg.content[0].text)
+print(msg.usage.input_tokens, msg.usage.output_tokens)</pre></div>
+              </li>
+            </ol>
+
+            <div class="notice">
+              Библиотека отправляет ключ в заголовке <code>x-api-key</code> — шлюз принимает и его,
+              и <code>Authorization: Bearer</code>. Поле <code>usage</code> в ответе показывает
+              фактический расход, по которому списывается баланс.
+            </div>
+          </section>
+
+          <!-- ===== PowerShell ===== -->
+          <section class="ig-panel" role="tabpanel" id="ig-p-powershell" aria-labelledby="ig-t-powershell" tabindex="0" hidden>
+            <div class="ig-head">
+              <h3>PowerShell</h3>
+              <span class="badge">Windows</span>
+            </div>
+            <p class="ig-lead">
+              Запрос из <code>Invoke-RestMethod</code>, без сторонних модулей.
+            </p>
+
+            <ol class="ig-steps">
+              <li>
+                <span class="ig-step-t">Сохраните ключ</span>
+                <p>Только на текущую сессию:</p>
+                <div class="code-block"><pre>$env:HARMONY_API_KEY = "sk-h-ваш-ключ"</pre></div>
+                <p>Навсегда — для своей учётной записи:</p>
+                <div class="code-block"><pre>[Environment]::SetEnvironmentVariable(
+  "HARMONY_API_KEY", "sk-h-ваш-ключ", "User")</pre></div>
+              </li>
+
+              <li>
+                <span class="ig-step-t">Отправьте запрос</span>
+                <div class="code-block"><pre>$body = @{
+  model      = "adanatos"
+  max_tokens = 512
+  messages   = @(@{ role = "user"; content = "Привет! Ответь одним предложением." })
+} | ConvertTo-Json -Depth 5
+
+$res = Invoke-RestMethod -Method Post `
+  -Uri "https://api.harmonyai.ru/v1/messages" `
+  -Headers @{
+    "Authorization"     = "Bearer $env:HARMONY_API_KEY"
+    "anthropic-version" = "2023-06-01"
+  } `
+  -ContentType "application/json" `
+  -Body ([Text.Encoding]::UTF8.GetBytes($body))
+
+$res.content[0].text</pre></div>
+              </li>
+
+              <li>
+                <span class="ig-step-t">Claude Code в том же окне</span>
+                <div class="code-block"><pre>$env:ANTHROPIC_BASE_URL = "https://api.harmonyai.ru"
+$env:ANTHROPIC_AUTH_TOKEN = "sk-h-ваш-ключ"
+$env:ANTHROPIC_MODEL = "dynatos"
+$env:ANTHROPIC_DEFAULT_HAIKU_MODEL = "adanatos"
+
+claude</pre></div>
+              </li>
+            </ol>
+
+            <div class="notice">
+              <strong>Про русский текст.</strong> Тело запроса передаётся байтами в UTF-8
+              (<code>[Text.Encoding]::UTF8.GetBytes</code>) — иначе Windows PowerShell 5.1
+              отправит кириллицу в кодировке системы, и вместо букв придут вопросительные знаки.
+              В PowerShell 7 это уже не нужно, но и не мешает.
+            </div>
+          </section>
+
+          <!-- ===== Терминал ===== -->
+          <section class="ig-panel" role="tabpanel" id="ig-p-terminal" aria-labelledby="ig-t-terminal" tabindex="0" hidden>
+            <div class="ig-head">
+              <h3>Терминал</h3>
+              <span class="badge">bash, zsh</span>
+            </div>
+            <p class="ig-lead">
+              Ключ хранится в отдельном файле, а не в истории команд, — и любой запрос
+              становится одной строкой.
+            </p>
+
+            <ol class="ig-steps">
+              <li>
+                <span class="ig-step-t">Положите ключ в файл и закройте доступ другим</span>
+                <div class="code-block"><pre>printf '%s' 'sk-h-ваш-ключ' &gt; ~/.harmony-key
+chmod 600 ~/.harmony-key</pre></div>
+              </li>
+
+              <li>
+                <span class="ig-step-t">Подключите его к оболочке</span>
+                <p>Строка для <code>~/.zshrc</code> или <code>~/.bashrc</code>:</p>
+                <div class="code-block"><pre>export HARMONY_API_KEY="$(cat ~/.harmony-key)"</pre></div>
+                <p>Применить сразу, не открывая новое окно: <code>source ~/.zshrc</code>.</p>
+              </li>
+
+              <li>
+                <span class="ig-step-t">Спросите что-нибудь одной командой</span>
+                <p>Ответ разбираем через <code>jq</code>, чтобы не читать JSON глазами.</p>
+                <div class="code-block"><pre>ask() {
+  curl -s https://api.harmonyai.ru/v1/messages \
+    -H "Authorization: Bearer $HARMONY_API_KEY" \
+    -H "Content-Type: application/json" \
+    -H "anthropic-version: 2023-06-01" \
+    -d "$(jq -n --arg q "$*" '{
+          model: "adanatos",
+          max_tokens: 1024,
+          messages: [{ role: "user", content: $q }]
+        }')" | jq -r '.content[0].text'
+}
+
+ask "Чем tar отличается от zip?"</pre></div>
+              </li>
+
+              <li>
+                <span class="ig-step-t">Claude Code в этой же оболочке</span>
+                <div class="code-block"><pre>export ANTHROPIC_BASE_URL="https://api.harmonyai.ru"
+export ANTHROPIC_AUTH_TOKEN="$HARMONY_API_KEY"
+export ANTHROPIC_MODEL="dynatos"
+export ANTHROPIC_DEFAULT_HAIKU_MODEL="adanatos"
+
+claude</pre></div>
+              </li>
+            </ol>
+
+            <div class="notice">
+              <strong>Почему не вписать ключ прямо в команду.</strong> Всё, что набрано в оболочке,
+              попадает в <code>~/.zsh_history</code> или <code>~/.bash_history</code> и остаётся
+              там надолго. Файл с правами <code>600</code> читает только владелец, а в истории
+              видно лишь имя переменной.
+            </div>
+          </section>
+
+        </div>
       </div>
 
-      <!-- Другие клиенты -->
-      <div class="disc">
-        <button class="disc-head" type="button">
-          OpenCode, Gemini CLI, Codex и другие клиенты
-          <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-        <div class="disc-body"><div class="disc-inner">
-          <p style="margin-bottom:14px;">
-            Подойдёт любой клиент, у которого есть провайдер <strong>Anthropic</strong> и возможность
-            заменить адрес сервера. Впишите в его настройки:
-          </p>
-          <div class="table-wrap">
-            <table class="tbl">
-              <tbody>
-                <tr><td>Провайдер / формат</td><td><code>anthropic</code> (Messages API)</td></tr>
-                <tr><td>Base URL</td><td><code>https://api.harmonyai.ru</code></td></tr>
-                <tr><td>Ключ</td><td><code>sk-h-…</code> в <code>Authorization: Bearer</code> или <code>x-api-key</code></td></tr>
-                <tr><td>Модель</td><td><code>dynatos</code> или <code>adanatos</code></td></tr>
-              </tbody>
-            </table>
-          </div>
-          <p style="font-size:14px;color:var(--text-3);margin-top:14px;">
-            Клиенты, ориентированные только на формат OpenAI (в том числе поле «Override OpenAI Base URL»
-            в некоторых редакторах), к этому адресу не подключатся: шлюз говорит на формате Anthropic.
-            Официальное приложение Claude сменить адрес сервера не позволяет — для работы через
-            Harmony AI используйте Claude Code или расширения выше.
-          </p>
-        </div></div>
-      </div>
-
+      <p style="font-size:14px;color:var(--text-3);margin-top:16px;">
+        Клиента нет в списке? Подойдёт любой, у которого есть провайдер <strong>Anthropic</strong>
+        и возможность заменить адрес сервера: <code>https://api.harmonyai.ru</code>,
+        ключ <code>sk-h-…</code>, модель <code>dynatos</code> или <code>adanatos</code>.
+      </p>
     </div>
   </section>
 
@@ -551,8 +947,8 @@ event: message_stop</pre>
 
       <p style="margin-top:26px;">
         Пополнение — в <a href="/api/dashboard" style="color:var(--link);">личном кабинете</a>:
-        сумма от 100 ₽, оплата через ЮKassa. Баланс увеличивается только после подтверждения платежа
-        платёжной системой — возврат на сайт сам по себе ничего не начисляет.
+        сумма от 100 ₽, оплата банковской картой. Баланс увеличивается только после подтверждения
+        платежа — возврат на сайт сам по себе ничего не начисляет.
         Там же видны история пополнений и расход за последние 30 дней.
       </p>
     </div>
