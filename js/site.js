@@ -7,6 +7,7 @@
    Что здесь:
      hm.nav        — гамбургер-меню шапки
      hm.accordion  — FAQ и раскрывающиеся инструкции
+     hm.tabs       — вкладки «список слева, подробности справа»
      hm.copy       — кнопки «Скопировать» в блоках кода
      hm.modal      — открытие/закрытие модальных окон
      hm.pop        — всплывающие меню
@@ -67,6 +68,84 @@
         const next = !item.classList.contains('open');
         item.classList.toggle('open', next);
         btn.setAttribute('aria-expanded', next ? 'true' : 'false');
+      });
+    });
+  };
+
+  /* ===== ВКЛАДКИ (список слева, подробности справа) ========================
+     Разметка: контейнер с data-tabs="<префикс>", внутри кнопки role="tab" с
+     data-tab="<id>" и aria-controls на свою панель role="tabpanel".
+
+     Переключение — только атрибутом hidden: панели остаются в DOM, поэтому
+     кнопки «Скопировать» уже навешаны, а поиск по странице (Ctrl+F) находит
+     текст всех инструкций… точнее, находит только открытую — зато ничего не
+     нужно перерисовывать.
+
+     Адрес обновляем через replaceState: ссылку на конкретную инструкцию можно
+     переслать, но кнопка «назад» в браузере не превращается в перебор вкладок.
+     ========================================================================= */
+  hm.tabs = function (root) {
+    const scope = root || document;
+    scope.querySelectorAll('[data-tabs]').forEach(group => {
+      if (group.dataset.hmBound) return;
+      group.dataset.hmBound = '1';
+
+      const prefix = group.getAttribute('data-tabs') || 'tab';
+      const tabs = Array.from(group.querySelectorAll('[role="tab"]'));
+      if (!tabs.length) return;
+      const panelOf = tab => document.getElementById(tab.getAttribute('aria-controls') || '');
+
+      const select = (tab, opts) => {
+        const o = opts || {};
+        tabs.forEach(t => {
+          const on = t === tab;
+          t.setAttribute('aria-selected', on ? 'true' : 'false');
+          t.tabIndex = on ? 0 : -1;
+          const panel = panelOf(t);
+          if (panel) panel.hidden = !on;
+        });
+        if (o.focus) tab.focus();
+        if (o.hash !== false && tab.dataset.tab) {
+          try { history.replaceState(null, '', '#' + prefix + '-' + tab.dataset.tab); } catch (e) { /* не критично */ }
+        }
+      };
+
+      tabs.forEach((tab, i) => {
+        tab.addEventListener('click', () => select(tab));
+        tab.addEventListener('keydown', e => {
+          // Список вертикальный на широком экране и горизонтальный на узком —
+          // поэтому обе пары стрелок делают одно и то же.
+          const step = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[e.key];
+          let next = null;
+          if (step) next = tabs[(i + step + tabs.length) % tabs.length];
+          else if (e.key === 'Home') next = tabs[0];
+          else if (e.key === 'End') next = tabs[tabs.length - 1];
+          if (!next) return;
+          e.preventDefault();
+          select(next, { focus: true });
+        });
+      });
+
+      // Ссылка вида /api#connect-cursor открывает нужную инструкцию сразу.
+      // Тот же разбор нужен и на hashchange: переход по ссылке внутри страницы
+      // меняет только хеш, документ не перезагружается и этот код сам не сработает.
+      const fromHash = () => {
+        const wanted = (location.hash || '').slice(1);
+        if (wanted.indexOf(prefix + '-') !== 0) return null;
+        return tabs.find(t => t.dataset.tab === wanted.slice(prefix.length + 1)) || null;
+      };
+
+      const initial = fromHash();
+      select(initial || tabs.find(t => t.getAttribute('aria-selected') === 'true') || tabs[0], { hash: false });
+      if (initial) {
+        // Браузер по такому хешу ничего не найдёт и оставит человека наверху
+        // страницы — доводим до раздела сами.
+        setTimeout(() => { try { group.scrollIntoView({ block: 'start' }); } catch (e) { group.scrollIntoView(); } }, 0);
+      }
+
+      window.addEventListener('hashchange', () => {
+        const tab = fromHash();
+        if (tab) select(tab, { hash: false });
       });
     });
   };
@@ -331,6 +410,7 @@
   hm.initAll = function (root) {
     hm.nav();
     hm.accordion(root);
+    hm.tabs(root);
     hm.copy(root);
     hm.modal(root);
     hm.pop(root);
