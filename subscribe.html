@@ -5,7 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>HarmonyAI Pro — Оформление подписки</title>
 <meta name="robots" content="noindex">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Соединение с CDN и сервисом входа открываем заранее: DNS, TCP и TLS
+     занимают заметную долю ожидания на мобильной сети. Сам SDK подключён
+     не здесь, а внизу страницы — иначе он задерживал бы первую отрисовку. -->
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://cqthnymltqpcxtpiryka.supabase.co" crossorigin>
+<link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
 <style>
   /* ================== LIQUID GLASS — единая система ==================
      Базовый слой стекла (LiquidGlassSurface): тёмный фон, blur, тонкая
@@ -239,16 +244,16 @@
     <div id="checkout">
       <div class="plan-head">Оформление подписки</div>
       <div class="price-box">
-        <div class="price">299&nbsp;₽</div>
+        <div class="price"><span data-price="pro">299</span>&nbsp;₽</div>
         <div class="price-per">/ месяц</div>
       </div>
       <div class="price-note">Ежемесячное продление. Отмена в любой момент.</div>
       <div class="divider"></div>
-      <div class="row"><span class="muted">HarmonyAI Pro</span><span>299&nbsp;₽</span></div>
+      <div class="row"><span class="muted">HarmonyAI Pro</span><span><span data-price="pro">299</span>&nbsp;₽</span></div>
       <div class="row"><span class="muted">Пробный период</span><span>—</span></div>
-      <div class="row total"><span>Итого сегодня</span><span>299&nbsp;₽</span></div>
+      <div class="row total"><span>Итого сегодня</span><span><span data-price="pro">299</span>&nbsp;₽</span></div>
 
-      <button class="pay-btn" id="payBtn" onclick="pay(event)">Оплатить 299&nbsp;₽</button>
+      <button class="pay-btn" id="payBtn" onclick="pay(event)">Оплатить <span data-price="pro">299</span>&nbsp;₽</button>
       <div id="payError" style="display:none;margin-top:12px;font-size:13px;color:#ff6b6b;text-align:center;"></div>
 
       <div class="secure">
@@ -258,7 +263,7 @@
       <div class="methods"><span>МИР</span><span>SBP</span></div>
     </div>
 
-    <!-- Экран успеха (заглушка вместо реальной оплаты) -->
+    <!-- Экран после возврата со страницы оплаты. Ничего не включает — подписку активирует вебхук. -->
     <div class="done" id="done">
       <div class="done-ic"><svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       <h3>Оплата принята</h3>
@@ -271,12 +276,19 @@
 
 <div class="legal-footer">ИНН 781455842468</div>
 
+<!-- SDK входа стоит здесь, а не в <head>: в шапке он задерживал первую
+     отрисовку страницы на всё время своей загрузки. Порядок сохранён —
+     скрипт ниже по-прежнему выполняется после него. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script>
   const SB_URL='https://cqthnymltqpcxtpiryka.supabase.co';
   const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNxdGhueW1sdHFwY3h0cGlyeWthIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MjY3NzYsImV4cCI6MjA5NzAwMjc3Nn0.b-6lSdjT7XwWkt607ORwGfKYSn3CLZJB3mcs4QQUSoE';
   const paymentSb=window.supabase?.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 
-  // При возврате с ЮKassa (?success=1) — сразу показываем экран успеха.
+  // При возврате со страницы оплаты (?success=1) — сразу показываем экран успеха.
+  // Ничего не начисляем: Pro включает только вебхук, после проверки платежа
+  // у платёжного сервиса. Этот экран — только сообщение пользователю.
   (function checkReturn(){
     const p = new URLSearchParams(location.search);
     if(p.get('success') === '1'){
@@ -285,6 +297,21 @@
       // Чистим URL без перезагрузки
       history.replaceState(null,'',location.pathname);
     }
+  })();
+
+  /* Цена — из серверной конфигурации (lib/pricing.js): в вёрстке она стоит
+     только запасным значением. Если тариф поменяют, страница не соврёт. */
+  (function loadPrice(){
+    fetch('/api/account?action=pricing',{cache:'no-store'})
+      .then(r=>r.ok?r.json():null)
+      .then(d=>{
+        const rub=d&&d.pricing&&d.pricing.proPriceRub;
+        if(!rub)return;
+        // "299.00" → "299": сумма считается в копейках, здесь только оформление.
+        const text=String(rub).replace('.',',').replace(/,00$/,'');
+        document.querySelectorAll('[data-price="pro"]').forEach(el=>{el.textContent=text;});
+      })
+      .catch(()=>{});
   })();
 
   function addRipple(btn, e){
@@ -301,6 +328,9 @@
 
   async function pay(e){
     const btn=e.currentTarget;
+    // Запоминаем разметку кнопки: в ней живёт <span data-price="pro">,
+    // и заменять её на строку с цифрой нельзя — цена вернулась бы в вёрстку.
+    const btnHtml=btn.innerHTML;
     addRipple(btn, e);
     btn.disabled=true;
     btn.textContent='Обработка…';
@@ -329,12 +359,12 @@
         throw new Error(data.error || 'Ошибка создания платежа');
       }
 
-      // Редиректим на страницу оплаты ЮKassa
+      // Редиректим на страницу оплаты
       location.href = data.confirmationUrl;
 
     } catch(err){
       btn.disabled=false;
-      btn.textContent='Оплатить 299 ₽';
+      btn.innerHTML=btnHtml;
       const note=document.getElementById('payError');
       if(note){ note.textContent=err.message; note.style.display='block'; }
       else { alert(err.message); }
