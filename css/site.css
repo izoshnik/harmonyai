@@ -54,7 +54,10 @@
 
 /* ===== БАЗА =============================================================== */
 *{box-sizing:border-box;margin:0;padding:0;}
-html{-webkit-text-size-adjust:100%;scroll-behavior:smooth;}
+/* scroll-padding-top — отступ для «липкой» шапки: без него переход по
+   внутренней ссылке (/#pricing, /api#reference) прячет заголовок раздела
+   под шапкой, и кажется, что попал не туда. */
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth;scroll-padding-top:80px;}
 body{
   background:var(--bg);
   color:var(--text);
@@ -317,6 +320,99 @@ pre code{background:none;border:none;padding:0;font-size:inherit;}
 .disc.open .disc-body{grid-template-rows:1fr;}
 .disc-inner p{font-size:14.5px;margin:12px 0 8px;}
 .disc-inner p:first-child{margin-top:14px;}
+
+/* ===== ПАНЕЛЬ ПОДКЛЮЧЕНИЯ (api-docs.html) ================================
+   Слева список клиентов, справа подробная инструкция выбранного. Раскрытых
+   блоков сразу семь, как было в аккордеонах, человек не листает — он выбирает
+   свой инструмент и видит только его шаги.
+
+   Панели все лежат в разметке и переключаются атрибутом hidden: так кнопки
+   «Скопировать» навешиваются один раз при загрузке (hm.copy), и ничего не
+   нужно доинициализировать при переключении.
+   ========================================================================= */
+.ig{
+  display:grid;grid-template-columns:238px minmax(0,1fr);
+  border:1px solid var(--border);border-radius:var(--radius-lg);
+  background:var(--bg);box-shadow:var(--shadow-sm);overflow:hidden;
+}
+.ig-nav{
+  background:var(--bg-soft);border-right:1px solid var(--border);
+  padding:14px 10px;display:flex;flex-direction:column;gap:2px;
+}
+.ig-nav-title{
+  font-size:11px;font-weight:640;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--text-3);padding:6px 11px 9px;
+}
+/* Второй и последующие заголовки групп отделяем линией — первый стоит вверху
+   списка, ему разделитель не нужен. */
+.ig-nav-title:not(:first-child){margin-top:12px;border-top:1px solid var(--border);padding-top:15px;}
+.ig-tab{
+  display:flex;align-items:center;gap:10px;width:100%;
+  font:inherit;font-size:14.5px;font-weight:500;text-align:left;
+  color:var(--text-2);background:none;border:0;
+  border-radius:var(--radius-sm);padding:9px 11px;cursor:pointer;
+  transition:background-color var(--anim-in) var(--ease),color var(--anim-in) var(--ease);
+}
+.ig-tab:hover{background:rgba(17,17,19,.05);color:var(--text);}
+/* Активный пункт подсвечиваем тенью, а не рамкой: рамка добавила бы 1px и
+   строки списка дёргались бы при переключении. */
+.ig-tab[aria-selected="true"]{
+  background:var(--bg);color:var(--text);font-weight:600;
+  box-shadow:0 0 0 1px var(--border),var(--shadow-sm);
+}
+.ig-tab .ig-ico{
+  width:17px;height:17px;flex:0 0 auto;
+  fill:none;stroke:currentColor;stroke-width:1.7;
+  stroke-linecap:round;stroke-linejoin:round;opacity:.7;
+}
+.ig-tab[aria-selected="true"] .ig-ico{opacity:1;}
+
+.ig-body{padding:26px 28px;min-width:0;}
+.ig-panel[hidden]{display:none;}
+.ig-panel{animation:igIn 200ms var(--ease) both;}
+@keyframes igIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+
+.ig-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:8px;}
+.ig-head h3{font-size:20px;letter-spacing:-.01em;}
+.ig-lead{font-size:15px;color:var(--text-2);margin-bottom:22px;}
+.ig-lead:last-child{margin-bottom:0;}
+
+/* Шаги подключения: нумерация из CSS-счётчика, чтобы порядок в разметке
+   и на экране не могли разойтись. */
+.ig-steps{list-style:none;counter-reset:ig;display:grid;gap:20px;}
+.ig-steps > li{counter-increment:ig;position:relative;padding-left:36px;}
+.ig-steps > li::before{
+  content:counter(ig);position:absolute;left:0;top:-1px;
+  width:24px;height:24px;border-radius:50%;
+  background:var(--accent);color:var(--accent-text);
+  font-size:12.5px;font-weight:640;
+  display:flex;align-items:center;justify-content:center;
+}
+.ig-step-t{display:block;font-size:15px;font-weight:600;margin-bottom:4px;}
+.ig-steps > li p{font-size:14.5px;color:var(--text-2);margin-bottom:0;}
+.ig-steps > li .code-block,.ig-steps > li .table-wrap,.ig-steps > li .notice{margin-top:11px;}
+.ig-panel > .notice,.ig-panel > .table-wrap,.ig-panel > .code-block{margin-top:20px;}
+
+/* Метки платформ внутри шага (macOS/Linux, Windows) */
+.ig-os{
+  font-size:12px;font-weight:640;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--text-3);margin:14px 0 6px;
+}
+.ig-os:first-child{margin-top:11px;}
+
+@media (max-width:900px){
+  /* Узкий экран: список превращается в горизонтальную ленту над инструкцией. */
+  .ig{grid-template-columns:1fr;}
+  .ig-nav{
+    flex-direction:row;overflow-x:auto;gap:6px;padding:10px;
+    border-right:0;border-bottom:1px solid var(--border);
+    scrollbar-width:none;
+  }
+  .ig-nav::-webkit-scrollbar{display:none;}
+  .ig-nav-title{display:none;}
+  .ig-tab{white-space:nowrap;padding:8px 12px;}
+  .ig-body{padding:22px 18px;}
+}
 
 /* ===== ПЛАШКИ И ЗНАЧКИ ================================================== */
 .badge{
