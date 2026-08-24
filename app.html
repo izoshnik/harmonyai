@@ -5,6 +5,23 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"><!-- interactive-widget: Android Chrome сжимает layout-вьюпорт под клавиатуру, и 100dvh перестаёт заезжать под неё. iOS этот ключ игнорирует — там ту же работу делает слой на visualViewport (--vvh/--kb). user-scalable=no сознательно НЕ ставим: это ломает доступность, а уход поля ввода под клавиатуру не лечит. -->
 <title>HarmonyAI</title>
 <script>
+/* ===== ВОССТАНОВЛЕНИЕ АДРЕСА (?boot=) =====
+   Обычно сюда приходят по /login, /chat, /chat/<id> или /settings — эти пути
+   переписывает на app.html vercel.json. Если таблица маршрутов на хостинге
+   отстала, человек попадает на 404.html, и та уводит его сюда с ?boot=<путь>.
+   Возвращаем настоящий адрес в строку ДО всей остальной логики: ниже маршрут
+   читается из location.pathname, и «/app.html» он не понимает.
+   Путь проверяем по закрытому списку — произвольный адрес в строку не пустим. */
+try{
+  if(location.pathname==='/app.html'){
+    var __b=new URLSearchParams(location.search).get('boot')||'';
+    var __q=__b.indexOf('?');
+    var __bp=__q<0?__b:__b.slice(0,__q);
+    if(/^\/(login|chat|settings)$|^\/chat\/[A-Za-z0-9_-]{1,64}$/.test(__bp)){
+      history.replaceState(null,'',__b+(location.hash||''));
+    }
+  }
+}catch(e){}
 // Применяем сохранённую тему ДО отрисовки, чтобы не было "вспышки" неправильной темы.
 // Если тема не выбрана (или выбрана "system") — поведение НЕ меняется: мобильная тёмная,
 // десктопная светлая (как было). Явные темы применяются поверх системной.
@@ -35,14 +52,18 @@ try{
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <!-- abcjs, pdf.js и mammoth здесь НЕ подключены: ~1,5 МБ, нужные редко.
      Их подтягивает hmLoadLib() при первом обращении — см. «ЛЕНИВАЯ ЗАГРУЗКА». -->
-<script src="i18n.js"></script>
-<script src="i18_dict.js"></script>
-<link rel="stylesheet" href="css/music-player.css">
-<script defer src="js/music-cache.js"></script>
-<script defer src="js/music-intents.js"></script>
-<script defer src="js/music-client.js"></script>
-<script defer src="js/music-player.js"></script>
-<script defer src="js/music-playlists.js"></script>
+<!-- Пути к своим файлам — ОТ КОРНЯ («/js/…», а не «js/…»). Один и тот же
+     app.html отдаётся на /login, /chat и /chat/<id>; относительный путь на
+     последнем адресе резолвится в /chat/js/… и молча получает 404. -->
+<script src="/i18n.js"></script>
+<script src="/i18_dict.js"></script>
+<link rel="stylesheet" href="/css/music-player.css">
+<script defer src="/js/music-cache.js"></script>
+<script defer src="/js/music-intents.js"></script>
+<script defer src="/js/music-client.js"></script>
+<script defer src="/js/music-player.js"></script>
+<script defer src="/js/music-playlists.js"></script>
+<script defer src="/js/thinking-loader.js"></script>
 <style>
 /* Шрифты подключены через <link rel="stylesheet"> в <head> — быстрее, чем @import внутри CSS. */
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -959,6 +980,12 @@ html[data-theme="light"] .cmp-confirm{background:rgba(252,251,249,.96);border-co
 .think-dots span:nth-child(2){animation-delay:.2s;}
 .think-dots span:nth-child(3){animation-delay:.4s;}
 @keyframes bop{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-3px)}}
+/* Долгое ожидание — облако частиц вместо точек (js/thinking-loader.js).
+   Отрицательные отступы по вертикали срезают пустое поле холста: фигуры
+   занимают только центральные ~80% его площади, иначе строка «Думаю»
+   висит в воздухе. */
+.thinking.think-orb{gap:0;padding:0;margin:-8px 0 -6px;}
+.hmThinkOrb{display:block;flex:0 0 auto;margin-right:-6px;}
 @keyframes thinkStepIn{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:translateY(0);}}
 .think-step{display:inline-block;animation:thinkStepIn .3s cubic-bezier(.22,.61,.36,1) both;}
 .think-trace{align-self:stretch;font-size:13px;line-height:1.55;color:var(--text2);background:rgba(255,255,255,0.035);border:1px solid var(--border2);border-left:2px solid rgba(255,255,255,0.16);border-radius:12px;padding:10px 12px;margin-bottom:6px;white-space:pre-wrap;overflow-wrap:anywhere;max-height:1600px;overflow:hidden;transition:max-height .35s ease,opacity .35s ease,padding .35s ease;}
@@ -2898,7 +2925,7 @@ html[data-theme="messenger"] .igWrap{
       <div class="auth-h1">Думает быстро,<br>результат быстрее</div>
       <div class="auth-sub">ИИ для учеников музыкальной школы. Подходит не только для музыки — он умеет всё!</div>
       <button class="auth-btn-primary" onclick="goToEmail()">Продолжить с Email</button>
-      <div class="auth-tos">Продолжая, вы соглашаетесь с нашей <a href="./legal/privacy.html" target="_blank" rel="noopener noreferrer">Политикой Конфиденциальности</a> и <a href="./legal/terms.html" target="_blank" rel="noopener noreferrer">Условиями Пользования</a>.</div>
+      <div class="auth-tos">Продолжая, вы соглашаетесь с нашей <a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Политикой Конфиденциальности</a> и <a href="/legal/terms.html" target="_blank" rel="noopener noreferrer">Условиями Пользования</a>.</div>
       <div class="auth-beta">beta version 1.4</div>
     </div>
     <!-- Экран 2: Email -->
@@ -7895,26 +7922,49 @@ function showTyping(kind='text',steps=[]){
   const d=document.createElement('div');
   d.className='thinking';
   d.id='typEl';
-  const dots='<div class="think-dots"><span></span><span></span><span></span></div>';
-  if(kind==='text'){
-    if(shouldShowThinkingLabel()){
-      d.classList.add('think-text');
-      d.innerHTML=dots+'<span class="hmThinkLabel">Думаю</span>';
-    }else{
-      // Простой запрос — никакого reasoning UI, только точки.
-      d.innerHTML=dots;
-    }
+
+  const labelMap={file:'Читаю файл…',photo:'Смотрю фото…',image:'Рисую изображение…'};
+  const label=kind==='text'
+    ? (shouldShowThinkingLabel()?'Думаю':'')
+    : (labelMap[kind]||'');
+
+  // Облако частиц показываем там, где ждать заведомо долго: разбор запроса,
+  // файл, фото, картинка, перегенерация. Простой текстовый запрос отвечает
+  // за секунду — там по-прежнему три точки, анимация не успела бы ожить.
+  const wantOrb=kind!=='text'||label!=='';
+  const orb=wantOrb&&window.hmThinkLoader?window.hmThinkLoader.mount(d):null;
+
+  if(!orb){
+    // Точки: либо простой запрос, либо модуль анимации не загрузился.
+    const dots=document.createElement('div');
+    dots.className='think-dots';
+    dots.innerHTML='<span></span><span></span><span></span>';
+    d.appendChild(dots);
   }else{
-    const labelMap={file:'Читаю файл…',photo:'Смотрю фото…',image:'Рисую изображение…'};
-    const label=labelMap[kind]||'';
-    d.innerHTML=dots+(label?'<span>'+label+'</span>':'');
+    d.classList.add('think-orb');
   }
+
+  if(label){
+    const s=document.createElement('span');
+    // Мерцающая надпись — только у «Думаю»; служебные подписи ровные.
+    if(kind==='text'){d.classList.add('think-text');s.className='hmThinkLabel';}
+    s.textContent=label;
+    d.appendChild(s);
+  }
+
+  d._orb=orb;
   inner.appendChild(d);
   if(typeof scrollChat==='function')scrollChat();
 }
 function hideTyping(){
   const t=document.getElementById('typEl');
-  if(t){if(t._cycle)clearInterval(t._cycle);t.remove();}
+  if(t){
+    if(t._cycle)clearInterval(t._cycle);
+    // Гасим цикл кадров вместе с элементом (сам он тоже это заметит, но
+    // отменить requestAnimationFrame сразу — дешевле).
+    if(t._orb&&t._orb.stop)try{t._orb.stop();}catch(e){}
+    t.remove();
+  }
 }
 function tChatErr(msg){
   const text=String(msg||'');
@@ -10985,8 +11035,8 @@ function renderAbout(){
         <div class="about-app-ver">Версия 1.4 (beta)</div>
       </div>
       <div class="about-rows">
-        <div class="about-row"><div class="about-row-label">Политика конфиденциальности</div><div class="about-row-val"><a href="./legal/privacy.html" target="_blank" rel="noopener noreferrer">Открыть</a></div></div>
-        <div class="about-row"><div class="about-row-label">Условия использования</div><div class="about-row-val"><a href="./legal/terms.html" target="_blank" rel="noopener noreferrer">Открыть</a></div></div>
+        <div class="about-row"><div class="about-row-label">Политика конфиденциальности</div><div class="about-row-val"><a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Открыть</a></div></div>
+        <div class="about-row"><div class="about-row-label">Условия использования</div><div class="about-row-val"><a href="/legal/terms.html" target="_blank" rel="noopener noreferrer">Открыть</a></div></div>
       </div>
       <div class="about-foot">HarmonyAI — ИИ-помощник для учеников музыкальной школы.<br>© ${new Date().getFullYear()} HarmonyAI. Все права защищены.</div>
     </div>`;
