@@ -82,6 +82,24 @@
 
   var C = global.MusicCache;
 
+  /**
+   * Адрес аудио для <audio src>. Всегда наш прокси-стрим, а не прямая ссылка
+   * Яндекса: байты тянет сервер, поэтому воспроизведение работает одинаково
+   * с VPN и без. Прямую ссылку Яндекса наружу не отдаём вовсе.
+   */
+  function streamUrl(trackId) {
+    var base = '/api/music';
+    try {
+      if (typeof global.buildEndpointCandidates === 'function') {
+        var list = global.buildEndpointCandidates('/api/music');
+        if (list && list.length) base = list[0];
+      }
+    } catch (e) { /* запасной вариант ниже */ }
+    var uid = currentUserId();
+    return base + '?stream=' + encodeURIComponent(trackId) +
+      (uid ? '&u=' + encodeURIComponent(uid) : '');
+  }
+
   /* --------------------------------------------------------------- публичное */
 
   /**
@@ -196,6 +214,7 @@
 
   global.MusicClient = {
     call: call,
+    streamUrl: streamUrl,
     resolve: resolve,
     search: search,
     suggest: suggest,
