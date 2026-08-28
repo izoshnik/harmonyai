@@ -1,4 +1,8 @@
 {
+  "Плагины": {"en":"Plugins","fr":"Plugins","de":"Plug-ins","es":"Complementos"},
+  "Ключи, баланс и расход — в личном кабинете": {"en":"Keys, balance and usage — in your dashboard","fr":"Clés, solde et consommation — dans votre espace","de":"Schlüssel, Guthaben und Verbrauch — im Konto","es":"Claves, saldo y consumo — en tu panel"},
+  "Открыть": {"en":"Open","fr":"Ouvrir","de":"Öffnen","es":"Abrir"},
+  "После подключения Яндекс Музыки можно писать в чат «включи…» — трек начнёт играть сразу.": {"en":"Once Yandex Music is connected, just type “play…” in the chat and the track starts right away.","fr":"Une fois Yandex Music connecté, tapez « joue… » dans le chat et le morceau démarre aussitôt.","de":"Sobald Yandex Music verbunden ist, schreiben Sie einfach „spiele…“ in den Chat — der Titel startet sofort.","es":"Cuando Yandex Music esté conectado, escribe «pon…» en el chat y la canción empieza al instante."},
   "Общие": {"en":"General","fr":"Général","de":"Allgemein","es":"General"},
   "Безопасность": {"en":"Security","fr":"Sécurité","de":"Sicherheit","es":"Seguridad"},
   "Управление данными": {"en":"Data controls","fr":"Gestion des données","de":"Datenverwaltung","es":"Gestión de datos"},
