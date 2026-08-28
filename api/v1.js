@@ -7,7 +7,7 @@
      GET  /v1/models                 — список доступных моделей
 
    Формат — Anthropic Messages API: именно его ждут Claude Code, Cline,
-   Roo Code, OpenCode и другие клиенты. Перод в формат апстрима делает
+   Roo Code, OpenCode и другие клиенты. Перевод в формат апстрима делает
    lib/anthropic-bridge.js.
 
    ЧТО ГАРАНТИРУЕТ ЭТОТ ФАЙЛ.
@@ -19,6 +19,9 @@
    2. БАЛАНС ПРОВЕРЯЕТСЯ ДО ОБРАЩЕНИЯ К МОДЕЛИ. Пессимистичная оценка
       стоимости считается по входу и max_tokens; если денег не хватает даже на
       неё, запрос до модели не доходит и возвращается 402.
+      Исключение — роли developer / admin / moderator (`lib/auth.js`): для них
+      баланс не проверяется и не списывается, журнал расхода пишется нулевой
+      стоимостью. Роль берётся из базы, из запроса клиента — никогда.
 
    3. СПИСАНИЕ — ПО ФАКТУ, ПОСЛЕ ОТВЕТА. Токены берутся из usage апстрима
       (или из серверной оценки, если апстрим их не отдал). Данные клиента о
@@ -32,7 +35,7 @@
    ============================================================================ */
 
 import { extractApiKey, looksLikeApiKey, hashApiKey } from '../lib/api-keys.js';
-import { supabaseRest } from '../lib/auth.js';
+import { supabaseRest, readProfileRole, isUnlimitedApiRole } from '../lib/auth.js';
 import { resolvePublicModel, PUBLIC_MODEL_IDS, PUBLIC_MODELS } from '../lib/models.js';
 import {
   MODEL_PRICING,
@@ -131,11 +134,13 @@ async function readBalanceMicro(userId) {
 }
 
 /* Списание + запись в журнал одним атомарным вызовом в базе.
+   Для ролей без ограничений стоимость принудительно нулевая: строка в журнале
+   появляется (токены и запрос видны в кабинете), баланс не меняется.
    Ошибку глотаем намеренно: ответ модели пользователь уже получил, и падать
    после этого нельзя. Пропущенное списание видно в логах и по расхождению
    баланса — это лучше, чем 500 на успешном запросе. */
-async function chargeUsage({ userId, keyId, publicModelId, inputTokens, outputTokens }) {
-  const costMicro = usageCostMicroRubles(publicModelId, inputTokens, outputTokens);
+async function chargeUsage({ userId, keyId, publicModelId, inputTokens, outputTokens, unlimited }) {
+  const costMicro = unlimited ? 0n : usageCostMicroRubles(publicModelId, inputTokens, outputTokens);
   if (costMicro == null) return;
   try {
     await supabaseRest('/rest/v1/rpc/debit_api_balance', {
@@ -224,11 +229,17 @@ async function handleMessages(req, res, body, auth) {
 
   /* ---- ПРОВЕРКА БАЛАНСА ДО ОБРАЩЕНИЯ К МОДЕЛИ ----
      Оценка пессимистичная: весь max_tokens по выходному (дорогому) тарифу.
-     Так пользователь не может уйти в существенный минус одним запросом. */
+     Так пользователь не может уйти в существенный минус одним запросом.
+     Роль читаем тем же походом в базу, что и баланс (параллельно, без лишней
+     задержки): у developer / admin / moderator ограничений по балансу нет. */
   const inputTokensEstimate = estimateRequestTokens(body);
-  const balanceMicro = await readBalanceMicro(auth.userId);
+  const [balanceMicro, role] = await Promise.all([
+    readBalanceMicro(auth.userId),
+    readProfileRole(auth.userId)
+  ]);
+  const unlimited = isUnlimitedApiRole(role);
   const worstCaseMicro = estimateCostMicroRubles(model.id, inputTokensEstimate, maxOutput) || 0n;
-  if (balanceMicro <= 0n || balanceMicro < worstCaseMicro) {
+  if (!unlimited && (balanceMicro <= 0n || balanceMicro < worstCaseMicro)) {
     return sendError(
       res,
       402,
@@ -291,7 +302,8 @@ async function handleMessages(req, res, body, auth) {
       keyId: auth.keyId,
       publicModelId: model.id,
       inputTokens: message.usage.input_tokens,
-      outputTokens: message.usage.output_tokens
+      outputTokens: message.usage.output_tokens,
+      unlimited
     });
     return res.status(200).json(message);
   }
@@ -329,7 +341,8 @@ async function handleMessages(req, res, body, auth) {
       keyId: auth.keyId,
       publicModelId: model.id,
       inputTokens: result.usage.input_tokens,
-      outputTokens: result.usage.output_tokens
+      outputTokens: result.usage.output_tokens,
+      unlimited
     });
   }
 
