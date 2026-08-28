@@ -45,24 +45,30 @@ try{
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://cqthnymltqpcxtpiryka.supabase.co">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Courier+Prime:wght@400;700&display=swap">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<!-- Стили шрифтов и подсветки кода — НЕ render-blocking: без VPN эти CDN
+     отвечают секунды/таймаутом, а раньше первый кадр ждал именно их.
+     Первый кадр теперь отдаётся на системных шрифтах, Inter подгружается
+     следом (display=swap уже в URL). -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Courier+Prime:wght@400;700&display=swap" media="print" onload="this.media='all';this.onload=null;">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Courier+Prime:wght@400;700&display=swap"></noscript>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" media="print" onload="this.media='all';this.onload=null;">
+<noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"></noscript>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <!-- abcjs, pdf.js и mammoth здесь НЕ подключены: ~1,5 МБ, нужные редко.
      Их подтягивает hmLoadLib() при первом обращении — см. «ЛЕНИВАЯ ЗАГРУЗКА». -->
 <!-- Пути к своим файлам — ОТ КОРНЯ («/js/…», а не «js/…»). Один и тот же
      app.html отдаётся на /login, /chat и /chat/<id>; относительный путь на
      последнем адресе резолвится в /chat/js/… и молча получает 404. -->
-<script src="/i18n.js"></script>
-<script src="/i18_dict.js"></script>
+<!-- i18n.js / i18_dict.js / supabase-js / marked перенесены в конец body (перед
+     главным инлайн-скриптом): первый кадр больше не ждёт их загрузку и парсинг. -->
 <link rel="stylesheet" href="/css/music-player.css">
 <script defer src="/js/music-cache.js"></script>
 <script defer src="/js/music-intents.js"></script>
 <script defer src="/js/music-client.js"></script>
 <script defer src="/js/music-player.js"></script>
 <script defer src="/js/music-playlists.js"></script>
+<script defer src="/js/hm-memory.js"></script>
+<script defer src="/js/audio-analyzer.js"></script>
 <script defer src="/js/thinking-loader.js"></script>
 <style>
 /* Шрифты подключены через <link rel="stylesheet"> в <head> — быстрее, чем @import внутри CSS. */
@@ -3429,6 +3435,11 @@ html[data-theme="messenger"] .igWrap{
         <span class="attach-opt-txt">Сгенерировать изображение</span>
         <span class="attach-opt-hint">По вашему описанию</span>
       </div>
+      <div class="attach-opt" id="attachAudio" onclick="attachChoose('audio',event)">
+        <span class="attach-opt-ic" style="background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M3 10v4h4l5 4V6l-5 4H3z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg></span>
+        <span class="attach-opt-txt">Анализ аудио</span>
+        <span class="attach-opt-hint">BPM, тональность, энергия, waveform</span>
+      </div>
     </div>
   </div>
 </div>
@@ -3447,11 +3458,24 @@ html[data-theme="messenger"] .igWrap{
   </div>
 </div>
 
+<!-- Тяжёлые библиотеки выполняются здесь, после того как вся разметка
+     распарсена и отрисована. Порядок сохранён: supabase → marked → i18n
+     → словарь → главный инлайн-скрипт. Семантика прежняя (классические
+     блокирующие скрипты в исходном порядке), но первый кадр не ждёт CDN. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
+<script src="/i18n.js"></script>
+<script src="/i18_dict.js"></script>
+
 <script>
 /* ===== Supabase ===== */
 const SB_URL='https://cqthnymltqpcxtpiryka.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNxdGhueW1sdHFwY3h0cGlyeWthIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MjY3NzYsImV4cCI6MjA5NzAwMjc3Nn0.b-6lSdjT7XwWkt607ORwGfKYSn3CLZJB3mcs4QQUSoE';
 const sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+/* Клиент для внешних IIFE-модулей (hm-memory.js): const верхнего уровня
+   не создаёт window.sb, а глобальные let/const из другого файла
+   классического скрипта наружу недоступны. */
+window.__hmSb=sb;
 /* ===== ЛЕНИВАЯ ЗАГРУЗКА ТЯЖЁЛЫХ БИБЛИОТЕК =====
    abcjs (ноты), pdf.js и mammoth (чтение PDF и DOCX) вместе весят около 1,5 МБ.
    Раньше они висели в <head> тегами <script defer> и скачивались при КАЖДОМ
@@ -4036,12 +4060,14 @@ async function hydrateSignedInState(session){
   if(authHydrationPromise&&authHydratedUserId===uid)return authHydrationPromise;
   authHydratedUserId=uid;
   authHydrationPromise=(async()=>{
-    const [profileResult,chatsResult]=await Promise.allSettled([
+    const [profileResult,chatsResult,memResult]=await Promise.allSettled([
       withTimeout(loadProfile(uid,session.user.email),8000,'Загрузка профиля заняла слишком много времени'),
-      withTimeout(loadChats(),8000,'Загрузка чатов заняла слишком много времени')
+      withTimeout(loadChats(),8000,'Загрузка чатов заняла слишком много времени'),
+      withTimeout((window.HmMemory?window.HmMemory.sync(uid):Promise.resolve()),8000,'Загрузка памяти заняла слишком много времени')
     ]);
     if(profileResult.status==='rejected')console.warn('Profile hydrate failed',profileResult.reason);
     if(chatsResult.status==='rejected')console.warn('Chats hydrate failed',chatsResult.reason);
+    if(memResult&&memResult.status==='rejected')console.warn('Memory hydrate failed',memResult.reason);
     registerCurrentDevice().catch(e=>console.warn('Device registration failed',e));
     updateUserUI();
     renderChatList();
@@ -4462,6 +4488,7 @@ sb.auth.onAuthStateChange((event,session)=>{
   }
   if(event==='SIGNED_OUT'){
     authHydrationPromise=null;authHydratedUserId='';
+    try{window.HmMemory&&window.HmMemory.reset();}catch(e){}
     curUser=null;chatHistory=[];curChatId=null;chats=[];
     syncSignedOutRoute();
     document.getElementById('authWrap').classList.remove('gone');
@@ -4949,6 +4976,7 @@ async function logOut(){
   try{window.MusicPlayer&&window.MusicPlayer.close();}catch(e){}
   window.__hmUserId=null;
   await sb.auth.signOut();
+  try{window.HmMemory&&window.HmMemory.reset();}catch(e){}
   curUser=null;chatHistory=[];curChatId=null;chats=[];
   syncSignedOutRoute();
   document.getElementById('authWrap').classList.remove('gone');
@@ -5967,10 +5995,35 @@ function attachChoose(kind,e){
     if(webSearchMode==='on')closePlusDrop();
   }else if(kind==='files'){
     triggerFileInput();
+  }else if(kind==='audio'){
+    triggerAudioAnalyzer();
   }else if(kind==='image'){
     setImageMode(true);
   }
 }
+/* ===== АНАЛИЗАТОР АУДИО: вход и мост в чат =====
+   Логика целиком в js/audio-analyzer.js (Worker, FFT). Здесь — только
+   точка входа и отправка ОТЧЁТА (не файла) в обычный путь /api/chat. */
+function triggerAudioAnalyzer(){
+  closePlusDrop();
+  try{ if(window.AudioAnalyzer&&typeof window.AudioAnalyzer.openPicker==='function')window.AudioAnalyzer.openPicker(); }catch(e){}
+}
+function sendAudioAnalysisToAI(payload,fileName){
+  const label='🎧 Анализ аудио: '+String(fileName||'файл');
+  addUserBubble(label,[],{createdAt:messageNow()});
+  chatHistory.push({
+    role:'user',
+    content:'Проанализируй музыкальное произведение по данным технического аудио-анализа, выполненного в браузере.\n'
+      +'Это клиентские метрики (аудиофайл не передавался). Дай музыкантский разбор: темп и характер, '
+      +'тональность и ладовая окраска, динамика и энергетика, что выделяется в частотном балансе, '
+      +'какая структура напрашивается. При низкой уверенности метрики честно укажи, что она приблизительная.\n\n'
+      +'[РЕЗУЛЬТАТЫ АНАЛИЗА]\n'+JSON.stringify(payload),
+    createdAt:messageNow()
+  });
+  saveChat().catch(function(){});
+  runAssistantReply(label);
+}
+window.__hmSendAudioAnalysis=sendAudioAnalysisToAI;
 function triggerFileInput(){
   closePlusDrop();
   document.getElementById('fileInp').click();
@@ -6242,6 +6295,9 @@ function buildSystem(){
       +'работай только с видимой частью и при необходимости попроси уточнить раздел.';
   }
   if(s.customInstructions)sys+='\nДОПОЛНИТЕЛЬНО от пользователя: '+s.customInstructions;
+  /* ПАМЯТЬ: компактный блок собирает клиент из кэша (см. js/hm-memory.js).
+     memRecall=false — пользователь запретил, блок не добавляется. */
+  try{ if(window.HmMemory) sys+=window.HmMemory.contextBlock(curChatId); }catch(_){}
   sys+=FILE_GEN_SYSTEM;
   return sys;
 }
@@ -6446,6 +6502,7 @@ const IC_REGEN='<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><pat
 const IC_MORE='<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="5" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="19" cy="12" r="1.5" fill="currentColor"/></svg>';
 const IC_SEND='<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const IC_STOP='<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="7" y="7" width="10" height="10" rx="2" fill="currentColor"/></svg>';
+const IC_MEM='<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 5a2 2 0 012-2h5v16H6a2 2 0 01-2-2V5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M20 5a2 2 0 00-2-2h-5v16h5a2 2 0 002-2V5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>';
 
 function setGeneratingState(active){
   isGenerating=active;
@@ -6596,7 +6653,7 @@ function openUserMessageMenu(anchor){
   const item=Number.isInteger(idx)?chatHistory[idx]:null;
   if(!item||item.role!=='user')return;
   const menu=document.createElement('div');menu.id='userMsgCtxMenu';menu.className='chat-ctx-menu';
-  menu.innerHTML='<div class="chat-ctx-item" data-act="copy"><span class="chat-ctx-ic">'+IC_COPY+'</span><span>Скопировать</span></div><div class="chat-ctx-item chat-ctx-danger" data-act="delete"><span class="chat-ctx-ic">'+IC_MORE+'</span><span>Удалить</span></div>';
+  menu.innerHTML='<div class="chat-ctx-item" data-act="copy"><span class="chat-ctx-ic">'+IC_COPY+'</span><span>Скопировать</span></div><div class="chat-ctx-item" data-act="remember"><span class="chat-ctx-ic">'+IC_MEM+'</span><span>Запомнить</span></div><div class="chat-ctx-item chat-ctx-danger" data-act="delete"><span class="chat-ctx-ic">'+IC_MORE+'</span><span>Удалить</span></div>';
   document.body.appendChild(menu);
   const r=anchor.getBoundingClientRect();const mw=menu.offsetWidth||190,mh=menu.offsetHeight||100;
   let top=r.bottom+6,left=r.left;if(top+mh>innerHeight-12)top=Math.max(8,r.top-mh-6);if(left+mw>innerWidth-12)left=innerWidth-mw-12;if(left<8)left=8;
@@ -6605,6 +6662,11 @@ function openUserMessageMenu(anchor){
     const text=typeof item.content==='string'?item.content:(Array.isArray(item.content)?item.content.filter(p=>p.type==='text').map(p=>p.text||'').join('\n'):'');
     try{await navigator.clipboard.writeText(text);}catch(e){const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();}
     closeUserMessageMenu();
+  };
+  menu.querySelector('[data-act="remember"]').onclick=()=>{
+    closeUserMessageMenu();
+    var rtxt=typeof item.content==='string'?item.content:(Array.isArray(item.content)?item.content.filter(p=>p.type==='text').map(p=>p.text||'').join('\n'):'');
+    if(rtxt&&window.HmMemory)window.HmMemory.promptAdd(rtxt,{allowScope:true,chatId:curChatId});
   };
   menu.querySelector('[data-act="delete"]').onclick=async()=>{
     closeUserMessageMenu();
@@ -8288,6 +8350,7 @@ async function requestChatReply(){
     effort:curMode,
     think:thinkOn,
     trainingMode:Boolean(trainingMode&&hasTrainingAccess()),
+    memoryFromClient:Boolean(window.HmMemory&&(getSettings().memRecall!==false)),
     userId:curUser?.id||null,
     userEmail:curUser?.email||null
   };
@@ -8341,6 +8404,7 @@ async function requestChatReplyLive(msgEl,actionsEl,extraMessages=[],prefixText=
     // чтобы не вставлять новый блок «Просмотрел сайты» в середину ответа.
     webSearch:opts.noSearch?'off':webSearchMode,
     trainingMode:Boolean(trainingMode&&hasTrainingAccess()),
+    memoryFromClient:Boolean(window.HmMemory&&(getSettings().memRecall!==false)),
     userId:curUser?.id||null,
     userEmail:curUser?.email||null
   };
@@ -10050,6 +10114,9 @@ async function handleTextReply(pendingText){
   clearPendingAttachments();
   addUserBubble(displayText,historyAttachments);
   chatHistory.push({role:'user',content:userContent,attachments:historyAttachments,createdAt:messageNow()});
+  /* Память: локальная эвристика (0 запросов, 0 токенов) может предложить
+     сохранить факт. Решение — всегда за пользователем. */
+  if(!wasTraining){try{if(window.HmMemory)HmMemory.maybeSuggest(text,{chatId:curChatId});}catch(_){}}
   await saveChat();
 
   await runAssistantReply(displayText);
@@ -10287,11 +10354,23 @@ function openSupportChat(){
 }
 
 
+/* ===== ПАМЯТЬ: просмотр / правка / удаление / полная очистка ==============
+   Разделение: «Обо мне» — факты, доступные во всех чатах (scope user);
+   «Этот чат» — память проекта (scope chat). История переписки хранится
+   отдельно в чатах и сюда никогда не попадает; секреты не сохраняются
+   (фильтр в js/hm-memory.js). Список берётся из клиентского кэша —
+   экран открывается мгновенно и не ходит в базу. */
 function renderSettingsMemory(){
   const el=document.getElementById('settingsContent');
   const s=getSettings();
   const memSave=(s.memSave!==false);
   const memRecall=(s.memRecall!==false);
+  window._memView=window._memView||'user';
+  if(typeof window._memEditId==='undefined')window._memEditId=null;
+  const items=window.HmMemory?window.HmMemory.list():[];
+  const chatItems=items.filter(r=>(r.scope||'user')==='chat');
+  const inView=items.filter(r=>((r.scope||'user')==='user')===  (window._memView==='user'));
+  const CHECK='<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12l4 4 10-10" stroke="var(--check,#22c55e)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   el.innerHTML=`
     <div class="sth">
       <div class="sth-back" onclick="renderSettingsMain()">
@@ -10299,16 +10378,81 @@ function renderSettingsMemory(){
       </div>
       <div class="sth-title">Память</div>
     </div>
+    <p style="font-size:13px;color:var(--text2);line-height:1.5;margin:0 0 14px;">
+      Память хранит короткие факты, которые вы подтвердили. История переписки живёт отдельно в чатах и сюда не попадает. Пароли, API-ключи и токены не сохраняются никогда.
+    </p>
     <div class="mem-rows">
       <div class="mem-row">
-        <div class="mem-info"><div class="mem-title">Сохранять память</div><div class="mem-desc">HarmonyAI запоминает детали из разговоров</div></div>
+        <div class="mem-info"><div class="mem-title">Предлагать запомнить</div><div class="mem-desc">Иногда предлагает сохранить факт — только по вашему подтверждению</div></div>
         <div class="sw ${memSave?'on':''}" onclick="this.classList.toggle('on');saveSetting('memSave',this.classList.contains('on'))"></div>
       </div>
       <div class="mem-row">
-        <div class="mem-info"><div class="mem-title">Ссылаться на память</div><div class="mem-desc">Использует память при ответах</div></div>
+        <div class="mem-info"><div class="mem-title">Ссылаться на память</div><div class="mem-desc">Добавляет сохранённые факты в контекст ответов</div></div>
         <div class="sw ${memRecall?'on':''}" onclick="this.classList.toggle('on');saveSetting('memRecall',this.classList.contains('on'))"></div>
       </div>
-    </div>`;
+    </div>
+    <div class="mem-rows" style="margin-top:14px;">
+      <div class="mem-row" style="cursor:pointer;" onclick="_memTab('user')">
+        <div class="mem-info"><div class="mem-title">Обо мне</div><div class="mem-desc">Доступно во всех чатах · ${items.length-chatItems.length}</div></div>
+        ${window._memView==='user'?CHECK:''}
+      </div>
+      <div class="mem-row" style="cursor:pointer;" onclick="_memTab('chat')">
+        <div class="mem-info"><div class="mem-title">Этот чат</div><div class="mem-desc">Память проекта · ${chatItems.length}</div></div>
+        ${window._memView==='chat'?CHECK:''}
+      </div>
+    </div>
+    <div class="mem-rows" style="margin-top:14px;">${_memRowsHtml(inView)}</div>
+    <button class="save-btn" style="background:transparent;border:1px solid var(--border);color:#ff5c5c;margin-top:14px;" onclick="_memClearAll()">Очистить всю память…</button>`;
+}
+function _memRowsHtml(list){
+  if(!list.length){
+    return `<div class="mem-row"><div class="mem-info"><div class="mem-title" style="color:var(--text2);font-weight:500;">Здесь пока ничего не сохранено</div><div class="mem-desc">Долгое нажатие на своё сообщение → «Запомнить», или напишите HarmonyAI «запомни, что…»</div></div></div>`;
+  }
+  const dateFmt=(iso)=>{try{return new Date(iso).toLocaleDateString('ru-RU',{day:'numeric',month:'short'});}catch(e){return '';}};
+  return list.map(r=>{
+    const t=String(r.memory_text||'');
+    if(window._memEditId===r.id){
+      return `<div class="mem-row" style="flex-direction:column;align-items:stretch;gap:8px;">
+        <textarea id="memEditTa" style="width:100%;min-height:70px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px;color:var(--text);font:inherit;font-size:14px;outline:none;resize:vertical;">${escapeHtml(t)}</textarea>
+        <div style="display:flex;gap:8px;">
+          <button class="save-btn" style="margin:0;flex:1;" onclick="_memSave('${r.id}')">Сохранить</button>
+          <button class="save-btn" style="margin:0;flex:0 0 auto;background:transparent;border:1px solid var(--border);color:var(--text2);" onclick="_memCancel()">Отмена</button>
+        </div></div>`;
+    }
+    const ghost='border:none;background:transparent;color:var(--accent,#2f8fff);font:inherit;font-size:12px;font-weight:700;cursor:pointer;padding:2px 4px;';
+    const red='border:none;background:transparent;color:#ff5c5c;font:inherit;font-size:12px;font-weight:700;cursor:pointer;padding:2px 4px;';
+    return `<div class="mem-row" style="flex-direction:column;align-items:stretch;gap:6px;">
+      <div style="font-size:14px;color:var(--text);line-height:1.45;white-space:pre-wrap;word-break:break-word;">${escapeHtml(t)}</div>
+      <div style="display:flex;align-items:center;gap:10px;font-size:12px;color:var(--text2);">
+        <span>${(r.scope||'user')==='chat'?'чат':'общая'}${dateFmt(r.updated_at)?' · '+dateFmt(r.updated_at):''}</span>
+        <span style="margin-left:auto;display:flex;gap:6px;">
+          <button type="button" style="${ghost}" onclick="_memEdit('${r.id}')">Изменить</button>
+          <button type="button" style="${red}" onclick="_memDel('${r.id}')">Удалить</button>
+        </span>
+      </div></div>`;
+  }).join('');
+}
+function _memTab(t){window._memView=t;window._memEditId=null;renderSettingsMemory();}
+function _memEdit(id){window._memEditId=id;renderSettingsMemory();setTimeout(()=>{const ta=document.getElementById('memEditTa');if(ta){ta.focus();ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';}},50);}
+function _memCancel(){window._memEditId=null;renderSettingsMemory();}
+async function _memSave(id){
+  const ta=document.getElementById('memEditTa');
+  if(!ta)return;
+  const res=window.HmMemory?await window.HmMemory.update(id,ta.value):{ok:false,reason:'Модуль памяти не загрузился'};
+  if(!res.ok){alert(res.reason||'Не удалось сохранить');return;}
+  window._memEditId=null;
+  renderSettingsMemory();
+}
+async function _memDel(id){
+  if(!window.confirm('Удалить этот факт из памяти?'))return;
+  if(window.HmMemory)await window.HmMemory.remove(id);
+  renderSettingsMemory();
+}
+async function _memClearAll(){
+  if(!window.confirm('Удалить ВСЕ сохранённые факты? Это необратимо.'))return;
+  const res=window.HmMemory?await window.HmMemory.clearAll():{ok:false,reason:'Модуль памяти не загрузился'};
+  if(res&&!res.ok&&res.reason)alert(res.reason);
+  renderSettingsMemory();
 }
 
 /* ===== ОБЩИЕ ===== */
