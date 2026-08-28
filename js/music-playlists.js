@@ -461,7 +461,7 @@
         view.tracks = (d && Array.isArray(d.items) ? d.items : []).map(slim).filter(Boolean);
         if (!view.tracks.length) {
           view.error = (d && d.personal === false)
-            ? 'Подключите свой аккаунт Яндекс Музыки в Подключениях — тогда здесь появятся ваши лайки.'
+            ? 'Подключите свой аккаунт Яндекс Музыки в Плагинах — тогда здесь появятся ваши лайки.'
             : 'В «Мне нравится» пока пусто.';
         }
         paintDetail();
@@ -469,7 +469,7 @@
         if (!view || view.id !== id) return;
         view.loading = false;
         view.error = (e && e.type === 'music_auth_required')
-          ? 'Подключите Яндекс Музыку в Подключениях.'
+          ? 'Подключите Яндекс Музыку в Плагинах.'
           : 'Не удалось загрузить лайки. Попробуйте ещё раз.';
         paintDetail();
       });
