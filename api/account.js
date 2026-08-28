@@ -1,7 +1,7 @@
 /* ============================================================================
    /api/account — ЛИЧНЫЙ КАБИНЕТ API И ОБЩИЕ ССЫЛКИ НА ЧАТЫ.
 
-   Один эндпоинт на все операци кабинета: слоты функций Vercel исчерпаны,
+   Один эндпоинт на все операции кабинета: слоты функций Vercel исчерпаны,
    поэтому действие выбирается полем action, а не отдельным адресом.
 
    GET  /api/account?action=overview            всё для /api/dashboard одним запросом
@@ -45,7 +45,7 @@
 
 export const config = { maxDuration: 15 };
 
-import { requireUser, supabaseRest, ownerFilter } from '../lib/auth.js';
+import { requireUser, supabaseRest, ownerFilter, readProfileRole, isUnlimitedApiRole } from '../lib/auth.js';
 import { originAllowed, siteUrl } from '../lib/origin.js';
 import {
   generateApiKey,
@@ -126,16 +126,25 @@ async function listKeys(userId) {
 }
 
 async function readBalance(userId) {
-  const rows = await supabaseRest(
-    `/rest/v1/api_balances?select=balance_micro,updated_at&${ownerFilter(userId)}&limit=1`,
-    { method: 'GET' }
-  );
+  /* Роль спрашиваем рядом с балансом: у developer / admin / moderator расход
+     не списывается (см. lib/auth.js и api/v1.js), и кабинет обязан показывать
+     это вместо суммы — иначе человек видит «0,00 ₽» и идёт пополнять зря. */
+  const [rows, role] = await Promise.all([
+    supabaseRest(
+      `/rest/v1/api_balances?select=balance_micro,updated_at&${ownerFilter(userId)}&limit=1`,
+      { method: 'GET' }
+    ),
+    readProfileRole(userId)
+  ]);
   const row = Array.isArray(rows) ? rows[0] : null;
   const micro = BigInt(row?.balance_micro || 0);
+  const unlimited = isUnlimitedApiRole(role);
   return {
     micro: micro.toString(),          // строкой: BigInt не сериализуется в JSON
     rub: formatMicroRubles(micro),    // «500,00»
-    positive: micro > 0n,
+    positive: unlimited || micro > 0n,
+    unlimited,
+    role: unlimited ? role : null,
     updatedAt: row?.updated_at || null
   };
 }
