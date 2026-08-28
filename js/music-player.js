@@ -796,7 +796,10 @@
       el.bar.classList.remove('is-loading');
       el.screen.classList.remove('is-loading');
       if (!info || !info.url) throw new Error('Нет ссылки на аудио');
-      audio.src = info.url;
+      // Играем через наш прокси-стрим (работает с VPN и без), а не по
+      // прямой ссылке Яндекса. info.url тут — лишь сигнал «трек доступен».
+      var cc = client();
+      audio.src = cc ? cc.streamUrl(track.trackId) : info.url;
       audio.volume = state.volume;
       audio.muted = state.muted;
       return audio.play();
@@ -850,7 +853,8 @@
     c.call('play', { trackId: track.trackId })
       .then(function (info) {
         if (!info || !info.url) throw new Error('no url');
-        audio.src = info.url;
+        // Тот же прокси-стрим: обновляем источник и продолжаем с той же секунды.
+        audio.src = c.streamUrl(track.trackId);
         audio.currentTime = at;
         return audio.play();
       })
