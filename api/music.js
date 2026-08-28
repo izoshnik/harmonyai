@@ -47,7 +47,9 @@ import {
 
 import { cacheDelete } from '../lib/music-cache.js';
 
-export const config = { maxDuration: 30 };
+import { Readable } from 'node:stream';
+
+export const config = { maxDuration: 60 };
 
 /* ------------------------------------------------------------------ ответы */
 
@@ -204,22 +206,90 @@ async function doResolve(kind, query, token) {
   };
 }
 
+/* ------------------------------------------------------ стриминг аудио */
+
+/**
+ * Проксирует аудиопоток трека: сервер скачивает подписанную ссылку Яндекса
+ * и переливает байты клиенту. Заголовок Range пробрасывается как есть —
+ * без него не работают перемотка и докачка в <audio>.
+ *
+ * GET /api/music?stream=<trackId>&u=<userId>
+ */
+async function streamAudio(req, res) {
+  const q = req.query || {};
+  const trackId = String(q.stream || '').trim();
+  const userId = q.u ? String(q.u) : null;
+
+  if (!trackId) return fail(res, 400, 'bad_request', 'Не указан трек');
+
+  let upstream;
+  try {
+    const resolved = await resolveToken(userId);
+    if (!resolved.token) return needAuth(res);
+
+    const info = await getPlaybackUrl(trackId, { token: resolved.token });
+    if (!info || !info.url) return fail(res, 502, 'music_error', 'Нет ссылки на аудио');
+
+    const headers = { 'User-Agent': 'Mozilla/5.0' };
+    // Перемотка: браузер шлёт «Range: bytes=…», переносим его в апстрим.
+    if (req.headers.range) headers.Range = req.headers.range;
+
+    upstream = await fetch(info.url, { headers });
+  } catch (e) {
+    return fromYandexError(res, e);
+  }
+
+  if (!upstream.ok && upstream.status !== 206) {
+    return fail(res, 502, 'music_error', 'Хранилище не отдало аудио');
+  }
+
+  // Переносим только заголовки, важные для проигрывания и перемотки.
+  res.status(upstream.status);
+  const pass = ['content-type', 'content-length', 'content-range', 'accept-ranges'];
+  for (const name of pass) {
+    const v = upstream.headers.get(name);
+    if (v) res.setHeader(name, v);
+  }
+  if (!upstream.headers.get('content-type')) res.setHeader('Content-Type', 'audio/mpeg');
+  if (!upstream.headers.get('accept-ranges')) res.setHeader('Accept-Ranges', 'bytes');
+  // Подпись протухает за минуты — короткий приватный кэш, не публичный.
+  res.setHeader('Cache-Control', 'private, max-age=0, no-store');
+
+  if (!upstream.body) return res.end();
+
+  // Клиент ушёл (сменил трек, закрыл вкладку) — рвём загрузку с апстрима.
+  const node = Readable.fromWeb(upstream.body);
+  res.on('close', () => { try { node.destroy(); } catch (e) { /* noop */ } });
+  node.on('error', () => { try { res.end(); } catch (e) { /* noop */ } });
+  node.pipe(res);
+}
+
 /* ------------------------------------------------------------------ handler */
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Cache-Control', 'no-store, max-age=0');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') {
-    return fail(res, 405, 'method_not_allowed', 'Method not allowed');
-  }
 
   // Главный рубильник: пока модуль не настроен — 503, фронтенд молча живёт как раньше.
   if (!musicEnabled()) {
     return fail(res, 503, 'music_disabled', 'Музыкальный модуль сейчас отключён.');
+  }
+
+  /* --------------------------------------------------- стриминг аудио (GET)
+     Байты трека тянет СЕРВЕР и переливает браузеру. Так плеер работает
+     одинаково с VPN и без: до Яндекса ходит наш IP (он всегда принимается),
+     а браузер общается только с нашим доменом. Подписанная ссылка Яндекса
+     при этом вообще не покидает сервер. */
+  if (req.method === 'GET') {
+    return streamAudio(req, res);
+  }
+
+  if (req.method !== 'POST') {
+    return fail(res, 405, 'method_not_allowed', 'Method not allowed');
   }
 
   const body = req.body || {};
