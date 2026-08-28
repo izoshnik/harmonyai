@@ -81,11 +81,11 @@
           <article class="card">
             <p class="eyebrow" style="margin-bottom:10px;">Баланс API</p>
             <p style="font-size:34px;font-weight:640;letter-spacing:-.02em;margin-bottom:6px;">
-              <span id="balanceValue">—</span> ₽
+              <span id="balanceValue">—</span><span id="balanceCurrency"> ₽</span>
             </p>
             <p style="color:var(--text-3);font-size:14px;margin-bottom:18px;" id="balanceNote"></p>
             <div class="btn-row">
-              <button class="btn btn-primary" type="button" data-modal-open="topupModal">Пополнить</button>
+              <button class="btn btn-primary" type="button" id="topupBtn" data-modal-open="topupModal">Пополнить</button>
               <a class="btn btn-ghost btn-sm" href="/api#billing">Как считается расход</a>
             </div>
           </article>
@@ -270,8 +270,8 @@
     </div>
 
     <p style="font-size:14px;color:var(--text-3);margin-top:12px;">
-      Оплата проходит через ЮKassa. Баланс увеличится после подтверждения платежа
-      платёжной системой — обычно в течение минуты.
+      Оплата проходит на защищённой странице оплаты. Баланс увеличится после
+      подтверждения платежа — обычно в течение минуты.
     </p>
 
     <div class="modal-actions">
@@ -395,10 +395,23 @@ document.addEventListener('DOMContentLoaded', function () {
     /* Баланс. Сервер присылает и микрорубли, и готовую строку — берём строку,
        чтобы на клиенте не появилось собственной арифметики с копейками. */
     var bal = d.balance || {};
-    el('balanceValue').textContent = bal.rub != null ? bal.rub : '0,00';
-    el('balanceNote').textContent = bal.updatedAt
-      ? 'Обновлён ' + fmtDate(bal.updatedAt)
-      : 'Пополните баланс, чтобы начать пользоваться API.';
+    var cur = el('balanceCurrency');
+    var topup = el('topupBtn');
+    if (bal.unlimited) {
+      /* Роль без ограничений: суммы нет вовсе, поэтому убираем и знак рубля,
+         и кнопку пополнения — пополнять тут нечего. */
+      el('balanceValue').textContent = '∞';
+      if (cur) cur.style.display = 'none';
+      if (topup) topup.style.display = 'none';
+      el('balanceNote').textContent = 'Доступ без ограничений — запросы не списывают баланс.';
+    } else {
+      el('balanceValue').textContent = bal.rub != null ? bal.rub : '0,00';
+      if (cur) cur.style.display = '';
+      if (topup) topup.style.display = '';
+      el('balanceNote').textContent = bal.updatedAt
+        ? 'Обновлён ' + fmtDate(bal.updatedAt)
+        : 'Пополните баланс, чтобы начать пользоваться API.';
+    }
 
     renderPlan(d.plan || {});
     renderKeys(d.keys || []);
@@ -517,7 +530,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   /* ===== ПОПОЛНЕНИЕ ======================================================
      Наружу уходит ТОЛЬКО сумма. Ни числа кредитов, ни user_id клиент не
-     отправляет — начисление целиком на сервере, после подтверждения ЮKassa. */
+     отправляет — начисление целиком на сервере, после подтверждения платежа. */
   function renderPresets(topup) {
     var presets = topup.presets || [500, 1000, 2500, 5000];
     el('topupPresets').innerHTML = presets.map(function (v) {
