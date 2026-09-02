@@ -40,8 +40,6 @@ try{
 }catch(e){}
 </script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230d0f14'/%3E%3Cpath d='M18 14h8v18h12V14h8v36h-8V39H26v11h-8z' fill='%23ffffff'/%3E%3C/svg%3E">
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://cqthnymltqpcxtpiryka.supabase.co">
@@ -51,9 +49,9 @@ try{
      следом (display=swap уже в URL). -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Courier+Prime:wght@400;700&display=swap" media="print" onload="this.media='all';this.onload=null;">
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Courier+Prime:wght@400;700&display=swap"></noscript>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" media="print" onload="this.media='all';this.onload=null;">
-<noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"></noscript>
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<link rel="stylesheet" href="/css/highlight-dark.css" media="print" onload="this.media='all';this.onload=null;">
+<noscript><link rel="stylesheet" href="/css/highlight-dark.css"></noscript>
+<script defer src="/js/vendor/highlight.min.js"></script>
 <!-- abcjs, pdf.js и mammoth здесь НЕ подключены: ~1,5 МБ, нужные редко.
      Их подтягивает hmLoadLib() при первом обращении — см. «ЛЕНИВАЯ ЗАГРУЗКА». -->
 <!-- Пути к своим файлам — ОТ КОРНЯ («/js/…», а не «js/…»). Один и тот же
@@ -252,7 +250,14 @@ html[data-theme="messenger"] .chat-ctx-item:hover{background:rgba(36,161,222,.09
   html[data-theme="light"] .sb-footer{border-top:1px solid rgba(20,18,12,.07);}
   html[data-theme="light"] .sb-icon-btn:hover,html[data-theme="light"] .sb-chat-item:hover,html[data-theme="light"] .sb-chat-item.active{background:rgba(20,18,12,.05);}
 
-  /* Приветствие и текст ИИ */
+  /* Опрос «Откуда вы узнали» — аккуратные чипы в стиле интерфейса */
+.survey-opt{appearance:none;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:var(--text);font:inherit;font-size:14px;font-weight:500;padding:9px 16px;border-radius:999px;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .15s ease,border-color .15s ease,transform .08s ease;}
+.survey-opt:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.25);}
+.survey-opt:active{transform:scale(.97);}
+html[data-theme="light"] .survey-opt{border-color:rgba(0,0,0,.14);background:rgba(0,0,0,.04);color:#1a1a1a;}
+html[data-theme="light"] .survey-opt:hover{background:rgba(0,0,0,.08);border-color:rgba(0,0,0,.25);}
+
+/* Приветствие и текст ИИ */
   html[data-theme="light"] .greeting-hint{color:#3a3a42;}
   html[data-theme="light"] .think-trace{background:rgba(20,18,12,.03);border-color:rgba(20,18,12,.06);border-left:2px solid rgba(20,18,12,.14);color:var(--text2);}
 
@@ -3035,7 +3040,7 @@ html[data-theme="messenger"] .igWrap{
             <svg width="22" height="26" viewBox="0 0 22 26" fill="none"><ellipse cx="5.5" cy="21" rx="5" ry="3.6" fill="currentColor"/><path d="M10 21V2.5C10 2.5 10 1.5 11.2 1.5C15 1.5 16.5 5.5 16.5 8.5C16.5 9.5 16 10 15.5 9.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
           </div>
           <div class="greeting-title" id="greetingTitle">Привет! Я Harmony Ai</div>
-          <div class="greeting-sub" id="greetSub">Спроси меня про любой аккорд 🎵</div>
+          <div class="greeting-sub" id="greetSub" data-i18n-static>Спроси меня про любой аккорд 🎵</div>
           <div class="greeting-hints">
             <div class="greeting-hint"><span class="gh-icon"><svg width="20" height="16" viewBox="0 0 30 22" fill="none"><path d="M2 2h26M2 7h26M2 12h26M2 17h26" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M9 1c-2.6 1.6-3.4 4-2.6 6.4.8 2.3 3.2 3.2 3.2 5.4 0 1.6-1.2 2.6-2.4 2.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6.6" cy="17.4" r="1.6" fill="currentColor"/></svg></span><span>Сгенерировать нотный стан</span></div>
             <div class="greeting-hint"><span class="gh-icon"><svg width="16" height="20" viewBox="0 0 18 24" fill="none"><circle cx="4.2" cy="19.5" r="3.6" fill="currentColor"/><path d="M7.7 19.5V3.5l8.3-2.3v6.4l-8.3 2.3" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></span><span>Разбор сольфеджио</span></div>
@@ -3462,8 +3467,11 @@ html[data-theme="messenger"] .igWrap{
      распарсена и отрисована. Порядок сохранён: supabase → marked → i18n
      → словарь → главный инлайн-скрипт. Семантика прежняя (классические
      блокирующие скрипты в исходном порядке), но первый кадр не ждёт CDN. -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
+<!-- supabase-js и marked отдаём СО СВОЕГО хостинга: jsdelivr недоступен из части
+     сетей РФ/Европы, а без supabase-js приложение не стартует вовсе.
+     Эти два скрипта критичны для первого кадра — их нельзя ставить на чужой CDN. -->
+<script src="/js/vendor/supabase.min.js"></script>
+<script src="/js/vendor/marked.min.js"></script>
 <script src="/i18n.js"></script>
 <script src="/i18_dict.js"></script>
 
@@ -3545,9 +3553,27 @@ let webSearchMode='auto',plusDropOpen=false,lastSearchSources=[];
 // При активации над полем ввода появляется мини-окно «Изображение» с крестиком.
 // После отправки флаг сбрасывается, чтобы следующее обычное сообщение не ушло как запрос на картинку.
 let imageGenModeActive=false;
-// Ключевые слова-триггеры автоопределения запроса на генерацию картинки (регистронезависимо).
-const IMAGE_KEYWORDS=['нарисуй','нарисовать','сгенерируй картинку','сгенерируй изображение','сгенерируй мне','создай изображение','создай картинку','сделай картинку','сделай изображение','нарисуй мне','draw','generate image','generate a picture','generate a picture of'];
-function isImageRequest(text){const low=String(text||'').toLowerCase();if(!low)return false;return IMAGE_KEYWORDS.some(kw=>low.includes(kw));}
+/* Ключевые слова-триггеры автоопределения запроса на генерацию картинки.
+   Список зеркалит серверный pre-фильтр (lib/util-intent.js VISUAL_HINT_KEYWORDS):
+   теперь генерация изображения может включиться сама, без кнопки «Изображение».
+   Итоговое решение принимает LLM-классификатор (/api/intent): если картинка
+   не нужна — запрос уходит в обычный текстовый ответ. */
+const IMAGE_KEYWORDS=[
+  // русские триггеры генерации / рисования
+  'нарисуй','нарисовать','нарису','сгенерируй картинк','сгенерируй изображени','сгенерируй мне','сгенерируй фото',
+  'создай изображени','создай картинк','сделай картинк','сделай изображени','сделай фото','сгенерир','нарисуй мне',
+  'изобрази','покажи как выглядит','нарисуй картинку',
+  // английские
+  'draw ','draw a','draw me','draw ','generate image','generate a picture','generate a picture of','generate an image',
+  'create an image','create a picture','make a picture','make an image','render','illustrate',
+  // контекстные намёки
+  'обложк','иллюстраци','постер','визуализ','эскиз','логотип','иконк','обои','баннер','фон для'
+];
+function isImageRequest(text){
+  const low=String(text||'').toLowerCase();
+  if(!low)return false;
+  return IMAGE_KEYWORDS.some(kw=>low.includes(kw));
+}
 let chatHistory=[],pendingAttachments=[],recentAttachmentDocs=[],curChatId=null;
 let chats=[];
 const CHAT_META_PREFIX='harmonyai_chat_meta_v1_';
@@ -3627,6 +3653,45 @@ const IMAGE_QUALITY=0.82;
 // переполняло лимит тела запроса. Теперь даём начало текста с пометкой об обрезке, остальное
 // модель при необходимости уточняет у пользователя (см. инструкцию про «ДОКУМЕНТ ОБРЕЗАН»).
 const INLINE_DOC_CHAR_LIMIT=60000;
+/* ===== НИК ПОЛЬЗОВАТЕЛЯ: валидация, проверка занятости, сохранение в БД =====
+   Разрешаем латиницу, кириллицу, французские/испанские акценты (À-ÿ),
+   цифры, пробел, точку, дефис и подчёркивание — ник не ограничен английскими
+   буквами. Обязательна хотя бы одна буква. Длина 2–30 символов. */
+const NICK_RE=/^[A-Za-zÀ-ÿА-Яа-яЁё0-9 _.-]{2,30}$/u;
+function nickValidationError(val){
+  const v=String(val||'').trim();
+  if(!v)return 'Введите ник';
+  if(v.length<2)return 'Ник слишком короткий — минимум 2 символа';
+  if(v.length>30)return 'Ник слишком длинный — максимум 30 символов';
+  if(!NICK_RE.test(v))return 'Ник может содержать только буквы (латиница, кириллица, акценты), цифры, пробел, точку, дефис и подчёркивание';
+  if(!/[A-Za-zÀ-ÿА-Яа-яЁё]/.test(v))return 'В нике должна быть хотя бы одна буква';
+  return '';
+}
+async function accountAction(payload){
+  const headers=await hmAuthHeaders();
+  const res=await fetch('/api/account',{method:'POST',headers,cache:'no-store',body:JSON.stringify(payload)});
+  const data=await res.json().catch(()=>null);
+  if(!res.ok||!data||data.ok===false){
+    const msg=(data&&data.error&&data.error.message)||(data&&data.error)||('Ошибка сервера ('+res.status+')');
+    throw new Error(typeof msg==='string'?msg:'Ошибка сервера');
+  }
+  return data;
+}
+/* Проверка занятости ника на сервере (уникальность без учёта регистра).
+   Возвращает null, если ник свободен, либо строку с ошибкой. */
+async function checkNicknameAvailable(val){
+  try{
+    const data=await accountAction({action:'nickname.check',nickname:val});
+    if(data&&data.available===false)return 'Этот ник уже занят — придумайте другой';
+    return null;
+  }catch(e){
+    const msg=String(e&&e.message||'');
+    if(/занят/i.test(msg))return 'Этот ник уже занят — придумайте другой';
+    if(/требуется вход|unauthorized/i.test(msg))return 'Сессия истекла — войдите заново';
+    // Сетевой сбой — не блокируем сохранение, сервер ещё раз проверит при установке.
+    return null;
+  }
+}
 function getLocalNickname(uid){
   if(!uid)return null;
   try{
@@ -3951,11 +4016,17 @@ const GREETS=[
   'Построю аккордовую цепочку T–S–D–T 🎸',
 ];
 let greetIdx=0;
+/* Подзаголовок крутится каждые 4с. Фраза переводится на язык интерфейса
+   перед показом: ключи GREETS лежат в i18_dict.js. */
+function greetsText(i){
+  try{if(window.i18n&&window.i18n.get&&window.i18n.get()!=='ru'&&window.i18n.t)return window.i18n.t(GREETS[i%GREETS.length])||GREETS[i%GREETS.length];}catch(e){}
+  return GREETS[i%GREETS.length];
+}
 setInterval(()=>{
   const el=document.getElementById('greetSub');if(!el)return;
   greetIdx=(greetIdx+1)%GREETS.length;
   el.style.opacity='0';
-  setTimeout(()=>{el.textContent=GREETS[greetIdx];el.style.opacity='1';},300);
+  setTimeout(()=>{el.textContent=greetsText(greetIdx);el.style.opacity='1';},300);
 },4000);
 
 /* ===== AUTH ===== */
@@ -4071,10 +4142,14 @@ async function hydrateSignedInState(session){
     registerCurrentDevice().catch(e=>console.warn('Device registration failed',e));
     updateUserUI();
     renderChatList();
-    maybeShowNicknameModal();
+    maybeShowOnboardingModals();
     // Промо при входе в приложение. Пробуем показать оба, но реально появится одно
     // (renderNotification вытесняет предыдущее, вероятности мешают одновременному показу).
+    // НЕ показываем, пока на экране опрос или ввод ника — уведомление перекрывало
+    // кнопку «Другое» (z-index 750 против 600) и сбивало онбординг.
     setTimeout(()=>{
+      const busy=document.querySelector('#surveyOverlay.show,#nickOverlay.show');
+      if(busy)return;
       if(!showNotification('promo_quality',3/11))showNotification('promo_limits',1/8);
     },600);
   })().finally(()=>{
@@ -4083,11 +4158,54 @@ async function hydrateSignedInState(session){
   return authHydrationPromise;
 }
 function maybeShowNicknameModal(){
+  /* Уже отвечавший на опрос пользователь (повторный вход, другой браузер) не
+     должен увидеть его снова: ответ уже лежит в settings.source или в
+     localStorage-флаге — на сервер не ходим, решение локальное. */
+  if(curUser&&typeof surveyNeeded==='function'&&surveyNeeded())markSurveyDone();
   if(!curUser?.needsNickname)return;
   const ov=document.getElementById('nickOverlay');
   if(!ov||ov.classList.contains('show'))return;
   ov.classList.add('show');
   setTimeout(()=>{const i=document.getElementById('nickModalInp');if(i)i.focus();},150);
+}
+/* ===== ОПРОС «Откуда вы узнали про HarmonyAI?» =====
+   Показывается новым пользователям один раз, перед выбором ника.
+   Ответ хранится в profiles.settings.source (schema не меняется) —
+   оттуда его забирает аналитика. */
+const HM_SURVEY_KEY='hm_survey_source_v1';
+function surveyNeeded(){
+  try{if(localStorage.getItem(HM_SURVEY_KEY)==='1')return false;}catch(e){}
+  return !curUser?.settings?.source;
+}
+function markSurveyDone(){
+  try{localStorage.setItem(HM_SURVEY_KEY,'1');}catch(e){}
+}
+function maybeShowSurveyModal(){
+  if(!surveyNeeded())return false;
+  const ov=document.getElementById('surveyOverlay');
+  if(!ov||ov.classList.contains('show'))return true;
+  ov.classList.add('show');
+  return true;
+}
+async function saveSurveySource(val){
+  markSurveyDone();
+  const ov=document.getElementById('surveyOverlay');
+  if(ov)ov.classList.remove('show');
+  if(curUser){
+    try{
+      if(!curUser.settings)curUser.settings={};
+      curUser.settings.source=String(val||'').slice(0,64);
+      // Через /api/account: сервер мерджит settings под service-role, поэтому
+      // ответ опроса не затирается параллельным сохранением настроек с телефона.
+      await accountAction({action:'survey.set',source:curUser.settings.source});
+    }catch(e){console.warn('Survey save failed',e);}
+  }
+  maybeShowNicknameModal();
+}
+/* Новому пользователю: сначала опрос, затем ник. */
+function maybeShowOnboardingModals(){
+  if(maybeShowSurveyModal())return;
+  maybeShowNicknameModal();
 }
 async function saveNicknameModal(){
   const inp=document.getElementById('nickModalInp');
@@ -4095,17 +4213,24 @@ async function saveNicknameModal(){
   const btn=document.getElementById('nickModalBtn');
   const val=(inp?.value||'').trim();
   err.style.display='none';
-  if(!val){err.textContent='Введите имя';err.style.display='block';return;}
   if(!curUser){return;}
-  btn.disabled=true;btn.textContent='Сохраняем...';
+  const vErr=nickValidationError(val);
+  if(vErr){err.textContent=vErr;err.style.display='block';return;}
+  btn.disabled=true;btn.textContent='Проверяем ник...';
   try{
+    const taken=await checkNicknameAvailable(val);
+    if(taken){err.textContent=taken;err.style.display='block';return;}
+    btn.textContent='Сохраняем...';
+    await accountAction({action:'nickname.set',nickname:val});
     setLocalNickname(curUser.id,val);
     curUser.nickname=val;
     curUser.needsNickname=false;
     updateUserUI();
     document.getElementById('nickOverlay').classList.remove('show');
   }catch(e){
-    err.textContent='Не удалось сохранить имя, попробуйте ещё раз';err.style.display='block';
+    const msg=String(e&&e.message||'');
+    err.textContent=/занят/i.test(msg)?'Этот ник уже занят — придумайте другой':(/требуется вход|unauthorized/i.test(msg)?'Сессия истекла — войдите заново':'Не удалось сохранить ник, попробуйте ещё раз');
+    err.style.display='block';
   }finally{
     btn.disabled=false;btn.textContent='Продолжить';
   }
@@ -4528,10 +4653,69 @@ async function loadProfile(uid,email){
   loadKnowledgeDocs();
   await loadKnowledgeDocsFromSupabase();
 }
+/* ===== ПРИВЕТСТВИЕ: случайная фраза + время суток + язык интерфейса =====
+   Фраза выбирается случайно из пула, соответствующего локальному времени
+   пользователя (по системному часовому поясу). Ночь — нейтральные фразы без
+   «доброго». Шаблон «{name}» переводится через i18n ДО подстановки имени:
+   так на любом языке интерфейса приветствие звучит естественно. Одна и та же
+   фраза не показывается дважды подряд (в пределах сессии). */
+const HM_GREETINGS={
+  morning:['Доброе утро, {name}','Привет, {name}','Готов помочь, {name}!','Рад тебя видеть, {name}','С чего начнём, {name}?'],
+  day:['Добрый день, {name}','Привет, {name}','Чем займёмся, {name}?','Что сегодня делаем, {name}?','С чего начнём, {name}?','Есть идеи, {name}?'],
+  evening:['Добрый вечер, {name}','Привет, {name}','Чем займёмся, {name}?','Что придумаем сегодня, {name}?','Может сам, {name}?','Ну что, {name}?','Что у тебя на уме, {name}?'],
+  night:['Не спится, {name}?','Чем займёмся, {name}?','С чего начнём, {name}?','Ну что, {name}?']
+};
+let _lastGreeting='';
+function greetingPeriod(){
+  // Часовой пояс пользователя из Intl (точнее локальных часов сервера/устройства
+  // при неверной системной дате), с фолбэком на локальное время устройства.
+  try{
+    const parts=new Intl.DateTimeFormat('en-US',{hour:'numeric',hour12:false,timeZoneName:'short'}).formatToParts(new Date());
+    const hourStr=parts.find(p=>p.type==='hour')?.value;
+    let h=Number(hourStr);
+    if(!Number.isFinite(h)){h=new Date().getHours();}
+    if(h===24)h=0;
+    if(h>=5&&h<11)return 'morning';
+    if(h>=11&&h<17)return 'day';
+    if(h>=17&&h<23)return 'evening';
+    return 'night';
+  }catch(e){
+    const h=new Date().getHours();
+    if(h>=5&&h<11)return 'morning';
+    if(h>=11&&h<17)return 'day';
+    if(h>=17&&h<23)return 'evening';
+    return 'night';
+  }
+}
 function greetingTitleText(){
   const name=curUser?.nickname;
-  return name?`Привет, ${escapeHtml(name)}`:'Привет! Я Harmony Ai';
+  if(!name)return 'Привет! Я Harmony Ai';
+  const pool=HM_GREETINGS[greetingPeriod()]||HM_GREETINGS.day;
+  let phrase=pool[Math.floor(Math.random()*pool.length)];
+  if(pool.length>1){
+    const other=pool.filter(p=>p!==_lastGreeting);
+    phrase=other[Math.floor(Math.random()*other.length)]||phrase;
+  }
+  _lastGreeting=phrase;
+  // Сначала перевод шаблона на текущий язык интерфейса, затем подстановка имени.
+  let tpl=phrase;
+  try{
+    if(window.i18n&&window.i18n.get&&window.i18n.get()!=='ru'&&window.i18n.t)tpl=window.i18n.t(phrase)||phrase;
+  }catch(e){}
+  return tpl.replace('{name}',escapeHtml(name));
 }
+/* Смена языка интерфейса — приветствие сразу на новом языке.
+   Обновляем только видимое приветствие пустого чата (не историю). */
+window.addEventListener('hai-lang-change',function(){
+  try{
+    if(!window.__appShown)return;
+    var gw=document.getElementById('greetingWrap');
+    var gt=document.getElementById('greetingTitle');
+    if(gw&&gt&&gw.style.display!=='none'&&!gw.hidden)gt.textContent=greetingTitleText();
+    var gs=document.getElementById('greetSub');
+    if(gw&&gs){gs.__i18nOrig=gs.textContent;if(window.i18n&&window.i18n.t)gs.textContent=window.i18n.t(gs.textContent);}
+  }catch(e){}
+});
 function updateUserUI(){
   if(!curUser)return;
   const ch=(curUser.email||'?').charAt(0).toUpperCase();
@@ -4541,6 +4725,8 @@ function updateUserUI(){
   if(un)un.textContent=curUser.nickname||curUser.email;
   const gt=document.getElementById('greetingTitle');
   if(gt)gt.textContent=greetingTitleText();
+  // Язык мог смениться, пока приветствие не было видно: подгоняем подпись под текущий язык.
+  try{ if(window.i18n&&window.i18n.get&&window.i18n.get()!=='ru'){ const gs=document.getElementById('greetSub'); if(gs&&gs.__i18nOrig!=null) gs.textContent=window.i18n.t(gs.__i18nOrig); } }catch(e){}
   updateSidebarTrainingVisibility();
   /* Роль пользователя уже известна — обновляем всё, что от неё зависит:
      кнопку «Обновить» в шапке (п.7) и Pro-замки в меню моделей. */
@@ -5652,7 +5838,7 @@ function newChat(){
   inner.innerHTML=`<div class="greeting-wrap" id="greetingWrap">
     <div class="greeting-mark mobile-only" aria-hidden="true"><svg width="22" height="26" viewBox="0 0 22 26" fill="none"><ellipse cx="5.5" cy="21" rx="5" ry="3.6" fill="currentColor"/><path d="M10 21V2.5C10 2.5 10 1.5 11.2 1.5C15 1.5 16.5 5.5 16.5 8.5C16.5 9.5 16 10 15.5 9.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div>
     <div class="greeting-title" id="greetingTitle">${greetingTitleText()}</div>
-    <div class="greeting-sub" id="greetSub">${GREETS[greetIdx]}</div>
+    <div class="greeting-sub" id="greetSub">${greetsText(greetIdx)}</div>
     <div class="greeting-hints">
       <div class="greeting-hint"><span class="gh-icon"><svg width="20" height="16" viewBox="0 0 30 22" fill="none"><path d="M2 2h26M2 7h26M2 12h26M2 17h26" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M9 1c-2.6 1.6-3.4 4-2.6 6.4.8 2.3 3.2 3.2 3.2 5.4 0 1.6-1.2 2.6-2.4 2.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6.6" cy="17.4" r="1.6" fill="currentColor"/></svg></span><span>Сгенерировать нотный стан</span></div>
       <div class="greeting-hint"><span class="gh-icon"><svg width="16" height="20" viewBox="0 0 18 24" fill="none"><circle cx="4.2" cy="19.5" r="3.6" fill="currentColor"/><path d="M7.7 19.5V3.5l8.3-2.3v6.4l-8.3 2.3" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></span><span>Разбор сольфеджио</span></div>
@@ -8411,6 +8597,11 @@ async function requestChatReplyLive(msgEl,actionsEl,extraMessages=[],prefixText=
   const endpoints=buildApiCandidates();
   const authHeaders=await hmAuthHeaders();
   let lastError=null;
+  // Признак «по этому запросу уже начали приходить данные» (первый SSE-байт/дельта).
+  // Если стрим оборвался ПОСЛЕ начала генерации — повторный запрос на другой
+  // эндпоинт запустил бы ответ заново с нуля; вместо этого возвращаем то, что
+  // успело прийти, с флагом truncated: autoContinueIfNeeded дотолкает ответ.
+  let streamStarted=false;
   for(let i=0;i<endpoints.length;i++){
     const endpoint=endpoints[i];
     try{
@@ -8433,6 +8624,7 @@ async function requestChatReplyLive(msgEl,actionsEl,extraMessages=[],prefixText=
         throw new Error(tChatErr(data?.error?.message||`Ошибка сервера (${res.status})`));
       }
       if(type.includes('text/event-stream')&&res.body){
+        streamStarted=true;
         const reader=res.body.getReader();
         const decoder=new TextDecoder();
         const typer=createLiveTypingController(msgEl,prefixText);
@@ -8442,7 +8634,16 @@ async function requestChatReplyLive(msgEl,actionsEl,extraMessages=[],prefixText=
         let gotSearchTrace=false;
         let streamFinished=false;
         while(true){
-          const {done,value}=await withTimeout(reader.read(),STREAM_STALL_MS,'Сервер слишком долго отвечает');
+          let readRes;
+          try{
+            readRes=await withTimeout(reader.read(),STREAM_STALL_MS,'Сервер слишком долго отвечает');
+          }catch(readErr){
+            // Тишина в потоке дольше STREAM_STALL_MS: читатель остался «висеть» —
+            // освобождаем его явно, чтобы соединение не держалось зря.
+            try{reader.cancel().catch(()=>{});}catch(_){}
+            throw readErr;
+          }
+          const {done,value}=readRes;
           if(done){streamFinished=true;break;}
           buffer+=decoder.decode(value,{stream:true});
           const events=buffer.split('\n\n');
@@ -8559,11 +8760,22 @@ async function requestChatReplyLive(msgEl,actionsEl,extraMessages=[],prefixText=
       if(e?.name==='AbortError')throw new Error('Генерация остановлена');
       lastError=e;
       const msg=String(e?.message||'').toLowerCase();
+      // Стрим уже шёл — не начинаем ответ заново. Возвращаем то, что успело
+      // прийти (пусть даже пусто): дальше autoContinueIfNeeded дотолкает
+      // генерацию, а пользователь не увидит ни ошибки, ни дублей.
+      if(streamStarted){
+        try{activeAbortController.abort();}catch(_){}
+        hideTyping();
+        const partial=normalizeReplyNotation(msgEl.dataset.raw||msgEl.textContent||'');
+        if(partial){setMessageActionsVisible(actionsEl,true);return {text:partial,truncated:true};}
+      }
       if(i<endpoints.length-1&&(msg.includes('failed to fetch')||msg.includes('load failed')||msg.includes('network'))){
         continue;
       }
     }
   }
+  // Финальный отказ: рвём незакрытое соединение, чтобы функция и сокеты не висели.
+  try{if(streamStarted)activeAbortController.abort();}catch(_){}
   throw lastError||new Error('Не удалось получить ответ от сервера');
 }
 
@@ -11085,17 +11297,27 @@ async function saveSettingsName(){
   const btn=document.getElementById('settingsNameBtn');
   const val=(inp?.value||'').trim();
   err.style.display='none';
-  if(!val){err.textContent='Введите имя';err.style.display='block';return;}
   if(!curUser)return;
+  const vErr=nickValidationError(val);
+  if(vErr){err.textContent=vErr;err.style.display='block';return;}
   btn.disabled=true;btn.textContent='Сохраняем...';
   try{
+    const taken=await checkNicknameAvailable(val);
+    if(taken){err.textContent=taken;err.style.display='block';return;}
+    await accountAction({action:'nickname.set',nickname:val});
     setLocalNickname(curUser.id,val);
     curUser.nickname=val;
     curUser.needsNickname=false;
     updateUserUI();
     renderSettingsMain();
   }catch(e){
-    err.textContent='Не удалось сохранить имя, попробуйте ещё раз';err.style.display='block';
+    // Сервер недоступен — сохраняем локально, чтобы ник не потерялся.
+    setLocalNickname(curUser.id,val);
+    curUser.nickname=val;
+    curUser.needsNickname=false;
+    updateUserUI();
+    renderSettingsMain();
+    err.textContent='Ник сохранён локально — на сервере временная ошибка';err.style.display='block';
   }finally{
     btn.disabled=false;btn.textContent='Сохранить';
   }
@@ -11548,6 +11770,26 @@ window.persistLangToProfile=async function(lang){
     <div class="fb-actions">
       <button class="fb-btn-cancel" onclick="closeFbModal()">Отмена</button>
       <button class="fb-btn-send" id="fbSendBtn" onclick="submitFbModal()">Отправить</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SURVEY: откуда вы узнали про HarmonyAi (только при регистрации) ===== -->
+<div class="fb-overlay" id="surveyOverlay">
+  <div class="fb-modal" style="gap:14px;">
+    <div class="fb-title">Откуда вы узнали про HarmonyAi?</div>
+    <div class="fb-desc">Это поможет нам стать лучше. Ответ ни на что не влияет.</div>
+    <div class="survey-opts" style="display:flex;flex-wrap:wrap;gap:8px;">
+      <button type="button" class="survey-opt" onclick="saveSurveySource('Поиск в браузере')">Поиск в браузере</button>
+      <button type="button" class="survey-opt" onclick="saveSurveySource('Друзья')">Друзья</button>
+      <button type="button" class="survey-opt" onclick="saveSurveySource('Телеграмм')">Телеграмм</button>
+      <button type="button" class="survey-opt" onclick="saveSurveySource('TikTok')">TikTok</button>
+      <button type="button" class="survey-opt" onclick="saveSurveySource('YouTube')">YouTube</button>
+      <button type="button" class="survey-opt" onclick="saveSurveySource('Реклама')">Реклама</button>
+      <button type="button" class="survey-opt" onclick="saveSurveySource('Google')">Google</button>
+      <button type="button" class="survey-opt" onclick="saveSurveySource('Яндекс')">Яндекс</button>
+      <button type="button" class="survey-opt" onclick="saveSurveySource('Социальные сети')">Социальные сети</button>
+      <button type="button" class="survey-opt" onclick="saveSurveySource('Другое')">Другое</button>
     </div>
   </div>
 </div>
