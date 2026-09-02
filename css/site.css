@@ -621,3 +621,43 @@ pre code{background:none;border:none;padding:0;font-size:inherit;}
   .faq-q{font-size:16px;}
   h1{font-size:clamp(28px,8vw,36px);}
 }
+
+/* ===== МОБИЛЬНАЯ АДАПТАЦИЯ АВТОРИЗАЦИИ (узкие экраны) =====================
+   Карточка входа была фиксированной (36px паддинги, без safe-area): на
+   iPhone с «чёлкой» и системными жестами текст прилипал к краям и к нотчу.
+   Теперь — стекло на всю ширину, скруглённые углы и безопасные отступы. */
+@media (max-width: 480px) {
+  .auth-wrap{padding:0;align-items:flex-end;}
+  .auth-card{
+    max-width:none;width:100%;
+    border-radius:24px 24px 0 0;
+    padding:28px 20px calc(28px + env(safe-area-inset-bottom, 0px));
+    border:1px solid rgba(255,255,255,.08);
+    background:rgba(22,22,26,.88);
+    backdrop-filter:blur(24px) saturate(150%);
+    -webkit-backdrop-filter:blur(24px) saturate(150%);
+  }
+  html[data-theme="light"] .auth-card{background:rgba(252,251,249,.92);border-color:rgba(20,18,12,.07);}
+  .auth-h1{font-size:26px;}
+  .otp-box{width:44px;height:54px;font-size:22px;}
+}
+
+/* ============================================================================
+   МОБИЛЬНАЯ АДАПТАЦИЯ АВТОРИЗАЦИИ (дополняет .auth-* из app.html; на лендинге
+   и других статических страницах этих классов нет — блок безвреден).
+   До 380px карточка входа не сжималась по бокам (36px padding + 2*20px
+   отступа), а 6 OTP-полей по 46px + 5*8px gap = 316px — впритык к ширине
+   iPhone SE и рвалось на Android с маленькими экранами.
+   ============================================================================ */
+@media (max-width: 380px) {
+  .auth-card { padding: 28px 18px; border-radius: 18px; }
+  .auth-h1 { font-size: 26px; }
+  .otp-row { gap: 6px; }
+  .otp-box { width: 42px; height: 52px; font-size: 20px; }
+}
+
+/* Доступность: минимальная зона нажатия для крошечных «крестиков» поверх
+   полноэкранных изображений и предпросмотров (моб.) */
+@media (max-width: 768px) {
+  .otp-box { -webkit-tap-highlight-color: transparent; }
+}
