@@ -11,8 +11,32 @@
 <meta property="og:description" content="Учёба, работа, анализ, код, файлы и творчество — в одном чате. Плюс API, совместимый с Anthropic Messages API.">
 <meta property="og:url" content="https://harmonyai.ru/">
 <meta name="theme-color" content="#ffffff">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Harmony AI — универсальный AI-помощник">
+<meta name="twitter:description" content="Учёба, работа, анализ, код, файлы и творчество — в одном чате. Вход по коду на почту, базовый доступ бесплатный.">
+
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230d0f14'/%3E%3Cpath d='M18 14h8v18h12V14h8v36h-8V39H26v11h-8z' fill='%23ffffff'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="/css/site.css">
+<script>
+/* ===== АВТОВОЗВРАТ АВТОРИЗОВАННОГО ПОЛЬЗОВАТЕЛЯ В /chat =====
+   Сессия Supabase хранится в localStorage (ключи вида sb-<id>-auth-token):
+   если он есть — отправляем в /chat НЕМЕДЛЕННО, до отрисовки страницы.
+   Токен здесь не проверяем: /chat сам подтвердит его и при недействительности
+   покажет вход. Никаких запросов на главной — ноль задержки для новичков. */
+(function(){
+  try{
+    if(location.pathname!=='/')return;
+    var ls=localStorage;
+    for(var i=0;i<ls.length;i++){
+      var k=ls.key(i);
+      if(k&&k.indexOf('sb-')===0&&k.indexOf('-auth-token')!==-1){
+        location.replace('/chat');
+        return;
+      }
+    }
+  }catch(e){}
+})();
+</script>
 </head>
 <body>
 
@@ -399,11 +423,11 @@
 
 <script src="/js/site.js" defer></script>
 <script>
-/* ===== ГЛАВНАЯ СТРАНИЦА ВСЕГДА ПЕРВОЙ, БЕЗ ЛОГИНА =====
-   Требование: заход на «/» всегда показывает лендинг и НЕ требует авторизации.
-   Автоматический возврат уже авторизованного пользователя в /chat ОТКЛЮЧЁН —
-   в чат ведут только кнопки на странице. Так первый экран одинаков для всех:
-   публичная главная, а не молчаливый редирект и не форма входа. */
+/* ===== ГЛАВНАЯ СТРАНИЦА =====
+   Дизайн лендинга публичный и остаётся первым экраном для НОВЫХ посетителей.
+   Уже вошедших уводит в /chat скрипт в <head> (см. «АВТОВОЗВРАТ»): проверка
+   идёт по сохранённой сессии в localStorage, без единого сетевого запроса,
+   поэтому для новичков первый кадр не задерживается ни на миллисекунду. */
 </script>
 
 </body>
