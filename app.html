@@ -38,6 +38,20 @@ try{
     if(__k&&__k.indexOf('sb-')===0&&__k.indexOf('-auth-token')!==-1){document.documentElement.setAttribute('data-boot','app');break;}
   }
 }catch(e){}
+/* Страховка от вечного тёмного экрана: если основные скрипты не загрузились
+   (сбой деплоя, сеть, CDN), через 12 с принудительно открываем экран входа. */
+setTimeout(function(){
+  try{
+    var appEl=document.getElementById('app');
+    var authEl=document.getElementById('authWrap');
+    var appVisible=!!(appEl&&appEl.classList.contains('show'));
+    var authVisible=!!(authEl&&!authEl.classList.contains('gone')&&document.documentElement.getAttribute('data-boot')!=='app');
+    if(!appVisible&&!authVisible){
+      document.documentElement.removeAttribute('data-boot');
+      if(authEl)authEl.classList.remove('gone');
+    }
+  }catch(e){}
+},12000);
 </script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230d0f14'/%3E%3Cpath d='M18 14h8v18h12V14h8v36h-8V39H26v11h-8z' fill='%23ffffff'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -476,6 +490,11 @@ button:active,.model-pill:active,.send-btn:active{
 /* Пока data-boot="app" (в localStorage найден токен Supabase) — экран входа скрыт ещё до проверки сессии,
    чтобы авторизованный пользователь никогда не видел «вспышку» регистрации. */
 html[data-boot="app"] .auth-wrap{display:none;}
+/* Пока идёт проверка сессии, показываем каркас чата сразу — иначе у пользователя
+   с сохранённым входом первый кадр был пустым тёмным/светлым экраном (bug:
+   .app{display:none} до initSession). Если сессия окажется недействительной,
+   initSession снимет data-boot и вернёт экран входа. */
+html[data-boot="app"] .app{display:flex;}
 /* HM-REASONING-V2: промо-подложка тоже не должна мигать у вошедшего пользователя. */
 html[data-boot="app"] .mobile-glossy{display:none;}
 .auth-card{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:36px 28px;max-width:380px;width:100%;display:flex;flex-direction:column;gap:0;}
@@ -3040,7 +3059,7 @@ html[data-theme="messenger"] .igWrap{
             <svg width="22" height="26" viewBox="0 0 22 26" fill="none"><ellipse cx="5.5" cy="21" rx="5" ry="3.6" fill="currentColor"/><path d="M10 21V2.5C10 2.5 10 1.5 11.2 1.5C15 1.5 16.5 5.5 16.5 8.5C16.5 9.5 16 10 15.5 9.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
           </div>
           <div class="greeting-title" id="greetingTitle">Привет! Я Harmony Ai</div>
-          <div class="greeting-sub" id="greetSub" data-i18n-static>Спроси меня про любой аккорд 🎵</div>
+          <div class="greeting-sub" id="greetSub">Спроси меня про любой аккорд 🎵</div>
           <div class="greeting-hints">
             <div class="greeting-hint"><span class="gh-icon"><svg width="20" height="16" viewBox="0 0 30 22" fill="none"><path d="M2 2h26M2 7h26M2 12h26M2 17h26" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M9 1c-2.6 1.6-3.4 4-2.6 6.4.8 2.3 3.2 3.2 3.2 5.4 0 1.6-1.2 2.6-2.4 2.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6.6" cy="17.4" r="1.6" fill="currentColor"/></svg></span><span>Сгенерировать нотный стан</span></div>
             <div class="greeting-hint"><span class="gh-icon"><svg width="16" height="20" viewBox="0 0 18 24" fill="none"><circle cx="4.2" cy="19.5" r="3.6" fill="currentColor"/><path d="M7.7 19.5V3.5l8.3-2.3v6.4l-8.3 2.3" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></span><span>Разбор сольфеджио</span></div>
@@ -3479,11 +3498,59 @@ html[data-theme="messenger"] .igWrap{
 /* ===== Supabase ===== */
 const SB_URL='https://cqthnymltqpcxtpiryka.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNxdGhueW1sdHFwY3h0cGlyeWthIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MjY3NzYsImV4cCI6MjA5NzAwMjc3Nn0.b-6lSdjT7XwWkt607ORwGfKYSn3CLZJB3mcs4QQUSoE';
-const sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-/* Клиент для внешних IIFE-модулей (hm-memory.js): const верхнего уровня
-   не создаёт window.sb, а глобальные let/const из другого файла
-   классического скрипта наружу недоступны. */
-window.__hmSb=sb;
+var sb=null;
+/* Устойчивая инициализация Supabase. Локальный vendor-бандл может не отгрузиться
+   (неполный деплой, сбой сети, блокировка CDN) — раньше скрипт умирал прямо здесь
+   и пользователь с сохранённой сессией оставался на вечном тёмном экране.
+   Теперь пробуем резервные CDN, а если недоступно всё — снимаем data-boot и
+   показываем экран входа с понятной ошибкой. */
+function supabaseUnavailableFallback(){
+  try{
+    document.documentElement.removeAttribute('data-boot');
+    var aw=document.getElementById('authWrap');
+    if(aw)aw.classList.remove('gone');
+    var ee=document.getElementById('emailErr');
+    if(ee){ee.textContent='Не удалось загрузить сервис авторизации. Проверьте интернет и обновите страницу.';ee.style.display='block';}
+  }catch(e){}
+}
+function startAfterSupabase(){
+  try{
+    sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+  }catch(e){
+    console.warn('Supabase init failed',e);
+    supabaseUnavailableFallback();
+    return;
+  }
+  /* Клиент для внешних IIFE-модулей (hm-memory.js): const верхнего уровня
+     не создаёт window.sb, а глобальные let/const из другого файла
+     классического скрипта наружу недоступны. */
+  window.__hmSb=sb;
+  sb.auth.onAuthStateChange(onAuthStateChanged);
+  initSession();
+}
+(function ensureSupabase(){
+  function ok(){return !!(window.supabase&&typeof window.supabase.createClient==='function');}
+  if(ok()){setTimeout(startAfterSupabase,0);return;}
+  /* Порядок подобран под доступность из РФ/ЕС/США: unpkg обычно доступнее
+     jsdelivr из РФ; третий — тот же jsdelivr, но фиксированный UMD-путь. */
+  var cdns=[
+    'https://unpkg.com/@supabase/supabase-js@2',
+    'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
+    'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js'
+  ];
+  var i=0;
+  function tryNext(){
+    if(i>=cdns.length){supabaseUnavailableFallback();return;}
+    var s=document.createElement('script');
+    var settled=false;
+    var to=setTimeout(function(){if(settled)return;settled=true;tryNext();},9000);
+    s.src=cdns[i++];
+    s.onload=function(){if(settled)return;settled=true;clearTimeout(to);ok()?startAfterSupabase():tryNext();};
+    s.onerror=function(){if(settled)return;settled=true;clearTimeout(to);tryNext();};
+    document.head.appendChild(s);
+  }
+  tryNext();
+})();
 /* ===== ЛЕНИВАЯ ЗАГРУЗКА ТЯЖЁЛЫХ БИБЛИОТЕК =====
    abcjs (ноты), pdf.js и mammoth (чтение PDF и DOCX) вместе весят около 1,5 МБ.
    Раньше они висели в <head> тегами <script defer> и скачивались при КАЖДОМ
@@ -3709,7 +3776,9 @@ function setLocalNickname(uid,val){
    Dynatos (pro): без лимитов, но с мягкой защитой от злоупотребления (burst-rate), т.к. токены дороги.
    Учёт ведётся локально (localStorage) на пользователя, с автосбросом по дню/неделе. */
 const LIMITS={
-  adanatos:{ daily:{tokens:20000,messages:14}, weekly:{tokens:100000,messages:100} },
+  // Лимиты по запросу: токены/сообщения сохранены, отображение ниже переводится в проценты.
+  // Окно начинается с первого запроса, а не с календарной даты.
+  adanatos:{ daily:{tokens:20000,messages:14}, weekly:{tokens:160000,messages:112} },
   // Dynatos формально безлимитен; клиентская защита совпадает с серверной (см. api/chat.js ABUSE.dynatos):
   // не более 25 сообщений за 3 минуты подряд. Сервер — авторитетный источник, это лишь быстрый барьер.
   dynatos:{ burst:{messages:25,windowMs:180000} }
@@ -3732,9 +3801,15 @@ function readUsage(){
 function writeUsage(u){try{localStorage.setItem(usageKey(),JSON.stringify(u));}catch(e){}}
 function getUsage(){
   const u=readUsage();
-  const dk=todayKey(),wk=weekKey();
-  if(u.dayKey!==dk){u.dayKey=dk;u.dayTokens=0;u.dayMessages=0;}
-  if(u.weekKey!==wk){u.weekKey=wk;u.weekTokens=0;u.weekMessages=0;}
+  const now=Date.now();
+  // Скользящие окна: дневной сброс через 5 часов после первого промта.
+  if(!u.dayStarted || now-u.dayStarted>=5*60*60*1000){
+    u.dayStarted=now;u.dayTokens=0;u.dayMessages=0;
+  }
+  // Неделя = 8 пятичасовых окон после первого запроса.
+  if(!u.weekStarted || now-u.weekStarted>=40*60*60*1000){
+    u.weekStarted=now;u.weekTokens=0;u.weekMessages=0;
+  }
   u.dayTokens=u.dayTokens||0;u.dayMessages=u.dayMessages||0;
   u.weekTokens=u.weekTokens||0;u.weekMessages=u.weekMessages||0;
   u.burst=Array.isArray(u.burst)?u.burst:[];
@@ -3783,7 +3858,7 @@ function checkLimit(){
    pro:  burst (15 за 3 мин) + суточный потолок 200 — защита от злоупотребления.
    Учёт отдельный от чата (свой ключ localStorage), чтобы не смешивать с расходом сообщений. */
 const IMG_LIMITS={
-  adanatos:{daily:7,weekly:23,monthly:50},
+  adanatos:{daily:7,weekly:56,monthly:112},
   dynatos:{burst:{images:15,windowMs:180000},daily:200}
 };
 const IMG_USAGE_PREFIX='harmonyai_img_v1_';
@@ -4601,13 +4676,15 @@ async function initSession(){
     beginSignedInState(session);
     return;
   }
+  document.documentElement.removeAttribute('data-boot');
   syncSignedOutRoute();
   document.getElementById('authWrap').classList.remove('gone');
   document.getElementById('app').classList.remove('show');
   const mg1=document.querySelector('.mobile-glossy');if(mg1)mg1.style.display='';
   showAuthS(1);
 }
-sb.auth.onAuthStateChange((event,session)=>{
+/* Регистрируется в startAfterSupabase() после готовности клиента. */
+function onAuthStateChanged(event,session){
   if(event==='SIGNED_IN'&&session?.user){
     beginSignedInState(session);
   }
@@ -4615,14 +4692,14 @@ sb.auth.onAuthStateChange((event,session)=>{
     authHydrationPromise=null;authHydratedUserId='';
     try{window.HmMemory&&window.HmMemory.reset();}catch(e){}
     curUser=null;chatHistory=[];curChatId=null;chats=[];
+    document.documentElement.removeAttribute('data-boot');
     syncSignedOutRoute();
     document.getElementById('authWrap').classList.remove('gone');
     document.getElementById('app').classList.remove('show');
     const mg2=document.querySelector('.mobile-glossy');if(mg2)mg2.style.display='';
     showAuthS(1);
   }
-});
-initSession();
+}
 
 async function loadProfile(uid,email){
   try{
@@ -4713,7 +4790,7 @@ window.addEventListener('hai-lang-change',function(){
     var gt=document.getElementById('greetingTitle');
     if(gw&&gt&&gw.style.display!=='none'&&!gw.hidden)gt.textContent=greetingTitleText();
     var gs=document.getElementById('greetSub');
-    if(gw&&gs){gs.__i18nOrig=gs.textContent;if(window.i18n&&window.i18n.t)gs.textContent=window.i18n.t(gs.textContent);}
+    if(gw&&gs){gs.__i18nOrig=GREETS[greetIdx%GREETS.length];gs.textContent=greetsText(greetIdx);}
   }catch(e){}
 });
 function updateUserUI(){
@@ -5164,6 +5241,7 @@ async function logOut(){
   await sb.auth.signOut();
   try{window.HmMemory&&window.HmMemory.reset();}catch(e){}
   curUser=null;chatHistory=[];curChatId=null;chats=[];
+  document.documentElement.removeAttribute('data-boot');
   syncSignedOutRoute();
   document.getElementById('authWrap').classList.remove('gone');
   document.getElementById('app').classList.remove('show');
@@ -11516,11 +11594,11 @@ function renderSettingsLimits(){
         <div class="limits-reset">сброс ${dailyReset}</div>
       </div>
       <div class="limits-metric">
-        <div class="limits-metric-row"><span class="limits-metric-label">Токены</span><span class="limits-metric-val"><b>${Math.min(u.dayTokens,L.daily.tokens).toLocaleString('ru-RU')}</b> / ${L.daily.tokens.toLocaleString('ru-RU')}</span></div>
+        <div class="limits-metric-row"><span class="limits-metric-label">Токены</span><span class="limits-metric-val"><b>${Math.min(100,Math.round(u.dayTokens/L.daily.tokens*100))}%</b></span></div>
         ${limitBar(u.dayTokens,L.daily.tokens)}
       </div>
       <div class="limits-metric">
-        <div class="limits-metric-row"><span class="limits-metric-label">Сообщения</span><span class="limits-metric-val"><b>${Math.min(u.dayMessages,L.daily.messages)}</b> / ${L.daily.messages}</span></div>
+        <div class="limits-metric-row"><span class="limits-metric-label">Сообщения</span><span class="limits-metric-val"><b>${Math.min(100,Math.round(u.dayMessages/L.daily.messages*100))}%</b></span></div>
         ${limitBar(u.dayMessages,L.daily.messages)}
       </div>
     </div>
@@ -11530,11 +11608,11 @@ function renderSettingsLimits(){
         <div class="limits-reset">сброс ${weeklyReset}</div>
       </div>
       <div class="limits-metric">
-        <div class="limits-metric-row"><span class="limits-metric-label">Токены</span><span class="limits-metric-val"><b>${Math.min(u.weekTokens,L.weekly.tokens).toLocaleString('ru-RU')}</b> / ${L.weekly.tokens.toLocaleString('ru-RU')}</span></div>
+        <div class="limits-metric-row"><span class="limits-metric-label">Токены</span><span class="limits-metric-val"><b>${Math.min(100,Math.round(u.weekTokens/L.weekly.tokens*100))}%</b></span></div>
         ${limitBar(u.weekTokens,L.weekly.tokens)}
       </div>
       <div class="limits-metric">
-        <div class="limits-metric-row"><span class="limits-metric-label">Сообщения</span><span class="limits-metric-val"><b>${Math.min(u.weekMessages,L.weekly.messages)}</b> / ${L.weekly.messages}</span></div>
+        <div class="limits-metric-row"><span class="limits-metric-label">Сообщения</span><span class="limits-metric-val"><b>${Math.min(100,Math.round(u.weekMessages/L.weekly.messages*100))}%</b></span></div>
         ${limitBar(u.weekMessages,L.weekly.messages)}
       </div>
     </div>
