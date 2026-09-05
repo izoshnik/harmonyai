@@ -1,4 +1,4 @@
-import { handleStats, handleOnboarding } from '../lib/stats.js';
+import { handleStats, handleOnboarding, handleTrainingSetting } from '../lib/stats.js';
 /* ============================================================================
    /api/account — ЛИЧНЫЙ КАБИНЕТ API И ОБЩИЕ ССЫЛКИ НА ЧАТЫ.
 
@@ -428,6 +428,7 @@ export default async function handler(req, res) {
     if (!user) return;
     if(['stats.personal','stats.management','stats.heartbeat','stats.file'].includes(action))return await handleStats(req,res,user,action,body);
     if(['survey.set','nickname.check','nickname.set'].includes(action))return await handleOnboarding(req,res,user,action,body);
+    if(action==='settings.training')return await handleTrainingSetting(req,res,user,body);
 
     if (req.method === 'GET') {
       if (action === 'keys') return res.status(200).json({ ok: true, keys: await listKeys(user.id) });
