@@ -84,7 +84,7 @@
      Токен уходит в Authorization: сервер берёт user_id только оттуда.
      Возвращает { ok, status, data }; исключения не бросает, чтобы каждая
      кнопка в кабинете могла показать текст ошибки, а не молча сломаться. */
-  auth.account = async function (action, body) {
+  auth.account = async function (action, body, query) {
     /* Перед каждым обращением спрашиваем у клиента актуальную сессию. Страница
        кабинета живёт долго (или поднимается из кэша браузера после возврата с
        /login), а access-токен короткий: без этой строки первая же кнопка после
@@ -99,7 +99,7 @@
     } catch (e) { /* сеть подведёт — пусть решает сам запрос ниже */ }
 
     const method = body ? 'POST' : 'GET';
-    const url = body ? '/api/account' : '/api/account?action=' + encodeURIComponent(action);
+    const url = body ? '/api/account' : '/api/account?action=' + encodeURIComponent(action) + (query ? '&'+new URLSearchParams(query) : '');
     const headers = { 'Content-Type': 'application/json' };
     if (auth.token) headers.Authorization = 'Bearer ' + auth.token;
 
