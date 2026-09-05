@@ -49,7 +49,7 @@
       try {
         var res = await fetch(urls[i], {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: await global.hmAuthHeaders(),
           body: JSON.stringify(body),
           signal: controller.signal,
           keepalive: Boolean(opts.keepalive)
