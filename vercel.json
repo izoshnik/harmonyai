@@ -72,6 +72,10 @@
     {
       "source": "/management",
       "destination": "/management.html"
+    },
+    {
+      "source": "/legal/ofera",
+      "destination": "/legal/ofera.html"
     }
   ],
   "headers": [
