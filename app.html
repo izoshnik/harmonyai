@@ -29,6 +29,7 @@ try{
   var __t=localStorage.getItem('hai_theme');
   if(__t==='light'||__t==='dark'||__t==='messenger')document.documentElement.setAttribute('data-theme',__t);
 }catch(e){}
+if(/^\/(chat(?:\/|$)|settings$)/.test(location.pathname))document.documentElement.setAttribute('data-boot','app');
 // Мгновенная проверка сохранённой сессии Supabase ДО отрисовки: если токен есть в localStorage,
 // экран регистрации не показываем вовсе (initSession ниже подтвердит сессию и откроет чат,
 // а при недействительном токене снимет data-boot и покажет вход).
@@ -38,19 +39,10 @@ try{
     if(__k&&__k.indexOf('sb-')===0&&__k.indexOf('-auth-token')!==-1){document.documentElement.setAttribute('data-boot','app');break;}
   }
 }catch(e){}
-/* Страховка от вечного тёмного экрана: если основные скрипты не загрузились
-   (сбой деплоя, сеть, CDN), через 12 с принудительно открываем экран входа. */
 setTimeout(function(){
-  try{
-    var appEl=document.getElementById('app');
-    var authEl=document.getElementById('authWrap');
-    var appVisible=!!(appEl&&appEl.classList.contains('show'));
-    var authVisible=!!(authEl&&!authEl.classList.contains('gone')&&document.documentElement.getAttribute('data-boot')!=='app');
-    if(!appVisible&&!authVisible){
-      document.documentElement.removeAttribute('data-boot');
-      if(authEl)authEl.classList.remove('gone');
-    }
-  }catch(e){}
+ if(document.documentElement.getAttribute('data-boot')!=='app')return;
+ var host=document.getElementById('initialLoading');
+ if(host&&!host.querySelector('button')){var btn=document.createElement('button');btn.textContent='Повторить загрузку';btn.onclick=function(){location.reload();};host.appendChild(btn);}
 },12000);
 </script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230d0f14'/%3E%3Cpath d='M18 14h8v18h12V14h8v36h-8V39H26v11h-8z' fill='%23ffffff'/%3E%3C/svg%3E">
@@ -65,7 +57,7 @@ setTimeout(function(){
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Courier+Prime:wght@400;700&display=swap"></noscript>
 <link rel="stylesheet" href="/css/highlight-dark.css" media="print" onload="this.media='all';this.onload=null;">
 <noscript><link rel="stylesheet" href="/css/highlight-dark.css"></noscript>
-<script defer src="/js/vendor/highlight.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <!-- abcjs, pdf.js и mammoth здесь НЕ подключены: ~1,5 МБ, нужные редко.
      Их подтягивает hmLoadLib() при первом обращении — см. «ЛЕНИВАЯ ЗАГРУЗКА». -->
 <!-- Пути к своим файлам — ОТ КОРНЯ («/js/…», а не «js/…»). Один и тот же
@@ -74,6 +66,8 @@ setTimeout(function(){
 <!-- i18n.js / i18_dict.js / supabase-js / marked перенесены в конец body (перед
      главным инлайн-скриптом): первый кадр больше не ждёт их загрузку и парсинг. -->
 <link rel="stylesheet" href="/css/music-player.css">
+<link rel="stylesheet" href="/css/stats.css">
+<script defer src="/js/stats.js"></script>
 <script defer src="/js/music-cache.js"></script>
 <script defer src="/js/music-intents.js"></script>
 <script defer src="/js/music-client.js"></script>
@@ -494,7 +488,7 @@ html[data-boot="app"] .auth-wrap{display:none;}
    с сохранённым входом первый кадр был пустым тёмным/светлым экраном (bug:
    .app{display:none} до initSession). Если сессия окажется недействительной,
    initSession снимет data-boot и вернёт экран входа. */
-html[data-boot="app"] .app{display:flex;}
+html[data-boot="app"] .app{display:none!important;}
 /* HM-REASONING-V2: промо-подложка тоже не должна мигать у вошедшего пользователя. */
 html[data-boot="app"] .mobile-glossy{display:none;}
 .auth-card{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:36px 28px;max-width:380px;width:100%;display:flex;flex-direction:column;gap:0;}
@@ -2919,9 +2913,26 @@ html[data-theme="messenger"] .igWrap{
   .sidebar{transition-duration:.12s!important;}
   .shared-banner{animation:none!important;}
 }
+
+#initialLoading{display:none;position:fixed;inset:0;z-index:900;background:var(--bg);color:var(--text2);align-items:center;justify-content:center;gap:12px;flex-direction:column;font-size:14px;}
+html[data-boot="app"] #initialLoading{display:flex;}.boot-spinner{width:22px;height:22px;border:2px solid var(--border);border-top-color:var(--text2);border-radius:50%;animation:bootSpin .8s linear infinite;}@keyframes bootSpin{to{transform:rotate(360deg)}}
+#initialLoading button{padding:12px 20px;background:var(--bg2);border:1px solid var(--border);color:var(--text);border-radius:10px;cursor:pointer;}
+.notif-host{position:static;inset:auto;z-index:auto;padding:0;width:100%;max-width:720px;pointer-events:auto;}.notif-host:empty{display:none;}
+#notifHost .notif-card{width:100%;max-width:none;display:flex;align-items:center;gap:12px;padding:8px 8px 8px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;box-shadow:none;animation:none;backdrop-filter:none;}
+.notif-title{flex:1;font-size:14px;font-weight:500;line-height:1.5;padding:0;margin:0;}.notif-close{position:static;flex:0 0 44px;width:44px;height:44px;border-radius:8px;pointer-events:auto;font-size:24px;}
+#surveyOverlay,#nickOverlay{background:var(--bg);backdrop-filter:none;overflow:auto;padding:32px 24px;}
+#surveyOverlay .fb-modal,#nickOverlay .fb-modal{width:min(100%,540px);max-width:540px;margin:auto;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:36px;border-radius:20px;box-shadow:none;}
+#surveyOverlay .fb-title,#nickOverlay .fb-title{font-size:26px;line-height:1.3;color:var(--text);}#surveyOverlay .fb-desc,#nickOverlay .fb-desc{font-size:14px;color:var(--text2);}
+#surveyOverlay .survey-opts{display:grid!important;grid-template-columns:1fr 1fr;gap:10px!important;}#surveyOverlay .survey-opt{min-height:48px;border-radius:10px;background:var(--bg);border:1px solid var(--border);color:var(--text);}
+#surveyOther label{display:block;font-size:14px;margin-bottom:8px;}#surveyOther input{margin-bottom:12px;}#surveyOverlay input,#nickOverlay input{background:var(--bg);color:var(--text);border:1px solid var(--border);width:100%;font-size:16px;}#surveyOther button{min-height:44px;}
+#surveyError{color:var(--text);font-size:14px;}.hm-stat-link{width:100%;font:inherit;color:var(--text);background:none;border:0;text-align:left;cursor:pointer;}
+button:focus-visible,a:focus-visible{outline:2px solid var(--text2);outline-offset:3px;}
+@media(max-width:600px){#surveyOverlay .fb-modal,#nickOverlay .fb-modal{padding:24px;}#surveyOverlay .fb-title,#nickOverlay .fb-title{font-size:23px;}}@media(prefers-reduced-motion:reduce){.boot-spinner{animation:none;}}
+
 </style>
 </head>
 <body>
+<div id="initialLoading" role="status" aria-live="polite"><span class="boot-spinner"></span><span>Загрузка HarmonyAI…</span></div>
 
 <!-- LIQUID GLASS SVG FILTER — рефракция должна быть ощущаемой, а не видимой.
      Шум сглаживается (feGaussianBlur) до того как используется как карта смещения,
@@ -2960,7 +2971,7 @@ html[data-theme="messenger"] .igWrap{
       <div class="auth-sub">ИИ для учеников музыкальной школы. Подходит не только для музыки — он умеет всё!</div>
       <button class="auth-btn-primary" onclick="goToEmail()">Продолжить с Email</button>
       <div class="auth-tos">Продолжая, вы соглашаетесь с нашей <a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Политикой Конфиденциальности</a> и <a href="/legal/terms.html" target="_blank" rel="noopener noreferrer">Условиями Пользования</a>.</div>
-      <div class="auth-beta">beta version 0.7</div>
+      <div class="auth-beta">Beta 0.8.1</div>
     </div>
     <!-- Экран 2: Email -->
     <div class="auth-screen" id="authS2">
@@ -2970,7 +2981,7 @@ html[data-theme="messenger"] .igWrap{
       <div class="auth-error" id="emailErr"></div>
       <button class="auth-btn-primary" id="btnSend" onclick="sendOTP()">Продолжить</button>
       <button class="auth-btn-secondary" onclick="showAuthS(1)">← Назад</button>
-      <div class="auth-beta">beta version 0.7</div>
+      <div class="auth-beta">Beta 0.8.1</div>
     </div>
     <!-- Экран 3: OTP -->
     <div class="auth-screen" id="authS3">
@@ -2988,7 +2999,7 @@ html[data-theme="messenger"] .igWrap{
       <button class="auth-btn-primary" id="btnVerify" onclick="verifyOTP()">Подтвердить</button>
       <div class="auth-resend" id="btnResend" onclick="resendOTP()">Не приходит код? Отправить снова</div>
       <button class="auth-btn-secondary" onclick="showAuthS(2)">← Изменить email</button>
-      <div class="auth-beta">beta version 0.7</div>
+      <div class="auth-beta">Beta 0.8.1</div>
     </div>
   </div>
 </div>
@@ -3091,6 +3102,7 @@ html[data-theme="messenger"] .igWrap{
         </div>
       </div>
       <div class="composer-attachments" id="composerAttachments" aria-live="polite"></div>
+      <div class="notif-host" id="notifHost" aria-live="polite"></div>
       <div class="input-box" id="inputBox">
         <textarea id="msgTa" placeholder="Спросить HarmonyAI" rows="1"
           oninput="taResize(this)"
@@ -3220,7 +3232,7 @@ html[data-theme="messenger"] .igWrap{
 </div>
 
 <!-- ===================== ПРОМО-УВЕДОМЛЕНИЯ (появляются над строкой ввода) ===================== -->
-<div class="notif-host" id="notifHost" aria-live="polite"></div>
+
 
 <!-- ===================== МОДАЛКА РАСПОЗНАВАНИЯ МУЗЫКИ ===================== -->
 <div class="rec-overlay" id="recOverlay" onclick="if(event.target===this)closeRecognizeModal()">
@@ -3489,8 +3501,8 @@ html[data-theme="messenger"] .igWrap{
 <!-- supabase-js и marked отдаём СО СВОЕГО хостинга: jsdelivr недоступен из части
      сетей РФ/Европы, а без supabase-js приложение не стартует вовсе.
      Эти два скрипта критичны для первого кадра — их нельзя ставить на чужой CDN. -->
-<script src="/js/vendor/supabase.min.js"></script>
-<script src="/js/vendor/marked.min.js"></script>
+<!-- Existing ensureSupabase loader below restores SDK with CDN failover. -->
+<script defer src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js" onload="buildMarkedRenderer()"></script>
 <script src="/i18n.js"></script>
 <script src="/i18_dict.js"></script>
 
@@ -3965,7 +3977,7 @@ function buildMarkedRenderer(){
       +'<pre class="code-pre"><code class="hljs">'+highlighted+'</code></pre>'
       +'</div>';
   };
-  marked.setOptions({renderer:renderer});
+  marked.setOptions({renderer:renderer,breaks:true,gfm:true});
 }
 buildMarkedRenderer();
 
@@ -3989,61 +4001,28 @@ function enableCodeCopy(el){
 
 function isDesktop(){return window.innerWidth>=769;}
 
-/* ===== ПРОМО-УВЕДОМЛЕНИЯ =====
-   Три ID (promo_img / promo_quality / promo_limits) с разными вероятностями.
-   Не показываются повторно в одной сессии (sessionStorage) и не показываются
-   пользователям с Pro-ролями. Автозакрытие через 8 секунд. */
-const NOTIF_TEXTS={
-  promo_img:{title:'Получите более детальные изображения с Pro',body:'Улучшенное разрешение, насыщенные цвета и глубокая проработка деталей.',cta:'Обновить'},
-  promo_quality:{title:'Улучшите качество ответов с Pro',body:'Более умная модель, ответы быстрее и точнее, работа с длинным контекстом.',cta:'Обновить'},
-  promo_limits:{title:'Получите безграничные лимиты с Pro',body:'С Pro-подпиской доступны более умные модели без ограничений по лимитам.',cta:'Обновить'}
-};
+const NOTIF_TEXTS={promo_img:'Получите более детальные изображения с Pro',promo_quality:'Улучшите качество ответов с Pro',promo_limits:'Получите безграничные лимиты и намного более умные модели с Pro'};
+let promoShown=false;
+function hasActivePro(){return isProUser();}
 function shouldShowNotification(id,probability){
-  if(!id||!NOTIF_TEXTS[id])return false;
-  // Pro-роли не должны видеть промо.
-  if(typeof isProUser==='function'&&isProUser())return false;
-  try{if(sessionStorage.getItem('notif_shown_'+id))return false;}catch(e){}
-  if(Math.random()>probability)return false;
-  try{sessionStorage.setItem('notif_shown_'+id,'1');}catch(e){}
-  return true;
+ if(!NOTIF_TEXTS[id]||!window.__appShown||!curUser?.profileReady||hasActivePro()||promoShown)return false;
+ if(!/^\/chat(?:\/|$)/.test(location.pathname)||sharedView||document.querySelector('#settingsOverlay.open,#surveyOverlay.show,#nickOverlay.show'))return false;
+ const key='hm_promo_'+curUser.id;
+ try{if(sessionStorage.getItem(key)||Date.now()-Number(localStorage.getItem(key)||0)<21600000)return false;}catch(e){}
+ return Math.random()<probability&&!document.querySelector('#notifHost .notif-card');
 }
-function dismissNotification(el){
-  if(!el||el._dismissed)return;
-  el._dismissed=true;
-  if(el._autoTimer)clearTimeout(el._autoTimer);
-  el.classList.add('leaving');
-  setTimeout(()=>el.remove(),220);
-}
+function dismissNotification(el){el?.remove();}
 function renderNotification(id){
-  const host=document.getElementById('notifHost');
-  const t=NOTIF_TEXTS[id];
-  if(!host||!t)return;
-  // Одно уведомление в момент времени — если уже что-то показано, снимаем прошлое.
-  host.querySelectorAll('.notif-card').forEach(dismissNotification);
-  const card=document.createElement('div');
-  card.className='notif-card';
-  card.setAttribute('data-notif-id',id);
-  card.innerHTML=`
-    <button class="notif-close" aria-label="Закрыть">×</button>
-    <div class="notif-title">${t.title}</div>
-    <div class="notif-body">${t.body}</div>
-    <button class="notif-btn">${t.cta}</button>`;
-  card.querySelector('.notif-close').addEventListener('click',()=>dismissNotification(card));
-  card.querySelector('.notif-btn').addEventListener('click',()=>{
-    dismissNotification(card);
-    // CTA пока просто закрывает уведомление; переход на экран Pro при желании
-    // можно повесить сюда позже (openSettings() + вкладка лимитов).
-  });
-  card._autoTimer=setTimeout(()=>dismissNotification(card),8000);
-  host.appendChild(card);
+ const host=document.getElementById('notifHost');if(!host||host.firstElementChild)return false;
+ const card=document.createElement('div');card.className='notif-card';
+ const title=document.createElement('span');title.className='notif-title';title.textContent=NOTIF_TEXTS[id];
+ const close=document.createElement('button');close.type='button';close.className='notif-close';close.textContent='×';close.setAttribute('aria-label','Закрыть уведомление');
+ close.onclick=e=>{e.preventDefault();e.stopPropagation();dismissNotification(card);};card.append(title,close);host.append(card);return true;
 }
-// Публичный API: показать уведомление, если пройдёт вероятность и не Pro и не показывалось.
 function showNotification(id,probability){
-  if(!shouldShowNotification(id,probability))return false;
-  renderNotification(id);
-  return true;
+ if(!shouldShowNotification(id,probability)||!renderNotification(id))return false;
+ promoShown=true;try{const key='hm_promo_'+curUser.id;sessionStorage.setItem(key,'1');localStorage.setItem(key,String(Date.now()));}catch(e){}return true;
 }
-
 function isDeveloper(){return curUser?.role==='developer';}
 /* Отображаемое название подписки по роли пользователя. */
 function subscriptionLabel(){
@@ -4051,16 +4030,23 @@ function subscriptionLabel(){
   if(r==='developer')return 'Developer';
   if(r==='admin')return 'Admin';
   if(r==='moderator')return 'Moderator';
-  if(r==='pro')return 'Pro';
+  if(hasActivePro())return 'Pro';
   return 'Free';
 }
 function hasTrainingAccess(){return Boolean(curUser&&(curUser.role==='developer'||curUser.role==='admin'));}
 function hasModeratorAccess(){return Boolean(curUser&&(curUser.role==='developer'||curUser.role==='moderator'||curUser.role==='admin'));}
-/* Доступ к Pro-функциям (Dynatos, Max, Думать) — только у ролей pro/developer/admin/moderator.
+/* Доступ к Pro-функциям — активная Pro-подписка или роль developer/admin/moderator.
    Обычный User видит опции задизейбленными с тултипом «Доступно в Pro». */
 function isProUser(){
-  const r=curUser?.role;
-  return Boolean(curUser&&(r==='pro'||r==='developer'||r==='admin'||r==='moderator'));
+  if(!curUser)return false;
+  const role=String(curUser.role||'').trim().toLowerCase();
+  if(['developer','admin','moderator'].includes(role))return true;
+  const plan=String(curUser.plan||'').trim().toLowerCase();
+  if(plan!=='pro'&&!(plan===''&&role==='pro'))return false;
+  const expiry=curUser.plan_expires_at;
+  if(expiry==null||expiry==='')return true;
+  const until=Date.parse(expiry);
+  return Number.isFinite(until)&&until>Date.now();
 }
 function requireProOr(callback){
   if(isProUser()){callback&&callback();return true;}
@@ -4193,12 +4179,11 @@ function ensureSignedInShell(session){
   }
   try{window.__hmUserId=uid;}catch(e){}
   document.getElementById('authWrap').classList.add('gone');
-  document.getElementById('app').classList.add('show');
-  window.__appShown=true;
+  document.documentElement.setAttribute('data-boot','app');
+  window.__appShown=false;
   const mg=document.querySelector('.mobile-glossy');if(mg)mg.style.display='none';
   updateUserUI();
-  if(!curChatId&&chatHistory.length===0)newChat();
-  syncSignedInRoute();
+
 }
 async function hydrateSignedInState(session){
   const uid=session?.user?.id;
@@ -4209,15 +4194,16 @@ async function hydrateSignedInState(session){
     const [profileResult,chatsResult,memResult]=await Promise.allSettled([
       withTimeout(loadProfile(uid,session.user.email),8000,'Загрузка профиля заняла слишком много времени'),
       withTimeout(loadChats(),8000,'Загрузка чатов заняла слишком много времени'),
-      withTimeout((window.HmMemory?window.HmMemory.sync(uid):Promise.resolve()),8000,'Загрузка памяти заняла слишком много времени')
+      Promise.resolve().then(()=>{window.HmMemory?.sync(uid).catch(e=>console.warn(e));})
     ]);
-    if(profileResult.status==='rejected')console.warn('Profile hydrate failed',profileResult.reason);
+    if(curUser?.id!==uid)return;
+    if(profileResult.status==='rejected')throw profileResult.reason;
     if(chatsResult.status==='rejected')console.warn('Chats hydrate failed',chatsResult.reason);
     if(memResult&&memResult.status==='rejected')console.warn('Memory hydrate failed',memResult.reason);
     registerCurrentDevice().catch(e=>console.warn('Device registration failed',e));
     updateUserUI();
     renderChatList();
-    maybeShowOnboardingModals();
+    await maybeShowOnboardingModals();
     // Промо при входе в приложение. Пробуем показать оба, но реально появится одно
     // (renderNotification вытесняет предыдущее, вероятности мешают одновременному показу).
     // НЕ показываем, пока на экране опрос или ввод ника — уведомление перекрывало
@@ -4232,56 +4218,29 @@ async function hydrateSignedInState(session){
   });
   return authHydrationPromise;
 }
-function maybeShowNicknameModal(){
-  /* Уже отвечавший на опрос пользователь (повторный вход, другой браузер) не
-     должен увидеть его снова: ответ уже лежит в settings.source или в
-     localStorage-флаге — на сервер не ходим, решение локальное. */
-  if(curUser&&typeof surveyNeeded==='function'&&surveyNeeded())markSurveyDone();
-  if(!curUser?.needsNickname)return;
-  const ov=document.getElementById('nickOverlay');
-  if(!ov||ov.classList.contains('show'))return;
-  ov.classList.add('show');
-  setTimeout(()=>{const i=document.getElementById('nickModalInp');if(i)i.focus();},150);
+function onboardingScreen(id){
+ window.__appShown=false;document.getElementById('app').classList.remove('show');document.getElementById('authWrap').classList.add('gone');document.documentElement.removeAttribute('data-boot');
+ if(!window.__onboardingNext)window.__onboardingNext=consumeNextParam();setRoute('/login',false);
+ document.getElementById(id).classList.add('show');requestAnimationFrame(()=>document.querySelector('#'+id+' input,#'+id+' button')?.focus());
 }
-/* ===== ОПРОС «Откуда вы узнали про HarmonyAI?» =====
-   Показывается новым пользователям один раз, перед выбором ника.
-   Ответ хранится в profiles.settings.source (schema не меняется) —
-   оттуда его забирает аналитика. */
-const HM_SURVEY_KEY='hm_survey_source_v1';
-function surveyNeeded(){
-  try{if(localStorage.getItem(HM_SURVEY_KEY)==='1')return false;}catch(e){}
-  return !curUser?.settings?.source;
-}
-function markSurveyDone(){
-  try{localStorage.setItem(HM_SURVEY_KEY,'1');}catch(e){}
-}
-function maybeShowSurveyModal(){
-  if(!surveyNeeded())return false;
-  const ov=document.getElementById('surveyOverlay');
-  if(!ov||ov.classList.contains('show'))return true;
-  ov.classList.add('show');
-  return true;
-}
+function maybeShowNicknameModal(){if(!curUser?.needsNickname)return false;onboardingScreen('nickOverlay');return true;}
+function surveyNeeded(){return Boolean(curUser?.needsNickname&&!curUser?.settings?.source);}
+function maybeShowSurveyModal(){if(!surveyNeeded())return false;onboardingScreen('surveyOverlay');return true;}
+function openSurveyOther(){document.getElementById('surveyOther').hidden=false;document.getElementById('surveyOtherInput').focus();}
+let surveySaving=false;
 async function saveSurveySource(val){
-  markSurveyDone();
-  const ov=document.getElementById('surveyOverlay');
-  if(ov)ov.classList.remove('show');
-  if(curUser){
-    try{
-      if(!curUser.settings)curUser.settings={};
-      curUser.settings.source=String(val||'').slice(0,64);
-      // Через /api/account: сервер мерджит settings под service-role, поэтому
-      // ответ опроса не затирается параллельным сохранением настроек с телефона.
-      await accountAction({action:'survey.set',source:curUser.settings.source});
-    }catch(e){console.warn('Survey save failed',e);}
-  }
-  maybeShowNicknameModal();
+ if(surveySaving||!curUser)return;
+ const other=val==='Другое'?document.getElementById('surveyOtherInput').value.trim():'';
+ const err=document.getElementById('surveyError');err.textContent='';
+ if(val==='Другое'&&!other){err.textContent='Напишите, откуда вы о нас узнали.';return;}
+ surveySaving=true;document.querySelectorAll('#surveyOverlay button').forEach(b=>b.disabled=true);
+ try{await accountAction({action:'survey.set',source:val,other});curUser.settings={...curUser.settings,source:val,source_other:other};document.getElementById('surveyOverlay').classList.remove('show');await maybeShowOnboardingModals();}
+ catch(e){err.textContent='Не удалось сохранить ответ. Попробуйте ещё раз.';}
+ finally{surveySaving=false;document.querySelectorAll('#surveyOverlay button').forEach(b=>b.disabled=false);}
 }
-/* Новому пользователю: сначала опрос, затем ник. */
-function maybeShowOnboardingModals(){
-  if(maybeShowSurveyModal())return;
-  maybeShowNicknameModal();
-}
+async function maybeShowOnboardingModals(){if(maybeShowSurveyModal()||maybeShowNicknameModal())return;await revealReadyChat();}
+async function revealReadyChat(){updateUserUI();refreshModelUI();await syncSignedInRoute();window.__appShown=true;document.getElementById('app').classList.add('show');document.documentElement.removeAttribute('data-boot');window.HmStats?.start();}
+function showBootError(){const el=document.getElementById('initialLoading');if(el)el.innerHTML='<div role="alert">Не удалось загрузить аккаунт</div><button type="button" onclick="location.reload()">Повторить</button>';}
 async function saveNicknameModal(){
   const inp=document.getElementById('nickModalInp');
   const err=document.getElementById('nickModalErr');
@@ -4302,6 +4261,7 @@ async function saveNicknameModal(){
     curUser.needsNickname=false;
     updateUserUI();
     document.getElementById('nickOverlay').classList.remove('show');
+    await revealReadyChat();
   }catch(e){
     const msg=String(e&&e.message||'');
     err.textContent=/занят/i.test(msg)?'Этот ник уже занят — придумайте другой':(/требуется вход|unauthorized/i.test(msg)?'Сессия истекла — войдите заново':'Не удалось сохранить ник, попробуйте ещё раз');
@@ -4311,10 +4271,12 @@ async function saveNicknameModal(){
   }
 }
 function beginSignedInState(session){
+  if(authHydrationPromise&&authHydratedUserId===session?.user?.id)return;
+  if(window.__appShown&&curUser?.profileReady&&curUser.id===session?.user?.id)return;
   ensureSignedInShell(session);
   Promise.resolve()
     .then(()=>hydrateSignedInState(session))
-    .catch(err=>console.warn('Signed-in hydration failed',err));
+    .catch(err=>{console.warn('Signed-in hydration failed',err);showBootError();});
 }
 async function applySignedInState(session){
   ensureSignedInShell(session);
@@ -4601,14 +4563,14 @@ function consumeNextParam(){
   return next;
 }
 // После показа оболочки чата: / и /login превращаются в /chat, /settings открывает настройки.
-function syncSignedInRoute(){
+async function syncSignedInRoute(){
   markChatSeen();
 
   // 1) Возврат на страницу, с которой пришли на вход.
   // Это единственный переход отсюда с полной перезагрузкой: браузер оборвёт
   // все незавершённые запросы экрана входа, поэтому предупреждаем их обработчики
   // флагом — иначе отменённый запрос кода мигнёт красным «Failed to fetch».
-  const next=consumeNextParam();
+  const next=window.__onboardingNext||consumeNextParam();window.__onboardingNext=null;
   if(next){authLeaving=true;window.location.replace(next);return;}
 
   if(currentRoute()==='/settings'){
@@ -4619,20 +4581,23 @@ function syncSignedInRoute(){
 
   // 2) Ссылка «Поделиться чатом» — открываем в режиме чтения.
   const shareToken=shareTokenFromUrl();
-  if(shareToken){openSharedChat(shareToken);return;}
+  if(shareToken){await openSharedChat(shareToken);return;}
 
   // 3) Прямая ссылка на свой чат /chat/<id>.
   const chatId=chatIdFromRoute();
   if(chatId){
     // Не переписываем адрес: openChat сам решит, доступен ли чат.
-    openChat(chatId,{fromRoute:true});
+    await openChat(chatId,{fromRoute:true});
     return;
   }
 
+  if(!curChatId&&chatHistory.length===0)newChat();
   setRoute('/chat',false);
 }
 // Нет сессии / выход: показываем /login и снимаем ранний флаг data-boot (см. <head>).
 function syncSignedOutRoute(){
+  window.__appShown=false;window.__hmUserId=null;promoShown=false;window.HmStats?.stop();
+  document.querySelectorAll('#surveyOverlay,#nickOverlay').forEach(e=>e.classList.remove('show'));document.getElementById('notifHost')?.replaceChildren();
   document.documentElement.removeAttribute('data-boot');
   // Без сессии ссылки на аудио получить нельзя — не держим «мёртвый» бар
   // поверх экрана входа (после выхода или при F5 без авторизации).
@@ -4708,11 +4673,11 @@ async function loadProfile(uid,email){
     const localNick=getLocalNickname(uid);
     const remoteNick=data?.nickname||null;
     const nickname=localNick||remoteNick||email.split('@')[0];
-    curUser={id:uid,email,nickname,role:data?.role||'user',settings:data?.settings||{},needsNickname:!localNick&&!remoteNick};
+    if(curUser?.id!==uid)return;
+    curUser={id:uid,email,nickname,role:String(data?.role||'user').trim().toLowerCase(),plan:data?.plan,plan_expires_at:data?.plan_expires_at,settings:data?.settings||{},needsNickname:!remoteNick,profileReady:true};
+    if(!isProUser()){curModel='lite';if(['max','extra'].includes(curMode))curMode='low';thinkOn=false;}
   }catch(e){
-    console.warn('Profile load failed, using fallback user shell',e);
-    const localNick=getLocalNickname(uid);
-    curUser={id:uid,email,nickname:localNick||(email||'').split('@')[0]||'Пользователь',role:'user',settings:{},needsNickname:!localNick};
+    throw e;
   }
   // id нужен музыкальному клиенту ДО первого сообщения: иначе восстановленный
   // после F5 плеер не знал, чей токен использовать, и Play молча не играл.
@@ -4728,7 +4693,7 @@ async function loadProfile(uid,email){
     }
   }catch(e){}
   loadKnowledgeDocs();
-  await loadKnowledgeDocsFromSupabase();
+  loadKnowledgeDocsFromSupabase().catch(e=>console.warn(e));
 }
 /* ===== ПРИВЕТСТВИЕ: случайная фраза + время суток + язык интерфейса =====
    Фраза выбирается случайно из пула, соответствующего локальному времени
@@ -4923,7 +4888,7 @@ async function syncKnowledgeDocToSupabase(doc,scope='user'){
     const {error:chunkError}=await sb.from('knowledge_chunks').insert(chunkRows.slice(i,i+CHUNK_INSERT_BATCH));
     if(chunkError)throw chunkError;
   }
-  await loadKnowledgeDocsFromSupabase();
+  loadKnowledgeDocsFromSupabase().catch(e=>console.warn(e));
   return true;
 }
 function rememberDeveloperMessage(text){
@@ -5876,7 +5841,7 @@ function refreshTopbarUpgradeUI(){
   const btn=document.getElementById('topbarUpgradeBtn');
   if(!btn)return;
   let pro=false;
-  try{pro=isProUser();}catch(e){pro=false;}
+  try{pro=hasActivePro()||!curUser?.profileReady;}catch(e){pro=false;}
   const hide=pro||(typeof trainingMode!=='undefined'&&trainingMode);
   btn.classList.toggle('hidden',hide);
   btn.setAttribute('aria-hidden',hide?'true':'false');
@@ -6099,7 +6064,7 @@ function fitDesktopSubs(){
 }
 function selectMode(m){
   const next=normEffort(m);
-  // Все режимы размышления бесплатны (patch11).
+  if(['max','extra'].includes(next)&&!isProUser())return;
   curMode=next;
   try{localStorage.setItem(EFFORT_KEY,curMode);}catch(e){}
   refreshModelUI();
@@ -6111,6 +6076,7 @@ function toggleThink(e){
   if(e&&e.stopPropagation)e.stopPropagation();
   /* Режим «Думать» доступен всем тарифам: сервер (api/chat.js) никогда его не
      ограничивал, а клиентский Pro-гейт молча уводил User на /subscribe. */
+  if(!isProUser())return;
   thinkOn=!thinkOn;
   refreshModelUI();
 }
@@ -6182,7 +6148,7 @@ function syncMobileComposerUI(effortNow){
   setText('adaEffHint',EFFORT_HINT[eff]||'');
   /* Pro-гейт: платной остаётся только модель Dynatos (patch11). */
   const locked=!isProUser();
-  ['adaModelPro'].forEach(function(id){
+  ['adaModelPro','adaEff_max','adaEff_extra'].forEach(function(id){
     const el=document.getElementById(id);
     if(!el)return;
     el.classList.toggle('pro-locked',locked);
@@ -6407,8 +6373,8 @@ function refreshModelUI(){
      Переключатели «Думать» (desktopThinkSw / mmThinkSw / attachThinkSw) здесь
      сознательно отсутствуют — режим размышления открыт всем тарифам. */
   const locked=!isProUser();
-  const proTip='Доступно в Pro';
-  ['desktopCkPro','mmOptPro'].forEach(id=>{
+  const proTip='Доступно с активной Pro-подпиской';
+  ['desktopCkPro','mmOptPro','desktopCkMax','desktopCkExtra','mmOptMax','desktopThinkSw','mmThinkSw','attachThinkSw'].forEach(id=>{
     const el=document.getElementById(id);
     if(!el)return;
     el.classList.toggle('locked',locked);
@@ -6624,7 +6590,7 @@ async function downloadGeneratedFile(spec,fmt,btn){
   try{
     const res=await fetch('/api/generate-file',{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:await hmAuthHeaders(),
       body:JSON.stringify({format:fmt,filename:spec.filename||'document',content:spec.content,userId:curUser?.id||null})
     });
     if(!res.ok){
@@ -6725,6 +6691,7 @@ async function handleFile(inp){
           id:stored?.id||null,url:stored?.url||'',storagePath:stored?.storagePath||null,createdAt:messageNow(),
           doc
         });
+        window.HmStats?.file();
       }else{
         throw new Error('не удалось прочитать файл');
       }
@@ -8426,7 +8393,7 @@ async function maybeGenerateChatTitle(){
     for(const endpoint of endpoints){
       try{
         const res=await withTimeout(
-          fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),cache:'no-store',credentials:'omit'}),
+          fetch(endpoint,{method:'POST',headers:await hmAuthHeaders(),body:JSON.stringify(payload),cache:'no-store',credentials:'omit'}),
           16000,'Генератор названия слишком долго отвечает'
         );
         if(!res.ok)continue;
@@ -8470,7 +8437,7 @@ async function classifyImageIntent(text,forceImage){
     const endpoint=endpoints[i];
     try{
       const res=await withTimeout(
-        fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),cache:'no-store',credentials:'omit'}),
+        fetch(endpoint,{method:'POST',headers:await hmAuthHeaders(),body:JSON.stringify(payload),cache:'no-store',credentials:'omit'}),
         22000,
         'Классификатор намерений слишком долго отвечает'
       );
@@ -9184,7 +9151,7 @@ async function handleImageGeneration(promptText){
       const endpoint=endpoints[i];
       try{
         const res=await withTimeout(
-          fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),cache:'no-store',credentials:'omit',signal:activeAbortController.signal}),
+          fetch(endpoint,{method:'POST',headers:await hmAuthHeaders(),body:JSON.stringify(payload),cache:'no-store',credentials:'omit',signal:activeAbortController.signal}),
           CHAT_TIMEOUT_MS,
           'Сервер слишком долго отвечает'
         );
@@ -9208,7 +9175,7 @@ async function handleImageGeneration(promptText){
         appendImageToShell(shell.msg,data.image);
         recordImageUsage();
         // Промо-уведомление после каждой генерации (~78% для не-Pro, не чаще 1 раза за сессию).
-        showNotification('promo_img',7/9);
+        showNotification('promo_img',1/8);
         chatHistory.push({role:'assistant',content:'[Сгенерировано изображение по запросу: «'+promptText+'»]',image:data.image,createdAt:messageNow()});
         await saveChat();
         return;
@@ -9384,7 +9351,7 @@ async function processRecognitionAudio(blob){
     const payload={mode,audioBase64,melodyDescription,userId:curUser?.id||null};
     const res=await withTimeout(fetch(getRecognizeEndpoint(),{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:await hmAuthHeaders(),
       body:JSON.stringify(payload),
       cache:'no-store',
       credentials:'omit'
@@ -9854,7 +9821,9 @@ async function renderMusicConnect(container,onConnected){
   try{ d=await window.MusicClient.authStart(); }
   catch(e){ container.innerHTML='<div class="music-connect">Не удалось начать подключение: '+musicEscape(e.message)+'</div>'; return; }
 
-  const link=d.verificationUrl+'?code='+encodeURIComponent(d.userCode);
+  const target=new URL(d.verificationUrl);
+  if(target.protocol!=='https:'||!['oauth.yandex.ru','ya.ru','oauth.yandex.com'].includes(target.hostname)){container.textContent='Некорректная ссылка авторизации';return;}
+  if(!target.searchParams.has('code'))target.searchParams.set('code',d.userCode);const link=target.href;
   container.innerHTML=
     '<div class="music-connect">'+
     '<div>Чтобы слушать музыку, подключите аккаунт Яндекса. Это один раз.</div>'+
@@ -9867,6 +9836,7 @@ async function renderMusicConnect(container,onConnected){
   let wait=(d.interval||5)*1000;
 
   const tick=async function(){
+    if(!container.isConnected||!st.isConnected)return;
     if(Date.now()>deadline){st.textContent='Срок кода истёк. Напишите запрос ещё раз.';return;}
     let r;
     try{ r=await window.MusicClient.authPoll(d.deviceCode); }
@@ -9875,8 +9845,7 @@ async function renderMusicConnect(container,onConnected){
     if(r.status==='ok'){
       if(r.persisted===false){
         // Токен принят, но не сохранён — говорим прямо, а не «всё успешно».
-        st.textContent='Подключено, но не сохранено. '+(r.warning||'')+
-          ' Сейчас включу, но после перезапуска сервера придётся повторить.';
+        st.textContent='Не удалось сохранить подключение. Повторите попытку или обратитесь к администратору.';return;
       }else{
         st.textContent='Готово: '+(r.login||'аккаунт подключён')+'. Включаю…';
       }
@@ -9933,7 +9902,7 @@ async function classifyMusicIntent(text){
   for(let i=0;i<endpoints.length;i++){
     try{
       const res=await withTimeout(
-        fetch(endpoints[i],{method:'POST',headers:{'Content-Type':'application/json'},
+        fetch(endpoints[i],{method:'POST',headers:await hmAuthHeaders(),
           body:JSON.stringify(payload),cache:'no-store',credentials:'omit'}),
         /* 6 секунд, а не 11: теперь классификатор спрашивается почти о каждой
            музыкальной фразе, и человек всё это время ждёт. Модель служебная
@@ -10000,7 +9969,7 @@ async function requestMusicAnswer(facts,answerRequest){
   for(let i=0;i<endpoints.length;i++){
     try{
       const res=await withTimeout(
-        fetch(endpoints[i],{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),cache:'no-store',credentials:'omit'}),
+        fetch(endpoints[i],{method:'POST',headers:await hmAuthHeaders(),body:JSON.stringify(payload),cache:'no-store',credentials:'omit'}),
         CHAT_TIMEOUT_MS,
         'Сервер слишком долго отвечает'
       );
@@ -10414,6 +10383,7 @@ async function handleTextReply(pendingText){
 
 /* ===== SETTINGS ===== */
 function openSettings(){
+  document.getElementById('notifHost')?.replaceChildren();
   closeSidebar();
   renderSettingsMain();
   document.getElementById('settingsOverlay').classList.add('open');
@@ -10515,7 +10485,7 @@ function renderSettingsMain(){
     </div>
     <div class="s-sect">
       <div class="s-sect-label">Учётная запись</div>
-      <div class="s-rows">
+      <div class="s-rows"><button class="s-row hm-stat-link" onclick="renderPersonalStats()"><span class="s-row-text">Статистика</span><span>›</span></button>
         <div class="s-row" onclick="renderSettingsName()">
           <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2"/><path d="M3 7l9 6 9-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
           <div class="s-row-stack">
@@ -10535,7 +10505,7 @@ function renderSettingsMain(){
           <div class="s-row-text">Лимиты</div>
           <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
         </div>
-        ${isProUser()?`
+        ${hasActivePro()?`
         <div class="s-row" onclick="renderSettingsSubscription()">
           <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="2.5" y="5" width="19" height="14" rx="2.5" stroke="currentColor" stroke-width="2"/><path d="M2.5 10h19" stroke="currentColor" stroke-width="2"/><path d="M6 14.5h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
           <div class="s-row-text">Управление подпиской</div>
@@ -10865,6 +10835,7 @@ function renderSettingsConnections(){
           </div>
         </div>
       </div>
+      ${hasModeratorAccess()?'<div class="sub-card"><div class="conn-row"><div class="conn-meta"><div class="conn-name">Управление</div><div class="conn-state">Состояние сервиса и статистика</div></div><a class="conn-btn primary" href="/management">Открыть</a></div></div>':''}
       <div class="sub-card" id="connApi">
         <div class="conn-row">
           <div class="conn-logo api"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 7l-5 5 5 5M15 7l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
@@ -10909,7 +10880,7 @@ async function refreshYandexConn(){
   if(!st){
     state.className='conn-state';
     state.textContent='Не удалось получить статус. Проверьте соединение.';
-    return;
+    const retry=document.createElement('button');retry.className='conn-btn';retry.textContent='Повторить';retry.onclick=refreshYandexConn;row.append(retry);return;
   }
   if(st.available===false){
     state.className='conn-state';
@@ -10917,12 +10888,11 @@ async function refreshYandexConn(){
     return;
   }
 
-  const btn=document.createElement('button');
-  btn.type='button';
-
+  const btn=document.createElement('button');btn.type='button';
+  if(!st.connected&&st.canConnect===false){state.textContent='Подключение пока не настроено. Обратитесь к администратору.';return;}
   if(st.connected){
     state.className='conn-state ok';
-    state.textContent='Подключено'+(st.uid?(' · '+st.uid):'')+(st.hasPlus?' · Plus':'');
+    state.textContent='Подключено'+((st.login||st.uid)?(' · '+(st.login||st.uid)):'')+(st.hasPlus?' · Plus':'');
     btn.className='conn-btn danger';
     btn.textContent='Отключить';
     btn.addEventListener('click',disconnectYandex);
@@ -11561,7 +11531,7 @@ function renderAbout(){
           <svg width="30" height="30" viewBox="0 0 64 64"><path d="M18 14h8v18h12V14h8v36h-8V39H26v11h-8z" fill="#fff"/></svg>
         </div>
         <div class="about-app-name">HarmonyAI</div>
-        <div class="about-app-ver">Версия 1.4 (beta)</div>
+        <div class="about-app-ver">Beta 0.8.1</div>
       </div>
       <div class="about-rows">
         <div class="about-row"><div class="about-row-label">Политика конфиденциальности</div><div class="about-row-val"><a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Открыть</a></div></div>
@@ -11855,7 +11825,7 @@ window.persistLangToProfile=async function(lang){
 <!-- ===== SURVEY: откуда вы узнали про HarmonyAi (только при регистрации) ===== -->
 <div class="fb-overlay" id="surveyOverlay">
   <div class="fb-modal" style="gap:14px;">
-    <div class="fb-title">Откуда вы узнали про HarmonyAi?</div>
+    <div class="fb-title">Откуда вы о нас узнали?</div>
     <div class="fb-desc">Это поможет нам стать лучше. Ответ ни на что не влияет.</div>
     <div class="survey-opts" style="display:flex;flex-wrap:wrap;gap:8px;">
       <button type="button" class="survey-opt" onclick="saveSurveySource('Поиск в браузере')">Поиск в браузере</button>
@@ -11867,8 +11837,9 @@ window.persistLangToProfile=async function(lang){
       <button type="button" class="survey-opt" onclick="saveSurveySource('Google')">Google</button>
       <button type="button" class="survey-opt" onclick="saveSurveySource('Яндекс')">Яндекс</button>
       <button type="button" class="survey-opt" onclick="saveSurveySource('Социальные сети')">Социальные сети</button>
-      <button type="button" class="survey-opt" onclick="saveSurveySource('Другое')">Другое</button>
+      <button type="button" class="survey-opt" onclick="openSurveyOther()">Другое</button>
     </div>
+    <div id="surveyOther" hidden><label for="surveyOtherInput">Расскажите об источнике</label><input class="fb-qa-input" id="surveyOtherInput" maxlength="200" placeholder="Например, название сайта" onkeydown="if(event.key==='Enter')saveSurveySource('Другое')"><button class="fb-btn-send" onclick="saveSurveySource('Другое')">Продолжить</button></div><div id="surveyError" role="alert"></div>
   </div>
 </div>
 
