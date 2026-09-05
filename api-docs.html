@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>API — Harmony AI</title>
-<meta name="description" content="Документация Harmony AI API: адрес https://api.harmonyai.ru, модели dynatos и adanatos, совместимость с Anthropic Messages API, готовые инструкции для Claude Code, Cursor, OpenCode, Python, PowerShell и терминала.">
+<title>API — HarmonyAI</title>
+<meta name="description" content="Документация HarmonyAI API: адрес https://api.harmonyai.ru, модели dynatos и adanatos, совместимость с Anthropic Messages API, готовые инструкции для Claude Code, Cursor, OpenCode, Python, PowerShell и терминала.">
 <link rel="canonical" href="https://harmonyai.ru/api">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Harmony AI API">
+<meta property="og:title" content="HarmonyAI API">
 <meta property="og:description" content="Совместимый с Anthropic Messages API шлюз: потоковые ответы, оплата по токенам, ключи sk-h-.">
 <meta property="og:url" content="https://harmonyai.ru/api">
 <meta name="theme-color" content="#ffffff">
@@ -28,7 +28,7 @@
   <div class="header-inner">
     <a class="brand" href="/">
       <span class="brand-mark" aria-hidden="true">H</span>
-      Harmony AI
+      HarmonyAI
     </a>
 
     <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
@@ -55,10 +55,13 @@
     <div class="wrap">
       <div class="hero-inner">
         <p class="eyebrow" style="margin-bottom:16px;">API</p>
-        <h1>Harmony AI API</h1>
+        <h1>HarmonyAI API</h1>
         <p class="lead">
-          Шлюз совместим с форматом Anthropic Messages API, поэтому Claude Code, Cursor, OpenCode
-          и любой клиент, умеющий менять адрес сервера, подключаются без переделок.
+          Шлюз реализует ядро Anthropic Messages API: поля system, messages, tools, max_tokens,
+          temperature, stream и стриминг событий SSE. Claude Code, Cursor, OpenCode и любой клиент
+          с настраиваемым адресом сервера подключаются штатно — меняются только адрес и ключ.
+          Отдельные расширения протокола (например, серверные инструменты и кэширование промптов)
+          могут не поддерживаться; актуальный список возможностей — в справочнике ниже.
           Оплата — по фактическому числу токенов с баланса API.
         </p>
 
@@ -306,7 +309,7 @@ $env:ANTHROPIC_DEFAULT_HAIKU_MODEL="adanatos"</pre></div>
             <div class="notice notice-warn">
               <strong>Не путайте с приложением-чатом.</strong> Обычный клиент Claude для переписки
               привязан к аккаунту Anthropic и сменить адрес сервера не позволяет — ключ
-              <code>sk-h-…</code> в него вставить некуда. Через Harmony AI работают только клиенты,
+              <code>sk-h-…</code> в него вставить некуда. Через HarmonyAI работают только клиенты,
               у которых базовый URL настраивается: Claude Code (CLI и настольное приложение),
               расширения редакторов и собственный код.
             </div>
@@ -376,7 +379,7 @@ $env:ANTHROPIC_DEFAULT_HAIKU_MODEL="adanatos"</pre></div>
               <span class="badge">CLI</span>
             </div>
             <p class="ig-lead">
-              OpenCode умеет добавлять свои провайдеры. Описываем Harmony AI как провайдер
+              OpenCode умеет добавлять свои провайдеры. Описываем HarmonyAI как провайдер
               формата Anthropic — и обе модели появляются в общем списке.
             </p>
 
@@ -396,7 +399,7 @@ $env:ANTHROPIC_DEFAULT_HAIKU_MODEL="adanatos"</pre></div>
   "provider": {
     "harmony": {
       "npm": "@ai-sdk/anthropic",
-      "name": "Harmony AI",
+      "name": "HarmonyAI",
       "options": {
         "baseURL": "https://api.harmonyai.ru/v1",
         "apiKey": "sk-h-ваш-ключ"
@@ -413,7 +416,7 @@ $env:ANTHROPIC_DEFAULT_HAIKU_MODEL="adanatos"</pre></div>
               <li>
                 <span class="ig-step-t">Выберите модель в интерфейсе</span>
                 <div class="code-block"><pre>opencode</pre></div>
-                <p>Команда <code>/models</code> → раздел <strong>Harmony AI</strong>.</p>
+                <p>Команда <code>/models</code> → раздел <strong>HarmonyAI</strong>.</p>
               </li>
             </ol>
 
@@ -1002,7 +1005,7 @@ event: message_stop</pre>
       <div class="footer-brand">
         <a class="brand" href="/">
           <span class="brand-mark" aria-hidden="true">H</span>
-          Harmony AI
+          HarmonyAI
         </a>
         <p>Универсальный AI-помощник для учёбы, работы, анализа, кода, файлов и творчества.</p>
       </div>
@@ -1041,7 +1044,7 @@ event: message_stop</pre>
     </div>
 
     <div class="footer-bottom">
-      <span>© <span data-year>2026</span> Harmony AI</span>
+      <span>© <span data-year>2026</span> HarmonyAI</span>
       <span>
         <a href="/legal/privacy.html">Политика конфиденциальности</a>
         &nbsp;·&nbsp;
