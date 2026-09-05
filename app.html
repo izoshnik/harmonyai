@@ -108,6 +108,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans
   --check:#22c55e;
   --muted:var(--text2);
   --accent:#2f8fff;
+  --auth-accent:#5b6cf5;
   --font-base:15px;
 }
 /* ===================== ДЕСКТОП — СВЕТЛАЯ ===================== */
@@ -131,6 +132,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans
     --drop-bg:#ffffff;
     --drop-shadow:0 8px 32px rgba(0,0,0,0.10);
     --check:#16a34a;
+  --auth-accent:#5b6cf5;
     --muted:var(--text2);
     --accent:#2563eb;
   }
@@ -491,30 +493,38 @@ html[data-boot="app"] .auth-wrap{display:none;}
 html[data-boot="app"] .app{display:none!important;}
 /* HM-REASONING-V2: промо-подложка тоже не должна мигать у вошедшего пользователя. */
 html[data-boot="app"] .mobile-glossy{display:none;}
-.auth-card{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:36px 28px;max-width:380px;width:100%;display:flex;flex-direction:column;gap:0;}
-.auth-screen{display:none;flex-direction:column;gap:0;}
+.auth-card{max-width:320px;width:100%;display:flex;flex-direction:column;}
+.auth-screen{display:none;flex-direction:column;}
 .auth-screen.active{display:flex;}
-.auth-logo{font-size:15px;font-weight:800;color:var(--text);margin-bottom:32px;opacity:.5;letter-spacing:-0.3px;}
-.auth-h1{font-size:30px;font-weight:800;color:var(--text);line-height:1.15;margin-bottom:8px;letter-spacing:-0.5px;}
-.auth-sub{font-size:15px;color:var(--text2);margin-bottom:32px;line-height:1.5;}
-.auth-input{width:100%;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--input-bg);font-size:15px;color:var(--text);font-family:inherit;outline:none;margin-bottom:10px;transition:border-color .15s;}
-.auth-input:focus{border-color:var(--text);}
+.auth-logo-badge{width:56px;height:56px;border-radius:14px;background:#000;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:30px;font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;margin-bottom:20px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);flex-shrink:0;}
+.auth-h1{font-size:22px;font-weight:800;color:var(--text);line-height:1.25;margin-bottom:22px;letter-spacing:-0.3px;}
+.auth-field-label{font-size:13px;font-weight:700;color:var(--text);margin-bottom:7px;}
+.auth-input{width:100%;padding:12px 16px;border:1px solid transparent;border-radius:12px;background:var(--input-bg);font-size:15px;color:var(--text);font-family:inherit;outline:none;margin-bottom:6px;transition:border-color .15s;}
+.auth-input:focus{border-color:var(--border);}
 .auth-input::placeholder{color:var(--text2);}
-.auth-btn-primary{width:100%;padding:14px;border-radius:12px;background:var(--send-bg);color:var(--send-txt);font-size:15px;font-weight:700;border:none;cursor:pointer;margin-bottom:10px;font-family:inherit;transition:opacity .15s;}
-.auth-btn-primary:hover{opacity:.85;}
-.auth-btn-primary:disabled{opacity:.5;cursor:default;}
-.auth-btn-secondary{width:100%;padding:12px;border-radius:12px;background:transparent;color:var(--text2);font-size:14px;font-weight:500;border:1px solid var(--border);cursor:pointer;font-family:inherit;transition:background .15s;}
-.auth-btn-secondary:hover{background:var(--hover);}
-.auth-tos{font-size:12px;color:var(--text2);text-align:center;line-height:1.6;margin-top:12px;}
-.auth-tos a{color:var(--text);text-decoration:underline;text-underline-offset:2px;}
-.auth-tos a:hover{opacity:.78;}
-.auth-beta{font-size:12px;color:var(--text2);text-align:center;margin-top:24px;opacity:.5;}
+.auth-input[readonly]{color:var(--text2);cursor:default;}
+.auth-btn-primary{width:100%;padding:12px;border-radius:12px;background:var(--auth-accent);color:#fff;font-size:15px;font-weight:600;border:none;cursor:pointer;margin-top:8px;font-family:inherit;transition:opacity .15s;}
+.auth-btn-primary:hover{opacity:.9;}
+.auth-btn-primary:disabled{opacity:.55;cursor:default;}
+.auth-divider{display:flex;align-items:center;gap:12px;margin:16px 0;color:var(--text2);font-size:12px;white-space:nowrap;}
+.auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--border);}
+.auth-oauth-row{display:flex;gap:10px;margin-bottom:18px;}
+.auth-oauth-btn{flex:1;height:46px;display:flex;align-items:center;justify-content:center;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;transition:background .15s;padding:0;}
+.auth-oauth-btn:hover{background:var(--hover);}
+.auth-oauth-btn:disabled{opacity:.5;cursor:default;}
+.auth-switch{font-size:13px;color:var(--text2);text-align:center;margin-bottom:14px;}
+.auth-switch a{color:var(--auth-accent);text-decoration:none;font-weight:600;}
+.auth-switch a:hover{text-decoration:underline;}
+.auth-hint{font-size:12px;color:var(--text2);background:var(--bg3);border-radius:10px;padding:10px 12px;line-height:1.5;margin-bottom:14px;text-align:center;}
+.auth-back-link{background:none;border:none;padding:0;font-size:13px;color:var(--auth-accent);cursor:pointer;font-family:inherit;text-align:left;margin-bottom:16px;align-self:flex-start;}
+.auth-back-link:hover{text-decoration:underline;}
+.auth-tos{font-size:11.5px;color:var(--text2);text-align:center;line-height:1.6;margin-top:6px;}
+.auth-tos a{color:var(--auth-accent);text-decoration:none;}
+.auth-tos a:hover{text-decoration:underline;}
+.auth-beta{font-size:12px;color:var(--text2);text-align:center;margin-top:22px;opacity:.55;}
 .auth-error{font-size:13px;color:#ef4444;text-align:center;display:none;margin-bottom:8px;}
-.otp-row{display:flex;gap:8px;justify-content:center;margin-bottom:10px;}
-.otp-box{width:46px;height:54px;border:1px solid var(--border);border-radius:12px;background:var(--input-bg);font-size:22px;font-weight:800;color:var(--text);text-align:center;font-family:inherit;outline:none;transition:border-color .15s;}
-.otp-box:focus{border-color:var(--text);}
-.auth-resend{font-size:13px;color:var(--text2);text-align:center;cursor:pointer;padding:8px;transition:color .15s;}
-.auth-resend:hover{color:var(--text);}
+.auth-resend{font-size:13px;color:var(--auth-accent);text-align:center;cursor:pointer;padding:6px;margin-bottom:6px;transition:opacity .15s;}
+.auth-resend:hover{opacity:.8;}
 .auth-resend.disabled{opacity:.4;cursor:default;pointer-events:none;}
 
 /* ===================== APP LAYOUT ===================== */
@@ -754,7 +764,6 @@ html[data-theme="light"] .msg-ai{color:#1a1a1a;}
   /* Ползунок «Думать»: во включённом состоянии фон белый — точка должна быть тёмной для контраста уже есть */
   /* Иконка «Сведения» и аватар нормально читаются на тёмном; правок не требуется */
 }
-
 
 /* Markdown in AI */
 .msg-ai h1,.msg-ai h2,.msg-ai h3{font-weight:700;margin:14px 0 6px;color:inherit;}
@@ -1164,7 +1173,6 @@ html[data-theme="light"] .attach-opt:hover{background:rgba(20,18,12,.05);}
 .src-item-snippet{font-size:12px;color:var(--text2);line-height:1.45;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;line-clamp:2;-webkit-box-orient:vertical;}
 .src-empty{font-size:13px;color:var(--text2);text-align:center;padding:18px 0;}
 
-
 /* Composer attachments */
 .composer-attachments{width:100%;max-width:720px;display:none;align-items:flex-start;justify-content:flex-start;flex-wrap:wrap;gap:10px;}
 .composer-attachments.has-items{display:flex;}
@@ -1502,7 +1510,7 @@ a.conn-btn{display:inline-flex;align-items:center;text-decoration:none;}
 }
 
 /* ===== Экран «Сведения» ===== */
-.about-screen{display:flex;flex-direction:column;}
+.about-screen{display:flex;flex-direction:column;}.about-toggle{width:44px;height:24px;border-radius:12px;border:1px solid var(--border);background:var(--bg3);position:relative;cursor:pointer;transition:background .15s;padding:0;}.about-toggle::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--text2);transition:transform .15s,background .15s;}.about-toggle.on{background:var(--auth-accent);border-color:var(--auth-accent);}.about-toggle.on::after{transform:translateX(20px);background:#fff;}.about-hint{font-size:11.5px;color:var(--text2);line-height:1.5;margin-top:6px;}
 .about-logo-row{display:flex;flex-direction:column;align-items:center;gap:12px;margin:30px 0 26px;}
 .about-app-icon{width:64px;height:64px;border-radius:16px;background:linear-gradient(150deg,#1c1c22,#0d0f14);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 22px rgba(0,0,0,.35);}
 .about-app-name{font-size:17px;font-weight:700;color:var(--text);}
@@ -1525,6 +1533,44 @@ a.conn-btn{display:inline-flex;align-items:center;text-decoration:none;}
 .appear-row-text{flex:1;font-size:15px;font-weight:500;color:var(--text);}
 .appear-check{color:var(--check);opacity:0;font-size:15px;}
 .appear-check.on{opacity:1;}
+
+/* ===== НАСТРОЙКА «УЛУЧШЕНИЕ СЕРВИСА» (Сведения) ===== */
+async function toggleTrainingSetting(){
+  const btn=document.getElementById('trainingToggle');
+  if(!btn||btn.disabled)return;
+  btn.disabled=true;
+  const next=!(btn.dataset.on==='1');
+  try{
+    const data=await accountAction({action:'settings.training',enabled:next});
+    if(typeof data.enabled==='boolean'){
+      btn.dataset.on=data.enabled?'1':'0';
+      btn.setAttribute('aria-checked',data.enabled?'true':'false');
+      btn.classList.toggle('on',!!data.enabled);
+    }
+  }catch(e){
+    showSettingsToast(e&&e.message?e.message:'Не удалось сохранить настройку');
+  }finally{
+    btn.disabled=false;
+  }
+}
+async function loadTrainingSetting(){
+  const btn=document.getElementById('trainingToggle');
+  if(!btn)return;
+  try{
+    const prof=curUser&&curUser.profile?curUser.profile:null;
+    const st=prof&&prof.settings;
+    const on=!(st&&typeof st==='object'&&st.ai_training===false);
+    btn.dataset.on=on?'1':'0';
+    btn.setAttribute('aria-checked',on?'true':'false');
+    btn.classList.toggle('on',on);
+  }catch(e){btn.dataset.on='1';btn.classList.add('on');}
+}
+function showSettingsToast(msg){
+  let t=document.getElementById('settingsToast');
+  if(!t){t=document.createElement('div');t.id='settingsToast';t.style.cssText='position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:4000;background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:12px;padding:10px 16px;font-size:13px;box-shadow:var(--drop-shadow);';document.body.appendChild(t);}
+  t.textContent=msg;t.style.opacity='1';t.style.pointerEvents='auto';
+  clearTimeout(t.__timer);t.__timer=setTimeout(()=>{t.style.opacity='0';t.style.pointerEvents='none';},2600);
+}
 
 /* ===== ЭКРАН «ЛИМИТЫ» ===== */
 .limits-screen{display:flex;flex-direction:column;gap:16px;}
@@ -2495,7 +2541,6 @@ html[data-theme="messenger"] .s-row.s-row-accent .s-row-text{color:#7c3aed;}
   .ada-panel,.ada-eff-thumb,.mchip{transition:none!important;}
 }
 
-
 /* =========================================================================
    MOBILE COMPOSER v2.1 (patch10)
    — Верхний ряд в одну линию: [+] [текст] [мик] [отправить]
@@ -2572,7 +2617,6 @@ html[data-theme="messenger"] .s-row.s-row-accent .s-row-text{color:#7c3aed;}
 /* Desktop: меню режимов стало выше — четыре пункта вместо двух */
 .desktop-sub-drop#desktopModeSub{min-width:238px;}
 .desktop-option .desktop-check{flex:0 0 auto;}
-
 
 /* =========================================================================
    PRO-бейдж в выборе моделей — синий (patch11).
@@ -2964,43 +3008,48 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--text2);outline-offs
 <!-- ===================== AUTH ===================== -->
 <div class="auth-wrap" id="authWrap">
   <div class="auth-card">
-    <!-- Экран 1: Приветствие -->
+
+    <!-- Экран 1: Email + быстрый вход -->
     <div class="auth-screen active" id="authS1">
-      <div class="auth-logo">HarmonyAI</div>
-      <div class="auth-h1">Думает быстро,<br>результат быстрее</div>
-      <div class="auth-sub">ИИ для учеников музыкальной школы. Подходит не только для музыки — он умеет всё!</div>
-      <button class="auth-btn-primary" onclick="goToEmail()">Продолжить с Email</button>
-      <div class="auth-tos">Продолжая, вы соглашаетесь с нашей <a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Политикой Конфиденциальности</a> и <a href="/legal/terms.html" target="_blank" rel="noopener noreferrer">Условиями Пользования</a>.</div>
-      <div class="auth-beta">Beta 0.8.1</div>
-    </div>
-    <!-- Экран 2: Email -->
-    <div class="auth-screen" id="authS2">
-      <div class="auth-logo">HarmonyAI</div>
-      <div class="auth-h1">Введите ваш<br>Email адрес</div>
-      <input class="auth-input" id="emailInp" type="email" placeholder="Введите email.." autocomplete="email" inputmode="email">
+      <div class="auth-logo-badge" aria-hidden="true">H</div>
+      <div class="auth-h1">Твой ИИ-помощник в музыке.</div>
+      <label class="auth-field-label" for="emailInp">Email</label>
+      <input class="auth-input" id="emailInp" type="email" placeholder="Введите ваш email здесь" autocomplete="email" inputmode="email">
       <div class="auth-error" id="emailErr"></div>
-      <button class="auth-btn-primary" id="btnSend" onclick="sendOTP()">Продолжить</button>
-      <button class="auth-btn-secondary" onclick="showAuthS(1)">← Назад</button>
-      <div class="auth-beta">Beta 0.8.1</div>
-    </div>
-    <!-- Экран 3: OTP -->
-    <div class="auth-screen" id="authS3">
-      <div class="auth-logo">HarmonyAI</div>
-      <div class="auth-h1">Введите 6-ти<br>значный код</div>
-      <div class="otp-row" id="otpRow">
-        <input class="otp-box" maxlength="1" type="text" inputmode="numeric" autocomplete="one-time-code">
-        <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
-        <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
-        <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
-        <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
-        <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
+      <button class="auth-btn-primary" id="btnSend" onclick="sendOTP()">Получить код</button>
+      <div class="auth-divider"><span>или продолжить с</span></div>
+      <div class="auth-oauth-row">
+        <button class="auth-oauth-btn" type="button" onclick="oauthSoon('Google')" title="Скоро" aria-label="Войти через Google — скоро">
+          <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M23.5 12.27c0-.85-.08-1.66-.22-2.45H12v4.64h6.45a5.52 5.52 0 0 1-2.39 3.62v3h3.86c2.26-2.09 3.58-5.17 3.58-8.81z"/><path fill="#34A853" d="M12 24c3.24 0 5.96-1.07 7.94-2.91l-3.86-3c-1.08.72-2.45 1.16-4.08 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09A11.99 11.99 0 0 0 12 24z"/><path fill="#FBBC05" d="M5.27 14.29A7.2 7.2 0 0 1 4.89 12c0-.8.14-1.57.38-2.29V6.62H1.29a12 12 0 0 0 0 10.76l3.98-3.09z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42A11.97 11.97 0 0 0 12 0 11.99 11.99 0 0 0 1.29 6.62l3.98 3.09C6.22 6.86 8.87 4.75 12 4.75z"/></svg>
+        </button>
+        <button class="auth-oauth-btn" type="button" id="btnGithub" onclick="signInWithGithub()" title="GitHub" aria-label="Войти через GitHub">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .3a12 12 0 0 0-3.8 23.38c.6.12.83-.26.83-.57L9 21.07c-3.34.72-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.08-.74.09-.73.09-.73 1.2.09 1.83 1.24 1.83 1.24 1.07 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.66-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.11-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.29-1.55 3.3-1.23 3.3-1.23.65 1.66.24 2.88.12 3.18a4.65 4.65 0 0 1 1.23 3.22c0 4.61-2.81 5.63-5.49 5.92.43.38.82 1.11.82 2.24l-.01 3.32c0 .31.21.7.83.58A12 12 0 0 0 12 .3z"/></svg>
+        </button>
+        <button class="auth-oauth-btn" type="button" onclick="oauthSoon('Apple')" title="Скоро" aria-label="Войти через Apple — скоро">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.36 12.78c.03 3.24 2.84 4.32 2.87 4.33-.02.08-.45 1.54-1.48 3.05-.89 1.3-1.82 2.6-3.28 2.62-1.43.03-1.9-.85-3.54-.85-1.65 0-2.16.83-3.52.88-1.42.05-2.5-1.4-3.4-2.7-1.85-2.67-3.26-7.56-1.36-10.86a5.28 5.28 0 0 1 4.46-2.7c1.39-.03 2.7.93 3.55.93.84 0 2.43-1.15 4.1-.98.7.03 2.66.28 3.92 2.13-.1.06-2.34 1.37-2.32 4.15zM13.68 4.4c.75-.9 1.25-2.16 1.11-3.4-1.08.04-2.38.72-3.15 1.62-.7.8-1.3 2.08-1.14 3.3 1.2.1 2.43-.6 3.18-1.52z"/></svg>
+        </button>
       </div>
-      <div class="auth-error" id="codeErr"></div>
-      <button class="auth-btn-primary" id="btnVerify" onclick="verifyOTP()">Подтвердить</button>
-      <div class="auth-resend" id="btnResend" onclick="resendOTP()">Не приходит код? Отправить снова</div>
-      <button class="auth-btn-secondary" onclick="showAuthS(2)">← Изменить email</button>
-      <div class="auth-beta">Beta 0.8.1</div>
+      <div class="auth-switch">Уже зарегистрированы? <a href="#" onclick="toggleLoginHint();return false;">Войти</a></div>
+      <div class="auth-hint" id="loginHint" style="display:none;"></div>
+      <div class="auth-tos">Продолжая, вы соглашаетесь с <a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Политикой Конфиденциальности</a> и <a href="/legal/terms.html" target="_blank" rel="noopener noreferrer">Условиями Пользователя</a> HarmonyAI</div>
+      <div class="auth-beta">Beta 0.8.2</div>
     </div>
+
+    <!-- Экран 2: Код подтверждения -->
+    <div class="auth-screen" id="authS2">
+      <div class="auth-logo-badge" aria-hidden="true">H</div>
+      <div class="auth-h1">Твой ИИ-помощник в музыке.</div>
+      <button class="auth-back-link" type="button" onclick="showAuthS(1);setTimeout(function(){var e=document.getElementById('emailInp');if(e)e.focus();},100);">← Изменить Email</button>
+      <label class="auth-field-label" for="codeEmailInp">Email</label>
+      <input class="auth-input" id="codeEmailInp" type="email" readonly tabindex="-1">
+      <input class="auth-input" id="codeInp" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="Введите код здесь...">
+      <div class="auth-error" id="codeErr"></div>
+      <div class="auth-resend" id="btnResend" onclick="resendOTP()">Не пришел код? Отправить снова</div>
+      <div class="auth-switch">Уже зарегистрированы? <a href="#" onclick="toggleLoginHint();return false;">Войти</a></div>
+      <div class="auth-tos">Продолжая, вы соглашаетесь с <a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Политикой Конфиденциальности</a> и <a href="/legal/terms.html" target="_blank" rel="noopener noreferrer">Условиями Пользователя</a> HarmonyAI</div>
+      <div class="auth-beta">Beta 0.8.2</div>
+    </div>
+
   </div>
 </div>
 
@@ -3233,7 +3282,6 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--text2);outline-offs
 
 <!-- ===================== ПРОМО-УВЕДОМЛЕНИЯ (появляются над строкой ввода) ===================== -->
 
-
 <!-- ===================== МОДАЛКА РАСПОЗНАВАНИЯ МУЗЫКИ ===================== -->
 <div class="rec-overlay" id="recOverlay" onclick="if(event.target===this)closeRecognizeModal()">
   <div class="rec-modal" onclick="event.stopPropagation()">
@@ -3352,7 +3400,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--text2);outline-offs
             <span class="mm-opt-badge">Pro</span>
           </div>
           <span class="mm-opt-check" id="mmCheckPro">✓</span>
-          <div class="mm-opt-desc">Для сложных задач</div>
+          <div class="mm-opt-desc">Для сложных задач и подробных ответов</div>
         </button>
         <div class="mm-divider"></div>
         <button class="mm-opt" id="mmOptLite" onclick="selectModel('lite')">
@@ -4095,14 +4143,55 @@ let otpRequestNonce=0;
 let otpVerifyBusy=false;
 
 function showAuthS(n){
-  [1,2,3].forEach(i=>{
+  [1,2].forEach(i=>{
     const el=document.getElementById('authS'+i);
     if(el) el.classList.toggle('active',i===n);
   });
 }
-function goToEmail(){
-  showAuthS(2);
-  setTimeout(()=>{const e=document.getElementById('emailInp');if(e)e.focus();},100);
+function toggleLoginHint(){
+  const h=document.getElementById('loginHint');
+  if(!h)return;
+  if(h.style.display==='none'){
+    h.textContent='Вход и регистрация — один процесс: введите email, получите код из письма и вы войдёте в свой аккаунт.';
+    h.style.display='block';
+  }else{
+    h.style.display='none';
+  }
+}
+function oauthSoon(name){
+  const h=document.getElementById('loginHint');
+  if(h){
+    h.textContent='Вход через '+name+' скоро появится. Пока используйте Email или GitHub.';
+    h.style.display='block';
+  }
+}
+/* GitHub OAuth: Supabase сам проводит весь флоу (redirect на github.com и обратно).
+   После возврата сессию подхватит onAuthStateChange — как при входе по коду.
+   Требуется: провайдер GitHub включён в Supabase Dashboard (Authentication -> Providers). */
+async function signInWithGithub(){
+  const h=document.getElementById('loginHint');
+  const err=document.getElementById('emailErr');
+  if(err)err.style.display='none';
+  const btn=document.getElementById('btnGithub');
+  try{
+    if(!sb)throw new Error('Авторизация ещё загружается — попробуйте через секунду');
+    if(btn)btn.disabled=true;
+    if(h){h.style.display='none';}
+    const {error}=await sb.auth.signInWithOAuth({
+      provider:'github',
+      options:{redirectTo:getSafeRedirectUrl()}
+    });
+    if(error)throw error;
+  }catch(e){
+    if(authLeaving)return;
+    if(btn)btn.disabled=false;
+    const low=String(e?.message||e||'').toLowerCase();
+    if(low.includes('provider')&&low.includes('not enabled')||low.includes('unsupported provider')){
+      if(h){h.textContent='GitHub-вход пока не подключён на сервере. Используйте Email.';h.style.display='block';}
+    }else if(h){
+      h.textContent=tErr(e.message);h.style.display='block';
+    }
+  }
 }
 function isEmail(e){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);}
 function getSafeRedirectUrl(){
@@ -4410,20 +4499,21 @@ async function sendOTP(){
     await sendOtpVariants(email);
     if(requestNonce!==otpRequestNonce)return;
     curEmail=email;
+    document.getElementById('codeEmailInp').value=email;
     document.getElementById('codeErr').style.display='none';
-    showAuthS(3);
-    setTimeout(()=>{const b=document.querySelectorAll('.otp-box')[0];if(b)b.focus();},100);
+    showAuthS(2);
+    setTimeout(()=>{const c=document.getElementById('codeInp');if(c)c.focus();},100);
     startResend();
   }catch(e){
     // Уходим со страницы — запрос оборвал браузер, а не сервис. Молчим.
     if(authLeaving)return;
     err.textContent=tErr(e.message);err.style.display='block';
   }finally{
-    btn.textContent='Продолжить';btn.disabled=false;
+    btn.textContent='Получить код';btn.disabled=false;
   }
 }
-function clearOTP(){document.querySelectorAll('.otp-box').forEach(b=>b.value='');}
-function getOTP(){return Array.from(document.querySelectorAll('.otp-box')).map(b=>b.value).join('');}
+function clearOTP(){const c=document.getElementById('codeInp');if(c)c.value='';}
+function getOTP(){const c=document.getElementById('codeInp');return c?c.value.trim():'';}
 
 async function verifyOTP(){
   if(otpVerifyBusy)return;
@@ -4431,8 +4521,8 @@ async function verifyOTP(){
   const err=document.getElementById('codeErr');
   err.style.display='none';
   if(!/^\d{6}$/.test(code)){err.textContent='Введите 6-значный код';err.style.display='block';return;}
-  const btn=document.getElementById('btnVerify');
-  btn.textContent='Проверяем...';btn.disabled=true;
+  const cInp=document.getElementById('codeInp');
+  if(cInp){cInp.readOnly=true;}
   otpVerifyBusy=true;
   const requestNonce=otpRequestNonce;
   try{
@@ -4448,7 +4538,7 @@ async function verifyOTP(){
     err.textContent=tErr(e.message);err.style.display='block';
   }finally{
     otpVerifyBusy=false;
-    btn.textContent='Подтвердить';btn.disabled=false;
+    if(cInp){cInp.readOnly=false;}
   }
 }
 async function resendOTP(){
@@ -4475,29 +4565,27 @@ function startResend(){
   resendTimer=setInterval(()=>{
     resendLeft--;
     if(resendLeft>0){btn.textContent='Отправить снова через '+resendLeft+' с';}
-    else{btn.textContent='Не приходит код? Отправить снова';btn.classList.remove('disabled');clearInterval(resendTimer);}
+    else{btn.textContent='Не пришел код? Отправить снова';btn.classList.remove('disabled');clearInterval(resendTimer);}
   },1000);
 }
 
-/* OTP boxes */
-(function setupOTP(){
-  const boxes=document.querySelectorAll('.otp-box');
-  boxes.forEach((b,i)=>{
-    b.addEventListener('input',()=>{
-      b.value=b.value.replace(/[^0-9]/g,'').slice(0,1);
-      if(b.value&&i<boxes.length-1)boxes[i+1].focus();
-    });
-    b.addEventListener('keydown',e=>{
-      if(e.key==='Backspace'&&!b.value&&i>0)boxes[i-1].focus();
-      if(e.key==='Enter')verifyOTP();
-    });
-    b.addEventListener('paste',e=>{
-      e.preventDefault();
-      const txt=(e.clipboardData.getData('text')||'').replace(/[^0-9]/g,'').slice(0,6);
-      txt.split('').forEach((ch,j)=>{if(boxes[j])boxes[j].value=ch;});
-      const last=Math.min(txt.length,6)-1;
-      if(boxes[last])boxes[last].focus();
-    });
+/* Единый ввод кода: только цифры, Enter — проверка, 6 цифр — автопроверка. */
+(function setupCodeInput(){
+  const c=document.getElementById('codeInp');
+  if(!c)return;
+  c.addEventListener('input',()=>{
+    const digits=c.value.replace(/[^0-9]/g,'').slice(0,6);
+    c.value=digits;
+    const err=document.getElementById('codeErr');
+    if(err&&err.style.display==='block'&&digits.length<6){err.style.display='none';}
+    if(digits.length===6&&!otpVerifyBusy)verifyOTP();
+  });
+  c.addEventListener('keydown',e=>{if(e.key==='Enter')verifyOTP();});
+  c.addEventListener('paste',e=>{
+    e.preventDefault();
+    const txt=(e.clipboardData.getData('text')||'').replace(/[^0-9]/g,'').slice(0,6);
+    c.value=txt;
+    if(txt.length===6&&!otpVerifyBusy)verifyOTP();
   });
 })();
 
@@ -10250,7 +10338,6 @@ async function runMusicMessage(text){
       ? ('«'+t.title+'» — '+t.artist+(t.album?(', альбом «'+t.album+'»'):''))
       : 'ничего конкретного';
 
-
     setGeneratingState(true);
     let answerText='';
     try{
@@ -10612,7 +10699,6 @@ function openSupportChat(){
     if(document.hasFocus())window.open(fallbackUrl,'_blank');
   },900);
 }
-
 
 /* ===== ПАМЯТЬ: просмотр / правка / удаление / полная очистка ==============
    Разделение: «Обо мне» — факты, доступные во всех чатах (scope user);
@@ -11531,14 +11617,18 @@ function renderAbout(){
           <svg width="30" height="30" viewBox="0 0 64 64"><path d="M18 14h8v18h12V14h8v36h-8V39H26v11h-8z" fill="#fff"/></svg>
         </div>
         <div class="about-app-name">HarmonyAI</div>
-        <div class="about-app-ver">Beta 0.8.1</div>
+        <div class="about-app-ver">Beta 0.8.2</div>
       </div>
       <div class="about-rows">
+        <div class="about-row"><div class="about-row-label">Использовать мои чаты для улучшения сервиса</div><div class="about-row-val"><button class="about-toggle" id="trainingToggle" type="button" onclick="toggleTrainingSetting()" aria-label="Переключить">…</button></div></div>
+        <div class="about-hint">Можно отключить в любой момент. Отключение прекращает использование ваших чатов для улучшения моделей и сервиса.</div>
         <div class="about-row"><div class="about-row-label">Политика конфиденциальности</div><div class="about-row-val"><a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Открыть</a></div></div>
         <div class="about-row"><div class="about-row-label">Условия использования</div><div class="about-row-val"><a href="/legal/terms.html" target="_blank" rel="noopener noreferrer">Открыть</a></div></div>
+        <div class="about-row"><div class="about-row-label">Платёжная оферта</div><div class="about-row-val"><a href="/legal/ofera.html" target="_blank" rel="noopener noreferrer">Открыть</a></div></div>
       </div>
       <div class="about-foot">HarmonyAI — ИИ-помощник для учеников музыкальной школы.<br>© ${new Date().getFullYear()} HarmonyAI. Все права защищены.</div>
     </div>`;
+  loadTrainingSetting();
 }
 
 /* ===== ЭКРАН «ЛИМИТЫ» ===== */
@@ -11790,7 +11880,6 @@ window.persistLangToProfile=async function(lang){
   }catch(e){}
 };
 </script>
-
 
 <!-- ===== DISLIKE FEEDBACK MODAL ===== -->
 <div class="fb-overlay" id="fbOverlay" onclick="if(event.target===this)closeFbModal()">
