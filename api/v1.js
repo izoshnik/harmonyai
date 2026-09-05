@@ -35,7 +35,7 @@
    ============================================================================ */
 
 import { extractApiKey, looksLikeApiKey, hashApiKey } from '../lib/api-keys.js';
-import { supabaseRest, readProfileRole, isUnlimitedApiRole } from '../lib/auth.js';
+import { supabaseRest, readAccessProfile, hasProAccess, isUnlimitedApiRole } from '../lib/auth.js';
 import { resolvePublicModel, PUBLIC_MODEL_IDS, PUBLIC_MODELS } from '../lib/models.js';
 import {
   MODEL_PRICING,
@@ -233,11 +233,12 @@ async function handleMessages(req, res, body, auth) {
      Роль читаем тем же походом в базу, что и баланс (параллельно, без лишней
      задержки): у developer / admin / moderator ограничений по балансу нет. */
   const inputTokensEstimate = estimateRequestTokens(body);
-  const [balanceMicro, role] = await Promise.all([
+  const [balanceMicro, accessProfile] = await Promise.all([
     readBalanceMicro(auth.userId),
-    readProfileRole(auth.userId)
+    readAccessProfile(auth.userId)
   ]);
-  const unlimited = isUnlimitedApiRole(role);
+  const unlimited = isUnlimitedApiRole(accessProfile?.role);
+  if(model.id==='dynatos'&&!hasProAccess(accessProfile))return sendError(res,403,'Dynatos доступен с активной Pro-подпиской','permission_error');
   const worstCaseMicro = estimateCostMicroRubles(model.id, inputTokensEstimate, maxOutput) || 0n;
   if (!unlimited && (balanceMicro <= 0n || balanceMicro < worstCaseMicro)) {
     return sendError(
