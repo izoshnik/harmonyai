@@ -1,0 +1,32 @@
+/* Only authenticated production data. Test fixtures belong in tools, never here. */
+(function(){'use strict';
+ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const fmt=n=>n==null?'—':new Intl.NumberFormat('ru-RU').format(n);
+ const duration=n=>n==null?'—':n<60?Math.floor(n)+' с':(n>=3600?Math.floor(n/3600)+' ч ':'')+Math.floor(n%3600/60)+' мин';
+ let timer=null,lastInput=Date.now(),lastTick=0,pending=0,busy=false,seq=0;
+ async function request(action,body){const headers=await window.hmAuthHeaders();const res=await fetch('/api/account?action='+encodeURIComponent(action),{headers,cache:'no-store',signal:AbortSignal.timeout(12000),method:body?'POST':'GET',body:body?JSON.stringify({action,...body}):undefined});const d=await res.json();if(!res.ok||!d.ok)throw new Error(d?.error?.message||'Не удалось загрузить статистику');return d;}
+ async function heartbeat(){if(busy||!window.__appShown||document.visibilityState!=='visible'||!document.hasFocus()||Date.now()-lastInput>=300000)return;busy=true;const seconds=Math.min(60,Math.floor(pending));pending-=seconds;try{await request('stats.heartbeat',{seconds});}catch(e){}finally{busy=false;}}
+ ['pointerdown','keydown','scroll','pointermove'].forEach(e=>document.addEventListener(e,()=>{lastInput=Date.now();},{passive:true}));
+ window.HmStats={start(){if(timer)return;lastTick=Date.now();lastInput=Date.now();heartbeat();let ticks=0;timer=setInterval(()=>{const now=Date.now();if(window.__appShown&&document.visibilityState==='visible'&&document.hasFocus()&&now-lastInput<300000)pending+=Math.min((now-lastTick)/1000,5);lastTick=now;if(++ticks%30===0)heartbeat();},1000);},stop(){clearInterval(timer);timer=null;pending=0;},file(){if(window.__appShown)request('stats.file',{eventId:crypto.randomUUID()}).catch(()=>{});}};
+ const tile=(label,value,note='')=>'<div class="hm-stat-card"><div class="hm-stat-label">'+esc(label)+'</div><div class="hm-stat-value">'+esc(value)+'</div>'+(note?'<div class="hm-stat-note">'+esc(note)+'</div>':'')+'</div>';
+ const list=(rows,key)=>rows?.length?'<ul class="hm-stat-list">'+rows.map(r=>'<li><span>'+esc(r[key])+'</span><strong>'+fmt(r.users)+'</strong></li>').join('')+'</ul>':'<p class="hm-stat-note">За этот период данных нет.</p>';
+ window.renderPersonalStats=async function(){
+  const host=document.getElementById('settingsContent');if(!host)return;const n=++seq;
+  host.innerHTML='<div class="sth"><button class="sth-back" onclick="renderSettingsMain()" aria-label="Назад">‹</button><div class="sth-title">Статистика</div></div><div class="hm-stats" id="personalStats"><p role="status">Загружаем вашу статистику…</p></div>';
+  const panel=document.getElementById('personalStats');
+  try{const d=await request('stats.personal');if(n!==seq||!panel.isConnected)return;
+   panel.innerHTML='<div class="hm-stats-grid">'+tile('Время в HarmonyAI',duration(d.activeSeconds),'Активная вкладка, без простоя более 5 минут')+tile('Сообщения ИИ',fmt(d.aiMessages),'Успешные текстовые ответы')+tile('Распознанные произведения',fmt(d.recognized),'Включая предположения ИИ')+tile('Изображения',fmt(d.images),'Успешные генерации')+tile('Созданные файлы',fmt(d.filesCreated))+tile('Обработанные файлы',fmt(d.filesProcessed),'Документы, прочитанные в браузере')+'</div><p class="hm-stat-note">Время и файлы учитываются с '+esc(new Date(d.trackingSince).toLocaleDateString('ru-RU'))+'. Более ранние действия не восстанавливаются. «—» означает недоступный источник данных.</p>';
+  }catch(e){if(panel.isConnected)panel.innerHTML='<p role="alert">'+esc(e.message)+'</p><button class="conn-btn" onclick="renderPersonalStats()">Повторить</button>';}
+ };
+ async function management(){
+  const host=document.getElementById('managementStats');if(!host)return;const filter=document.getElementById('statsPeriod'),n=++seq;
+  host.setAttribute('aria-busy','true');host.innerHTML='<p role="status">Загружаем статистику…</p>';
+  try{const auth=window.hmAuth;await auth.ready;
+   if(!auth.user){host.innerHTML='<p>Войдите в аккаунт с доступом к управлению.</p><a class="btn" href="/login?next=/management">Войти</a>';return;}
+   const result=await auth.account('stats.management',null,{period:filter.value});if(n!==seq)return;if(!result.ok)throw new Error(result.error||'Статистика недоступна');const d=result.data;
+   host.innerHTML='<div class="hm-stats-grid">'+tile(filter.value==='all'?'Всего пользователей':'Новые пользователи',fmt(d.totalUsers),'Зарегистрировались за выбранный период')+tile('Платные пользователи',fmt(d.paidUsers),'Активная Pro среди регистраций периода')+tile('Онлайн сейчас',fmt(d.onlineUsers),'Активность за последние 90 секунд в периоде')+tile('Отправленные сообщения',fmt(d.messagesSent),'Сообщения пользователя, сохранённые в чатах')+tile('Токены чата · оценка',fmt(d.chatTokensEstimated),'Существующий учёт проекта оценивает токены по тексту')+tile('Токены публичного API',fmt(d.apiTokens),'По журналу расхода API')+tile('Активные пользователи',fmt(d.activeUsers),'Хотя бы одно учтённое действие за период')+tile('Ответы ИИ',fmt(d.aiMessages),'Успешные текстовые ответы')+tile('Изображения',fmt(d.images))+'</div><div class="hm-stats-columns"><section class="hm-stat-section"><h2>Источники регистрации</h2>'+list(d.sources,'source')+'</section><section class="hm-stat-section"><h2>Другое <span class="hm-stat-note">'+fmt((d.otherSources||[]).reduce((a,b)=>a+Number(b.users),0))+' пользователей</span></h2>'+list(d.otherSources,'text')+'</section></div><p class="hm-stat-note">Регистрации и их источники отфильтрованы по дате создания аккаунта, активность — по дате события. «Сегодня» — по Москве; остальные периоды — скользящие. Онлайн — текущий снимок, не исторический максимум.</p><p class="hm-stat-note">Время и файлы учитываются с '+esc(new Date(d.trackingSince).toLocaleString('ru-RU'))+'. Старые сообщения без даты и удалённые до обновления чаты не восстановлены. «—» — источник недоступен. Обновлено: '+esc(new Date(d.until).toLocaleTimeString('ru-RU'))+'.</p>';
+  }catch(e){if(n===seq){host.innerHTML='<p role="alert">'+esc(e.message)+'</p><button class="btn" id="statsRetry">Повторить</button>';document.getElementById('statsRetry').onclick=management;}}
+  finally{if(n===seq)host.removeAttribute('aria-busy');}
+ }
+ document.addEventListener('DOMContentLoaded',()=>{if(document.getElementById('managementStats')){document.getElementById('statsPeriod').onchange=management;document.getElementById('statsRefresh').onclick=management;management();}});
+})();
