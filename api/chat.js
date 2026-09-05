@@ -1,3 +1,4 @@
+import { hasProAccess, requireUser } from '../lib/auth.js';
 export const config = {
   maxDuration: 300
 };
@@ -204,7 +205,7 @@ async function supabaseRequest(path, init = {}) {
 async function fetchProfile(userId) {
   if (!userId) return null;
   const rows = await supabaseRequest(
-    `/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=id,nickname,role,plan,settings&limit=1`
+    `/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=id,nickname,role,plan,plan_expires_at,settings&limit=1`
   );
   return rows?.[0] || null;
 }
@@ -1403,10 +1404,7 @@ async function streamOpenAIToClientInner(res, apiKey, modelName, messages, timeo
 
 // Роли, у которых есть доступ к Pro-модели Dynatos.
 // Max и «Думать» доступны всем тарифам; сервер защищает только выбор модели.
-function isProRole(profile){
-  const r=String(profile?.role||'').toLowerCase();
-  const p=String(profile?.plan||'').toLowerCase();
-  return r==='pro'||r==='developer'||r==='admin'||r==='moderator'||p==='pro';
+function isProRole(profile){return hasProAccess(profile);
 }
 
 function selectRoute(profile, requestedModel) {
@@ -1566,8 +1564,8 @@ export default async function handler(req, res) {
        всегда важнее тела, поэтому подменить чужой id, прислав его в JSON, нельзя.
        Денежные операции и API-ключи (api/account.js, api/v1.js, payment/*) токен
        требуют безусловно — там подстановки id из тела нет вообще. */
-    const authedUser = await authenticateRequest(req);
-    if (authedUser?.id) userId = authedUser.id;
+    const authedUser=await requireUser(req,res);if(!authedUser)return;
+    userId=authedUser.id;
 
     const profile = await fetchProfile(userId);
     // Max и «Думать» разрешены всем. Только Dynatos остаётся серверно защищённым.
@@ -1575,7 +1573,8 @@ export default async function handler(req, res) {
     if (!isProRole(profile) && model === 'pro') model = 'lite';
     // Единый параметр: low | medium | max | extra (старые high/ultra отображаются на max/extra).
     effort = normalizeEffort(effort);
-    think = Boolean(think);
+    think = isProRole(profile)&&Boolean(think);
+    if(!isProRole(profile)&&['max','extra'].includes(effort))effort='medium';
     const query = lastUserText(messages);
     const isQuick = isSimpleQuery(query);
     const wantsContext = needsPersonalContext(query, messages);
