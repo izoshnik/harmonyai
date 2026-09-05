@@ -3,16 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Harmony AI — универсальный AI-помощник</title>
-<meta name="description" content="Harmony AI — универсальный AI-помощник для учёбы, работы, анализа, кода, файлов и творчества. Потоковые ответы, режим размышления, веб-поиск, работа с файлами и API для разработчиков.">
+<title>HarmonyAI — универсальный AI-помощник</title>
+<meta name="description" content="HarmonyAI — универсальный AI-помощник для учёбы, работы, анализа, кода, файлов и творчества. Потоковые ответы, режим размышления, веб-поиск, работа с файлами и API для разработчиков.">
 <link rel="canonical" href="https://harmonyai.ru/">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Harmony AI — универсальный AI-помощник">
+<meta property="og:title" content="HarmonyAI — универсальный AI-помощник">
 <meta property="og:description" content="Учёба, работа, анализ, код, файлы и творчество — в одном чате. Плюс API, совместимый с Anthropic Messages API.">
 <meta property="og:url" content="https://harmonyai.ru/">
 <meta name="theme-color" content="#ffffff">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Harmony AI — универсальный AI-помощник">
+<meta name="twitter:title" content="HarmonyAI — универсальный AI-помощник">
 <meta name="twitter:description" content="Учёба, работа, анализ, код, файлы и творчество — в одном чате. Вход по коду на почту, базовый доступ бесплатный.">
 
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230d0f14'/%3E%3Cpath d='M18 14h8v18h12V14h8v36h-8V39H26v11h-8z' fill='%23ffffff'/%3E%3C/svg%3E">
@@ -47,7 +47,7 @@
   <div class="header-inner">
     <a class="brand" href="/">
       <span class="brand-mark" aria-hidden="true">H</span>
-      Harmony AI
+      HarmonyAI
     </a>
 
     <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
@@ -73,7 +73,7 @@
   <section class="hero">
     <div class="wrap">
       <div class="hero-inner">
-        <p class="eyebrow" style="margin-bottom:16px;">Harmony AI</p>
+        <p class="eyebrow" style="margin-bottom:16px;">HarmonyAI</p>
         <h1>Универсальный AI-помощник для&nbsp;учёбы, работы, анализа, кода, файлов и&nbsp;творчества</h1>
         <p class="lead">
           Один чат вместо десяти сервисов: разбирает документы, пишет и объясняет код,
@@ -153,7 +153,7 @@
             <svg viewBox="0 0 24 24"><path d="m9 7-5 5 5 5" stroke-linejoin="round"/><path d="m15 7 5 5-5 5" stroke-linejoin="round"/></svg>
           </div>
           <h3>API для разработчиков</h3>
-          <p>Совместим с Anthropic Messages API: Claude Code, Cline, Roo Code, OpenCode работают без переделок.</p>
+          <p>Шлюз реализует Anthropic Messages API (<code>/v1/messages</code>): system, инструменты, стриминг. Claude Code, Cline, Roo Code и OpenCode подключаются штатной настройкой адреса и ключа; поддерживаемые возможности и ограничения протокола — в <a href="/api" style="color:var(--link);">документации API</a>.</p>
         </article>
 
         <article class="card card-hover">
@@ -179,7 +179,7 @@
       <div class="steps">
         <div class="step">
           <h3>Создайте аккаунт</h3>
-          <p>Введите почту и код из письма. Пароль не нужен, подтверждение приходит за секунды.</p>
+          <p>Введите почту и код из письма. Пароль не нужен. Обычно письмо приходит в течение минуты: если его нет — проверьте папку «Спам», правильность адреса, запросите код повторно или напишите в поддержку.</p>
         </div>
         <div class="step">
           <h3>Опишите задачу</h3>
@@ -212,6 +212,8 @@
             <li>Уровни размышления Low и Medium</li>
             <li>Веб-поиск, файлы, генерация изображений</li>
             <li>Музыка и плеер</li>
+            <li>14 сообщений и 20 000 токенов в день</li>
+            <li>100 сообщений и 100 000 токенов в неделю</li>
           </ul>
           <div class="btn-row" style="margin-top:22px;">
             <a class="btn btn-outline" href="/login">Начать бесплатно</a>
@@ -227,12 +229,21 @@
             <li>Уровни размышления Max и Extra</li>
             <li>Распознавание мелодий и нотная запись</li>
             <li>Изображения моделью повышенного качества</li>
+            <li>Сообщения и генерации — без жёстких лимитов, действует защита от злоупотребления</li>
           </ul>
           <div class="btn-row" style="margin-top:22px;">
             <a class="btn btn-primary" href="/subscribe">Оформить Pro</a>
           </div>
         </article>
       </div>
+
+      <p style="max-width:760px;margin:0 0 26px;font-size:14px;color:var(--text-2);line-height:1.6;">
+        Дневной лимит бесплатного доступа обновляется в начале суток, недельный — в понедельник.
+        Когда лимит исчерпан, генерация приостанавливается до обновления окна или перехода на Pro.
+        У Pro жёстких лимитов нет: работает автоматическая защита от злоупотребления — при очень
+        частых запросах подряд возможна короткая пауза. Полные условия — в
+        <a href="/legal/ofera.html" style="color:var(--link);">Платёжной оферте</a>.
+      </p>
 
       <h3 style="margin-bottom:12px;">Тарифы API</h3>
       <div class="table-wrap">
@@ -331,6 +342,20 @@
 
         <div class="faq-item">
           <button class="faq-q" type="button">
+            Что происходит с моими данными и файлами?
+            <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="faq-a"><div><p>
+            Файлы и переписка хранятся у HarmonyAI. Персональные данные сторонним сервисам не передаются.
+            Отдельные материалы — кроме персональных данных — могут обрабатываться сторонними моделями,
+            а обезличенные чаты могут использоваться для улучшения моделей и сервиса. Эту функцию можно
+            отключить в настройках. Подробности — в
+            <a href="/legal/privacy.html" style="color:var(--link);">Политике конфиденциальности</a>.
+          </p></div></div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-q" type="button">
             Чем баланс API отличается от подписки Pro?
             <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
@@ -354,7 +379,7 @@
     <div class="wrap center">
       <h2 style="margin-bottom:14px;">Попробуйте прямо сейчас</h2>
       <p class="lead" style="max-width:560px;margin:0 auto 28px;">
-        Регистрация занимает меньше минуты, карта не нужна.
+        Регистрация обычно занимает меньше минуты, карта не нужна.
       </p>
       <div class="btn-row" style="justify-content:center;">
         <a class="btn btn-primary btn-lg" href="/login">Попробуйте&nbsp;↗</a>
@@ -372,7 +397,7 @@
       <div class="footer-brand">
         <a class="brand" href="/">
           <span class="brand-mark" aria-hidden="true">H</span>
-          Harmony AI
+          HarmonyAI
         </a>
         <p>Универсальный AI-помощник для учёбы, работы, анализа, кода, файлов и творчества.</p>
       </div>
@@ -411,11 +436,13 @@
     </div>
 
     <div class="footer-bottom">
-      <span>© <span data-year>2026</span> Harmony AI</span>
+      <span>© <span data-year>2026</span> HarmonyAI</span>
       <span>
         <a href="/legal/privacy.html">Политика конфиденциальности</a>
         &nbsp;·&nbsp;
         <a href="/legal/terms.html">Условия использования</a>
+        &nbsp;·&nbsp;
+        <a href="/legal/ofera.html">Платёжная оферта</a>
       </span>
     </div>
   </div>
