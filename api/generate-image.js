@@ -1,3 +1,4 @@
+import { hasProAccess, requireUser } from '../lib/auth.js';
 export const config = {
   maxDuration: 60
 };
@@ -71,17 +72,14 @@ async function supabaseRequest(path, init = {}) {
 async function fetchProfile(userId) {
   if (!userId) return null;
   const rows = await supabaseRequest(
-    `/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=id,role,plan&limit=1`
+    `/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=id,role,plan,plan_expires_at&limit=1`
   );
   return rows?.[0] || null;
 }
 
 /* ---------- Проверка: является ли пользователь Pro ---------- */
 
-function isProUser(profile) {
-  const r = String(profile?.role || '').toLowerCase();
-  const p = String(profile?.plan || '').toLowerCase();
-  return r === 'pro' || r === 'developer' || r === 'admin' || r === 'moderator' || p === 'pro';
+function isProUser(profile){return hasProAccess(profile);
 }
 
 /* ---------- Учёт использования ---------- */
@@ -408,7 +406,8 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: { message: 'Method not allowed' } });
 
   try {
-    const { prompt, userId, model } = req.body || {};
+    const user=await requireUser(req,res);if(!user)return;const userId=user.id;
+    const { prompt, model } = req.body || {};
     if (typeof prompt !== 'string' || !prompt.trim()) {
       return res.status(400).json({ error: { message: 'Пустой запрос на генерацию изображения' } });
     }
