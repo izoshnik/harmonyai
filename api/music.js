@@ -1,3 +1,4 @@
+import { requireUser } from '../lib/auth.js';
 /* ============================================================================
    HarmonyAI — HTTP-роутер музыкального модуля.
 
@@ -269,13 +270,14 @@ async function streamAudio(req, res) {
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-supabase-authorization');
   res.setHeader('Cache-Control', 'no-store, max-age=0');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   // Главный рубильник: пока модуль не настроен — 503, фронтенд молча живёт как раньше.
   if (!musicEnabled()) {
+    if(req.method==='POST'&&req.body?.action==='status')return res.status(200).json({available:false,canConnect:false,connected:false});
     return fail(res, 503, 'music_disabled', 'Музыкальный модуль сейчас отключён.');
   }
 
@@ -294,7 +296,7 @@ export default async function handler(req, res) {
 
   const body = req.body || {};
   const action = String(body.action || '').trim();
-  const userId = body.userId ? String(body.userId) : null;
+  const user=await requireUser(req,res);if(!user)return;const userId=user.id;
 
   if (!action) return fail(res, 400, 'bad_request', 'Не указано действие');
 
