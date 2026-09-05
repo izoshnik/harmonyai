@@ -1,3 +1,5 @@
+import { requireUser } from '../lib/auth.js';
+import { recordMetric } from '../lib/stats.js';
 /* ============================================================================
    POST /api/generate-file
    Тело: { format, filename, content, userId? }
@@ -374,7 +376,7 @@ export default async function handler(req, res) {
     const body = req.body || {};
     const format = String(body.format || '').toLowerCase().trim();
     const content = typeof body.content === 'string' ? body.content : (body.content == null ? '' : String(body.content));
-    const userId = body.userId || null;
+    const user=await requireUser(req,res);if(!user)return;const userId=user.id;
 
     if (!FORMATS[format]) {
       return res.status(400).json({ error: 'bad_format', message: 'Неизвестный формат файла.' });
@@ -402,6 +404,7 @@ export default async function handler(req, res) {
       try { console.log(`[generate-file] user=${userId} format=${format} bytes=${buffer.length}`); } catch (e) { /* noop */ }
     }
 
+    await recordMetric(userId,'file_created');
     res.setHeader('Content-Type', fmt.mime);
     res.setHeader('Content-Disposition', contentDisposition(name, fmt.ext));
     res.setHeader('Content-Length', String(buffer.length));
