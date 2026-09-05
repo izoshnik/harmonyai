@@ -68,6 +68,10 @@
     {
       "source": "/settings",
       "destination": "/app.html"
+    },
+    {
+      "source": "/management",
+      "destination": "/management.html"
     }
   ],
   "headers": [
