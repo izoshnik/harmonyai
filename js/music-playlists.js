@@ -869,6 +869,7 @@
     removePlaylist: removePlaylist,
     renamePlaylist: renamePlaylist,
     addToPlaylist: addToPlaylist,
+    openAddTrackMenu: openAddToPlaylistMenu,
     removeFromPlaylist: removeFromPlaylist,
     genresOf: genresOf,
     genreLabel: genreLabel,
