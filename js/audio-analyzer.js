@@ -262,7 +262,7 @@ self.onmessage=function(ev){
     + '.aa-ovl[hidden]{display:none;}'
     + '.aa-card{width:min(720px,100%);max-height:92dvh;overflow:auto;background:var(--bg2,#16161a);border:1px solid var(--border);border-radius:24px;padding:20px;display:flex;flex-direction:column;gap:14px;box-shadow:0 30px 80px rgba(0,0,0,.5);}'
     + '.aa-head{display:flex;align-items:center;gap:10px;}'
-    + '.aa-title{font-size:18px;font-weight:800;color:var(--text);}'
+    + '.aa-title{display:flex;align-items:center;gap:8px;} .aa-title-icon{display:block;flex:0 0 auto;} .aa-title{font-size:18px;font-weight:800;color:var(--text);}'
     + '.aa-x{margin-left:auto;width:32px;height:32px;border-radius:50%;border:none;background:rgba(127,127,140,.14);color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;}'
     + '.aa-drop{border:1.5px dashed var(--border);border-radius:18px;padding:26px;text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center;color:var(--text2);transition:border-color .15s,background .15s;}'
     + '.aa-drop--mini{padding:12px;flex-direction:row;justify-content:center;}'
@@ -302,7 +302,7 @@ self.onmessage=function(ev){
 
   var TPL =
     '<div class="aa-card" role="dialog" aria-modal="true" aria-label="Анализ аудио">'
-    + '<div class="aa-head"><div class="aa-title">🎧 Анализ аудио</div><button type="button" class="aa-x" id="aaClose" aria-label="Закрыть">×</button></div>'
+    + '<div class="aa-head"><div class="aa-title"><svg class="aa-title-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 4v11.2a3.2 3.2 0 11-2-3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 4l8-2v10.2a3.2 3.2 0 11-2-3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Анализ аудио</div><button type="button" class="aa-x" id="aaClose" aria-label="Закрыть">×</button></div>'
     + '<div class="aa-drop" id="aaDrop"><p class="aa-drop-t" id="aaDropT">Перетащите файл или нажмите «Выбрать файл»</p><button type="button" class="aa-btn aa-btn-ghost" id="aaPickBtn">Выбрать файл</button></div>'
     + '<input type="file" id="aaFileInp" accept="audio/*,.mp3,.wav,.m4a,.ogg,.flac,.aac,.opus,.webm" hidden>'
     + '<div id="aaBody" hidden>'
