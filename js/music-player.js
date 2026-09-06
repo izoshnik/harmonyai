@@ -68,6 +68,11 @@
     shuffle: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M3 7h3.5l7 10H21M3 17h3.5l2.2-3.1M14.6 8.2 21 7M18.5 4.5 21 7l-2.5 2.5M18.5 14.5 21 17l-2.5 2.5"/></svg>',
     repeat: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M17 3.5 20 6.5l-3 3M20 6.5H7A3.5 3.5 0 0 0 3.5 10v1M7 20.5 4 17.5l3-3M4 17.5h13a3.5 3.5 0 0 0 3.5-3.5v-1"/></svg>',
     repeatOne: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M17 3.5 20 6.5l-3 3M20 6.5H7A3.5 3.5 0 0 0 3.5 10v1M7 20.5 4 17.5l3-3M4 17.5h13a3.5 3.5 0 0 0 3.5-3.5v-1"/><path fill="currentColor" d="M11.4 9.6h1.3v5h-1.3v-3.8l-1 .5-.3-1z"/></svg>',
+    playNext: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6.5 4.9v10.9c0 .8.9 1.28 1.57.84l8.4-5.45a1 1 0 0 0 0-1.68L8.07 4.06A1 1 0 0 0 6.5 4.9Z"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M5 20h14"/></svg>',
+    toEnd: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M12 3.5v10.2M8 9.7l4 4 4-4M5 20.5h14"/></svg>',
+    note: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" d="M9.2 17.6V6.2l10-1.8v11.4"/><circle cx="6.7" cy="17.6" r="2.6" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="16.7" cy="15.8" r="2.6" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>',
+    info: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.6" fill="none" stroke="currentColor" stroke-width="1.7"/><path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" d="M12 11v5.4"/><circle cx="12" cy="7.6" r="1.15" fill="currentColor"/></svg>',
+    queueList: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" d="M9 6h12M9 12h12M9 18h12"/><circle fill="currentColor" cx="4.4" cy="6" r="1.7"/><circle fill="currentColor" cx="4.4" cy="12" r="1.7"/><circle fill="currentColor" cx="4.4" cy="18" r="1.7"/></svg>',
     queue: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M4 7h12M4 12h12M4 17h8M19 6.5v7.2"/><circle fill="currentColor" cx="17.3" cy="15.4" r="2.1"/></svg>',
     volume: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 9.5h3L11 6v12l-4-3.5H4z"/><path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" d="M14.5 9a4.2 4.2 0 0 1 0 6M17 6.5a7.5 7.5 0 0 1 0 11"/></svg>',
     volumeOff: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 9.5h3L11 6v12l-4-3.5H4z"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="m15 10 5 5M20 10l-5 5"/></svg>',
@@ -126,8 +131,154 @@
     if (el.bar) return;
     buildBar();
     buildScreen();
+    buildQueuePanel();
+    buildCtxMenu();
     buildAudio();
     bindEvents();
+  }
+
+  /* ------------------------------------------------- панель «Очередь треков»
+     Отдельная поверхность поверх всего: открывается кнопкой «…» в строке
+     плеера и кнопкой очереди в полноэкраннике. Тёмная скруглённая колонка
+     справа, как в Яндекс.Музыке. */
+  function buildQueuePanel() {
+    var qp = document.getElementById('musicQueuePanel');
+    if (!qp) {
+      qp = document.createElement('div');
+      qp.id = 'musicQueuePanel';
+      document.body.appendChild(qp);
+    }
+    qp.className = 'music-qp';
+    qp.setAttribute('role', 'region');
+    qp.setAttribute('aria-label', 'Очередь треков');
+    qp.innerHTML =
+      '<div class="music-qp__head">' +
+      iconBtn('qpClose', ICON.chevron, 'Свернуть очередь') +
+      '  <span class="music-qp__caption">Очередь</span>' +
+      '</div>' +
+      '<div class="music-qp__list" id="qpList"></div>' +
+      '<button type="button" class="music-qp__fab" id="qpFab" title="Свернуть очередь" aria-label="Свернуть очередь">' + ICON.queueList + '</button>';
+
+    el.qp = qp;
+    el.qpList = qp.querySelector('#qpList');
+    qp.querySelector('#qpClose').addEventListener('click', function () { toggleQueuePanel(false); });
+    qp.querySelector('#qpFab').addEventListener('click', function () { toggleQueuePanel(false); });
+  }
+
+  function toggleQueuePanel(force) {
+    ensureDom();
+    var open = typeof force === 'boolean' ? force : !el.qp.classList.contains('is-open');
+    el.qp.classList.toggle('is-open', open);
+    if (open) renderQueue();
+    return open;
+  }
+
+  /* ------------------------------------------------- контекстное меню трека
+     Меню по «…» у строки очереди: как в Яндекс.Музыке — лайк, дизлайк,
+     позиция в очереди, плейлист, шаринг и сведения. */
+  var ctxIndex = -1;
+
+  function buildCtxMenu() {
+    var m = document.getElementById('musicCtxMenu');
+    if (!m) {
+      m = document.createElement('div');
+      m.id = 'musicCtxMenu';
+      document.body.appendChild(m);
+      /* Клик мимо меню закрывает его (на перехвате — чтобы щелчок по «…»
+         той же строки успел погаситься собственной остановкой всплытия). */
+      document.addEventListener('click', function (ev) {
+        if (ctxIndex < 0) return;
+        if (m.contains(ev.target)) return;
+        closeCtxMenu();
+      }, true);
+    }
+    m.className = 'music-ctx';
+    m.setAttribute('role', 'menu');
+    el.ctx = m;
+  }
+
+  function ctxRow(act, icon, label, cls) {
+    return '<button type="button" class="music-ctx__row' + (cls ? ' ' + cls : '') + '" role="menuitem" data-act="' + act + '">' +
+      icon + '<span>' + esc(label) + '</span></button>';
+  }
+
+  function openCtxMenu(ev, idx) {
+    var t = state.queue[idx];
+    if (!t) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    ctxIndex = idx;
+
+    var liked = isTrackLiked(t.trackId);
+    el.ctx.innerHTML =
+      ctxRow('like', liked ? ICON.heartOn : ICON.heart, liked ? 'В избранном' : 'Нравится', liked ? 'is-liked' : '') +
+      ctxRow('dislike', ICON.heartBroken, 'Не нравится') +
+      ctxRow('next', ICON.playNext, 'Играть следующим') +
+      ctxRow('end', ICON.toEnd, 'В конец очереди') +
+      ctxRow('pl', ICON.note, 'В плейлист') +
+      ctxRow('share', ICON.share, 'Поделиться') +
+      ctxRow('about', ICON.info, 'О треке');
+
+    Array.prototype.forEach.call(el.ctx.querySelectorAll('.music-ctx__row'), function (row) {
+      row.addEventListener('click', function (ev2) {
+        ctxAction(row.getAttribute('data-act'), ev2);
+      });
+    });
+
+    el.ctx.classList.add('is-open');
+    var r = el.ctx.getBoundingClientRect();
+    var x = Math.max(10, Math.min(ev.clientX, global.innerWidth - r.width - 12));
+    var y = Math.max(10, Math.min(ev.clientY, global.innerHeight - r.height - 12));
+    el.ctx.style.left = x + 'px';
+    el.ctx.style.top = y + 'px';
+  }
+
+  function closeCtxMenu() {
+    ctxIndex = -1;
+    if (el.ctx) el.ctx.classList.remove('is-open');
+  }
+
+  function ctxAction(act, ev) {
+    var idx = ctxIndex;
+    var t = state.queue[idx];
+    closeCtxMenu();
+    if (!t) return;
+
+    if (act === 'like') { likeTrack(t); return; }
+
+    if (act === 'dislike') {
+      if (idx === state.index) { dislike(); return; }
+      if (isTrackLiked(t.trackId)) likeTrack(t, false);
+      notify('Не нравится: трек убран из избранного');
+      return;
+    }
+
+    if (act === 'next' || act === 'end') {
+      if (idx === state.index) { notify(act === 'next' ? 'Трек уже играет' : 'Трек уже последний в очереди'); return; }
+      var wasBefore = idx < state.index;
+      state.queue.splice(idx, 1);
+      if (act === 'next') {
+        var at = state.index + 1;
+        state.queue.splice(at, 0, t);
+        if (wasBefore) state.index--;
+      } else {
+        state.queue.push(t);
+        if (wasBefore) state.index--;
+      }
+      renderQueue(); save(); emitChange();
+      notify(act === 'next' ? 'Трек заиграет следующим' : 'Трек перемещён в конец очереди');
+      return;
+    }
+
+    if (act === 'pl') {
+      var mp = global.MusicPlaylists;
+      if (mp && typeof mp.openAddTrackMenu === 'function') mp.openAddTrackMenu(ev, t);
+      else notify('Плейлисты недоступны');
+      return;
+    }
+
+    if (act === 'share') { share(t); return; }
+    if (act === 'about') { notify((t.title || 'Трек') + ' — ' + (t.artist || 'исполнитель неизвестен')); return; }
   }
 
   /* Компактная строка: живёт ВНУТРИ колонки чата, сразу под топбаром
@@ -150,14 +301,24 @@
     bar.innerHTML =
       '<div class="music-bar__amb" id="mbAmb" aria-hidden="true"></div>' +
       '<div class="music-bar__row" id="mbRow" role="button" tabindex="0" aria-label="Открыть плеер">' +
-      '  <span class="music-bar__coverwrap"><img class="music-bar__cover" id="mbCover" alt="" /></span>' +
-      '  <span class="music-bar__meta">' +
-      '    <span class="music-bar__title" id="mbTitle"></span>' +
-      '    <span class="music-bar__artist" id="mbArtist"></span>' +
+      '  <span class="music-bar__lead">' +
+      '    <span class="music-bar__coverwrap"><img class="music-bar__cover" id="mbCover" alt="" /></span>' +
+      '    <span class="music-bar__meta">' +
+      '      <span class="music-bar__title" id="mbTitle"></span>' +
+      '      <span class="music-bar__artist" id="mbArtist"></span>' +
+      '    </span>' +
+      '  </span>' +
+      '  <span class="music-bar__ctrls">' +
+      iconBtn('mbVol', ICON.volume, 'Звук', 'music-ico--mute') +
+      iconBtn('mbShuffle', ICON.shuffle, 'Вперемешку', 'music-ico--shuffle') +
+      iconBtn('mbPrev', ICON.prev, 'Предыдущий', 'music-ico--step') +
+      '    <button type="button" class="music-ico music-ico--play" id="mbPlay" title="Воспроизвести" aria-label="Воспроизвести">' + ICON.play + '</button>' +
+      iconBtn('mbNext', ICON.next, 'Следующий', 'music-ico--step') +
+      iconBtn('mbRepeat', ICON.repeat, 'Повтор', 'music-ico--repeat') +
+      iconBtn('mbLike', ICON.heart, 'Нравится', 'music-ico--like') +
       '  </span>' +
       '  <span class="music-bar__acts">' +
-      iconBtn('mbLike', ICON.heart, 'Нравится', 'music-ico--like') +
-      iconBtn('mbPlay', ICON.play, 'Воспроизвести', 'music-ico--play') +
+      iconBtn('mbDots', ICON.dots, 'Очередь') +
       '  </span>' +
       '</div>' +
       '<div class="music-bar__line" aria-hidden="true"><i id="mbLine"></i></div>';
@@ -170,6 +331,12 @@
     el.artist = bar.querySelector('#mbArtist');
     el.like = bar.querySelector('#mbLike');
     el.play = bar.querySelector('#mbPlay');
+    el.mbVol = bar.querySelector('#mbVol');
+    el.mbShuffle = bar.querySelector('#mbShuffle');
+    el.mbPrev = bar.querySelector('#mbPrev');
+    el.mbNext = bar.querySelector('#mbNext');
+    el.mbRepeat = bar.querySelector('#mbRepeat');
+    el.mbDots = bar.querySelector('#mbDots');
     el.line = bar.querySelector('#mbLine');
   }
 
@@ -194,31 +361,39 @@
       '  <div class="music-screen__grip" aria-hidden="true"></div>' +
       '  <div class="music-screen__top">' +
       iconBtn('msCollapse', ICON.chevron, 'Свернуть') +
-      iconBtn('msMenu', ICON.dots, 'Ещё') +
       '  </div>' +
-      '  <div class="music-screen__art"><img id="msArt" alt="" /></div>' +
-      '  <div class="music-screen__head">' +
-      '    <div class="music-screen__titles">' +
+      '  <div class="music-screen__stage">' +
+      '    <div class="music-screen__artwrap">' +
+      '      <img id="msArt" alt="" />' +
+      '      <div class="music-screen__overlay">' +
+      iconBtn('msPrev', ICON.prev, 'Предыдущий', 'music-ico--step music-ico--onart') +
+      '        <button type="button" class="music-main" id="msPlay" title="Воспроизвести" aria-label="Воспроизвести">' + ICON.play + '</button>' +
+      iconBtn('msNext', ICON.next, 'Следующий', 'music-ico--step music-ico--onart') +
+      '      </div>' +
+      '      <div class="music-screen__corner music-screen__corner--l">' +
+      iconBtn('msRepeat', ICON.repeat, 'Повтор', 'music-ico--onart') +
+      '      </div>' +
+      '      <div class="music-screen__corner music-screen__corner--r">' +
+      iconBtn('msLike', ICON.heart, 'Нравится', 'music-ico--like music-ico--onart') +
+      '      </div>' +
+      '    </div>' +
+      '    <div class="music-screen__info">' +
       '      <div class="music-screen__title" id="msTitle"></div>' +
       '      <div class="music-screen__artist" id="msArtist"></div>' +
+      '      <div class="music-screen__seekwrap">' +
+      '        <div class="music-seek" id="msSeek" role="slider" tabindex="0" aria-label="Перемотка"' +
+      '             aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">' +
+      '          <i class="music-seek__buf" id="msBuf"></i>' +
+      '          <i class="music-seek__played" id="msPlayed"></i>' +
+      '          <i class="music-seek__thumb" id="msThumb"></i>' +
+      '        </div>' +
+      '        <div class="music-screen__times"><span id="msCur">0:00</span><span id="msDur">0:00</span></div>' +
+      '      </div>' +
       '    </div>' +
-      iconBtn('msShare', ICON.share, 'Поделиться') +
       '  </div>' +
-      '  <div class="music-screen__seekwrap">' +
-      '    <div class="music-seek" id="msSeek" role="slider" tabindex="0" aria-label="Перемотка"' +
-      '         aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">' +
-      '      <i class="music-seek__buf" id="msBuf"></i>' +
-      '      <i class="music-seek__played" id="msPlayed"></i>' +
-      '      <i class="music-seek__thumb" id="msThumb"></i>' +
-      '    </div>' +
-      '    <div class="music-screen__times"><span id="msCur">0:00</span><span id="msDur">0:00</span></div>' +
-      '  </div>' +
-      '  <div class="music-screen__controls">' +
-      iconBtn('msDislike', ICON.heartBroken, 'Не нравится') +
-      iconBtn('msPrev', ICON.prev, 'Предыдущий', 'music-ico--step') +
-      '    <button type="button" class="music-main" id="msPlay" title="Воспроизвести" aria-label="Воспроизвести">' + ICON.play + '</button>' +
-      iconBtn('msNext', ICON.next, 'Следующий', 'music-ico--step') +
-      iconBtn('msLike', ICON.heart, 'Нравится', 'music-ico--like') +
+      '  <div class="music-screen__foot">' +
+      iconBtn('msMenu', ICON.dots, 'Ещё', 'music-round') +
+      iconBtn('msQueueBtn', ICON.queueList, 'Очередь', 'music-round') +
       '  </div>' +
       '</div>' +
       '<div class="music-sheet" id="msSheet" hidden>' +
@@ -230,10 +405,10 @@
       '      <div class="music-sheet__row music-sheet__row--vol">' + ICON.volume +
       '        <input type="range" id="shVol" min="0" max="100" value="100" aria-label="Громкость" />' +
       '      </div>' +
+      '      <button type="button" class="music-sheet__row" id="shDislike">' + ICON.heartBroken + '<span>Не нравится и перейти к следующему</span></button>' +
+      '      <button type="button" class="music-sheet__row" id="shShare">' + ICON.share + '<span>Поделиться</span></button>' +
       '      <button type="button" class="music-sheet__row" id="shClose">' + ICON.close + '<span>Закрыть плеер</span></button>' +
       '    </div>' +
-      '    <div class="music-sheet__title">Очередь</div>' +
-      '    <div class="music-queue" id="msQueue"></div>' +
       '  </div>' +
       '</div>';
 
@@ -246,10 +421,10 @@
     el.msPrev = scr.querySelector('#msPrev');
     el.msNext = scr.querySelector('#msNext');
     el.msLike = scr.querySelector('#msLike');
-    el.msDislike = scr.querySelector('#msDislike');
-    el.msShare = scr.querySelector('#msShare');
     el.msCollapse = scr.querySelector('#msCollapse');
     el.msMenu = scr.querySelector('#msMenu');
+    el.msQueueBtn = scr.querySelector('#msQueueBtn');
+    el.msRepeat = scr.querySelector('#msRepeat');
     el.seek = scr.querySelector('#msSeek');
     el.buf = scr.querySelector('#msBuf');
     el.played = scr.querySelector('#msPlayed');
@@ -257,12 +432,13 @@
     el.cur = scr.querySelector('#msCur');
     el.dur = scr.querySelector('#msDur');
     el.sheet = scr.querySelector('#msSheet');
-    el.queue = scr.querySelector('#msQueue');
     el.shShuffle = scr.querySelector('#shShuffle');
     el.shRepeat = scr.querySelector('#shRepeat');
     el.shShuffleV = scr.querySelector('#shShuffleV');
     el.shRepeatV = scr.querySelector('#shRepeatV');
     el.shVol = scr.querySelector('#shVol');
+    el.shDislike = scr.querySelector('#shDislike');
+    el.shShare = scr.querySelector('#shShare');
     el.shClose = scr.querySelector('#shClose');
     el.inner = scr.querySelector('.music-screen__inner');
   }
@@ -298,17 +474,26 @@
     el.play.addEventListener('click', function (ev) { stop(ev); toggle(); });
     el.like.addEventListener('click', function (ev) { stop(ev); toggleLike(); });
 
+    el.mbVol.addEventListener('click', function (ev) { stop(ev); toggleMute(); });
+    el.mbShuffle.addEventListener('click', function (ev) { stop(ev); toggleShuffle(); });
+    el.mbPrev.addEventListener('click', function (ev) { stop(ev); prev(); });
+    el.mbNext.addEventListener('click', function (ev) { stop(ev); next(true); });
+    el.mbRepeat.addEventListener('click', function (ev) { stop(ev); cycleRepeat(); });
+    el.mbDots.addEventListener('click', function (ev) { stop(ev); toggleQueuePanel(); });
+
     el.msPlay.addEventListener('click', toggle);
     el.msNext.addEventListener('click', function () { next(true); });
     el.msPrev.addEventListener('click', prev);
     el.msLike.addEventListener('click', function () { toggleLike(); });
-    el.msDislike.addEventListener('click', dislike);
-    el.msShare.addEventListener('click', share);
+    el.msRepeat.addEventListener('click', cycleRepeat);
     el.msCollapse.addEventListener('click', collapse);
     el.msMenu.addEventListener('click', toggleSheet);
+    el.msQueueBtn.addEventListener('click', function () { toggleQueuePanel(); });
 
     el.shShuffle.addEventListener('click', function () { toggleShuffle(); });
     el.shRepeat.addEventListener('click', function () { cycleRepeat(); });
+    el.shDislike.addEventListener('click', function () { if (el.sheet.hidden) toggleSheet(); dislike(); });
+    el.shShare.addEventListener('click', function () { if (el.sheet.hidden) toggleSheet(); share(); });
     el.shClose.addEventListener('click', function () { close(); });
     el.shVol.addEventListener('input', function () {
       state.volume = Number(el.shVol.value) / 100;
@@ -365,7 +550,12 @@
       if (tag === 'input' || tag === 'textarea' || (t && t.isContentEditable)) return;
 
       if (ev.code === 'Space') { ev.preventDefault(); toggle(); return; }
-      if (ev.key === 'Escape' && state.expanded) { ev.preventDefault(); collapse(); }
+      if (ev.key === 'Escape') {
+        ev.preventDefault();
+        if (el.ctx && el.ctx.classList.contains('is-open')) { closeCtxMenu(); return; }
+        if (el.qp && el.qp.classList.contains('is-open')) { toggleQueuePanel(false); return; }
+        if (state.expanded) collapse();
+      }
     });
   }
 
@@ -516,12 +706,12 @@
   function renderPlayButton() {
     var icon = state.playing ? ICON.pause : ICON.play;
     var label = state.playing ? 'Пауза' : 'Воспроизвести';
-    el.play.innerHTML = icon;
-    el.play.title = label;
-    el.play.setAttribute('aria-label', label);
-    el.msPlay.innerHTML = icon;
-    el.msPlay.title = label;
-    el.msPlay.setAttribute('aria-label', label);
+    [el.play, el.msPlay].forEach(function (b) {
+      if (!b) return;
+      b.innerHTML = icon;
+      b.title = label;
+      b.setAttribute('aria-label', label);
+    });
     el.bar.classList.toggle('is-playing', state.playing);
     el.screen.classList.toggle('is-playing', state.playing);
   }
@@ -557,7 +747,14 @@
   }
 
   function renderVolume() {
-    el.shVol.value = String(Math.round((state.muted ? 0 : state.volume) * 100));
+    if (el.shVol) el.shVol.value = String(Math.round((state.muted ? 0 : state.volume) * 100));
+    if (el.mbVol) {
+      el.mbVol.innerHTML = state.muted ? ICON.volumeOff : ICON.volume;
+      el.mbVol.classList.toggle('is-muted', Boolean(state.muted));
+      var lbl = state.muted ? 'Включить звук' : 'Выключить звук';
+      el.mbVol.title = lbl;
+      el.mbVol.setAttribute('aria-label', lbl);
+    }
   }
 
   function renderLike() {
@@ -624,24 +821,57 @@
       '<span>Повтор</span><b id="shRepeatV">' +
       (state.repeat === 'off' ? 'Выкл' : (state.repeat === 'one' ? 'Один трек' : 'Очередь')) + '</b>';
     el.shRepeatV = el.shRepeat.querySelector('#shRepeatV');
+
+    /* Компактная строка: подсветка активных режимов. */
+    if (el.mbShuffle) el.mbShuffle.classList.toggle('is-on', state.shuffle);
+    if (el.mbRepeat) {
+      var on = state.repeat !== 'off';
+      el.mbRepeat.classList.toggle('is-on', on);
+      el.mbRepeat.innerHTML = (state.repeat === 'one') ? ICON.repeatOne : ICON.repeat;
+    }
+    /* Сердечко/повтор на обложке полноэкранника. */
+    if (el.msRepeat) {
+      var rOn = state.repeat !== 'off';
+      el.msRepeat.classList.toggle('is-on', rOn);
+      el.msRepeat.innerHTML = (state.repeat === 'one') ? ICON.repeatOne : ICON.repeat;
+    }
   }
 
   function renderQueue() {
-    if (!el.queue || el.sheet.hidden) return;
-    el.queue.innerHTML = state.queue.map(function (t, i) {
-      return '<button type="button" class="music-queue__row' + (i === state.index ? ' is-current' : '') +
-        '" data-i="' + i + '">' +
-        '<span class="music-queue__n">' + (i + 1) + '</span>' +
-        '<span class="music-queue__t">' + esc(t.title) + '</span>' +
-        '<span class="music-queue__a">' + esc(t.artist) + '</span>' +
-        '</button>';
+    if (!el.qpList || !el.qp.classList.contains('is-open')) return;
+    el.qpList.innerHTML = state.queue.map(function (t, i) {
+      var cov = t.cover
+        ? '<img class="music-qp__cover" src="' + esc(t.cover) + '" alt="" loading="lazy" />'
+        : '<span class="music-qp__cover music-qp__cover--empty" aria-hidden="true"></span>';
+      return '<div class="music-qp__row' + (i === state.index ? ' is-current' : '') +
+        '" data-i="' + i + '" role="button" tabindex="0" aria-label="' + esc(t.title) + '">' +
+        cov +
+        '<span class="music-qp__meta">' +
+        '  <span class="music-qp__t">' + esc(t.title) + '</span>' +
+        '  <span class="music-qp__a">' + esc(t.artist) + '</span>' +
+        '</span>' +
+        '<button type="button" class="music-ico music-qp__more" data-more="' + i + '" aria-label="Действия с треком">' + ICON.dots + '</button>' +
+        '</div>';
     }).join('');
 
-    Array.prototype.forEach.call(el.queue.querySelectorAll('.music-queue__row'), function (row) {
-      row.addEventListener('click', function () {
+    Array.prototype.forEach.call(el.qpList.querySelectorAll('.music-qp__row'), function (row) {
+      row.addEventListener('click', function (ev) {
+        if (ev.target.closest && ev.target.closest('.music-qp__more')) return;
         playAt(Number(row.getAttribute('data-i')));
       });
+      row.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); playAt(Number(row.getAttribute('data-i'))); }
+      });
     });
+    Array.prototype.forEach.call(el.qpList.querySelectorAll('.music-qp__more'), function (btn) {
+      btn.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        openCtxMenu(ev, Number(btn.getAttribute('data-more')));
+      });
+    });
+
+    var cur = el.qpList.querySelector('.music-qp__row.is-current');
+    if (cur && typeof cur.scrollIntoView === 'function') cur.scrollIntoView({ block: 'nearest' });
   }
 
   function show() { ensureDom(); el.bar.classList.add('is-visible'); document.body.classList.add('has-music-bar'); }
@@ -742,8 +972,8 @@
     return true;
   }
 
-  function share() {
-    var t = current();
+  function share(track) {
+    var t = track || current();
     if (!t) return false;
     var url = 'https://music.yandex.ru/track/' + encodeURIComponent(t.trackId);
     var data = { title: t.title || '', text: (t.title || '') + ' — ' + (t.artist || ''), url: url };
@@ -962,6 +1192,8 @@
     pause();
     collapse();
     hide();
+    if (el.qp) el.qp.classList.remove('is-open');
+    closeCtxMenu();
     state.queue = [];
     state.index = -1;
     if (audio) audio.removeAttribute('src');
@@ -1172,6 +1404,7 @@
     cycleRepeat: cycleRepeat,
     toggleMute: toggleMute,
     setVolume: setVolume,
+    toggleQueuePanel: toggleQueuePanel,
     close: close,
     restore: restore,
     expand: expand,
