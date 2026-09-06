@@ -37,6 +37,11 @@ if (!window.__I18N_DICT['Использовать мои чаты для улу�
 if (!window.__I18N_DICT['Не удалось сохранить настройку. Попробуйте ещё раз позже.']) window.__I18N_DICT['Не удалось сохранить настройку. Попробуйте ещё раз позже.']={en:'Could not save the setting. Please try again later.',fr:'Impossible d\'enregistrer le réglage. Réessayez plus tard.',de:'Einstellung konnte nicht gespeichert werden. Bitte später erneut versuchen.',es:'No se pudo guardar el ajuste. Inténtalo más tarde.'};
 if (!window.__I18N_DICT['Использовать мои чаты для улучшения сервиса можно включить или отключить в «Настройки → Сведения» в любой момент.']) window.__I18N_DICT['Использовать мои чаты для улучшения сервиса можно включить или отключить в «Настройки → Сведения» в любой момент.']={en:'You can enable or disable “Use my chats to improve the service” at any time in Settings → About.',fr:'Vous pouvez activer ou désactiver « Utiliser mes conversations pour améliorer le service » à tout moment dans Paramètres → À propos.',de:'„Meine Chats zur Verbesserung des Dienstes verwenden“ kannst du jederzeit unter Einstellungen → Über aktivieren oder deaktivieren.',es:'Puedes activar o desactivar «Usar mis chats para mejorar el servicio» en cualquier momento en Ajustes → Acerca de.'};
 
+
+if (!window.__I18N_DICT['Войти через Discord']) window.__I18N_DICT['Войти через Discord']={en:'Sign in with Discord',fr:'Se connecter avec Discord',de:'Anmelden mit Discord',es:'Iniciar sesión con Discord'};
+if (!window.__I18N_DICT['Войти через Google']) window.__I18N_DICT['Войти через Google']={en:'Sign in with Google',fr:'Se connecter avec Google',de:'Anmelden mit Google',es:'Iniciar sesión con Google'};
+if (!window.__I18N_DICT['Discord']) window.__I18N_DICT['Discord']={en:'Discord',fr:'Discord',de:'Discord',es:'Discord'};
+
 })();
 /* ===== ДОБАВЛЕНИЯ ===== */
 /* ===== Beta 0.8.2: новый экран входа, GitHub, оферта, настройка обучения ===== */
