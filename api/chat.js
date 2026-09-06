@@ -1423,14 +1423,14 @@ function selectRoute(profile, requestedModel) {
 
 /* ============================================================================
    СЕРВЕРНАЯ ЗАЩИТА ОТ ЗЛОУПОТРЕБЛЕНИЯ (таблица public.usage_events в Supabase)
-   - Adanatos (free): жёсткие суточные/недельные лимиты по токенам ИЛИ сообщениям.
+   - Adanatos (free): жёсткие лимиты в 5-часовом окне и за календарный месяц.
    - Dynatos (pro): формально безлимитен, но защищён «мягкими» потолками, т.к. токены дороги:
        • burst — не более N сообщений за короткое окно (антифлуд);
        • суточный потолок токенов (очень высокий) — режет только явное злоупотребление/скрипты.
    Учёт ведётся по user_id на сервере, поэтому его нельзя обойти очисткой localStorage.
    Гости (без userId) режутся по «мягкому» burst в памяти инстанса (лучше, чем ничего). */
 const ABUSE = {
-  adanatos: { dayTokens: 20000, dayMessages: 14, weekTokens: 100000, weekMessages: 100 },
+  adanatos: { windowTokens: 20000, windowMessages: 14, monthTokens: 400000, monthMessages: 400 },
   dynatos:  { burstMessages: 25, burstWindowSec: 180, dayTokens: 2000000, dayMessages: 4000 }
 };
 
@@ -1475,11 +1475,7 @@ async function sumUsageSince(userId, model, sinceIso) {
 }
 
 function startOfTodayIso() { const d = new Date(); d.setHours(0, 0, 0, 0); return d.toISOString(); }
-function startOfWeekIso() {
-  const d = new Date(); const day = d.getDay() || 7;
-  d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - (day - 1));
-  return d.toISOString();
-}
+function startOfMonthIso() { const d = new Date(); d.setDate(1); d.setHours(0, 0, 0, 0); return d.toISOString(); }
 
 // Проверяет право на запрос ДО вызова модели. Возвращает {ok} или {ok:false, status, message, scope}.
 async function checkUsageAllowance(userId, profile, requestedModel) {
@@ -1508,17 +1504,17 @@ async function checkUsageAllowance(userId, profile, requestedModel) {
       return { ok: true };
     }
     const cfg = ABUSE.adanatos;
-    const [day, week] = await Promise.all([
-      sumUsageSince(userId, 'adanatos', startOfTodayIso()),
-      sumUsageSince(userId, 'adanatos', startOfWeekIso())
+    const [windowUsage, month] = await Promise.all([
+      sumUsageSince(userId, 'adanatos', new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString()),
+      sumUsageSince(userId, 'adanatos', startOfMonthIso())
     ]);
-    if (day.tokens >= cfg.dayTokens || day.messages >= cfg.dayMessages) {
-      return { ok: false, status: 429, scope: 'day_limit',
-        message: 'Дневной лимит Adanatos исчерпан. Он обновится завтра, либо перейдите на Dynatos для работы без ограничений.' };
+    if (windowUsage.tokens >= cfg.windowTokens || windowUsage.messages >= cfg.windowMessages) {
+      return { ok: false, status: 429, scope: 'window_limit',
+        message: 'Лимит Adanatos в текущем 5-часовом окне исчерпан. Подождите обновления окна или перейдите на Dynatos для работы без ограничений.' };
     }
-    if (week.tokens >= cfg.weekTokens || week.messages >= cfg.weekMessages) {
-      return { ok: false, status: 429, scope: 'week_limit',
-        message: 'Недельный лимит Adanatos исчерпан. Он обновится в начале недели, либо перейдите на Dynatos для работы без ограничений.' };
+    if (month.tokens >= cfg.monthTokens || month.messages >= cfg.monthMessages) {
+      return { ok: false, status: 429, scope: 'month_limit',
+        message: 'Ежемесячный лимит Adanatos исчерпан. Он обновится в начале следующего месяца, либо перейдите на Dynatos для работы без ограничений.' };
     }
     return { ok: true };
   } catch (e) {
