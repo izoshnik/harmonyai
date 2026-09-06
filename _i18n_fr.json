@@ -152,7 +152,13 @@
   "Сообщить о проблеме в приложении": "Signaler un problème dans l'application",
   "Сохранить": "Enregistrer",
   "Сохранять память": "Conserver la mémoire",
-  "Спроси меня про любой аккорд 🎵": "Demandez-moi n'importe quel accord 🎵",
+  "Спроси меня про любой аккорд": "Demandez-moi n'importe quel accord",
+  "Помогу разобрать сольфеджио": "Je peux aider en solfège",
+  "Покажу любую гамму в нотах": "Je peux montrer n'importe quelle gamme en notes",
+  "Объясню любой музыкальный термин": "Je peux expliquer n'importe quel terme musical",
+  "Умею распознавать ноты с фото": "Je sais lire des notes sur une photo",
+  "Помогаю не только с музыкой": "Je sers aussi bien au-delà de la musique",
+  "Построю аккордовую цепочку T–S–D–T": "Je peux construire un enchaînement T–S–D–T",
   "Спросить HarmonyAI": "Demander à HarmonyAI",
   "Ссылаться на память": "Se référer à la mémoire",
   "Так мы будем обращаться к вам в чате. Это можно изменить позже в настройках.": "C'est ainsi que nous vous appellerons dans le chat. Vous pourrez le modifier plus tard dans les paramètres.",
@@ -187,10 +193,5 @@
   "▾": "▾",
   "✓": "✓",
   "✓ Сохранено! Спасибо за помощь.": "✓ Enregistré ! Merci de votre aide.",
-  "✓ просмотрен": "✓ consulté",
-  "🌐": "🌐",
-  "🎓": "🎓",
-  "🎓 Обучение": "🎓 Formation",
-  "💭": "💭",
-  "🔄 в процессе": "🔄 en cours"
+  "✓ просмотрен": "✓ consulté"
 }
