@@ -19,6 +19,7 @@
   --music-fg: #f4f6f8;
   --music-dim: rgba(235, 240, 245, .62);
   --music-red: #ff375f;
+  --music-yellow: #ffc800;
   --music-glass: rgba(22, 23, 26, .58);
   --music-edge: rgba(255, 255, 255, .14);
   --music-hi: rgba(255, 255, 255, .18);
@@ -68,9 +69,9 @@
 .music-bar {
   position: relative;
   z-index: 3;
-  width: min(720px, calc(100% - 24px));
-  margin: 8px auto 2px;
-  border-radius: 16px;
+  width: min(1180px, calc(100% - 32px));
+  margin: 10px auto 4px;
+  border-radius: 20px;
   overflow: hidden;
   isolation: isolate;
   color: var(--music-fg);
@@ -113,30 +114,38 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 8px 10px 8px 8px;
-  min-height: var(--music-bar-h);
+  gap: 14px;
+  padding: 10px 12px;
+  min-height: 68px;
   box-sizing: border-box;
   cursor: pointer;
 }
-.music-bar__row:focus-visible { outline: 2px solid rgba(255, 255, 255, .6); outline-offset: -2px; border-radius: 16px; }
+.music-bar__row:focus-visible { outline: 2px solid rgba(255, 255, 255, .6); outline-offset: -2px; border-radius: 20px; }
 
+/* Обложка и названия — левая часть, клик открывает большой экран. */
+.music-bar__lead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
 .music-bar__coverwrap {
-  width: 40px;
-  height: 40px;
+  width: 48px;
+  height: 48px;
   flex: 0 0 auto;
-  border-radius: 9px;
+  border-radius: 12px;
   overflow: hidden;
   background: rgba(255, 255, 255, .1);
   box-shadow: 0 2px 8px rgba(0, 0, 0, .35), inset 0 0 0 .5px rgba(255, 255, 255, .18);
 }
 .music-bar__cover { width: 100%; height: 100%; object-fit: cover; display: block; }
 
-.music-bar__meta { min-width: 0; flex: 1 1 auto; display: block; }
+.music-bar__meta { min-width: 0; flex: 0 1 auto; max-width: 340px; display: block; }
 .music-bar__title {
   display: block;
-  font-weight: 600;
-  font-size: 14.5px;
+  font-weight: 700;
+  font-size: 15px;
   letter-spacing: .1px;
   line-height: 1.25;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -149,9 +158,37 @@
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
-.music-bar__acts { display: flex; align-items: center; gap: 2px; flex: 0 0 auto; }
-.music-bar__acts .music-ico { width: 36px; height: 36px; }
-.music-bar__acts .music-ico svg { width: 20px; height: 20px; }
+/* Центральные транспортные кнопки — как в Яндекс Музыке. */
+.music-bar__ctrls {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+.music-bar__ctrls .music-ico { width: 40px; height: 40px; }
+.music-bar__ctrls .music-ico svg { width: 22px; height: 22px; }
+.music-bar__ctrls .music-ico--step svg { width: 26px !important; height: 26px !important; }
+.music-bar__ctrls .music-ico.is-on { color: var(--music-yellow); }
+
+/* Главная кнопка бара — жёлтый круг (фирменный цвет Яндекса). */
+.music-bar .music-ico--play {
+  width: 46px;
+  height: 46px;
+  background: var(--music-yellow);
+  color: #161616;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .4);
+}
+.music-bar .music-ico--play:hover { background: var(--music-yellow); filter: brightness(1.06); }
+.music-bar .music-ico--play svg { width: 26px; height: 26px; }
+
+/* Правая часть: кнопка очереди. */
+.music-bar__acts { display: flex; align-items: center; gap: 2px; flex: 0 0 auto; margin-left: auto; }
+.music-bar__acts .music-ico { width: 38px; height: 38px; }
+.music-bar__acts .music-ico svg { width: 22px; height: 22px; }
 
 /* Тонкая линия прогресса по нижней кромке — не отвлекает, но всё видно. */
 .music-bar__line {
@@ -214,13 +251,13 @@
 .music-screen__inner {
   position: relative;
   height: 100%;
-  max-width: 460px;
+  max-width: 1120px;
   margin: 0 auto;
-  padding: max(10px, env(safe-area-inset-top)) 22px max(18px, env(safe-area-inset-bottom));
+  padding: max(14px, env(safe-area-inset-top)) clamp(20px, 4vw, 56px) max(18px, env(safe-area-inset-bottom));
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
   transform: translateY(22px) scale(.98);
   opacity: 0;
   transition: transform .32s cubic-bezier(.22, .8, .3, 1), opacity .28s ease;
@@ -231,62 +268,144 @@
   width: 38px; height: 4px;
   border-radius: 2px;
   background: rgba(255, 255, 255, .28);
-  margin: 6px auto 0;
+  margin: 2px auto 0;
   flex: 0 0 auto;
 }
 
 .music-screen__top {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   flex: 0 0 auto;
 }
 
-/* Крупная обложка — главный элемент экрана. */
-.music-screen__art {
+/* ------- сцена: обложка с кнопками внутри + крупные названия справа ------- */
+
+.music-screen__stage {
   flex: 1 1 auto;
   min-height: 0;
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 4px 0 6px;
+  gap: clamp(28px, 5vw, 72px);
 }
-.music-screen__art img {
-  width: 100%;
-  max-width: min(78vw, 340px);
-  max-height: 100%;
+
+.music-screen__artwrap {
+  position: relative;
+  flex: 0 1 auto;
+  width: min(44vh, 420px);
+  max-width: 44%;
   aspect-ratio: 1 / 1;
+  margin: 0 auto;
+}
+.music-screen__artwrap img {
+  width: 100%;
+  height: 100%;
   object-fit: cover;
-  border-radius: 14px;
+  border-radius: 24px;
   background: rgba(255, 255, 255, .06);
   box-shadow:
     0 26px 60px rgba(0, 0, 0, .55),
     inset 0 0 0 .5px rgba(255, 255, 255, .14);
   transition: transform .3s cubic-bezier(.22, .8, .3, 1);
 }
-/* На паузе обложка чуть уменьшается — как в системных плеерах. */
-.music-screen:not(.is-playing) .music-screen__art img { transform: scale(.94); }
+.music-screen:not(.is-playing) .music-screen__artwrap img { transform: scale(.965); }
 
-.music-screen__head {
+/* Кнопки прямо на обложке: prev / play / next по центру, повтор и лайк — по углам. */
+.music-screen__overlay {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
-  gap: 12px;
-  flex: 0 0 auto;
+  justify-content: center;
+  gap: clamp(12px, 2.2vw, 26px);
 }
-.music-screen__titles { min-width: 0; flex: 1 1 auto; }
+.music-screen__overlay .music-ico--step {
+  width: 54px; height: 54px;
+  color: #fff;
+}
+.music-screen__overlay .music-ico--step svg { width: 34px !important; height: 34px !important; }
+.music-ico--onart { filter: drop-shadow(0 2px 12px rgba(0, 0, 0, .55)); }
+.music-ico--onart:hover { background: rgba(0, 0, 0, .22); }
+
+.music-screen__corner { position: absolute; bottom: 14px; display: flex; gap: 6px; }
+.music-screen__corner--l { left: 14px; }
+.music-screen__corner--r { right: 14px; }
+.music-screen__corner .music-ico { width: 42px; height: 42px; color: #fff; }
+.music-screen__corner .music-ico svg { width: 24px; height: 24px; }
+.music-screen__corner .music-ico--like.is-on { color: var(--music-red); }
+
+/* Крупная типографика — как в Яндекс Музыке. */
+.music-screen__info {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(12px, 2vh, 22px);
+}
 .music-screen__title {
-  font-size: 21px;
-  font-weight: 700;
+  font-size: clamp(26px, 4.2vw, 56px);
+  font-weight: 800;
   letter-spacing: .2px;
-  line-height: 1.2;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  line-height: 1.08;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 .music-screen__artist {
-  margin-top: 3px;
-  font-size: 15px;
+  font-size: clamp(17px, 2.4vw, 30px);
+  font-weight: 600;
   color: var(--music-dim);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  line-height: 1.2;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
+
+.music-screen__seekwrap { max-width: 560px; }
+
+/* Нижний ряд: «Ещё» слева, очередь справа — круглые тёмные кнопки. */
+.music-screen__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 0 0 auto;
+  padding: 2px 2px 4px;
+}
+.music-round {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .09);
+  border: 1px solid rgba(255, 255, 255, .07);
+}
+.music-round svg { width: 23px; height: 23px; }
+.music-round:hover { background: rgba(255, 255, 255, .16); }
+
+/* Кнопка play — жёлтый круг на обложке. */
+.music-main {
+  appearance: none;
+  border: 0;
+  width: clamp(72px, 12vh, 104px);
+  height: clamp(72px, 12vh, 104px);
+  border-radius: 50%;
+  background: var(--music-yellow);
+  color: #161616;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, .45);
+  transition: transform .12s ease, filter .16s ease;
+}
+.music-main svg { width: 38px; height: 38px; display: block; }
+.music-main:hover { filter: brightness(1.06); }
+.music-main:active { transform: scale(.93); }
+.music-main:focus-visible { outline: 3px solid rgba(255, 255, 255, .55); outline-offset: 3px; }
+
+.music-screen.is-loading .music-main { animation: music-pulse 1s ease-in-out infinite; }
 
 /* ------------------------------------------------------------- перемотка */
 
@@ -339,36 +458,32 @@
 
 /* -------------------------------------------------------------- кнопки */
 
-.music-screen__controls {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  padding: 4px 2px 6px;
-  flex: 0 0 auto;
+/* Шаг вперёд/назад поверх обложки: крупнее и с тенью, чтобы читались
+   на любом альбоме. */
+.music-ico--step svg { width: 32px !important; height: 32px !important; }
+.music-ico--onart {
+  color: #fff;
+  filter: drop-shadow(0 2px 10px rgba(0, 0, 0, .55));
 }
-.music-screen__controls .music-ico { width: 46px; height: 46px; }
-.music-screen__controls .music-ico svg { width: 24px; height: 24px; }
-.music-ico--step svg { width: 30px !important; height: 30px !important; }
 
-/* Главная кнопка — белый круг, как на референсе. */
+/* Главная кнопка — жёлтый круг, как в Яндекс.Музыке. */
 .music-main {
   appearance: none;
   border: 0;
-  width: 68px;
-  height: 68px;
+  width: clamp(72px, 11vh, 104px);
+  height: clamp(72px, 11vh, 104px);
   border-radius: 50%;
-  background: #fff;
-  color: #111;
+  background: var(--music-yellow);
+  color: #17150e;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, .45);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, .5);
   transition: transform .12s ease, filter .16s ease;
 }
-.music-main svg { width: 30px; height: 30px; display: block; }
+.music-main svg { width: 34px; height: 34px; display: block; }
 .music-main:hover { filter: brightness(.94); }
 .music-main:active { transform: scale(.93); }
 .music-main:focus-visible { outline: 3px solid rgba(255, 255, 255, .55); outline-offset: 3px; }
@@ -454,38 +569,153 @@
   color: var(--music-dim);
 }
 
-/* ---------------------------------------------------------------- очередь */
+/* ------------------------------------------------- панель очереди треков */
 
-.music-queue {
-  max-height: 34vh;
-  max-height: 34dvh;
+/* Отдельная поверхность уровня body: открывается и поверх чата (кнопка «…»
+   в плеере), и поверх большого экрана (кнопка очереди). */
+.music-qp {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  bottom: 12px;
+  width: min(420px, calc(100vw - 24px));
+  z-index: 950;
+  display: flex;
+  flex-direction: column;
+  border-radius: 24px;
+  color: var(--music-fg);
+  background: rgba(38, 39, 42, .92);
+  border: 1px solid var(--music-edge);
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  box-shadow: inset 0 1px 0 var(--music-hi), 0 24px 80px rgba(0, 0, 0, .5);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(26px);
+  transition: opacity .24s ease, transform .28s cubic-bezier(.22, .8, .3, 1), visibility .24s;
+}
+.music-qp.is-open { opacity: 1; visibility: visible; transform: none; }
+
+.music-qp__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 12px 6px;
+  flex: 0 0 auto;
+}
+.music-qp__caption {
+  font-size: 13px;
+  letter-spacing: .4px;
+  text-transform: uppercase;
+  color: var(--music-dim);
+}
+
+.music-qp__list {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
-  padding-bottom: 4px;
+  padding: 2px 10px 76px;
   -webkit-overflow-scrolling: touch;
 }
 
-.music-queue__row {
-  display: grid;
-  /* Третья колонка — доля строки, а не auto: иначе название забирает всё
-     место через 1fr и исполнитель схлопывается в многоточие. */
-  grid-template-columns: 26px minmax(0, 1fr) minmax(0, 34%);
-  gap: 10px;
+.music-qp__row {
+  display: flex;
   align-items: center;
-  width: 100%;
-  padding: 9px 10px;
-  border: 0;
+  gap: 12px;
+  padding: 8px;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: background .14s ease;
+}
+.music-qp__row:hover, .music-qp__row.is-current { background: rgba(255, 255, 255, .09); }
+.music-qp__row.is-current { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .1); }
+.music-qp__cover {
+  width: 46px;
+  height: 46px;
+  flex: 0 0 auto;
   border-radius: 10px;
+  object-fit: cover;
+  background: rgba(255, 255, 255, .1);
+  box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .14);
+}
+.music-qp__meta { flex: 1 1 auto; min-width: 0; display: block; }
+.music-qp__t {
+  display: block;
+  font-weight: 700;
+  font-size: 14.5px;
+  line-height: 1.25;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.music-qp__a {
+  display: block;
+  color: var(--music-dim);
+  font-size: 12.5px;
+  line-height: 1.3;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.music-qp__more { width: 36px; height: 36px; flex: 0 0 auto; }
+.music-qp__more svg { width: 20px; height: 20px; }
+.music-qp__row.is-current .music-qp__t { color: var(--music-yellow); }
+
+/* Плавающая кнопка очереди — как на референсе, справа внизу панели. */
+.music-qp__fab {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, .08);
+  background: rgba(255, 255, 255, .1);
+  color: var(--music-fg);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, .4);
+  transition: background .16s ease, transform .12s ease;
+}
+.music-qp__fab svg { width: 24px; height: 24px; }
+.music-qp__fab:hover { background: rgba(255, 255, 255, .18); }
+.music-qp__fab:active { transform: scale(.93); }
+
+/* ------------------------------------------------- контекст-меню трека */
+
+.music-ctx {
+  position: fixed;
+  z-index: 960;
+  min-width: 250px;
+  padding: 6px;
+  border-radius: 20px;
+  color: var(--music-fg);
+  background: rgba(56, 57, 61, .96);
+  border: 1px solid var(--music-edge);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, .5);
+  display: none;
+}
+.music-ctx.is-open { display: block; animation: music-fade .16s ease; }
+
+.music-ctx__row {
+  appearance: none;
+  border: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 12px;
+  border-radius: 14px;
   background: transparent;
   color: var(--music-fg);
+  font-size: 14.5px;
   text-align: left;
   cursor: pointer;
-  font-size: 13.5px;
+  transition: background .14s ease;
 }
-.music-queue__row:hover { background: rgba(255, 255, 255, .1); }
-.music-queue__row.is-current { background: rgba(255, 255, 255, .14); font-weight: 600; }
-.music-queue__n { color: var(--music-dim); font-variant-numeric: tabular-nums; }
-.music-queue__t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.music-queue__a { color: var(--music-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; }
+.music-ctx__row:hover { background: rgba(255, 255, 255, .1); }
+.music-ctx__row svg { width: 20px; height: 20px; flex: 0 0 auto; }
+.music-ctx__row[data-act="like"].is-liked { color: var(--music-red); }
 
 /* Пока окно трека открыто, фон под ним не должен прокручиваться. */
 body.music-screen-open { overflow: hidden; }
@@ -619,15 +849,35 @@ body.music-screen-open { overflow: hidden; }
   .music-card__artist { display: none; }
 
   .music-screen__inner { padding-left: 18px; padding-right: 18px; gap: 12px; }
-  .music-screen__title { font-size: 20px; }
-  .music-screen__controls .music-ico { width: 44px; height: 44px; }
+  /* На узких экранах центральные кнопки бара уступают мета-данным:
+     громкость/шафл/повтор убираем, остаются prev/play/next/лайк и «…». */
+  .music-bar__ctrls { position: static; transform: none; margin-left: auto; }
+  .music-bar__ctrls .music-ico--mute,
+  .music-bar__ctrls .music-ico--shuffle,
+  .music-bar__ctrls .music-ico--repeat { display: none; }
+  .music-bar__ctrls .music-ico--play { width: 42px; height: 42px; }
+  .music-bar__lead { min-width: 0; }
+  .music-bar__meta { max-width: 40vw; }
+
+  /* Экран трека: колонка — обложка сверху, названия ниже. */
+  .music-screen__stage { flex-direction: column; justify-content: center; gap: 18px; }
+  .music-screen__artwrap { width: min(72vw, 320px); max-width: none; }
+  .music-screen__title { font-size: 24px; }
+  .music-screen__artist { font-size: 15px; }
+  .music-screen__seekwrap { max-width: none; width: 100%; }
   .music-main { width: 64px; height: 64px; }
+  .music-main svg { width: 30px; height: 30px; }
+  .music-round { width: 46px; height: 46px; }
+
+  /* Панель очереди на мобильных — во всю ширину с отступами. */
+  .music-qp { top: 8px; right: 8px; bottom: 8px; width: calc(100vw - 16px); border-radius: 20px; }
 }
 
 /* Низкие экраны: обложка уступает место кнопкам, чтобы ничего не срезалось. */
 @media (max-height: 620px) {
-  .music-screen__art img { max-width: min(52vh, 260px); max-width: min(52dvh, 260px); }
-  .music-screen__title { font-size: 18px; }
+  .music-screen__artwrap { width: min(48vh, 260px); }
+  .music-screen__title { font-size: 20px; }
+  .music-screen__artist { font-size: 14px; }
   .music-main { width: 58px; height: 58px; }
   .music-main svg { width: 26px; height: 26px; }
 }
@@ -640,7 +890,8 @@ body.music-screen-open { overflow: hidden; }
   .music-screen.is-loading .music-main { animation: none; }
   .music-screen,
   .music-screen__inner,
-  .music-screen__art img,
+  .music-screen__artwrap img,
+  .music-qp,
   .music-bar__line i { transition: none; }
 }
 
