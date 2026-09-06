@@ -493,7 +493,7 @@ html[data-boot="app"] .auth-wrap{display:none;}
 html[data-boot="app"] .app{display:none!important;}
 /* HM-REASONING-V2: промо-подложка тоже не должна мигать у вошедшего пользователя. */
 html[data-boot="app"] .mobile-glossy{display:none;}
-.auth-card{max-width:320px;width:100%;display:flex;flex-direction:column;}
+.auth-card{max-width:360px;width:100%;display:flex;flex-direction:column;}
 .auth-screen{display:none;flex-direction:column;}
 .auth-screen.active{display:flex;}
 .auth-logo-badge{width:56px;height:56px;border-radius:14px;background:#000;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:30px;font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;margin-bottom:20px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);flex-shrink:0;}
@@ -1449,9 +1449,12 @@ a.conn-btn{display:inline-flex;align-items:center;text-decoration:none;}
 .s-row{display:flex;align-items:center;gap:12px;padding:13px 16px;cursor:pointer;transition:background .12s;}
 .s-row+.s-row{border-top:1px solid var(--border2);}
 .s-row:hover{background:var(--hover);}
-.s-row-icon{color:var(--text2);flex-shrink:0;}
-.s-row-text{flex:1;font-size:14px;font-weight:500;color:var(--text);}
-.s-row-val{font-size:12px;color:var(--text2);}
+.s-row-icon{color:var(--text2);flex:0 0 20px;display:flex;align-items:center;justify-content:center;}
+.s-row-text{flex:1;min-width:0;font-size:14px;font-weight:500;color:var(--text);}
+.s-row-val{font-size:12px;color:var(--text2);margin-left:auto;}
+.s-row > .s-chev{margin-left:auto;flex:0 0 auto;display:flex;align-items:center;}
+.s-row > .s-row-val + .s-chev{margin-left:12px;}
+.hm-stat-link{font-family:inherit;appearance:none;-webkit-appearance:none;text-align:left;}
 .s-row-val.soon{font-size:10px;text-transform:uppercase;letter-spacing:.5px;background:var(--hover);padding:3px 8px;border-radius:6px;}
 
 /* ===== Мобильная версия экрана настроек — точная копия макета (нативный лист) ===== */
@@ -1477,7 +1480,7 @@ a.conn-btn{display:inline-flex;align-items:center;text-decoration:none;}
   /* Группы строк: тёмно-серая плашка без рамки, скруглённая, как в нативных настройках iOS */
   .s-rows{background:rgba(255,255,255,.055);border:none;border-radius:18px;}
   .s-row{padding:15px 16px;}
-  .s-row-icon{width:20px;display:flex;align-items:center;justify-content:center;color:var(--text);}
+  .s-row-icon{width:20px;flex:0 0 20px;display:flex;align-items:center;justify-content:center;color:var(--text);}
   .s-row-text{font-size:15.5px;font-weight:600;}
   .s-row-val{font-size:13px;}
   .s-row-stack{display:flex;flex-direction:column;gap:3px;flex:1;min-width:0;}
@@ -1510,7 +1513,7 @@ a.conn-btn{display:inline-flex;align-items:center;text-decoration:none;}
 }
 
 /* ===== Экран «Сведения» ===== */
-.about-screen{display:flex;flex-direction:column;}.about-toggle{width:44px;height:24px;border-radius:12px;border:1px solid var(--border);background:var(--bg3);position:relative;cursor:pointer;transition:background .15s;padding:0;}.about-toggle::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--text2);transition:transform .15s,background .15s;}.about-toggle.on{background:var(--auth-accent);border-color:var(--auth-accent);}.about-toggle.on::after{transform:translateX(20px);background:#fff;}.about-hint{font-size:11.5px;color:var(--text2);line-height:1.5;margin-top:6px;}
+.about-screen{display:flex;flex-direction:column;}
 .about-logo-row{display:flex;flex-direction:column;align-items:center;gap:12px;margin:30px 0 26px;}
 .about-app-icon{width:64px;height:64px;border-radius:16px;background:linear-gradient(150deg,#1c1c22,#0d0f14);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 22px rgba(0,0,0,.35);}
 .about-app-name{font-size:17px;font-weight:700;color:var(--text);}
@@ -1534,37 +1537,6 @@ a.conn-btn{display:inline-flex;align-items:center;text-decoration:none;}
 .appear-check{color:var(--check);opacity:0;font-size:15px;}
 .appear-check.on{opacity:1;}
 
-/* ===== НАСТРОЙКА «УЛУЧШЕНИЕ СЕРВИСА» (Сведения) ===== */
-async function toggleTrainingSetting(){
-  const btn=document.getElementById('trainingToggle');
-  if(!btn||btn.disabled)return;
-  btn.disabled=true;
-  const next=!(btn.dataset.on==='1');
-  try{
-    const data=await accountAction({action:'settings.training',enabled:next});
-    if(typeof data.enabled==='boolean'){
-      btn.dataset.on=data.enabled?'1':'0';
-      btn.setAttribute('aria-checked',data.enabled?'true':'false');
-      btn.classList.toggle('on',!!data.enabled);
-    }
-  }catch(e){
-    showSettingsToast(e&&e.message?e.message:'Не удалось сохранить настройку');
-  }finally{
-    btn.disabled=false;
-  }
-}
-async function loadTrainingSetting(){
-  const btn=document.getElementById('trainingToggle');
-  if(!btn)return;
-  try{
-    const prof=curUser&&curUser.profile?curUser.profile:null;
-    const st=prof&&prof.settings;
-    const on=!(st&&typeof st==='object'&&st.ai_training===false);
-    btn.dataset.on=on?'1':'0';
-    btn.setAttribute('aria-checked',on?'true':'false');
-    btn.classList.toggle('on',on);
-  }catch(e){btn.dataset.on='1';btn.classList.add('on');}
-}
 function showSettingsToast(msg){
   let t=document.getElementById('settingsToast');
   if(!t){t=document.createElement('div');t.id='settingsToast';t.style.cssText='position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:4000;background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:12px;padding:10px 16px;font-size:13px;box-shadow:var(--drop-shadow);';document.body.appendChild(t);}
@@ -1576,7 +1548,7 @@ function showSettingsToast(msg){
 .limits-screen{display:flex;flex-direction:column;gap:16px;}
 .limits-plan-badge{display:inline-flex;align-items:center;gap:8px;align-self:flex-start;padding:7px 14px;border-radius:999px;background:var(--bg3);border:1px solid var(--border);font-size:13px;font-weight:700;color:var(--text);}
 .limits-plan-badge .lp-dot{width:8px;height:8px;border-radius:50%;background:var(--check);}
-.limits-plan-badge.pro .lp-dot{background:#7c4dff;}
+.limits-plan-badge.pro .lp-dot{background:#2f80ed;}
 .limits-card{background:var(--bg2);border:1px solid var(--border);border-radius:18px;overflow:hidden;}
 @media(max-width:768px){.limits-card{background:rgba(255,255,255,.055);border:none;}}
 html[data-theme="light"] .limits-card{background:rgba(255,255,255,.66);border:1px solid rgba(20,18,12,.05);}
@@ -1593,8 +1565,9 @@ html[data-theme="light"] .limits-card{background:rgba(255,255,255,.66);border:1p
 .limits-bar-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#22c55e,#16a34a);transition:width .4s cubic-bezier(.22,.61,.36,1);}
 .limits-bar-fill.warn{background:linear-gradient(90deg,#f59e0b,#ea580c);}
 .limits-bar-fill.full{background:linear-gradient(90deg,#ef4444,#dc2626);}
-.limits-bar-fill.pro{background:linear-gradient(90deg,#a855f7,#6366f1);}
-.limits-infinite{font-size:13px;font-weight:700;color:#7c4dff;line-height:1.2;white-space:nowrap;}
+.limits-bar-fill.pro{background:linear-gradient(90deg,#4aa3f0,#2f80ed);}
+.limits-infinite{font-size:13px;font-weight:700;color:#2f80ed;line-height:1.2;white-space:nowrap;}
+.limits-title-note{font-size:11px;font-weight:600;color:var(--text2);margin-left:4px;}
 .limits-note{font-size:12.5px;color:var(--text2);line-height:1.55;padding:0 4px;}
 .limits-note strong{color:var(--text);font-weight:700;}
 
@@ -1639,7 +1612,7 @@ html[data-theme="light"] .limit-reached{background:rgba(239,68,68,.07);border-co
 .prof-email{font-size:13px;color:var(--text2);margin-top:2px;}
 .logout-btn{padding:8px 16px;border-radius:10px;border:1px solid #ef4444;color:#ef4444;font-size:13px;font-weight:600;cursor:pointer;background:transparent;font-family:inherit;margin-left:auto;transition:background .15s;}
 .logout-btn:hover{background:rgba(239,68,68,.08);}
-.s-row.s-row-accent .s-row-icon,.s-row.s-row-accent .s-row-text{color:#a78bfa;}
+.s-row.s-row-accent .s-row-icon,.s-row.s-row-accent .s-row-text,.s-row.s-row-accent .s-chev{color:#2f80ed;}
 
 /* Memory */
 .mem-rows{background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
@@ -2383,8 +2356,10 @@ html[data-theme="messenger"] .logout-btn:hover{background:rgba(200,30,30,.08);}
    давал 2.35:1 — текст почти растворялся в фоне */
 html[data-theme="light"] .s-row.s-row-accent .s-row-icon,
 html[data-theme="light"] .s-row.s-row-accent .s-row-text,
+html[data-theme="light"] .s-row.s-row-accent .s-chev,
 html[data-theme="messenger"] .s-row.s-row-accent .s-row-icon,
-html[data-theme="messenger"] .s-row.s-row-accent .s-row-text{color:#7c3aed;}
+html[data-theme="messenger"] .s-row.s-row-accent .s-row-text,
+html[data-theme="messenger"] .s-row.s-row-accent .s-chev{color:#2f80ed;}
 
 /* =========================================================================
    MOBILE COMPOSER v2 — ряд действий + панель Adanatos (patch9)
@@ -2394,7 +2369,7 @@ html[data-theme="messenger"] .s-row.s-row-accent .s-row-text{color:#7c3aed;}
   .mrow,.ada-panel{display:none!important;}
 }
 @media(max-width:768px){
-  /* Окно ввода становится двухрядным: [+ текст 🎤 ➔] и ряд действий.
+  /* Окно ввода становится двухрядным: строка текста и ряд действий.
      Фон, blur и границы наследуются от существующего стиля — не дублируем. */
   .input-box{flex-wrap:wrap;align-items:center;row-gap:4px;border-radius:26px;padding:6px 8px 10px 12px;}
   .input-box textarea{order:2;}
@@ -3101,7 +3076,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--text2);outline-offs
         <span>Обновить</span>
       </button>
       <div class="topbar-training-pill" id="topbarTrainingPill" style="display:none;cursor:default;">
-        <span>🎓 Обучение</span>
+        <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 9.5L12 5l8 4.5-8 4.5L4 9.5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M7 11.2V16c2.8 2.2 7.2 2.2 10 0v-4.8M20 10v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Обучение</span>
       </div>
       <div style="display:flex;align-items:center;gap:4px;">
         <!-- п.12: стартуем скрытой (новый чат всегда пуст) — иначе на загрузке
@@ -3119,7 +3094,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--text2);outline-offs
             <svg width="22" height="26" viewBox="0 0 22 26" fill="none"><ellipse cx="5.5" cy="21" rx="5" ry="3.6" fill="currentColor"/><path d="M10 21V2.5C10 2.5 10 1.5 11.2 1.5C15 1.5 16.5 5.5 16.5 8.5C16.5 9.5 16 10 15.5 9.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
           </div>
           <div class="greeting-title" id="greetingTitle">Привет! Я Harmony Ai</div>
-          <div class="greeting-sub" id="greetSub">Спроси меня про любой аккорд 🎵</div>
+          <div class="greeting-sub" id="greetSub">Спроси меня про любой аккорд</div>
           <div class="greeting-hints">
             <div class="greeting-hint"><span class="gh-icon"><svg width="20" height="16" viewBox="0 0 30 22" fill="none"><path d="M2 2h26M2 7h26M2 12h26M2 17h26" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M9 1c-2.6 1.6-3.4 4-2.6 6.4.8 2.3 3.2 3.2 3.2 5.4 0 1.6-1.2 2.6-2.4 2.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6.6" cy="17.4" r="1.6" fill="currentColor"/></svg></span><span>Сгенерировать нотный стан</span></div>
             <div class="greeting-hint"><span class="gh-icon"><svg width="16" height="20" viewBox="0 0 18 24" fill="none"><circle cx="4.2" cy="19.5" r="3.6" fill="currentColor"/><path d="M7.7 19.5V3.5l8.3-2.3v6.4l-8.3 2.3" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></span><span>Разбор сольфеджио</span></div>
@@ -3170,7 +3145,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--text2);outline-offs
           <div class="bar-right">
             <!-- Training pill (shown instead of model pill while in Обучение) -->
             <div class="model-pill" id="trainingPill" style="display:none;cursor:default;">
-              <span class="pill-name">🎓</span>
+              <span class="pill-name" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 9.5L12 5l8 4.5-8 4.5L4 9.5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M7 11.2V16c2.8 2.2 7.2 2.2 10 0v-4.8M20 10v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
               <span class="pill-mode">Обучение</span>
             </div>
             <!-- Model pill (desktop only — на мобильном кнопка модели находится в топбаре) -->
@@ -3559,6 +3534,9 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--text2);outline-offs
 const SB_URL='https://cqthnymltqpcxtpiryka.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNxdGhueW1sdHFwY3h0cGlyeWthIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MjY3NzYsImV4cCI6MjA5NzAwMjc3Nn0.b-6lSdjT7XwWkt607ORwGfKYSn3CLZJB3mcs4QQUSoE';
 var sb=null;
+let authInitialized=false;
+let authSession=null;
+let authInitPromise=null;
 /* Устойчивая инициализация Supabase. Локальный vendor-бандл может не отгрузиться
    (неполный деплой, сбой сети, блокировка CDN) — раньше скрипт умирал прямо здесь
    и пользователь с сохранённой сессией оставался на вечном тёмном экране.
@@ -3575,7 +3553,7 @@ function supabaseUnavailableFallback(){
 }
 function startAfterSupabase(){
   try{
-    sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+    sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'implicit'}});
   }catch(e){
     console.warn('Supabase init failed',e);
     supabaseUnavailableFallback();
@@ -3586,7 +3564,7 @@ function startAfterSupabase(){
      классического скрипта наружу недоступны. */
   window.__hmSb=sb;
   sb.auth.onAuthStateChange(onAuthStateChanged);
-  initSession();
+  authInitPromise=initSession();
 }
 (function ensureSupabase(){
   function ok(){return !!(window.supabase&&typeof window.supabase.createClient==='function');}
@@ -3832,15 +3810,10 @@ function setLocalNickname(uid,val){
 }
 
 /* ===== ЛИМИТЫ ИСПОЛЬЗОВАНИЯ =====
-   Adanatos (free): дневной и недельный лимит по токенам ИЛИ сообщениям (что наступит раньше).
-   Dynatos (pro): без лимитов, но с мягкой защитой от злоупотребления (burst-rate), т.к. токены дороги.
-   Учёт ведётся локально (localStorage) на пользователя, с автосбросом по дню/неделе. */
+   На экране показывается один общий процент: берётся более заполненное из двух
+   внутренних ограничителей. Сервер остаётся источником истины. */
 const LIMITS={
-  // Лимиты по запросу: токены/сообщения сохранены, отображение ниже переводится в проценты.
-  // Окно начинается с первого запроса, а не с календарной даты.
-  adanatos:{ daily:{tokens:20000,messages:14}, weekly:{tokens:160000,messages:112} },
-  // Dynatos формально безлимитен; клиентская защита совпадает с серверной (см. api/chat.js ABUSE.dynatos):
-  // не более 25 сообщений за 3 минуты подряд. Сервер — авторитетный источник, это лишь быстрый барьер.
+  adanatos:{ rolling:{tokens:20000,messages:14}, monthly:{tokens:400000,messages:400} },
   dynatos:{ burst:{messages:25,windowMs:180000} }
 };
 const USAGE_PREFIX='harmonyai_usage_v1_';
@@ -3862,16 +3835,23 @@ function writeUsage(u){try{localStorage.setItem(usageKey(),JSON.stringify(u));}c
 function getUsage(){
   const u=readUsage();
   const now=Date.now();
-  // Скользящие окна: дневной сброс через 5 часов после первого промта.
-  if(!u.dayStarted || now-u.dayStarted>=5*60*60*1000){
-    u.dayStarted=now;u.dayTokens=0;u.dayMessages=0;
+  const windowStart=now-5*60*60*1000;
+  if(!Array.isArray(u.windowEvents)){
+    const legacyStart=Number(u.dayStarted||0);
+    const legacyTokens=Number(u.dayTokens||0);
+    const legacyMessages=Number(u.dayMessages||0);
+    u.windowEvents=legacyStart>windowStart&&(legacyTokens||legacyMessages)
+      ?[{at:legacyStart,tokens:legacyTokens,messages:legacyMessages}]:[];
   }
-  // Неделя = 8 пятичасовых окон после первого запроса.
-  if(!u.weekStarted || now-u.weekStarted>=40*60*60*1000){
-    u.weekStarted=now;u.weekTokens=0;u.weekMessages=0;
+  u.windowEvents=u.windowEvents.filter(event=>Number(event?.at)>=windowStart);
+  u.dayTokens=u.windowEvents.reduce((sum,event)=>sum+Number(event.tokens||0),0);
+  u.dayMessages=u.windowEvents.reduce((sum,event)=>sum+Number(event.messages||0),0);
+  u.dayStarted=u.windowEvents[0]?.at||now;
+  const mk=monthKey();
+  if(u.monthKey!==mk){
+    u.monthKey=mk;u.monthTokens=0;u.monthMessages=0;
   }
-  u.dayTokens=u.dayTokens||0;u.dayMessages=u.dayMessages||0;
-  u.weekTokens=u.weekTokens||0;u.weekMessages=u.weekMessages||0;
+  u.monthTokens=u.monthTokens||0;u.monthMessages=u.monthMessages||0;
   u.burst=Array.isArray(u.burst)?u.burst:[];
   return u;
 }
@@ -3887,8 +3867,9 @@ function recordUsage(promptText,replyText){
   }
   const u=getUsage();
   const tok=estimateTokens(promptText)+estimateTokens(replyText);
-  u.dayTokens+=tok;u.weekTokens+=tok;
-  u.dayMessages+=1;u.weekMessages+=1;
+  u.windowEvents.push({at:Date.now(),tokens:tok,messages:1});
+  u.dayTokens+=tok;u.monthTokens+=tok;
+  u.dayMessages+=1;u.monthMessages+=1;
   writeUsage(u);
 }
 // Возвращает {blocked, scope, reason} — можно ли отправлять сообщение.
@@ -3904,11 +3885,11 @@ function checkLimit(){
   }
   const u=getUsage();
   const L=LIMITS.adanatos;
-  if(u.dayTokens>=L.daily.tokens||u.dayMessages>=L.daily.messages){
-    return {blocked:true,scope:'day'};
+  if(u.dayTokens>=L.rolling.tokens||u.dayMessages>=L.rolling.messages){
+    return {blocked:true,scope:'window'};
   }
-  if(u.weekTokens>=L.weekly.tokens||u.weekMessages>=L.weekly.messages){
-    return {blocked:true,scope:'week'};
+  if(u.monthTokens>=L.monthly.tokens||u.monthMessages>=L.monthly.messages){
+    return {blocked:true,scope:'month'};
   }
   return {blocked:false};
 }
@@ -3961,14 +3942,18 @@ function checkImageLimit(){
   const L=IMG_LIMITS.adanatos;
   if(u.dayImages>=L.daily)return {blocked:true,scope:'day'};
   if(u.weekImages>=L.weekly)return {blocked:true,scope:'week'};
-  if(u.monthImages>=L.monthly)return {blocked:true,scope:'month'};
+  if(u.monthImages>=L.monthly)return {blocked:true,scope:'month',reason:'Вы использовали весь месячный лимит генерации изображений. Обновление — <b>'+fmtResetHuman(nextMonthlyReset())+'</b>. Перейдите на <b>Dynatos</b>, чтобы продолжить без ограничений.'};
   return {blocked:false};
 }
 // Время сброса месячного лимита — 1-е число следующего месяца 00:00.
 function nextMonthlyReset(){const d=new Date();d.setHours(24,0,0,0);d.setDate(1);d.setMonth(d.getMonth()+1);return d;}
-// Время сброса дневного лимита — ближайшая полночь; недельного — ближайший понедельник 00:00.
+// Следующее окно заканчивается через 5 часов после самого старого события.
+function nextFiveHourReset(){
+  const u=getUsage();
+  const first=u.windowEvents[0]?.at||Date.now();
+  return new Date(first+5*60*60*1000);
+}
 function nextDailyReset(){const d=new Date();d.setHours(24,0,0,0);return d;}
-function nextWeeklyReset(){const d=new Date();const day=d.getDay()||7;d.setHours(24,0,0,0);d.setDate(d.getDate()+(8-day-1));return d;}
 function fmtTime(d){return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
 function fmtResetHuman(d){
   const now=new Date();
@@ -4116,13 +4101,13 @@ function withTimeout(promise,ms,message){
 
 /* ===== GREETINGS ===== */
 const GREETS=[
-  'Спроси меня про любой аккорд 🎵',
-  'Помогу разобрать сольфеджио 📝',
-  'Покажу любую гамму в нотах 🎼',
-  'Объясню любой музыкальный термин 🎹',
-  'Умею распознавать ноты с фото 📸',
-  'Помогаю не только с музыкой 💡',
-  'Построю аккордовую цепочку T–S–D–T 🎸',
+  'Спроси меня про любой аккорд',
+  'Помогу разобрать сольфеджио',
+  'Покажу любую гамму в нотах',
+  'Объясню любой музыкальный термин',
+  'Умею распознавать ноты с фото',
+  'Помогаю не только с музыкой',
+  'Построю аккордовую цепочку T–S–D–T',
 ];
 let greetIdx=0;
 /* Подзаголовок крутится каждые 4с. Фраза переводится на язык интерфейса
@@ -4158,12 +4143,10 @@ function toggleLoginHint(){
     h.style.display='none';
   }
 }
-/* OAuth-провайдеры (GitHub, Google, Discord): Supabase сам проводит весь флоу
-   (redirect на сайт провайдера и обратно). После возврата сессию подхватит
-   onAuthStateChange — как при входе по коду. redirectTo ведёт на /chat, как в
-   прод-сценарии; origin берём из адреса страницы, чтобы не ломать staging/localhost.
-   Требуется: провайдер включён в Supabase Dashboard (Authentication -> Providers)
-   и его redirect-домен добавлен в URL Configuration -> Redirect URLs. */
+/* OAuth-провайдеры: это client-side SPA без SSR и без PKCE callback-сервера.
+   Supabase использует implicit flow, сохраняет сессию в localStorage и обрабатывает
+   callback на /chat через detectSessionInUrl. */
+const PRODUCTION_AUTH_REDIRECT='https://harmonyai.ru/chat';
 async function signInWithOAuthProvider(provider,btnId){
   const h=document.getElementById('loginHint');
   const err=document.getElementById('emailErr');
@@ -4172,23 +4155,21 @@ async function signInWithOAuthProvider(provider,btnId){
   try{
     if(!sb)throw new Error('Авторизация ещё загружается — попробуйте через секунду');
     if(btn)btn.disabled=true;
-    if(h){h.style.display='none';}
-    const base=getSafeRedirectUrl();
-    const {error}=await sb.auth.signInWithOAuth({
-      provider,
-      options:{redirectTo:base?base+'/chat':undefined}
-    });
+    if(h)h.style.display='none';
+    const options={redirectTo:getOAuthRedirectUrl()};
+    if(provider==='google')options.scopes='openid email profile';
+    const {error}=await sb.auth.signInWithOAuth({provider,options});
     if(error)throw error;
   }catch(e){
     if(authLeaving)return;
     if(btn)btn.disabled=false;
     const low=String(e?.message||e||'').toLowerCase();
-    const providerOff=low.includes('provider')&&(low.includes('not enabled')||low.includes('unsupported'))
+    const providerOff=(low.includes('provider')&&(low.includes('not enabled')||low.includes('unsupported')))
       ||low.includes('unsupported provider')||low.includes('provider is not enabled');
     if(h){
       h.textContent=providerOff
         ?('Вход через '+provider.charAt(0).toUpperCase()+provider.slice(1)+' пока не подключён на сервере. Используйте Email.')
-        :tErr(e.message);
+        :tErr(e?.message||e);
       h.style.display='block';
     }
   }
@@ -4196,11 +4177,12 @@ async function signInWithOAuthProvider(provider,btnId){
 function signInWithGithub(){return signInWithOAuthProvider('github','btnGithub');}
 function signInWithGoogle(){return signInWithOAuthProvider('google','btnGoogle');}
 function signInWithDiscord(){return signInWithOAuthProvider('discord','btnDiscord');}
-function isEmail(e){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);}
-function getSafeRedirectUrl(){
-  if(/^https?:$/.test(window.location.protocol))return window.location.origin;
-  return undefined;
+function getOAuthRedirectUrl(){
+  const host=String(window.location.hostname||'').toLowerCase();
+  if(host==='localhost'||host==='127.0.0.1'||host==='[::1]')return window.location.origin+'/chat';
+  return PRODUCTION_AUTH_REDIRECT;
 }
+function isEmail(value){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value||''));}
 function buildOtpSendOptions(email){
   // emailRedirectTo не передаём — это заставляло Supabase слать magic link вместо кода.
   // Без него Supabase шлёт 6-значный OTP-код, который и ждёт экран верификации.
@@ -4311,8 +4293,8 @@ async function hydrateSignedInState(session){
   return authHydrationPromise;
 }
 function onboardingScreen(id){
- window.__appShown=false;document.getElementById('app').classList.remove('show');document.getElementById('authWrap').classList.add('gone');document.documentElement.removeAttribute('data-boot');
- if(!window.__onboardingNext)window.__onboardingNext=consumeNextParam();setRoute('/login',false);
+ window.__appShown=false;document.getElementById('app').classList.add('show');document.getElementById('authWrap').classList.add('gone');document.documentElement.removeAttribute('data-boot');
+ if(!window.__onboardingNext)window.__onboardingNext=consumeNextParam();setRoute('/chat',false);
  document.getElementById(id).classList.add('show');requestAnimationFrame(()=>document.querySelector('#'+id+' input,#'+id+' button')?.focus());
 }
 function maybeShowNicknameModal(){if(!curUser?.needsNickname)return false;onboardingScreen('nickOverlay');return true;}
@@ -4722,15 +4704,19 @@ async function initSession(){
   try{
     ({data:{session}}=await withTimeout(
       sb.auth.getSession(),
-      4500,
+      8000,
       'Проверка сохранённой сессии заняла слишком много времени'
     ));
   }catch(e){
-    console.warn('Session check failed',e); // при сбое проверки показываем вход, как и раньше
+    console.warn('Session check failed',e);
+    showBootError();
+    return null;
   }
-  if(session){
-    beginSignedInState(session);
-    return;
+  authSession=session||authSession||null;
+  authInitialized=true;
+  if(authSession?.user){
+    beginSignedInState(authSession);
+    return authSession;
   }
   document.documentElement.removeAttribute('data-boot');
   syncSignedOutRoute();
@@ -4738,13 +4724,18 @@ async function initSession(){
   document.getElementById('app').classList.remove('show');
   const mg1=document.querySelector('.mobile-glossy');if(mg1)mg1.style.display='';
   showAuthS(1);
+  return null;
 }
 /* Регистрируется в startAfterSupabase() после готовности клиента. */
 function onAuthStateChanged(event,session){
-  if(event==='SIGNED_IN'&&session?.user){
-    beginSignedInState(session);
+  if(session?.user){
+    authSession=session;
+    if(['INITIAL_SESSION','SIGNED_IN','TOKEN_REFRESHED','USER_UPDATED'].includes(event))beginSignedInState(session);
+    return;
   }
   if(event==='SIGNED_OUT'){
+    authSession=null;
+    if(!authInitialized)return;
     authHydrationPromise=null;authHydratedUserId='';
     try{window.HmMemory&&window.HmMemory.reset();}catch(e){}
     curUser=null;chatHistory=[];curChatId=null;chats=[];
@@ -6330,7 +6321,7 @@ function triggerAudioAnalyzer(){
   try{ if(window.AudioAnalyzer&&typeof window.AudioAnalyzer.openPicker==='function')window.AudioAnalyzer.openPicker(); }catch(e){}
 }
 function sendAudioAnalysisToAI(payload,fileName){
-  const label='🎧 Анализ аудио: '+String(fileName||'файл');
+  const label='Анализ аудио: '+String(fileName||'файл');
   addUserBubble(label,[],{createdAt:messageNow()});
   chatHistory.push({
     role:'user',
@@ -8924,12 +8915,15 @@ function limitMessageHtml(check){
   }else if(check.scope==='month'){
     const reset=fmtResetHuman(nextMonthlyReset());
     title='Месячный лимит исчерпан';
-    text=check.reason||`Вы использовали весь месячный лимит генерации изображений. Обновление — <b>${reset}</b>. Перейдите на <b>Dynatos</b>, чтобы продолжить без ограничений.`;
+    text=check.reason||`Вы использовали общий месячный лимит модели <b>Adanatos</b>. Обновление — <b>${reset}</b>. Перейдите на <b>Dynatos</b>, чтобы продолжить без ограничений.`;
+  }else if(check.scope==='window'){
+    const reset=fmtResetHuman(nextFiveHourReset());
+    title='5-часовой лимит исчерпан';
+    text=check.reason||`Вы использовали общий лимит модели <b>Adanatos</b> в текущем 5-часовом окне. Обновление — <b>${reset}</b>. Перейдите на <b>Dynatos</b>, чтобы продолжить без ограничений.`;
   }else{
-    const isDay=check.scope==='day';
-    const reset=isDay?fmtResetHuman(nextDailyReset()):fmtResetHuman(nextWeeklyReset());
-    title=isDay?'Дневной лимит исчерпан':'Недельный лимит исчерпан';
-    text=check.reason||`Вы использовали весь ${isDay?'ежедневный':'еженедельный'} лимит модели <b>Adanatos</b>. Обновление лимита — <b>${reset}</b>. Перейдите на <b>Dynatos</b>, чтобы продолжить без ограничений.`;
+    const reset=fmtResetHuman(nextDailyReset());
+    title='Дневной лимит исчерпан';
+    text=check.reason||`Вы использовали дневной лимит генерации. Обновление — <b>${reset}</b>.`;
   }
   return `<div class="limit-reached">
     <div class="limit-reached-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 7v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="16.5" r="1.1" fill="currentColor"/></svg></div>
@@ -9251,7 +9245,7 @@ async function handleImageGeneration(promptText){
           // Серверный лимит (429 со scope) — красивая плашка вместо текста ошибки.
           if(res.status===429&&data?.error?.scope){
             hideTyping();
-            const scopeMap={burst:'burst',day:'day',week:'week',month:'month'};
+            const scopeMap={burst:'burst',day:'day',window_limit:'window',day_limit:'window',week_limit:'month',month_limit:'month',month:'month'};
             const check={scope:scopeMap[data.error.scope]||'day',reason:data.error.message};
             const holder=document.createElement('div');
             holder.innerHTML=limitMessageHtml(check);
@@ -10391,7 +10385,7 @@ async function runAssistantReply(displayText){
     hideTyping();
     if(e.limitScope){
       // Серверный лимит/защита — показываем плашку вместо текста ошибки.
-      const scopeMap={burst:'burst',day:'burst',day_limit:'day',week_limit:'week'};
+      const scopeMap={burst:'burst',day:'burst',window_limit:'window',day_limit:'window',week_limit:'month',month_limit:'month'};
       const check={scope:scopeMap[e.limitScope]||'day',reason:e.message};
       const holder=document.createElement('div');
       holder.innerHTML=limitMessageHtml(check);
@@ -10575,7 +10569,7 @@ function renderSettingsMain(){
     </div>
     <div class="s-sect">
       <div class="s-sect-label">Учётная запись</div>
-      <div class="s-rows"><button class="s-row hm-stat-link" onclick="renderPersonalStats()"><span class="s-row-text">Статистика</span><span>›</span></button>
+      <div class="s-rows"><button class="s-row hm-stat-link" onclick="renderPersonalStats()"><span class="s-row-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 19V5M4 19h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M7 15l3-4 3 2 5-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="s-row-text">Статистика</span><span class="s-chev" aria-hidden="true"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span></button>
         <div class="s-row" onclick="renderSettingsName()">
           <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2"/><path d="M3 7l9 6 9-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
           <div class="s-row-stack">
@@ -11623,96 +11617,82 @@ function renderAbout(){
         <div class="about-app-ver">Beta 0.8.2</div>
       </div>
       <div class="about-rows">
-        <div class="about-row"><div class="about-row-label">Использовать мои чаты для улучшения сервиса</div><div class="about-row-val"><button class="about-toggle" id="trainingToggle" type="button" onclick="toggleTrainingSetting()" aria-label="Переключить">…</button></div></div>
-        <div class="about-hint">Можно отключить в любой момент. Отключение прекращает использование ваших чатов для улучшения моделей и сервиса.</div>
         <div class="about-row"><div class="about-row-label">Политика конфиденциальности</div><div class="about-row-val"><a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Открыть</a></div></div>
         <div class="about-row"><div class="about-row-label">Условия использования</div><div class="about-row-val"><a href="/legal/terms.html" target="_blank" rel="noopener noreferrer">Открыть</a></div></div>
         <div class="about-row"><div class="about-row-label">Платёжная оферта</div><div class="about-row-val"><a href="/legal/ofera.html" target="_blank" rel="noopener noreferrer">Открыть</a></div></div>
       </div>
       <div class="about-foot">HarmonyAI — ИИ-помощник для учеников музыкальной школы.<br>© ${new Date().getFullYear()} HarmonyAI. Все права защищены.</div>
     </div>`;
-  loadTrainingSetting();
 }
 
 /* ===== ЭКРАН «ЛИМИТЫ» ===== */
-function limitBar(used,total){
-  const pct=Math.min(100,Math.round((used/total)*100));
-  const cls=pct>=100?'full':(pct>=80?'warn':'');
-  return `<div class="limits-bar"><div class="limits-bar-fill ${cls}" style="width:${pct}%"></div></div>`;
+function combinedLimitPercent(primary,secondary,primaryLimit,secondaryLimit){
+  return Math.min(100,Math.max(
+    Math.round(Number(primary||0)/Math.max(1,primaryLimit)*100),
+    Math.round(Number(secondary||0)/Math.max(1,secondaryLimit)*100)
+  ));
+}
+function limitBarPercent(pct){
+  const value=Math.min(100,Math.max(0,Math.round(pct)));
+  const cls=value>=100?'full':(value>=80?'warn':'');
+  return `<div class="limits-bar"><div class="limits-bar-fill ${cls}" style="width:${value}%"></div></div>`;
 }
 function renderSettingsLimits(){
   const el=document.getElementById('settingsContent');
-  const isPro=curModel==='pro';
+  const isPro=isProUser();
   const u=getUsage();
   const L=LIMITS.adanatos;
-  const dailyReset=fmtResetHuman(nextDailyReset());
-  const weeklyReset=fmtResetHuman(nextWeeklyReset());
+  const rollingPct=combinedLimitPercent(u.dayTokens,u.dayMessages,L.rolling.tokens,L.rolling.messages);
+  const monthlyPct=combinedLimitPercent(u.monthTokens,u.monthMessages,L.monthly.tokens,L.monthly.messages);
+  const rollingReset=fmtResetHuman(nextFiveHourReset());
+  const monthlyReset=fmtResetHuman(nextMonthlyReset());
   const unlimited=isPro||hasTrainingAccess();
-
-  const adanatosCard=`
+  const freeCards=`
     <div class="limits-plan-badge"><span class="lp-dot"></span>Adanatos · Free</div>
     <div class="limits-card">
       <div class="limits-card-head">
-        <div class="limits-card-title">Ежедневный лимит</div>
-        <div class="limits-reset">сброс ${dailyReset}</div>
+        <div class="limits-card-title">Ежедневный лимит <span class="limits-title-note">5 часов</span></div>
+        <div class="limits-reset">сброс ${rollingReset}</div>
       </div>
       <div class="limits-metric">
-        <div class="limits-metric-row"><span class="limits-metric-label">Токены</span><span class="limits-metric-val"><b>${Math.min(100,Math.round(u.dayTokens/L.daily.tokens*100))}%</b></span></div>
-        ${limitBar(u.dayTokens,L.daily.tokens)}
-      </div>
-      <div class="limits-metric">
-        <div class="limits-metric-row"><span class="limits-metric-label">Сообщения</span><span class="limits-metric-val"><b>${Math.min(100,Math.round(u.dayMessages/L.daily.messages*100))}%</b></span></div>
-        ${limitBar(u.dayMessages,L.daily.messages)}
+        <div class="limits-metric-row"><span class="limits-metric-label">Общее использование</span><span class="limits-metric-val"><b>${rollingPct}%</b></span></div>
+        ${limitBarPercent(rollingPct)}
       </div>
     </div>
     <div class="limits-card">
       <div class="limits-card-head">
-        <div class="limits-card-title">Еженедельный лимит</div>
-        <div class="limits-reset">сброс ${weeklyReset}</div>
+        <div class="limits-card-title">Ежемесячный лимит</div>
+        <div class="limits-reset">сброс ${monthlyReset}</div>
       </div>
       <div class="limits-metric">
-        <div class="limits-metric-row"><span class="limits-metric-label">Токены</span><span class="limits-metric-val"><b>${Math.min(100,Math.round(u.weekTokens/L.weekly.tokens*100))}%</b></span></div>
-        ${limitBar(u.weekTokens,L.weekly.tokens)}
-      </div>
-      <div class="limits-metric">
-        <div class="limits-metric-row"><span class="limits-metric-label">Сообщения</span><span class="limits-metric-val"><b>${Math.min(100,Math.round(u.weekMessages/L.weekly.messages*100))}%</b></span></div>
-        ${limitBar(u.weekMessages,L.weekly.messages)}
+        <div class="limits-metric-row"><span class="limits-metric-label">Общее использование</span><span class="limits-metric-val"><b>${monthlyPct}%</b></span></div>
+        ${limitBarPercent(monthlyPct)}
       </div>
     </div>
-    <div class="limits-note">Лимит считается по токенам <strong>или</strong> сообщениям — что закончится раньше. Перейдите на <strong>Dynatos</strong>, чтобы снять ограничения.</div>`;
-
-  const dynatosCard=`
+    <div class="limits-note">Процент показывает общее использование лимита в выбранном окне. Перейдите на <strong>Dynatos</strong>, чтобы снять ограничения.</div>`;
+  const proCards=`
     <div class="limits-plan-badge pro"><span class="lp-dot"></span>Dynatos · Pro</div>
     <div class="limits-card">
       <div class="limits-card-head">
-        <div class="limits-card-title">Ежедневный лимит</div>
-        <div class="limits-reset">без сброса</div>
+        <div class="limits-card-title">Ежедневный лимит <span class="limits-title-note">5 часов</span></div>
+        <div class="limits-reset">без ограничений</div>
       </div>
       <div class="limits-metric">
-        <div class="limits-metric-row"><span class="limits-metric-label">Токены</span><span class="limits-infinite">Без ограничений</span></div>
-        <div class="limits-bar"><div class="limits-bar-fill pro" style="width:100%"></div></div>
-      </div>
-      <div class="limits-metric">
-        <div class="limits-metric-row"><span class="limits-metric-label">Сообщения</span><span class="limits-infinite">Без ограничений</span></div>
+        <div class="limits-metric-row"><span class="limits-metric-label">Общее использование</span><span class="limits-infinite">Без ограничений</span></div>
         <div class="limits-bar"><div class="limits-bar-fill pro" style="width:100%"></div></div>
       </div>
     </div>
     <div class="limits-card">
       <div class="limits-card-head">
-        <div class="limits-card-title">Еженедельный лимит</div>
-        <div class="limits-reset">без сброса</div>
+        <div class="limits-card-title">Ежемесячный лимит</div>
+        <div class="limits-reset">без ограничений</div>
       </div>
       <div class="limits-metric">
-        <div class="limits-metric-row"><span class="limits-metric-label">Токены</span><span class="limits-infinite">Без ограничений</span></div>
-        <div class="limits-bar"><div class="limits-bar-fill pro" style="width:100%"></div></div>
-      </div>
-      <div class="limits-metric">
-        <div class="limits-metric-row"><span class="limits-metric-label">Сообщения</span><span class="limits-infinite">Без ограничений</span></div>
+        <div class="limits-metric-row"><span class="limits-metric-label">Общее использование</span><span class="limits-infinite">Без ограничений</span></div>
         <div class="limits-bar"><div class="limits-bar-fill pro" style="width:100%"></div></div>
       </div>
     </div>
-    <div class="limits-note">Безлимитные токены и сообщения. Действует мягкая <strong>защита от злоупотребления</strong> (ограничение на очень частые запросы подряд), так как токены дороги.</div>`;
-
+    <div class="limits-note">Для Pro нет жёстких лимитов. Работает автоматическая защита от слишком частых запросов подряд.</div>`;
   el.innerHTML=`
     <div class="sth sth-with-close">
       <div class="sth-back desktop-only" onclick="renderSettingsMain()">
@@ -11723,9 +11703,7 @@ function renderSettingsLimits(){
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
     </div>
-    <div class="limits-screen">
-      ${unlimited?dynatosCard:adanatosCard}
-    </div>`;
+    <div class="limits-screen">${unlimited?proCards:freeCards}</div>`;
 }
 
 /* ===== PERSONALIZATION (mobile only) ===== */
