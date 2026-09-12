@@ -67,7 +67,7 @@ setTimeout(function(){
      главным инлайн-скриптом): первый кадр больше не ждёт их загрузку и парсинг. -->
 <link rel="stylesheet" href="/css/music-player.css">
 <link rel="stylesheet" href="/css/stats.css">
-<script defer src="/js/stats.js"></script>
+<script defer src="/js/stats.js?ver=20260912"></script>
 <script defer src="/js/music-cache.js"></script>
 <script defer src="/js/music-intents.js"></script>
 <script defer src="/js/music-client.js"></script>
@@ -1428,7 +1428,7 @@ a.conn-btn{display:inline-flex;align-items:center;text-decoration:none;}
 .settings-overlay.open{opacity:1;visibility:visible;}
 @media(min-width:769px){
   .settings-overlay{background:rgba(0,0,0,.4);align-items:center;justify-content:center;}
-  .settings-box{background:var(--bg2);border:1px solid var(--border);border-radius:20px;width:440px;max-height:85vh;max-height:85dvh;overflow-y:auto;padding:24px;box-shadow:var(--drop-shadow);display:block;
+  .settings-box{background:var(--bg2);border:1px solid var(--border);border-radius:22px;width:780px;max-width:calc(100vw - 48px);height:620px;max-height:min(700px,calc(100vh - 72px));overflow:hidden;padding:0;box-shadow:var(--drop-shadow);display:flex;flex-direction:column;
     transform:scale(.965) translateY(8px);transition:transform .24s cubic-bezier(.2,.8,.2,1);}
   .settings-overlay.open .settings-box{transform:none;}
 }
@@ -1457,6 +1457,63 @@ a.conn-btn{display:inline-flex;align-items:center;text-decoration:none;}
 .hm-stat-link{font-family:inherit;appearance:none;-webkit-appearance:none;text-align:left;}
 .s-row-val.soon{font-size:10px;text-transform:uppercase;letter-spacing:.5px;background:var(--hover);padding:3px 8px;border-radius:6px;}
 
+/* ===== Настройки v2: двухпанельный макет, профиль-герой, хранилище ===== */
+.set-shell{display:flex;flex:1;min-height:0;}
+.set-side{width:232px;flex:0 0 232px;border-right:1px solid var(--border2);padding:16px 12px 12px;overflow-y:auto;display:flex;flex-direction:column;}
+.set-side-prof{display:flex;align-items:center;gap:10px;padding:6px 8px 12px;}
+.set-side-prof .prof-ava{width:40px;height:40px;font-size:15px;flex:0 0 40px;}
+.set-side-prof-info{min-width:0;display:flex;flex-direction:column;gap:1px;}
+.set-side-prof-name{font-size:13.5px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.set-side-prof-mail{font-size:11.5px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.set-nav{display:flex;flex-direction:column;gap:2px;}
+.set-nav-btn{display:flex;align-items:center;gap:10px;padding:8px 10px;border:none;border-radius:9px;background:transparent;color:var(--text);font-size:13.5px;font-weight:500;font-family:inherit;cursor:pointer;text-align:left;-webkit-appearance:none;appearance:none;}
+.set-nav-btn:hover{background:var(--hover);}
+.set-nav-btn.on{background:var(--hover);font-weight:600;}
+.set-nav-btn svg{flex:0 0 18px;color:var(--text2);}
+.set-nav-btn.on svg{color:var(--text);}
+.set-nav-btn span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.set-nav-sep{height:1px;background:var(--border2);margin:8px 6px;}
+.set-nav-logout,.set-nav-logout svg{color:#ef4444;}
+.set-main{flex:1;min-width:0;overflow-y:auto;padding:24px 28px 40px;}
+.set-main .sth{margin-bottom:18px;}
+.set-main .sth-title{font-size:20px;font-weight:700;}
+.set-main .s-rows{background:var(--bg3);}
+.set-hero{display:flex;flex-direction:column;align-items:center;margin:6px 0 26px;text-align:center;}
+.set-hero .prof-ava{width:84px;height:84px;font-size:28px;}
+.set-hero-name{margin-top:12px;font-size:19px;font-weight:700;color:var(--text);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.set-hero-mail{margin-top:2px;font-size:13px;color:var(--text2);word-break:break-all;}
+.set-plan-badge{margin-top:10px;display:inline-flex;align-items:center;padding:4px 12px;border-radius:999px;background:var(--hover);color:var(--text2);font-size:12px;font-weight:700;}
+.set-plan-badge.pro{background:rgba(47,128,237,.14);color:#2f80ed;}
+.set-card-row{display:flex;align-items:center;gap:12px;padding:13px 16px;cursor:pointer;}
+.set-card-row+.set-card-row{border-top:1px solid var(--border2);}
+.set-card-row:hover{background:var(--hover);}
+.set-card-row .s-row-stack{flex:1;min-width:0;}
+.set-card-label{flex:1;min-width:0;font-size:14px;font-weight:500;color:var(--text);}
+.set-card-label.muted{color:var(--text2);font-weight:400;}
+.set-card-hint{font-size:12px;color:var(--text2);margin-top:2px;}
+.set-sec-title{font-size:12px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:var(--text2);margin:18px 2px 8px;}
+.sdel-ico{width:34px;height:34px;flex:0 0 34px;border-radius:10px;background:rgba(34,197,94,.14);color:#22c55e;display:flex;align-items:center;justify-content:center;}
+html[data-theme="light"] .sdel-ico{background:rgba(34,177,94,.12);}
+.stat-ico{width:34px;height:34px;flex:0 0 34px;border-radius:10px;background:rgba(47,128,237,.14);color:#2f80ed;display:flex;align-items:center;justify-content:center;}
+.set-storage{background:var(--bg3);border:1px solid var(--border2);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;}
+html[data-theme="light"] .set-storage{background:rgba(255,255,255,.66);border-color:rgba(20,18,12,.05);}
+.set-storage-head{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.set-storage-title{font-size:14px;font-weight:700;color:var(--text);}
+.set-storage-btn{border:none;background:var(--hover);color:var(--text);font:inherit;font-size:12.5px;font-weight:600;padding:6px 12px;border-radius:999px;cursor:pointer;-webkit-appearance:none;appearance:none;}
+.set-storage-btn:hover{background:rgba(255,255,255,.13);}
+html[data-theme="light"] .set-storage-btn{background:rgba(20,18,12,.06);}
+html[data-theme="light"] .set-storage-btn:hover{background:rgba(20,18,12,.1);}
+.set-storage-bar{height:6px;border-radius:3px;background:var(--hover);overflow:hidden;}
+html[data-theme="light"] .set-storage-bar{background:rgba(20,18,12,.08);}
+.set-storage-fill{height:100%;width:0;border-radius:3px;background:var(--check);transition:width .3s ease;}
+.set-storage-note{font-size:12px;color:var(--text2);line-height:1.5;}
+@media(max-width:768px){
+  .set-shell{display:block;}
+  .set-side{display:none;}
+  .set-main{overflow:visible;padding:0;}
+  .set-main .s-rows{background:rgba(255,255,255,.055);}
+  .set-hero .prof-ava{width:92px;height:92px;font-size:30px;}
+}
 /* ===== Мобильная версия экрана настроек — точная копия макета (нативный лист) ===== */
 @media(max-width:768px){
   .settings-box{padding:18px 16px calc(28px + env(safe-area-inset-bottom,0px));position:relative;}
@@ -1537,12 +1594,6 @@ a.conn-btn{display:inline-flex;align-items:center;text-decoration:none;}
 .appear-check{color:var(--check);opacity:0;font-size:15px;}
 .appear-check.on{opacity:1;}
 
-function showSettingsToast(msg){
-  let t=document.getElementById('settingsToast');
-  if(!t){t=document.createElement('div');t.id='settingsToast';t.style.cssText='position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:4000;background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:12px;padding:10px 16px;font-size:13px;box-shadow:var(--drop-shadow);';document.body.appendChild(t);}
-  t.textContent=msg;t.style.opacity='1';t.style.pointerEvents='auto';
-  clearTimeout(t.__timer);t.__timer=setTimeout(()=>{t.style.opacity='0';t.style.pointerEvents='none';},2600);
-}
 
 /* ===== ЭКРАН «ЛИМИТЫ» ===== */
 .limits-screen{display:flex;flex-direction:column;gap:16px;}
@@ -2948,6 +2999,32 @@ html[data-boot="app"] #initialLoading{display:flex;}.boot-spinner{width:22px;hei
 button:focus-visible,a:focus-visible{outline:2px solid var(--text2);outline-offset:3px;}
 @media(max-width:600px){#surveyOverlay .fb-modal,#nickOverlay .fb-modal{padding:24px;}#surveyOverlay .fb-title,#nickOverlay .fb-title{font-size:23px;}}@media(prefers-reduced-motion:reduce){.boot-spinner{animation:none;}}
 
+
+/* ===== Настройки v2: темы ===== */
+html[data-theme="light"] .set-side{border-right-color:rgba(20,18,12,.07);}
+html[data-theme="light"] .set-nav-btn:hover{background:rgba(20,18,12,.05);}
+html[data-theme="light"] .set-nav-btn.on{background:rgba(20,18,12,.06);}
+html[data-theme="light"] .set-nav-btn svg{color:rgba(20,18,12,.55);}
+html[data-theme="light"] .set-nav-btn.on svg{color:rgba(20,18,12,.85);}
+html[data-theme="light"] .set-nav-sep{background:rgba(20,18,12,.07);}
+html[data-theme="light"] .set-nav-logout,html[data-theme="light"] .set-nav-logout svg{color:#e02f2f;}
+html[data-theme="light"] .logout-row{background:rgba(20,18,12,.05);}
+html[data-theme="light"] .set-main .s-rows{background:rgba(255,255,255,.66);}
+html[data-theme="light"] .set-card-row:hover{background:rgba(20,18,12,.04);}
+html[data-theme="messenger"] .set-nav-btn:hover{background:rgba(255,255,255,.07);}
+html[data-theme="messenger"] .set-nav-btn.on{background:rgba(50,105,145,.16);color:#7cc4ff;}
+html[data-theme="messenger"] .set-nav-btn.on svg{color:#7cc4ff;}
+html[data-theme="messenger"] .set-nav-sep{background:rgba(255,255,255,.08);}
+html[data-theme="messenger"] .logout-row{background:rgba(255,255,255,.06);}
+html[data-theme="messenger"] .set-main .s-rows{background:rgba(255,255,255,.06);}
+html[data-theme="messenger"] .set-plan-badge.pro{background:rgba(41,171,226,.18);color:#54b9e8;}
+html[data-theme="messenger"] .set-storage{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.09);}
+
+/* Статистика: вписываем в правую панель настроек (десктоп) */
+@media(min-width:769px){
+  .hm-stats{max-width:100%;}
+  .hm-stats-grid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr));}
+}
 </style>
 </head>
 <body>
@@ -4157,6 +4234,7 @@ async function signInWithOAuthProvider(provider,btnId){
     if(btn)btn.disabled=true;
     if(h)h.style.display='none';
     const options={redirectTo:getOAuthRedirectUrl()};
+    try{sessionStorage.setItem('oauth_next','/chat');}catch(e){}
     if(provider==='google')options.scopes='openid email profile';
     const {error}=await sb.auth.signInWithOAuth({provider,options});
     if(error)throw error;
@@ -4178,6 +4256,13 @@ function signInWithGithub(){return signInWithOAuthProvider('github','btnGithub')
 function signInWithGoogle(){return signInWithOAuthProvider('google','btnGoogle');}
 function signInWithDiscord(){return signInWithOAuthProvider('discord','btnDiscord');}
 function getOAuthRedirectUrl(){
+  // Всегда возвращаемся на /chat того же домена, где открыт приложение:
+  // так вход через Google/GitHub/Discord не уводит на чужой хост из константы.
+  try{
+    const o=new URL(window.location.origin);
+    o.pathname='/chat';
+    return o.href;
+  }catch(e){}
   const host=String(window.location.hostname||'').toLowerCase();
   if(host==='localhost'||host==='127.0.0.1'||host==='[::1]')return window.location.origin+'/chat';
   return PRODUCTION_AUTH_REDIRECT;
@@ -10492,162 +10577,142 @@ function avatarInitials(){
   const email=(curUser?.email||'?');
   return email.charAt(0).toUpperCase();
 }
+/* ===== Настройки v2: каркас (двухпанельный десктоп / список на мобильном) ===== */
+const SET_CHEV='<div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>';
+const SET_NAV_ICONS={
+  main:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="7" height="7" rx="1.8" stroke="currentColor" stroke-width="1.7"/><rect x="13" y="4" width="7" height="7" rx="1.8" stroke="currentColor" stroke-width="1.7"/><rect x="4" y="13" width="7" height="7" rx="1.8" stroke="currentColor" stroke-width="1.7"/><rect x="13" y="13" width="7" height="7" rx="1.8" stroke="currentColor" stroke-width="1.7"/></svg>',
+  pers:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="1.7"/><path d="M5 19.5c1.3-3 4-4.5 7-4.5s5.7 1.5 7 4.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>',
+  appearance:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4.5" stroke="currentColor" stroke-width="1.7"/><path d="M12 2.5v2.6M12 18.9v2.6M2.5 12h2.6M18.9 12h2.6M5.2 5.2l1.9 1.9M16.9 16.9l1.9 1.9M18.8 5.2l-1.9 1.9M7.1 16.9l-1.9 1.9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>',
+  memory:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 4.5a4.3 4.3 0 00-4.2 5.2A3.8 3.8 0 008.2 17h7.6a3.8 3.8 0 00.6-7.55A4.3 4.3 0 0012 4.5z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M9.5 20l1-1.8M14.5 20l-1-1.8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>',
+  music:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M9 18.5V6.8l10-2v11.7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6.5" cy="18.5" r="2.5" stroke="currentColor" stroke-width="1.7"/><circle cx="16.5" cy="16.5" r="2.5" stroke="currentColor" stroke-width="1.7"/></svg>',
+  security:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 3.5l7 2.6v5.2c0 4.5-3 7.7-7 9.2-4-1.5-7-4.7-7-9.2V6.1l7-2.6z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M9.2 12.2l2 2 3.6-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  data:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><ellipse cx="12" cy="6" rx="7" ry="2.8" stroke="currentColor" stroke-width="1.7"/><path d="M5 6v6c0 1.55 3.13 2.8 7 2.8s7-1.25 7-2.8V6" stroke="currentColor" stroke-width="1.7"/><path d="M5 12v6c0 1.55 3.13 2.8 7 2.8s7-1.25 7-2.8v-6" stroke="currentColor" stroke-width="1.7"/></svg>',
+  limits:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.2" stroke="currentColor" stroke-width="1.7"/><path d="M12 7.5V12l3 2.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>',
+  subscription:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 4l2.35 4.76 5.25.76-3.8 3.7.9 5.23L12 16l-4.7 2.45.9-5.23-3.8-3.7 5.25-.76L12 4z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>',
+  about:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.2" stroke="currentColor" stroke-width="1.7"/><path d="M12 11v5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="12" cy="8" r="1.1" fill="currentColor"/></svg>',
+  report:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 21V4.5C7.5 3 10 3 12 4.5c2-1.5 4.5-1.5 7 0V15c-2.5-1.5-5-1.5-7 0-2-1.5-4.5-1.5-7 0" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>',
+  logout:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+};
+function settingsPane(){
+  try{
+    if(window.matchMedia('(min-width:769px)').matches){
+      const shell=document.querySelector('#settingsContent .set-shell');
+      if(shell){const m=shell.querySelector('.set-main');if(m)return m;}
+    }
+  }catch(e){}
+  return document.getElementById('settingsContent');
+}
+function setHead(title,backFn,withClose){
+  return `<div class="sth${withClose?' sth-with-close':''}">
+    <button type="button" class="sth-back" onclick="${backFn}" aria-label="Назад"><svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <div class="sth-title">${title}</div>
+    ${withClose?`<button type="button" class="sth-close mobile-only" onclick="${backFn}" aria-label="Закрыть"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>`:''}
+  </div>`;
+}
+function settingsInitialsOf(name){
+  const parts=String(name||'').split(/\s+/).filter(Boolean);
+  if(!parts.length)return '?';
+  if(parts.length>=2)return (parts[0][0]+parts[1][0]).toUpperCase();
+  return parts[0].slice(0,2).toUpperCase();
+}
+function settingsDisplayName(){
+  return curUser?.user_metadata?.full_name||curUser?.nickname||curUser?.email||'Профиль';
+}
+function setSideHtml(active){
+  const name=settingsDisplayName();
+  const email=curUser?.email||'';
+  const btn=(key,fn,label)=>`<button type="button" class="set-nav-btn${active===key?' on':''}" onclick="${fn}">${SET_NAV_ICONS[key]||SET_NAV_ICONS.main}<span>${label}</span></button>`;
+  return `<aside class="set-side">
+    <div class="set-side-prof">
+      <div class="prof-ava">${escapeHtml(settingsInitialsOf(name))}</div>
+      <div class="set-side-prof-info">
+        <div class="set-side-prof-name">${escapeHtml(name)}</div>
+        <div class="set-side-prof-mail">${escapeHtml(email)}</div>
+      </div>
+    </div>
+    <nav class="set-nav">
+      ${btn('main','renderSettingsMain()','Общие')}
+      ${btn('pers','renderSettingsPers()','Персонализация')}
+      ${btn('appearance','renderSettingsAppearance()','Внешний вид')}
+      ${btn('memory','renderSettingsMemory()','Память')}
+      ${btn('music','renderSettingsMusic()','Плейлисты')}
+      <div class="set-nav-sep"></div>
+      ${btn('security','renderSettingsSecurity()','Безопасность')}
+      ${btn('data','renderSettingsData()','Управление данными')}
+      ${btn('limits','renderSettingsLimits()','Лимиты')}
+      ${btn('subscription','renderSettingsSubscription()','Подписка')}
+      ${btn('about','renderAbout()','Сведения')}
+      <div class="set-nav-sep"></div>
+      ${btn('report','renderReportProblem()','Сообщить о проблеме')}
+      <button type="button" class="set-nav-btn set-nav-logout" onclick="logOut()">${SET_NAV_ICONS.logout}<span>Выйти</span></button>
+    </nav>
+  </aside>`;
+}
 function renderSettingsMain(){
-  const el=document.getElementById('settingsContent');
-  const ch=avatarInitials();
-  el.innerHTML=`
-    <div class="sth sth-with-close">
-      <button class="sth-back desktop-only" onclick="closeSettings()">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      </button>
-      <div class="sth-title desktop-only">Настройки</div>
-      <button class="sth-close mobile-only" onclick="closeSettings()" aria-label="Закрыть" title="Закрыть">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      </button>
-    </div>
-    <div class="prof-top">
-      <div class="prof-ava-wrap">
-        <div class="prof-ava">${ch}</div>
-        <div class="prof-ava-edit" title="Изменить имя" onclick="renderSettingsName()">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 20h9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </div>
-      </div>
-      <div style="flex:1;" class="mobile-only" onclick="renderSettingsName()" role="button">
-        <div class="prof-name">${curUser?.nickname||curUser?.email?.split('@')[0]||'Пользователь'}</div>
-        <div class="prof-email">${curUser?.email||''}</div>
-      </div>
-      <div style="flex:1;" class="desktop-only">
-        <div class="prof-name">${curUser?.nickname||curUser?.email?.split('@')[0]||'Пользователь'}</div>
-        <div class="prof-email">${curUser?.email||''}</div>
-      </div>
-      <button class="logout-btn desktop-only" onclick="logOut()">Выйти</button>
+  const root=document.getElementById('settingsContent');
+  if(!root)return;
+  window.__setScreen='main';
+  const name=settingsDisplayName();
+  const email=curUser?.email||'';
+  const pro=hasActivePro();
+  const apLabel=({system:'Системная',dark:'Тёмная',light:'Светлая',messenger:'Мессенджер'})[getSettings().appearance||'system']||'Системная';
+  const mainHtml=`
+    <div class="set-hero">
+      <div class="prof-ava">${escapeHtml(settingsInitialsOf(name))}</div>
+      <div class="set-hero-name">${escapeHtml(name)}</div>
+      <div class="set-hero-mail">${escapeHtml(email)}</div>
+      <div class="set-plan-badge${pro?' pro':''}">${pro?'Pro':'Бесплатный'}</div>
     </div>
     <div class="s-sect">
-      <div class="s-sect-label">Настроить HarmonyAI</div>
       <div class="s-rows">
-        <div class="s-row" onclick="renderSettingsPers()">
-          <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M9 14s1.2 1.5 3 1.5 3-1.5 3-1.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M9 9.5h.01M15 9.5h.01" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></div>
-          <div class="s-row-text">Персонализация</div>
-          <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-        </div>
-        <div class="s-row" onclick="renderSettingsMemory()">
-          <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 4h6a4 4 0 014 4v12H10a4 4 0 01-4-4V4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M14 8H8M14 12H8M14 16H10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div>
-          <div class="s-row-text">Память</div>
-          <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-        </div>
-        <div class="s-row" onclick="renderSettingsGeneral()">
-          <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3.2" stroke="currentColor" stroke-width="2"/><path d="M12 2v2.4M12 19.6V22M22 12h-2.4M4.4 12H2M19.07 4.93l-1.7 1.7M6.63 17.37l-1.7 1.7M19.07 19.07l-1.7-1.7M6.63 6.63l-1.7-1.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
-          <div class="s-row-text">Общие</div>
-          <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-        </div>
-        <div class="s-row" onclick="renderSettingsConnections()">
-          <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 2v6M15 2v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 8h12v3a6 6 0 01-6 6 6 6 0 01-6-6V8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 17v5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-          <div class="s-row-text">Плагины</div>
-          <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-        </div>
-        <div class="s-row" onclick="renderSettingsPlaylists()">
-          <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 7h11M4 12h11M4 17h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M20 7.5v6.2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="18" cy="15.4" r="2.2" stroke="currentColor" stroke-width="2"/></svg></div>
-          <div class="s-row-text">Плейлисты</div>
-          <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-        </div>
+        <div class="s-row" onclick="renderSettingsPers()"><div class="s-row-text">Персонализация</div>${SET_CHEV}</div>
+        <div class="s-row" onclick="renderSettingsAppearance()"><div class="s-row-text">Внешний вид</div><div class="s-row-val">${apLabel}</div>${SET_CHEV}</div>
+        <div class="s-row" onclick="renderSettingsGeneral()"><div class="s-row-text">Общие</div>${SET_CHEV}</div>
       </div>
     </div>
     <div class="s-sect">
-      <div class="s-sect-label">Конфиденциальность</div>
       <div class="s-rows">
-        <div class="s-row" onclick="renderSettingsSecurity()">
-          <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v5c0 4.6-3 8.6-7 10-4-1.4-7-5.4-7-10V6l7-3z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-          <div class="s-row-text">Безопасность</div>
-          <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+        <div class="s-row" onclick="goToDynatos()">
+          <div class="s-row-stack"><div class="s-row-text">Подписка HarmonyAI Pro</div><div class="s-row-sub">${pro?'Управление подпиской':'Больше ответов, модели Pro и приоритет'}</div></div>
+          ${pro?'<div class="s-row-val">Активна</div>':''}${SET_CHEV}
         </div>
-        <div class="s-row" onclick="renderSettingsData()">
-          <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><ellipse cx="12" cy="6" rx="7" ry="3" stroke="currentColor" stroke-width="2"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-          <div class="s-row-text">Управление данными</div>
-          <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-        </div>
+        <div class="s-row" onclick="renderSettingsMemory()"><div class="s-row-text">Память</div>${SET_CHEV}</div>
+        <div class="s-row" onclick="renderSettingsMusic()"><div class="s-row-text">Плейлисты</div>${SET_CHEV}</div>
       </div>
     </div>
     <div class="s-sect">
-      <div class="s-sect-label">Учётная запись</div>
-      <div class="s-rows"><button class="s-row hm-stat-link" onclick="renderPersonalStats()"><span class="s-row-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 19V5M4 19h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M7 15l3-4 3 2 5-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="s-row-text">Статистика</span><span class="s-chev" aria-hidden="true"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span></button>
-        <div class="s-row" onclick="renderSettingsName()">
-          <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2"/><path d="M3 7l9 6 9-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-          <div class="s-row-stack">
-            <div class="s-row-text">Электронная почта</div>
-            <div class="s-row-sub mobile-only">${curUser?.email||''}</div>
-          </div>
-          <div class="s-row-val desktop-only" style="font-size:12px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${curUser?.email||''}</div>
-          <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-        </div>
-        <div class="s-row">
-          <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="5" stroke="currentColor" stroke-width="2"/><path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-          <div class="s-row-text">Подписка</div>
-          <div class="s-row-val">${subscriptionLabel()}</div>
-        </div>
-        <div class="s-row" onclick="renderSettingsLimits()">
-          <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3.5 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-          <div class="s-row-text">Лимиты</div>
-          <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-        </div>
-        ${hasActivePro()?`
-        <div class="s-row" onclick="renderSettingsSubscription()">
-          <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="2.5" y="5" width="19" height="14" rx="2.5" stroke="currentColor" stroke-width="2"/><path d="M2.5 10h19" stroke="currentColor" stroke-width="2"/><path d="M6 14.5h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
-          <div class="s-row-text">Управление подпиской</div>
-          <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-        </div>`:`
-        <div class="s-row s-row-accent" onclick="goToDynatos()">
-          <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3l1.6 5.2L19 10l-5.4 1.8L12 17l-1.6-5.2L5 10l5.4-1.8L12 3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
-          <div class="s-row-text">Перейти на Pro</div>
-          <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-        </div>`}
-      </div>
-    </div>
-    <div class="s-sect">
-      <div class="s-sect-label">Тема</div>
       <div class="s-rows">
-        <div class="s-row" onclick="renderSettingsAppearance()">
-          <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M21 12.6A9 9 0 1111.4 3a7.2 7.2 0 009.6 9.6z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></div>
-          <div class="s-row-text">Внешний вид</div>
-          <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-        </div>
+        <div class="s-row" onclick="renderSettingsSecurity()"><div class="s-row-text">Безопасность</div>${SET_CHEV}</div>
+        <div class="s-row" onclick="renderSettingsData()"><div class="s-row-text">Управление данными</div>${SET_CHEV}</div>
+        <div class="s-row" onclick="renderSettingsLimits()"><div class="s-row-text">Лимиты</div>${SET_CHEV}</div>
+        <button class="s-row hm-stat-link" id="statsBtn" onclick="renderPersonalStats()"><span class="s-row-text">Статистика</span>${SET_CHEV}</button>
+        <div class="s-row" onclick="renderAbout()"><div class="s-row-text">Сведения</div>${SET_CHEV}</div>
       </div>
     </div>
     <div class="s-sect s-sect-help">
-      <div class="s-sect-label">Помощь</div>
       <div class="s-rows">
-        <div class="s-row" onclick="renderAbout()">
-          <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 11v5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 8h.01" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></div>
-          <div class="s-row-text">Сведения</div>
-          <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-        </div>
-        <div class="s-row" onclick="openHelpCenter()">
-          <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 5a2 2 0 012-2h9l5 5v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9.4 9.6a2.6 2.6 0 114.7 1.7c-.5.7-1.2 1-1.6 1.5-.3.4-.4.8-.4 1.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 17.5h.01" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></div>
-          <div class="s-row-text">Справочный центр</div>
-          <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-        </div>
-        <div class="s-row" onclick="openSupportChat()">
-          <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M9.2 9.3a2.8 2.8 0 115.1 1.9c-.5.8-1.3 1.1-1.8 1.7-.4.5-.5.9-.5 1.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 17h.01" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></div>
-          <div class="s-row-text">Помощь</div>
-          <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-        </div>
-        <div class="s-row" onclick="renderReportProblem()">
-          <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 3v18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M5 4h11l-2.2 3.5L16 11H5V4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></div>
-          <div class="s-row-text">Сообщить о проблеме в приложении</div>
-          <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-        </div>
-        ${hasModeratorAccess()?`
-        <div class="s-row" onclick="renderReportsInbox()">
-          <div class="s-row-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 6l9 6 9-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2"/></svg></div>
-          <div class="s-row-text">Сообщения о проблемах</div>
-          <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-        </div>`:''}
+        <div class="s-row" onclick="renderReportProblem()"><div class="s-row-text">Сообщить о проблеме в приложении</div>${SET_CHEV}</div>
+        <div class="s-row" onclick="openHelpCenter()"><div class="s-row-text">Справочный центр</div>${SET_CHEV}</div>
+        <div class="s-row" onclick="openSupportChat()"><div class="s-row-text">Поддержка</div>${SET_CHEV}</div>
       </div>
-      <div class="logout-row mobile-only" onclick="logOut()">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <span>Выйти</span>
+    </div>
+    <div class="logout-row mobile-only" onclick="logOut()">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Выйти</span>
+    </div>`;
+  root.innerHTML=`
+    <div class="set-shell">
+      ${setSideHtml('main')}
+      <div class="set-main">
+        <div class="sth sth-with-close">
+          <div class="sth-title">Настройки</div>
+          <button type="button" class="sth-close mobile-only" onclick="closeSettings()" aria-label="Закрыть"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+        </div>
+        ${mainHtml}
       </div>
     </div>`;
 }
+
 function goToDynatos(){
   // Открываем страницу оформления Pro в НОВОМ окне/вкладке. Путь относительный:
   // страница живёт в том же деплое, и на любом домене ссылка остаётся верной.
@@ -10704,7 +10769,7 @@ function openSupportChat(){
    (фильтр в js/hm-memory.js). Список берётся из клиентского кэша —
    экран открывается мгновенно и не ходит в базу. */
 function renderSettingsMemory(){
-  const el=document.getElementById('settingsContent');
+  const el=settingsPane();
   const s=getSettings();
   const memSave=(s.memSave!==false);
   const memRecall=(s.memRecall!==false);
@@ -10715,12 +10780,7 @@ function renderSettingsMemory(){
   const inView=items.filter(r=>((r.scope||'user')==='user')===  (window._memView==='user'));
   const CHECK='<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12l4 4 10-10" stroke="var(--check,#22c55e)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   el.innerHTML=`
-    <div class="sth">
-      <div class="sth-back" onclick="renderSettingsMain()">
-        <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <div class="sth-title">Память</div>
-    </div>
+    ${setHead('Память','renderSettingsMain()')}
     <p style="font-size:13px;color:var(--text2);line-height:1.5;margin:0 0 14px;">
       Память хранит короткие факты, которые вы подтвердили. История переписки живёт отдельно в чатах и сюда не попадает. Пароли, API-ключи и токены не сохраняются никогда.
     </p>
@@ -10828,18 +10888,13 @@ function dayWord(n){
 }
 
 function renderSettingsSubscription(){
-  const el=document.getElementById('settingsContent');
+  const el=settingsPane();
   const plan=subscriptionLabel();
   const info=subUntilInfo();
   const check='<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9.2" stroke="currentColor" stroke-width="1.8"/><path d="M8 12.4l2.7 2.6L16 9.6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   const perks=['Неограниченные сообщения с ИИ','Доступ ко всем моделям','Приоритетная генерация ответов','История чатов без ограничений','Экспорт и сохранение чатов'];
   el.innerHTML=`
-    <div class="sth">
-      <div class="sth-back" onclick="renderSettingsMain()">
-        <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <div class="sth-title">Управление подпиской</div>
-    </div>
+    ${setHead('Управление подпиской','renderSettingsMain()')}
     <div class="sub-wrap">
       <div class="sub-card">
         <div class="sub-card-label">Текущий план</div>
@@ -10884,30 +10939,21 @@ function cancelSubscription(){
 
 /* Сами экраны плейлистов живут в js/music-playlists.js — здесь только вход,
    чтобы не тащить ещё один большой экран в и без того большой index.html. */
-function renderSettingsPlaylists(){
-  const el=document.getElementById('settingsContent');
+function renderSettingsMusic(){
+  const el=settingsPane();
   if(!el)return;
+  window.__setScreen='music';
   if(!window.MusicPlaylists){
-    el.innerHTML=`
-    <div class="sth">
-      <div class="sth-back" onclick="renderSettingsMain()"><svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-      <div class="sth-title">Плейлисты</div>
-    </div>
-    <div class="pl-empty">Модуль плейлистов не загрузился — обновите страницу.</div>`;
+    el.innerHTML=`${setHead('Плейлисты','renderSettingsMain()')}<div class="pl-empty">Модуль плейлистов не загрузился — обновите страницу.</div>`;
     return;
   }
   window.MusicPlaylists.renderList(el);
 }
 
 function renderSettingsConnections(){
-  const el=document.getElementById('settingsContent');
+  const el=settingsPane();
   el.innerHTML=`
-    <div class="sth">
-      <div class="sth-back" onclick="renderSettingsMain()">
-        <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <div class="sth-title">Плагины</div>
-    </div>
+    ${setHead('Плагины','renderSettingsMain()')}
     <div class="sub-wrap">
       <div class="sub-card" id="connYm">
         <div class="conn-row">
@@ -11013,36 +11059,37 @@ async function disconnectYandex(){
 }
 
 function renderSettingsGeneral(){
-  const el=document.getElementById('settingsContent');
+  const el=settingsPane();
+  if(!el)return;
+  window.__setScreen='general';
   const s=getSettings();
   const autoSwitch=(s.autoSwitch!==false);
   const webSearch=(s.webSearch===true);
   const curLang=(window.i18n&&window.i18n.get&&window.i18n.get())||localStorage.getItem('hai_lang')||'ru';
   const names=(window.i18n&&window.i18n.names)||{ru:'Русский',en:'English',fr:'Français',de:'Deutsch',es:'Español'};
   el.innerHTML=`
-    <div class="sth">
-      <div class="sth-back" onclick="renderSettingsMain()">
-        <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <div class="sth-title">Общие</div>
-    </div>
-    <div class="mem-rows">
-      <div class="mem-row" onclick="renderSettingsLang()" style="cursor:pointer;">
-        <div class="mem-info"><div class="mem-title">Язык</div></div>
-        <div style="display:flex;align-items:center;gap:8px;color:var(--muted);font-size:14px;">${names[curLang]||'Русский'}<svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-      </div>
-      <div class="mem-row">
-        <div class="mem-info"><div class="mem-title">Автопереключение</div><div class="mem-desc">Автоматически использовать более умную модель для решения сложных вопросов</div></div>
-        <div class="sw ${autoSwitch?'on':''}" onclick="this.classList.toggle('on');saveSetting('autoSwitch',this.classList.contains('on'))"></div>
-      </div>
-      <div class="mem-row">
-        <div class="mem-info"><div class="mem-title">Поиск в интернете</div><div class="mem-desc">Искать актуальную информацию в реальном времени.</div></div>
-        <div class="sw ${webSearch?'on':''}" onclick="this.classList.toggle('on');saveSetting('webSearch',this.classList.contains('on'))"></div>
+    ${setHead('Общие','renderSettingsMain()')}
+    <div class="s-sect">
+      <div class="s-rows">
+        <div class="s-row">
+          <div class="s-row-stack"><div class="s-row-text">Автопереключение моделей</div><div class="s-row-sub">Более умная модель — для сложных вопросов</div></div>
+          <div class="sw ${autoSwitch?'on':''}" onclick="this.classList.toggle('on');saveSetting('autoSwitch',this.classList.contains('on'))"></div>
+        </div>
+        <div class="s-row">
+          <div class="s-row-stack"><div class="s-row-text">Поиск в интернете</div><div class="s-row-sub">Искать актуальную информацию в реальном времени</div></div>
+          <div class="sw ${webSearch?'on':''}" onclick="this.classList.toggle('on');saveSetting('webSearch',this.classList.contains('on'))"></div>
+        </div>
+        <div class="s-row" onclick="renderSettingsLang()">
+          <div class="s-row-text">Язык</div>
+          <div class="s-row-val">${names[curLang]||'Русский'}</div>
+          ${SET_CHEV}
+        </div>
       </div>
     </div>`;
 }
+
 function renderSettingsLang(){
-  const el=document.getElementById('settingsContent');
+  const el=settingsPane();
   const curLang=(window.i18n&&window.i18n.get&&window.i18n.get())||localStorage.getItem('hai_lang')||'ru';
   const supported=(window.i18n&&window.i18n.supported)||['ru','en','fr','de','es'];
   const names=(window.i18n&&window.i18n.names)||{ru:'Русский',en:'English',fr:'Français',de:'Deutsch',es:'Español'};
@@ -11052,12 +11099,7 @@ function renderSettingsLang(){
       ${l===curLang?'<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12l4 4 10-10" stroke="#2f6bff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}
     </div>`).join('');
   el.innerHTML=`
-    <div class="sth">
-      <div class="sth-back" onclick="renderSettingsGeneral()">
-        <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <div class="sth-title">Язык</div>
-    </div>
+    ${setHead('Язык','renderSettingsGeneral()')}
     <div class="mem-rows">${rows}</div>`;
 }
 function pickLang(lang){
@@ -11087,64 +11129,72 @@ function updateLangSensitiveUI(){
 
 /* ===== БЕЗОПАСНОСТЬ ===== */
 function renderSettingsSecurity(){
-  const el=document.getElementById('settingsContent');
+  const el=settingsPane();
+  if(!el)return;
+  window.__setScreen='security';
   el.innerHTML=`
-    <div class="sth">
-      <div class="sth-back" onclick="renderSettingsMain()">
-        <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    ${setHead('Безопасность','renderSettingsMain()')}
+    <div class="s-sect">
+      <div class="s-rows">
+        <div class="s-row" onclick="renderSettingsEmail()">
+          <div class="s-row-stack"><div class="s-row-text">Сменить email</div><div class="s-row-sub">${escapeHtml(curUser?.email||'')}</div></div>
+          ${SET_CHEV}
+        </div>
+        <div class="s-row" onclick="renderSettingsSessions()">
+          <div class="s-row-stack"><div class="s-row-text">Активные сеансы</div><div class="s-row-sub">Все устройства, использованные для входа</div></div>
+          ${SET_CHEV}
+        </div>
       </div>
-      <div class="sth-title">Безопасность</div>
     </div>
-    <div class="mem-rows">
-      <div class="mem-row" onclick="renderSettingsEmail()" style="cursor:pointer;">
-        <div class="mem-info"><div class="mem-title">Сменить email</div><div class="mem-desc">${(curUser?.email||'').replace(/</g,'&lt;')}</div></div>
-        <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-      </div>
-      <div class="mem-row" onclick="renderSettingsSessions()" style="cursor:pointer;">
-        <div class="mem-info"><div class="mem-title">Активные сеансы</div><div class="mem-desc">Все устройства, использованные для входа</div></div>
-        <div class="s-chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-      </div>
-      <div class="mem-row" onclick="confirmDeleteAllChats()" style="cursor:pointer;">
-        <div class="mem-info"><div class="mem-title" style="color:#ff4d4f;">Удалить все чаты</div></div>
+    <div class="s-sect">
+      <div class="s-rows">
+        <div class="s-row" onclick="confirmDeleteAllChats()">
+          <div class="s-row-stack"><div class="s-row-text" style="color:#ef4444;">Удалить все чаты</div><div class="s-row-sub">История переписки будет удалена безвозвратно</div></div>
+        </div>
       </div>
     </div>`;
 }
 
 /* ===== УПРАВЛЕНИЕ ДАННЫМИ ===== */
 function renderSettingsData(){
-  const el=document.getElementById('settingsContent');
+  const el=settingsPane();
+  if(!el)return;
+  window.__setScreen='data';
   const s=getSettings();
   const improveModels=(s.improveModels!==false);
   const useAudio=(s.useAudio!==false);
   el.innerHTML=`
-    <div class="sth">
-      <div class="sth-back" onclick="renderSettingsMain()">
-        <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    ${setHead('Управление данными','renderSettingsMain()')}
+    <div class="s-sect">
+      <div class="s-rows">
+        <div class="s-row">
+          <div class="s-row-stack"><div class="s-row-text">Помогите улучшить модели</div><div class="s-row-sub">Разрешите использовать ваш контент для улучшения наших моделей для вас и других пользователей. Мы принимаем меры для защиты вашей конфиденциальности.</div></div>
+          <div class="sw ${improveModels?'on':''}" onclick="this.classList.toggle('on');saveSetting('improveModels',this.classList.contains('on'))"></div>
+        </div>
+        <div class="s-row">
+          <div class="s-row-stack"><div class="s-row-text">Использовать аудиозаписи</div><div class="s-row-sub">Разрешите использовать загруженные аудиозаписи произведений и нотных диктантов для улучшения наших моделей.</div></div>
+          <div class="sw ${useAudio?'on':''}" onclick="this.classList.toggle('on');saveSetting('useAudio',this.classList.contains('on'))"></div>
+        </div>
       </div>
-      <div class="sth-title">Управление данными</div>
     </div>
-    <div class="mem-rows">
-      <div class="mem-row">
-        <div class="mem-info"><div class="mem-title">Помогите улучшить модели</div><div class="mem-desc">Разрешите использовать ваш контент для улучшения наших моделей для вас и других пользователей. Мы принимаем меры для защиты вашей конфиденциальности.</div></div>
-        <div class="sw ${improveModels?'on':''}" onclick="this.classList.toggle('on');saveSetting('improveModels',this.classList.contains('on'))"></div>
-      </div>
-      <div class="mem-row">
-        <div class="mem-info"><div class="mem-title">Использовать аудиозаписи</div><div class="mem-desc">Разрешите использовать загруженные аудио записи произведений и нотных диктантов для улучшения наших моделей.</div></div>
-        <div class="sw ${useAudio?'on':''}" onclick="this.classList.toggle('on');saveSetting('useAudio',this.classList.contains('on'))"></div>
+    <div class="s-sect">
+      <div class="set-storage">
+        <div class="set-storage-head">
+          <div class="set-storage-title">Хранилище</div>
+          <button type="button" class="set-storage-btn" onclick="openStorageCleanup()">Очистить…</button>
+        </div>
+        <div class="set-storage-bar"><div class="set-storage-fill" id="setStorageFill"></div></div>
+        <div class="set-storage-note" id="setStorageNote">Считаем…</div>
       </div>
     </div>`;
+  renderStorageUsage();
 }
 
 /* ===== СМЕНА EMAIL ===== */
 function renderSettingsEmail(){
-  const el=document.getElementById('settingsContent');
+  const el=settingsPane();
   el.innerHTML=`
-    <div class="sth">
-      <div class="sth-back" onclick="renderSettingsSecurity()">
-        <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <div class="sth-title">Сменить email</div>
-    </div>
+    ${setHead('Сменить email','renderSettingsSecurity()')}
     <div class="mem-rows" style="padding:14px;display:flex;flex-direction:column;gap:10px;">
       <div class="mem-desc" style="margin-bottom:2px;">Текущий: ${(curUser?.email||'').replace(/</g,'&lt;')}</div>
       <input class="auth-input" id="newEmailInp" type="email" placeholder="Новый email" autocomplete="email" style="margin-bottom:0;" onkeydown="if(event.key==='Enter')saveNewEmail()">
@@ -11333,12 +11383,7 @@ function deviceCardMarkup(d,currentKey){
     </div>`;
 }
 function sessionsScreenMarkup(inner){
-  return `<div class="sth">
-      <div class="sth-back" onclick="renderSettingsSecurity()">
-        <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <div class="sth-title">Активные сеансы</div>
-    </div>
+  return `${setHead('Активные сеансы','renderSettingsSecurity()')}
     <div class="dev-wrap" id="devWrap">
       <div class="dev-intro">Это список устройств, с которых выполнялся вход в ваш аккаунт HarmonyAI. Если вы не узнаёте какое-то устройство, выйдите со всех устройств и смените пароль.</div>
       <div class="dev-label">Сеансы</div>
@@ -11346,7 +11391,7 @@ function sessionsScreenMarkup(inner){
     </div>`;
 }
 async function renderSettingsSessions(){
-  const el=document.getElementById('settingsContent');
+  const el=settingsPane();
   if(!el)return;
   const currentKey=getDeviceKey();
   /* Мгновенно показываем то, что уже есть в профиле локально: экран не должен
@@ -11403,18 +11448,13 @@ async function confirmDeleteAllChats(){
   try{chatHistory=[];curChatId=null;}catch(e){}
   try{renderChatList();}catch(e){}
   try{newChat();}catch(e){}
-  renderSettingsSecurity();
+  if(window.__setScreen==='data')renderSettingsData();else renderSettingsSecurity();
 }
 
 function renderSettingsName(){
-  const el=document.getElementById('settingsContent');
+  const el=settingsPane();
   el.innerHTML=`
-    <div class="sth">
-      <div class="sth-back" onclick="renderSettingsMain()">
-        <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <div class="sth-title">Имя</div>
-    </div>
+    ${setHead('Имя','renderSettingsMain()')}
     <div class="mem-rows" style="padding:14px;display:flex;flex-direction:column;gap:10px;">
       <input class="auth-input" id="settingsNameInp" type="text" placeholder="Введите имя.." maxlength="40" autocomplete="given-name" lang="ru" value="${(curUser?.nickname||'').replace(/"/g,'&quot;')}" style="margin-bottom:0;" onkeydown="if(event.key==='Enter')saveSettingsName()">
       <div class="auth-error" id="settingsNameErr" style="display:none;"></div>
@@ -11456,39 +11496,30 @@ async function saveSettingsName(){
 
 /* ===== ВНЕШНИЙ ВИД ===== */
 function renderSettingsAppearance(){
-  const el=document.getElementById('settingsContent');
+  const el=settingsPane();
+  if(!el)return;
+  window.__setScreen='appearance';
   const s=getSettings();
   const theme=s.appearance||'system';
+  const CHECK='<div class="appear-check"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M5 12l4 4 10-10" stroke="var(--check,#22c55e)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>';
+  const OPTS=[
+    ['system','Системная','<svg width="17" height="17" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="13" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 21h8M12 17v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'],
+    ['dark','Тёмная','<svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M21 12.6A9 9 0 1111.4 3a7.2 7.2 0 009.6 9.6z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>'],
+    ['light','Светлая','<svg width="17" height="17" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4.5" stroke="currentColor" stroke-width="2"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'],
+    ['messenger','Мессенджер','<svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M21 5L3 12.2l6.4 2.2L18 8l-6.5 7.4V21l3.5-4 4.5 2.2L21 5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>']
+  ];
   el.innerHTML=`
-    <div class="sth">
-      <div class="sth-back" onclick="renderSettingsMain()">
-        <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <div class="sth-title">Внешний вид</div>
-    </div>
-    <div class="appear-rows">
-      <div class="appear-row" onclick="selectAppearance('system')">
-        <div class="appear-row-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="13" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 21h8M12 17v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-        <div class="appear-row-text">Системная</div>
-        <div class="appear-check ${theme==='system'?'on':''}" id="appearCk-system">✓</div>
-      </div>
-      <div class="appear-row" onclick="selectAppearance('dark')">
-        <div class="appear-row-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M21 12.6A9 9 0 1111.4 3a7.2 7.2 0 009.6 9.6z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></div>
-        <div class="appear-row-text">Тёмная</div>
-        <div class="appear-check ${theme==='dark'?'on':''}" id="appearCk-dark">✓</div>
-      </div>
-      <div class="appear-row" onclick="selectAppearance('light')">
-        <div class="appear-row-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4.5" stroke="currentColor" stroke-width="2"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-        <div class="appear-row-text">Светлая</div>
-        <div class="appear-check ${theme==='light'?'on':''}" id="appearCk-light">✓</div>
-      </div>
-      <div class="appear-row" onclick="selectAppearance('messenger')">
-        <div class="appear-row-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M21 5L3 12.2l6.4 2.2L18 8l-6.5 7.4V21l3.5-4 4.5 2.2L21 5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></div>
-        <div class="appear-row-text">Мессенджер</div>
-        <div class="appear-check ${theme==='messenger'?'on':''}" id="appearCk-messenger">✓</div>
-      </div>
-    </div>`;
+    ${setHead('Внешний вид','renderSettingsMain()')}
+    <div class="s-sect"><div class="appear-rows">
+      ${OPTS.map(([k,label,icon])=>`
+      <div class="appear-row" onclick="selectAppearance('${k}')">
+        <div class="appear-row-icon">${icon}</div>
+        <div class="appear-row-text">${label}</div>
+        <div class="appear-check" id="appearCk-${k}" style="${theme===k?'opacity:1;':''}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M5 12l4 4 10-10" stroke="var(--check,#22c55e)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>`).join('')}
+    </div></div>`;
 }
+
 function applyTheme(val){
   // val: 'system' | 'dark' | 'light' | 'messenger'.
   if(val==='dark'||val==='light'||val==='messenger'){
@@ -11510,17 +11541,9 @@ function selectAppearance(val){
 
 /* ===== СООБЩИТЬ О ПРОБЛЕМЕ В ПРИЛОЖЕНИИ ===== */
 function renderReportProblem(){
-  const el=document.getElementById('settingsContent');
+  const el=settingsPane();
   el.innerHTML=`
-    <div class="sth sth-with-close">
-      <div class="sth-back desktop-only" onclick="renderSettingsMain()">
-        <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <div class="sth-title">Сообщить о проблеме в приложении</div>
-      <button class="sth-close mobile-only" onclick="renderSettingsMain()" aria-label="Закрыть">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      </button>
-    </div>
+    ${setHead('Сообщить о проблеме в приложении','renderSettingsMain()')}
     <div class="report-screen">
       <div class="report-field-label">Что случилось?</div>
       <div class="report-textarea-wrap">
@@ -11552,18 +11575,10 @@ async function submitReportProblem(){
 
 /* ===== СООБЩЕНИЯ О ПРОБЛЕМАХ (только developer/moderator/admin) ===== */
 async function renderReportsInbox(){
-  const el=document.getElementById('settingsContent');
+  const el=settingsPane();
   if(!hasModeratorAccess()){renderSettingsMain();return;}
   el.innerHTML=`
-    <div class="sth sth-with-close">
-      <div class="sth-back desktop-only" onclick="renderSettingsMain()">
-        <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <div class="sth-title">Сообщения о проблемах</div>
-      <button class="sth-close mobile-only" onclick="renderSettingsMain()" aria-label="Закрыть">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      </button>
-    </div>
+    ${setHead('Сообщения о проблемах','renderSettingsMain()')}
     <div class="mem-rows" id="reportsInboxList" style="padding:14px;display:flex;flex-direction:column;gap:10px;">
       <div style="font-size:13px;color:var(--text2);">Загрузка...</div>
     </div>`;
@@ -11597,17 +11612,9 @@ function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&l
 
 /* ===== СВЕДЕНИЯ ===== */
 function renderAbout(){
-  const el=document.getElementById('settingsContent');
+  const el=settingsPane();
   el.innerHTML=`
-    <div class="sth sth-with-close">
-      <div class="sth-back desktop-only" onclick="renderSettingsMain()">
-        <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <div class="sth-title">Сведения</div>
-      <button class="sth-close mobile-only" onclick="renderSettingsMain()" aria-label="Закрыть">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      </button>
-    </div>
+    ${setHead('Сведения','renderSettingsMain()')}
     <div class="about-screen">
       <div class="about-logo-row">
         <div class="about-app-icon">
@@ -11638,7 +11645,7 @@ function limitBarPercent(pct){
   return `<div class="limits-bar"><div class="limits-bar-fill ${cls}" style="width:${value}%"></div></div>`;
 }
 function renderSettingsLimits(){
-  const el=document.getElementById('settingsContent');
+  const el=settingsPane();
   const isPro=isProUser();
   const u=getUsage();
   const L=LIMITS.adanatos;
@@ -11694,15 +11701,7 @@ function renderSettingsLimits(){
     </div>
     <div class="limits-note">Для Pro нет жёстких лимитов. Работает автоматическая защита от слишком частых запросов подряд.</div>`;
   el.innerHTML=`
-    <div class="sth sth-with-close">
-      <div class="sth-back desktop-only" onclick="renderSettingsMain()">
-        <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <div class="sth-title">Лимиты</div>
-      <button class="sth-close mobile-only" onclick="renderSettingsMain()" aria-label="Закрыть">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      </button>
-    </div>
+    ${setHead('Лимиты','renderSettingsMain()')}
     <div class="limits-screen">${unlimited?proCards:freeCards}</div>`;
 }
 
@@ -11711,7 +11710,7 @@ const STYLES={default:'По умолчанию',professional:'Профессио
 const STYLE_DESCS={default:'Предпочитаемый стиль и тон',professional:'Тактичный и точный',friendly:'Тёплый и разговорчивый',frank:'Прямой и мотивирующий',whimsical:'Весёлый и творческий',efficient:'Немногословный и чёткий',cynical:'Критикующий и саркастичный'};
 
 function renderSettingsPers(){
-  const el=document.getElementById('settingsContent');
+  const el=settingsPane();
   const s=getSettings();
   const st=s.style||'default';
   const fr=s.friendliness||'default';
@@ -12048,5 +12047,142 @@ async function submitFbModal(){
 })();
 </script>
 
+<script>
+/* ===== Настройки v2: тост, «Хранилище», совместимость экрана статистики ===== */
+function showSettingsToast(msg){
+  let t=document.getElementById('settingsToast');
+  if(!t){t=document.createElement('div');t.id='settingsToast';t.style.cssText='position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:4000;background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:12px;padding:10px 16px;font-size:13px;box-shadow:var(--drop-shadow);';document.body.appendChild(t);}
+  t.textContent=msg;t.style.opacity='1';t.style.pointerEvents='auto';
+  clearTimeout(t.__timer);t.__timer=setTimeout(()=>{t.style.opacity='0';t.style.pointerEvents='none';},2600);
+}
+function setFmtBytes(n){
+  if(!n)return '0 Б';
+  const u=['Б','КБ','МБ','ГБ'];let i=0,v=n;
+  while(v>=1024&&i<u.length-1){v/=1024;i++;}
+  return String(v>=100?Math.round(v):v.toFixed(1)).replace('.',',')+' '+u[i];
+}
+function renderStorageUsage(){
+  let total=0;
+  try{
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i)||'';
+      total+=(k.length+(localStorage.getItem(k)||'').length)*2;
+    }
+  }catch(e){}
+  const quota=5*1024*1024;
+  const pct=Math.min(100,Math.max(2,Math.round(total/quota*100)));
+  const fill=document.getElementById('setStorageFill');
+  const note=document.getElementById('setStorageNote');
+  if(fill)fill.style.width=pct+'%';
+  if(note)note.textContent='Занято около '+setFmtBytes(total)+' из ~5 МБ локального хранилища. Сами чаты и изображения хранятся на сервере — очистка кэша их не удалит.';
+}
+function openStorageCleanup(){
+  const ok=window.confirm('Очистить локальный кэш приложения? Вход, настройки и чаты на сервере сохранятся. Локальные черновики и несохранённые вложения могут пропасть.');
+  if(!ok)return;
+  try{
+    const keep=(k)=>k.indexOf('sb-')===0||k==='hai_theme'||k==='hai_lang';
+    const kill=[];
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);
+      if(k&&!keep(k))kill.push(k);
+    }
+    kill.forEach(k=>{try{localStorage.removeItem(k);}catch(e){}});
+    try{sessionStorage.clear();}catch(e){}
+    showSettingsToast('Локальный кэш очищен');
+  }catch(e){
+    showSettingsToast('Не удалось очистить кэш');
+  }
+  renderStorageUsage();
+}
+/* Экран статистики рендерит собственную шапку — даём ей работать
+   внутри новой двухпанельной раскладки и не ломаем мобильную. */
+(function(){
+  const orig=window.renderPersonalStats;
+  if(typeof orig!=='function')return;
+  window.renderPersonalStats=function(){
+    const pane=settingsPane();
+    if(pane)pane.scrollTop=0;
+    const r=orig.apply(this,arguments);
+    if(r&&typeof r.then==='function')r.finally(fixStatsPane);
+    else setTimeout(fixStatsPane,0);
+    return r;
+  };
+  function fixStatsPane(){
+    setTimeout(()=>{
+      const c=document.getElementById('statsContent');
+      if(!c)return;
+      c.style.maxWidth='100%';
+      c.style.maxHeight='none';
+      c.style.overflow='visible';
+      c.style.height='auto';
+    },30);
+  }
+})();
+</script>
+
+<script>
+/* ===== Настройки v2: тосты, хранилище, статистика ===== */
+function showSettingsToast(msg){
+  let t=document.getElementById('settingsToast');
+  if(!t){t=document.createElement('div');t.id='settingsToast';t.style.cssText='position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:4000;background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:12px;padding:10px 16px;font-size:13px;box-shadow:var(--drop-shadow);transition:opacity .25s;';document.body.appendChild(t);}
+  t.textContent=msg;t.style.opacity='1';t.style.pointerEvents='auto';
+  clearTimeout(t.__timer);t.__timer=setTimeout(()=>{t.style.opacity='0';t.style.pointerEvents='none';},2600);
+}
+function setFmtBytes(n){
+  if(!n||n<=0)return '0 Б';
+  const u=['Б','КБ','МБ','ГБ'];let i=0,v=n;
+  while(v>=1024&&i<u.length-1){v/=1024;i++;}
+  const s=v>=100?String(Math.round(v)):(v>=10?v.toFixed(1):v.toFixed(2));
+  return s.replace('.',',')+' '+u[i];
+}
+function renderStorageUsage(){
+  const fill=document.getElementById('setStorageFill');
+  const note=document.getElementById('setStorageNote');
+  if(!note)return;
+  let total=0;
+  try{
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i)||'';
+      total+=(k.length+(localStorage.getItem(k)||'').length)*2;
+    }
+  }catch(e){}
+  const quota=5*1024*1024;
+  const pct=Math.min(100,Math.max(2,Math.round(total/quota*100)));
+  if(fill)fill.style.width=pct+'%';
+  note.textContent='Занято около '+setFmtBytes(total)+' из ~5 МБ локального кэша. Сами чаты, память и изображения хранятся на сервере и не пострадают.';
+}
+function openStorageCleanup(){
+  if(!confirm('Очистить локальный кэш приложения? Вход, настройки и вся история чатов на сервере сохранятся. Несохранённые черновики могут пропасть.'))return;
+  try{
+    const keep=k=>k.startsWith('sb-')||k==='hai_theme'||k==='hai_lang'||k.indexOf('nickname')!==-1;
+    const kill=[];
+    for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&!keep(k))kill.push(k);}
+    kill.forEach(k=>{try{localStorage.removeItem(k);}catch(e){}});
+    try{sessionStorage.clear();}catch(e){}
+    showSettingsToast('Локальный кэш очищен');
+  }catch(e){
+    showSettingsToast('Не удалось очистить кэш');
+  }
+  renderStorageUsage();
+}
+/* Личная статистика: на десктопе рендерится в правую панель настроек */
+(function(){
+  const orig=window.renderPersonalStats;
+  if(typeof orig!=='function')return;
+  window.renderPersonalStats=function(){
+    try{
+      const r=orig.apply(this,arguments);
+      const fix=()=>setTimeout(()=>{
+        const c=document.getElementById('statsContent');
+        if(c){c.style.maxWidth='100%';c.style.maxHeight='none';c.style.overflow='visible';}
+        const p=settingsPane?settingsPane():null;
+        if(p)p.scrollTop=0;
+      },40);
+      if(r&&typeof r.then==='function'){r.then(fix,fix);}else fix();
+      return r;
+    }catch(e){return orig.apply(this,arguments);}
+  };
+})();
+</script>
 </body>
 </html>
