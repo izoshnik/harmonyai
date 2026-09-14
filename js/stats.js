@@ -11,8 +11,8 @@
  const tile=(label,value,note='')=>'<div class="hm-stat-card"><div class="hm-stat-label">'+esc(label)+'</div><div class="hm-stat-value">'+esc(value)+'</div>'+(note?'<div class="hm-stat-note">'+esc(note)+'</div>':'')+'</div>';
  const list=(rows,key)=>rows?.length?'<ul class="hm-stat-list">'+rows.map(r=>'<li><span>'+esc(r[key])+'</span><strong>'+fmt(r.users)+'</strong></li>').join('')+'</ul>':'<p class="hm-stat-note">За этот период данных нет.</p>';
  window.renderPersonalStats=async function(){
-  const host=(typeof settingsPane==='function'?settingsPane():document.getElementById('settingsContent'))||document.getElementById('settingsContent');if(!host)return;const n=++seq;
-  host.innerHTML='<div class="sth"><button class="sth-back" onclick="renderSettingsMain()" aria-label="Назад">‹</button><div class="sth-title">Статистика</div></div><div class="hm-stats" id="personalStats"><p role="status">Загружаем вашу статистику…</p></div>';
+  const host=document.getElementById('statsHost')||document.getElementById('settingsContent');if(!host)return;const n=++seq;
+  host.innerHTML='<div class="hm-stats" id="personalStats"><p role="status">Загружаем вашу статистику…</p></div>';
   const panel=document.getElementById('personalStats');
   try{const d=await request('stats.personal');if(n!==seq||!panel.isConnected)return;
    panel.innerHTML='<div class="hm-stats-grid">'+tile('Время в HarmonyAI',duration(d.activeSeconds),'Активная вкладка, без простоя более 5 минут')+tile('Сообщения ИИ',fmt(d.aiMessages),'Успешные текстовые ответы')+tile('Распознанные произведения',fmt(d.recognized),'Включая предположения ИИ')+tile('Изображения',fmt(d.images),'Успешные генерации')+tile('Созданные файлы',fmt(d.filesCreated))+tile('Обработанные файлы',fmt(d.filesProcessed),'Документы, прочитанные в браузере')+'</div><p class="hm-stat-note">Время и файлы учитываются с '+esc(new Date(d.trackingSince).toLocaleDateString('ru-RU'))+'. Более ранние действия не восстанавливаются. «—» означает недоступный источник данных.</p>';
