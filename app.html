@@ -1,24 +1,4 @@
-<script>
-/* ===== Статистика: экран внутри нового каркаса настроек v3 ===== */
-(function(){
-  const orig=window.renderPersonalStats;
-  if(typeof orig!=='function')return;
-  window.renderPersonalStats=function(){
-    try{
-      if(typeof stpShell==='function'){
-        stpEnsure('stats','Статистика','stpBackMain()','<div class="hm-stats" id="personalStats"><p role="status">Загружаем вашу статистику…</p></div>');
-        const r=orig.apply(this,arguments);
-        const p=document.querySelector('.set-main');
-        if(p)p.scrollTop=0;
-        if(r&&typeof r.then==='function'){r.then(()=>{},()=>{});}
-        return r;
-      }
-      return orig.apply(this,arguments);
-    }catch(e){return orig.apply(this,arguments);}
-  };
-})();
-</script>
-</body><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
@@ -2355,6 +2335,87 @@ html[data-theme="light"] .stp-ava{background:#6a4dff;color:#fff;}
 @media(min-width:769px){
   .hm-stats{max-width:100%;}
   .hm-stats-grid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr));}
+}
+
+/* ===== SETTINGS REDESIGN 2026: modern desktop + screenshot-like mobile ===== */
+.settings-overlay{opacity:0;pointer-events:none;display:flex;transition:opacity .22s ease;background:rgba(0,0,0,.72)!important;}
+.settings-overlay.open{opacity:1;pointer-events:auto;}
+.settings-box{transform:translateY(14px) scale(.985);transition:transform .24s cubic-bezier(.22,.61,.36,1),opacity .22s ease;background:#050506!important;color:#fff!important;border-color:rgba(255,255,255,.12)!important;}
+.settings-overlay.open .settings-box{transform:translateY(0) scale(1);}
+.set-side{background:linear-gradient(180deg,rgba(255,255,255,.065),rgba(255,255,255,.025));border-right:1px solid rgba(255,255,255,.10);}
+.set-nav-btn,.stp-root-item,.stp-row,.stp-btn,.stp-link,.stp-dd-btn,.stp-dd-opt,.sth-close,.stp-back{transition:background .18s ease,color .18s ease,border-color .18s ease,transform .14s ease,box-shadow .18s ease;}
+.set-nav-btn:hover,.stp-root-item:hover,.stp-row[role=button]:hover{background:rgba(255,255,255,.075);}
+.set-nav-btn:active,.stp-root-item:active,.stp-row[role=button]:active,.stp-btn:active,.stp-link:active,.stp-dd-btn:active,.sth-close:active,.stp-back:active{transform:scale(.975);}
+.set-nav-btn.on{background:rgba(255,255,255,.12);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);}
+.set-main{background:radial-gradient(900px 420px at 55% 0%,rgba(255,255,255,.06),transparent 62%);}
+.stp-head{border-bottom-color:rgba(255,255,255,.10);}
+.stp-card,.stp-usage-card,.mem-card,.dev-card,.stp-perks{background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.10);box-shadow:inset 0 1px 0 rgba(255,255,255,.06);}
+.stp-row{border-radius:16px;padding:15px 14px;margin:2px 0;}
+.stp-row + .stp-row{border-top:0;}
+.stp-toggle{width:52px;height:30px;background:rgba(255,255,255,.18);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);}
+.stp-toggle::after{width:24px;height:24px;transition:transform .22s cubic-bezier(.2,.8,.2,1),background .18s ease,box-shadow .18s ease;}
+.stp-toggle.on{background:#fff;}
+.stp-toggle.on::after{transform:translateX(22px);background:#050506;}
+.stp-toggle:active::after{width:27px;}
+.stp-toggle.on:active::after{transform:translateX(19px);}
+.stp-btn-white{background:#fff;color:#050506;box-shadow:0 10px 26px rgba(255,255,255,.10);}
+.stp-btn-accent{background:#fff;color:#050506;}
+.stp-btn:hover{box-shadow:0 12px 30px rgba(255,255,255,.14);}
+.stp-dd-menu{background:rgba(18,18,20,.96);backdrop-filter:blur(16px);}
+@media(min-width:769px){.settings-box{width:min(1080px,94vw);height:min(700px,90vh);border-radius:28px;box-shadow:0 32px 110px rgba(0,0,0,.62);}.stp-title{font-size:27px}.set-side{padding:20px 14px}.set-nav{gap:4px}}
+@media(max-width:768px){
+  body:has(#app.show) .topbar,body:has(#app.show) .sidebar{display:none!important;}
+  .chat-wrap{background:#000!important;}
+  .messages{display:flex!important;align-items:center!important;justify-content:center!important;padding:0 24px 160px!important;}
+  #greeting{display:block!important;text-align:center!important;margin:0!important;width:100%!important;}
+  #greetingTitle,.greet-title{font-size:clamp(42px,12vw,66px)!important;line-height:1.06!important;font-weight:800!important;color:#fff!important;letter-spacing:-.04em!important;}
+  #greetingSub,.greet-sub{display:none!important;}
+  .composer{left:0!important;right:0!important;bottom:0!important;padding:0 30px calc(28px + env(safe-area-inset-bottom))!important;background:transparent!important;}
+  .input-box{min-height:76px!important;border-radius:999px!important;background:#3a3a3a!important;border:0!important;box-shadow:none!important;padding:10px 12px 10px 32px!important;gap:10px!important;flex-wrap:nowrap!important;}
+  .input-box textarea{font-size:29px!important;line-height:1.15!important;color:#f5f5f5!important;min-height:46px!important;max-height:92px!important;padding:8px 0!important;order:0!important;}
+  .input-box textarea::placeholder{color:#a9a9a9!important;opacity:1!important;}
+  .bar-icon,.mic-btn{width:52px!important;height:52px!important;background:transparent!important;border:0!important;color:#fff!important;box-shadow:none!important;}
+  .send-btn{width:66px!important;height:66px!important;min-width:66px!important;min-height:66px!important;border-radius:50%!important;background:#fff!important;color:#000!important;border:0!important;box-shadow:none!important;}
+  .send-btn svg{width:34px!important;height:34px!important;stroke-width:2.6!important;}
+  .mrow,.model-pill,.mobile-model-btn,.ada-panel{display:none!important;}
+  .mobile-menu-btn{display:flex!important;position:fixed!important;left:30px!important;top:32px!important;z-index:120!important;width:36px!important;height:36px!important;background:transparent!important;border:0!important;color:#fff!important;}
+  .mobile-menu-btn svg{display:none!important}.mobile-menu-btn::before{content:'☰';font-size:36px;line-height:1;font-weight:700;}
+  .mobile-more-btn{display:flex!important;position:fixed!important;right:48px!important;top:38px!important;z-index:120!important;width:44px!important;height:28px!important;background:transparent!important;border:0!important;color:#fff!important;}
+  .mobile-more-btn svg{display:none!important}.mobile-more-btn::before{content:'•••';font-size:36px;letter-spacing:2px;line-height:.5;font-weight:800;}
+  .settings-overlay{background:#000!important;}
+  .settings-box{height:100dvh!important;border-radius:0!important;background:#000!important;}
+  .sth{margin:26px 24px 10px}.sth-title{font-size:24px}.stp-root{padding:10px 24px 44px}.stp-root-item{min-height:58px;border-color:rgba(255,255,255,.10);padding:14px 8px;border-radius:16px}.stp-root-hero{padding:12px 4px 28px}.stp-ava{background:#fff;color:#000}.stp-body{padding:10px 24px 50px}.stp-head{margin:0 24px}.stp-row{background:rgba(255,255,255,.04)}
+}
+@media(prefers-reduced-motion:reduce){.settings-overlay,.settings-box,.set-nav-btn,.stp-root-item,.stp-row,.stp-btn,.stp-toggle,.stp-toggle::after{transition:none!important}}
+
+@media(max-width:768px){
+  .mobile-menu,.menu-btn,.hamburger-btn,#mobileMenuBtn{display:flex!important;position:fixed!important;left:30px!important;top:32px!important;z-index:120!important;width:42px!important;height:42px!important;background:transparent!important;border:0!important;color:#fff!important;align-items:center!important;justify-content:center!important;}
+  .mobile-menu svg,.menu-btn svg,.hamburger-btn svg,#mobileMenuBtn svg{display:none!important;}
+  .mobile-menu::before,.menu-btn::before,.hamburger-btn::before,#mobileMenuBtn::before{content:'☰';font-size:36px;line-height:1;font-weight:800;}
+  .more-btn,.top-more,#mobileMoreBtn{display:flex!important;position:fixed!important;right:48px!important;top:38px!important;z-index:120!important;width:48px!important;height:32px!important;background:transparent!important;border:0!important;color:#fff!important;align-items:center!important;justify-content:center!important;}
+  .more-btn svg,.top-more svg,#mobileMoreBtn svg{display:none!important;}
+  .more-btn::before,.top-more::before,#mobileMoreBtn::before{content:'•••';font-size:36px;letter-spacing:2px;line-height:.5;font-weight:900;}
+}
+
+/* ===== CHAT MOBILE SCREENSHOT OVERRIDE v2 ===== */
+@media(max-width:768px){
+  html[data-boot="app"] .mobile-glossy{display:block!important;}
+  body:has(#app.show) .auth-wrap, body:has(#app.show) #initialLoading{display:none!important;}
+  body:has(#app.show) .topbar{display:flex!important;position:fixed!important;left:0!important;right:0!important;top:0!important;height:96px!important;padding:0!important;background:transparent!important;border:0!important;z-index:130!important;}
+  body:has(#app.show) .topbar>div{height:auto!important;}
+  body:has(#app.show) .topbar-btn{display:flex!important;position:fixed!important;z-index:131!important;background:transparent!important;border:0!important;box-shadow:none!important;color:#fff!important;border-radius:0!important;}
+  body:has(#app.show) .topbar>div:first-child .topbar-btn{left:30px!important;top:32px!important;width:42px!important;height:42px!important;}
+  body:has(#app.show) #chatMenuBtn{visibility:visible!important;pointer-events:auto!important;right:46px!important;top:36px!important;width:54px!important;height:34px!important;}
+  body:has(#app.show) .topbar-btn svg{display:none!important;}
+  body:has(#app.show) .topbar>div:first-child .topbar-btn::before{content:'☰';font-size:37px;line-height:1;font-weight:900;color:#fff;}
+  body:has(#app.show) #chatMenuBtn::before{content:'•••';font-size:38px;letter-spacing:3px;line-height:.45;font-weight:900;color:#fff;}
+  body:has(#app.show) .topbar-logo,body:has(#app.show) .topbar-model-pill,body:has(#app.show) .topbar-upgrade,body:has(#app.show) .topbar-training-pill{display:none!important;}
+  .chat-container{background:#000!important;}
+  .greeting-wrap{height:100%!important;justify-content:center!important;padding:0 20px 210px!important;}
+  .greeting-mark,.greeting-hints{display:none!important;}
+  .greeting-title{font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif!important;font-size:clamp(42px,12.6vw,64px)!important;line-height:1.05!important;font-weight:900!important;letter-spacing:-.035em!important;margin:0!important;color:#fff!important;}
+  .composer{position:fixed!important;left:0!important;right:0!important;bottom:0!important;padding:0 30px calc(28px + env(safe-area-inset-bottom))!important;background:transparent!important;z-index:110!important;}
+  .composer-inner{max-width:none!important;width:100%!important;}
 }
 </style>
 </head>
@@ -10401,14 +10462,14 @@ function renderSettingsGeneral(){
           <div class="stp-row-title">Поиск в интернете</div>
           <div class="stp-row-desc">Искать актуальную информацию в реальном времени</div>
         </div>
-        ${stpToggleCtrl('swWebSearch',webSearch,'webSearch')}
+        ${stpToggleCtrl('webSearch',webSearch)}
       </div>
       <div class="stp-row">
         <div class="stp-row-label">
           <div class="stp-row-title">Автопереключение</div>
           <div class="stp-row-desc">Более умная модель — для сложных вопросов</div>
         </div>
-        ${stpToggleCtrl('swAutoSwitch',autoSwitch,'autoSwitch')}
+        ${stpToggleCtrl('autoSwitch',autoSwitch)}
       </div>
     </div>`);
 }
@@ -10512,14 +10573,14 @@ function renderSettingsData(){
           <div class="stp-row-title">Помогите улучшить модели</div>
           <div class="stp-row-desc">Разрешите использовать ваш контент для улучшения наших моделей. Мы принимаем меры для защиты вашей конфиденциальности.</div>
         </div>
-        ${stpToggleCtrl('swImprove',improveModels,'improveModels')}
+        ${stpToggleCtrl('improveModels',improveModels)}
       </div>
       <div class="stp-row">
         <div class="stp-row-label">
           <div class="stp-row-title">Использовать аудиозаписи</div>
           <div class="stp-row-desc">Разрешите использовать загруженные аудиозаписи произведений и нотных диктантов для улучшения наших моделей.</div>
         </div>
-        ${stpToggleCtrl('swUseAudio',useAudio,'useAudio')}
+        ${stpToggleCtrl('useAudio',useAudio)}
       </div>
       <div class="stp-hr"></div>
       <div class="stp-row">
@@ -11048,14 +11109,14 @@ function renderSettingsPers(){
           <div class="stp-row-title">Ссылаться на память</div>
           <div class="stp-row-desc">HarmonyAI будет учитывать сохранённые факты о вас в ответах</div>
         </div>
-        ${stpToggleCtrl('swMemRecall',memRecall,'memRecall')}
+        ${stpToggleCtrl('memRecall',memRecall)}
       </div>
       <div class="stp-row">
         <div class="stp-row-label">
           <div class="stp-row-title">Быстрые ответы</div>
           <div class="stp-row-desc">Иногда HarmonyAI может использовать свои общие знания для быстрых ответов. Такие ответы не персонализированы.</div>
         </div>
-        ${stpToggleCtrl('swQR',qr,'quickReplies')}
+        ${stpToggleCtrl('quickReplies',qr)}
       </div>
       <div class="stp-hr"></div>
       <div class="stp-row" onclick="renderSettingsMemory()" role="button" tabindex="0">
