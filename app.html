@@ -1,4 +1,24 @@
-<!DOCTYPE html>
+<script>
+/* ===== Статистика: экран внутри нового каркаса настроек v3 ===== */
+(function(){
+  const orig=window.renderPersonalStats;
+  if(typeof orig!=='function')return;
+  window.renderPersonalStats=function(){
+    try{
+      if(typeof stpShell==='function'){
+        stpEnsure('stats','Статистика','stpBackMain()','<div class="hm-stats" id="personalStats"><p role="status">Загружаем вашу статистику…</p></div>');
+        const r=orig.apply(this,arguments);
+        const p=document.querySelector('.set-main');
+        if(p)p.scrollTop=0;
+        if(r&&typeof r.then==='function'){r.then(()=>{},()=>{});}
+        return r;
+      }
+      return orig.apply(this,arguments);
+    }catch(e){return orig.apply(this,arguments);}
+  };
+})();
+</script>
+</body><!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
@@ -1522,338 +1542,7 @@ html[data-theme="messenger"] .settings-overlay{background:radial-gradient(130% 7
   .stp-row .stp-toggle,.stp-row .stp-dd,.stp-row .stp-btn,.stp-row .stp-link{flex:0 0 auto;}
   .settings-overlay,.settings-box{border-radius:0;}
 }
-
-.mm-handle{width:36px;height:5px;border-radius:3px;background:rgba(255,255,255,.22);margin:6px auto 14px;}
-.mm-screen{display:none;}
-.mm-screen.active{display:block;}
-.mm-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
-.mm-close{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.10);display:flex;align-items:center;justify-content:center;color:var(--text);cursor:pointer;flex-shrink:0;}
-.mm-close:active{background:rgba(255,255,255,.14);}
-.mm-title{font-size:17px;font-weight:700;color:var(--text);}
-.mm-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:18px;overflow:hidden;margin-bottom:14px;}
-.mm-opt{display:block;width:100%;text-align:left;padding:14px 16px;background:none;border:none;color:var(--text);font-family:inherit;cursor:pointer;position:relative;}
-.mm-opt-main{display:flex;align-items:center;gap:8px;}
-.mm-opt-name{font-size:16px;font-weight:700;color:var(--text);}
-.mm-opt-badge{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:rgba(255,255,255,.14);color:var(--text);}
-.mm-opt-badge.mm-badge-neutral{background:rgba(255,255,255,.08);color:var(--text2);}
-.mm-opt-desc{font-size:13px;color:var(--text2);margin-top:3px;}
-.mm-opt-check{position:absolute;right:16px;top:14px;font-size:16px;color:var(--text);opacity:0;transition:opacity .12s;}
-.mm-divider{height:1px;background:rgba(255,255,255,.08);margin:0 16px;}
-.mm-card-link{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;}
-.mm-row-title{font-size:15px;color:var(--text2);}
-.mm-row-val{display:flex;align-items:center;gap:6px;font-size:15px;color:var(--text);font-weight:600;}
-.mm-row-val svg{color:var(--text2);}
-.mm-hint{font-size:12.5px;color:var(--text2);line-height:1.5;padding:0 4px 14px;}
-.mm-think-card{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;}
-.mm-think-title{font-size:15px;font-weight:700;color:var(--text);}
-.mm-think-sub{font-size:12.5px;color:var(--text2);margin-top:2px;}
-
-/* ============================================================================
-   ДЕСКТОПНЫЙ ПРОСМОТРЩИК СГЕНЕРИРОВАННОГО ФОТО (модальное окно).
-   Не на весь экран, как мобильный, а компактная модалка поверх чата с блюром фона.
-   Две темы через html[data-theme] — тот же механизм, что и во всём проекте.
-   Скругления «liquid glass», анимация opacity + лёгкий scale 150–200ms. */
-.pv-overlay{
-  position:fixed;inset:0;z-index:720;
-  display:flex;align-items:center;justify-content:center;
-  background:rgba(0,0,0,.5);
-  backdrop-filter:blur(14px) saturate(140%);
-  -webkit-backdrop-filter:blur(14px) saturate(140%);
-  opacity:0;visibility:hidden;
-  transition:opacity .18s cubic-bezier(.22,.61,.36,1),visibility .18s;
-  padding:24px;
-}
-.pv-overlay.open{opacity:1;visibility:visible;}
-.pv-window{
-  position:relative;display:flex;flex-direction:column;
-  max-width:min(92vw,900px);max-height:min(90vh,760px);
-  border-radius:24px;overflow:hidden;
-  background:#141416;border:1px solid rgba(255,255,255,.10);
-  box-shadow:0 30px 80px rgba(0,0,0,.55);
-  transform:scale(.96);opacity:0;
-  transition:transform .18s cubic-bezier(.22,.61,.36,1),opacity .18s cubic-bezier(.22,.61,.36,1);
-}
-.pv-overlay.open .pv-window{transform:scale(1);opacity:1;}
-/* Верхняя панель: крестик слева, три точки справа */
-.pv-topbar{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:10px 12px;flex-shrink:0;
-  background:rgba(28,28,32,.72);
-  border-bottom:1px solid rgba(255,255,255,.06);
-}
-.pv-icon-btn{
-  width:36px;height:36px;border-radius:50%;border:none;
-  background:rgba(255,255,255,.07);color:#e8e8ec;
-  display:flex;align-items:center;justify-content:center;cursor:pointer;
-  transition:background .12s,transform .12s;
-}
-.pv-icon-btn:hover{background:rgba(255,255,255,.14);}
-.pv-icon-btn:active{transform:scale(.92);}
-.pv-icon-btn svg{width:18px;height:18px;display:block;}
-.pv-menu-wrap{position:relative;}
-/* Меню «три точки» */
-.pv-menu{
-  position:absolute;top:42px;right:0;min-width:180px;
-  padding:6px;border-radius:14px;
-  background:rgba(28,28,32,.92);
-  border:1px solid rgba(255,255,255,.10);
-  backdrop-filter:blur(22px) saturate(150%);
-  -webkit-backdrop-filter:blur(22px) saturate(150%);
-  box-shadow:0 16px 40px rgba(0,0,0,.45);
-  opacity:0;transform:translateY(-6px) scale(.96);transform-origin:top right;
-  transition:opacity .16s cubic-bezier(.22,.61,.36,1),transform .16s cubic-bezier(.22,.61,.36,1);
-  pointer-events:none;z-index:5;
-}
-.pv-menu.open{opacity:1;transform:translateY(0) scale(1);pointer-events:auto;}
-.pv-menu-item{
-  display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:10px;
-  font-size:14px;font-weight:600;color:#e8e8ec;cursor:pointer;transition:background .12s;
-}
-.pv-menu-item:hover{background:rgba(255,255,255,.08);}
-.pv-menu-item.pv-danger{color:#ef4444;}
-.pv-menu-item.pv-danger:hover{background:rgba(239,68,68,.12);}
-.pv-menu-item svg{width:16px;height:16px;flex-shrink:0;opacity:.9;}
-/* Центр — само фото */
-.pv-stage{
-  flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;
-  background:#0d0d0d;padding:14px;overflow:hidden;
-}
-.pv-stage img{
-  max-width:100%;max-height:100%;object-fit:contain;
-  border-radius:12px;display:block;
-  box-shadow:0 8px 28px rgba(0,0,0,.4);
-}
-/* Низ — три круглые кнопки: Скачать / Поделиться / Редактировать */
-.pv-actions{
-  display:flex;align-items:center;justify-content:center;gap:18px;
-  padding:14px 12px calc(14px + env(safe-area-inset-bottom,0px));flex-shrink:0;
-  background:rgba(28,28,32,.72);
-  border-top:1px solid rgba(255,255,255,.06);
-}
-.pv-action{
-  display:flex;flex-direction:column;align-items:center;gap:6px;
-  background:none;border:none;cursor:pointer;color:#c9c9d2;
-  font-size:11px;font-weight:600;transition:color .12s,transform .12s;
-}
-.pv-action:hover{color:#fff;}
-.pv-action:active{transform:scale(.92);}
-.pv-action-circle{
-  width:48px;height:48px;border-radius:50%;
-  background:rgba(255,255,255,.08);
-  display:flex;align-items:center;justify-content:center;
-  transition:background .12s;
-}
-.pv-action:hover .pv-action-circle{background:rgba(255,255,255,.16);}
-.pv-action-circle svg{width:22px;height:22px;display:block;}
-/* Светлая тема: светлый фон окна, тёмные иконки/текст, светло-серые кнопки */
-html[data-theme="light"] .pv-overlay{background:rgba(20,18,12,.32);}
-html[data-theme="light"] .pv-window{
-  background:#fbfaf8;border:1px solid rgba(20,18,12,.08);
-  box-shadow:0 30px 80px rgba(20,18,12,.28);
-}
-html[data-theme="light"] .pv-topbar{background:rgba(252,251,249,.9);border-bottom-color:rgba(20,18,12,.07);}
-html[data-theme="light"] .pv-icon-btn{background:rgba(20,18,12,.05);color:#26241f;}
-html[data-theme="light"] .pv-icon-btn:hover{background:rgba(20,18,12,.1);}
-html[data-theme="light"] .pv-menu{
-  background:rgba(252,251,249,.94);border-color:rgba(20,18,12,.08);
-  box-shadow:0 16px 40px rgba(20,18,12,.16);
-}
-html[data-theme="light"] .pv-menu-item{color:#26241f;}
-html[data-theme="light"] .pv-menu-item:hover{background:rgba(20,18,12,.05);}
-html[data-theme="light"] .pv-menu-item.pv-danger{color:#dc2626;}
-html[data-theme="light"] .pv-menu-item.pv-danger:hover{background:rgba(220,38,38,.08);}
-html[data-theme="light"] .pv-stage{background:#f1efe9;}
-html[data-theme="light"] .pv-stage img{box-shadow:0 8px 24px rgba(20,18,12,.16);}
-html[data-theme="light"] .pv-actions{background:rgba(252,251,249,.9);border-top-color:rgba(20,18,12,.07);}
-html[data-theme="light"] .pv-action{color:#5a574f;}
-html[data-theme="light"] .pv-action:hover{color:#26241f;}
-html[data-theme="light"] .pv-action-circle{background:rgba(20,18,12,.06);}
-html[data-theme="light"] .pv-action:hover .pv-action-circle{background:rgba(20,18,12,.12);}
-/* Мобильные/узкие экраны: модалка занимает больше места, кнопки крупнее */
-@media(max-width:768px){
-  .pv-overlay{padding:0;}
-  .pv-window{max-width:100vw;max-height:100vh;max-height:100dvh;border-radius:0;border:none;}
-  .pv-action-circle{width:52px;height:52px;}
-  .pv-action-circle svg{width:24px;height:24px;}
-}
-@media(prefers-reduced-motion:reduce){
-  .pv-overlay,.pv-window,.pv-menu,.pv-icon-btn,.pv-action,.pv-action-circle{transition:none!important;}
-}
-/* Заглушка удалённого фото: неактивное (некликабельное) сообщение в чате. */
-.msg-ai-wrap.photo-deleted{opacity:.6;pointer-events:none;}
-.photo-deleted-msg{
-  font-style:italic;color:var(--text2);font-size:14px;
-  padding:10px 14px;border-radius:14px;
-  background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.12);
-}
-html[data-theme="light"] .photo-deleted-msg{
-  background:rgba(20,18,12,.04);border-color:rgba(20,18,12,.12);
-}
-
-/* ============================================================================
-   LIQUID GLASS — только раздел чата, только мобильная версия (max-width:768px).
-   Реализация 1:1 по инструкции: полупрозрачное стекло + backdrop-filter blur +
-   внешняя тонкая обводка/тень + верхний эллиптический блик (::before) +
-   нижняя мягкая световая полоса (::after). Никаких сторонних файлов.
-   ========================================================================= */
-@media(max-width:768px){
-  .main .topbar-btn,
-  .main .bar-icon,
-  .main .mic-btn,
-  .main .send-btn,
-  .main .mac-btn{
-    position:relative;
-    overflow:hidden;
-    isolation:isolate;
-    border:1px solid rgba(255,255,255,.08);
-    background:rgba(18,18,22,.24)!important;
-    box-shadow:
-      inset 0 0 0 .5px rgba(255,255,255,.025),
-      0 10px 26px rgba(0,0,0,.18);
-    backdrop-filter:blur(18px) saturate(140%);
-    -webkit-backdrop-filter:blur(18px) saturate(140%);
-  }
-  .main .topbar-btn::before,
-  .main .bar-icon::before,
-  .main .mic-btn::before,
-  .main .send-btn::before,
-  .main .mac-btn::before{
-    content:"";
-    position:absolute;
-    inset:-1px;
-    border-radius:inherit;
-    pointer-events:none;
-    z-index:-2;
-    backdrop-filter:blur(20px) saturate(150%) contrast(1.02);
-    -webkit-backdrop-filter:blur(20px) saturate(150%) contrast(1.02);
-    background:linear-gradient(180deg,rgba(255,255,255,.018),rgba(255,255,255,.006) 44%,rgba(0,0,0,.085) 100%);
-    filter:url(#liquidGlassFilterEdge);
-    opacity:.96;
-  }
-  .main .topbar-btn::after,
-  .main .bar-icon::after,
-  .main .mic-btn::after,
-  .main .send-btn::after,
-  .main .mac-btn::after{
-    content:"";
-    position:absolute;
-    inset:0;
-    border-radius:inherit;
-    pointer-events:none;
-    z-index:-1;
-    box-shadow:
-      inset 0 0 0 1px rgba(255,255,255,.045),
-      inset 0 -1px 0 rgba(0,0,0,.24),
-      inset 0 1px 0 rgba(255,255,255,.02);
-    opacity:.92;
-  }
-  .main .topbar-btn:hover,
-  .main .bar-icon:hover,
-  .main .mic-btn:hover,
-  .main .send-btn:hover,
-  .main .mac-btn:hover{
-    background:rgba(18,18,22,.30)!important;
-  }
-  .main .topbar-btn:active,
-  .main .bar-icon:active,
-  .main .mic-btn:active,
-  .main .send-btn:active,
-  .main .mac-btn:active{
-    background:rgba(18,18,22,.34)!important;
-    box-shadow:
-      inset 0 0 0 .5px rgba(255,255,255,.03),
-      0 7px 18px rgba(0,0,0,.18);
-  }
-  .main .send-btn,
-  .main .mic-btn.recording,
-  .main .send-btn.is-stop{
-    color:rgba(255,255,255,.96);
-  }
-}
-
-/* ============================================================================
-   Кнопки «+» (bar-icon) и микрофона — полностью БЕЗ обводки во всех состояниях.
-   Р��змеры, расположение, анимации и Liquid Glass (blur/фон/блик ::before) не
-   меняются: убираем только border/ring/outline. Ширина границы сохранена
-   (transparent), поэтому геометрия кнопок не сдвигается.
-   ========================================================================= */
-.bar-icon,.mic-btn,
-.bar-icon:hover,.mic-btn:hover,
-.bar-icon:active,.mic-btn:active,
-.bar-icon:focus,.mic-btn:focus,
-.bar-icon:focus-visible,.mic-btn:focus-visible{outline:none;}
-@media(max-width:768px){
-  .main .bar-icon,.main .mic-btn,
-  .main .bar-icon:hover,.main .mic-btn:hover,
-  .main .bar-icon:active,.main .mic-btn:active,
-  .main .bar-icon:focus,.main .mic-btn:focus,
-  .main .bar-icon:focus-visible,.main .mic-btn:focus-visible{
-    border:none!important;
-    outline:none!important;
-    box-shadow:none!important;
-    background:transparent!important;
-    backdrop-filter:none!important;
-    -webkit-backdrop-filter:none!important;
-  }
-  .main .bar-icon::before,.main .mic-btn::before,
-  .main .bar-icon::after,.main .mic-btn::after{content:none!important;display:none!important;box-shadow:none!important;background:none!important;}
-  html[data-theme="light"] .main .bar-icon,html[data-theme="light"] .main .mic-btn,
-  html[data-theme="messenger"] .main .bar-icon,html[data-theme="messenger"] .main .mic-btn{color:var(--text2)!important;}
-}
-/* =====================================================================
-   MOBILE LIQUID GLASS v2 - only mobile (max-width:768px).
-   Desktop layout/colors untouched. Settings screen keeps its structure,
-   only its background becomes one solid surface.
-   Accent #084CFD, no purple.
-   ===================================================================== */
-@media(max-width:768px){
-
-  :root{
-    --lg-accent:#084CFD;
-    --lg-tint:rgba(255,255,255,.06);
-    --lg-tint-2:rgba(255,255,255,.10);
-    --lg-stroke:rgba(255,255,255,.12);
-    --lg-blur:blur(15px) saturate(160%);
-    --lg-blur-lg:blur(28px) saturate(170%);
-    --lg-shadow:0 12px 30px rgba(0,0,0,.38);
-    --lg-inner:inset 0 1px 0 rgba(255,255,255,.20),inset 0 -1px 0 rgba(0,0,0,.20);
-  }
-
-  /* ---------- pure black canvas (dark mobile theme only) ---------- */
-  html:not([data-theme="light"]):not([data-theme="messenger"]) body,
-  html:not([data-theme="light"]):not([data-theme="messenger"]) .app{background:#000;}
-  html:not([data-theme="light"]):not([data-theme="messenger"]) .main,
-  html:not([data-theme="light"]):not([data-theme="messenger"]) .chat-area{background:transparent;}
-
-  /* background light blobs: accent blue instead of grey/violet */
-  html:not([data-theme="light"]):not([data-theme="messenger"]) .mobile-glossy .bubble{opacity:.22;}
-  html:not([data-theme="light"]):not([data-theme="messenger"]) .mobile-glossy .b1{background:radial-gradient(circle,rgba(8,76,253,.42) 0%,transparent 70%);}
-  html:not([data-theme="light"]):not([data-theme="messenger"]) .mobile-glossy .b2{background:radial-gradient(circle,rgba(8,76,253,.22) 0%,transparent 70%);}
-  html:not([data-theme="light"]):not([data-theme="messenger"]) .mobile-glossy .b3{background:radial-gradient(circle,rgba(130,150,190,.14) 0%,transparent 70%);}
-  html:not([data-theme="light"]):not([data-theme="messenger"]) .mobile-glossy .b4{background:radial-gradient(circle,rgba(8,76,253,.18) 0%,transparent 70%);}
-
-  /* ---------- TOPBAR ---------- */
-  .topbar{background:transparent;}
-  .topbar-btn{
-    width:40px;height:40px;
-    background:rgba(255,255,255,.06);
-    -webkit-backdrop-filter:var(--lg-blur);backdrop-filter:var(--lg-blur);
-    border:1px solid var(--lg-stroke);
-    box-shadow:var(--lg-inner),0 6px 16px rgba(0,0,0,.30);
-    color:rgba(255,255,255,.88);
-  }
-  .topbar-btn:hover,.topbar-btn:active{background:rgba(255,255,255,.11);}
-
-  .topbar-model-pill{
-    height:40px;
-    background:rgba(255,255,255,.06);
-    -webkit-backdrop-filter:var(--lg-blur);backdrop-filter:var(--lg-blur);
-    border:1px solid var(--lg-stroke);
-    box-shadow:var(--lg-inner),0 8px 22px rgba(0,0,0,.34);
-  }
-  .topbar-model-pill .pill-name{color:#fff;font-weight:700;font-size:17px;}
-  .topbar-training-pill{
-    height:40px;
+height:40px;
     background:rgba(255,255,255,.06);
     -webkit-backdrop-filter:var(--lg-blur);backdrop-filter:var(--lg-blur);
     border:1px solid var(--lg-stroke);
@@ -2002,9 +1691,7 @@ html[data-theme="light"] .photo-deleted-msg{
   }
   .settings-box{background:transparent!important;}
   .settings-box::before,.settings-box::after{content:none!important;display:none!important;}
-  .prof-ava{background:linear-gradient(145deg,#084CFD,#0A2E9E)!important;}
-  .prof-ava-edit{border-color:#000;}
-
+  
   /* ---------- reduced motion ---------- */
   @media(prefers-reduced-motion:reduce){
     .mobile-glossy .bubble{animation:none;}
@@ -3528,7 +3215,7 @@ function setLocalNickname(uid,val){
    На экране показывается один общий процент: берётся более заполненное из двух
    внутренних ограничителей. Сервер остаётся источником истины. */
 const LIMITS={
-  adanatos:{ rolling:{tokens:20000,messages:14}, monthly:{tokens:400000,messages:400} },
+  adanatos:{ rolling:{tokens:20000,messages:14}, weekly:{tokens:160000,messages:112}, monthly:{tokens:400000,messages:400} },
   dynatos:{ burst:{messages:25,windowMs:180000} }
 };
 const USAGE_PREFIX='harmonyai_usage_v1_';
@@ -3562,6 +3249,11 @@ function getUsage(){
   u.dayTokens=u.windowEvents.reduce((sum,event)=>sum+Number(event.tokens||0),0);
   u.dayMessages=u.windowEvents.reduce((sum,event)=>sum+Number(event.messages||0),0);
   u.dayStarted=u.windowEvents[0]?.at||now;
+  const weekStart=now-7*86400000;
+  if(!Array.isArray(u.weekEvents))u.weekEvents=[];
+  u.weekEvents=u.weekEvents.filter(event=>Number(event?.at)>=weekStart);
+  u.weekTokens=u.weekEvents.reduce((sum,event)=>sum+Number(event.tokens||0),0);
+  u.weekMessages=u.weekEvents.reduce((sum,event)=>sum+Number(event.messages||0),0);
   const mk=monthKey();
   if(u.monthKey!==mk){
     u.monthKey=mk;u.monthTokens=0;u.monthMessages=0;
@@ -3583,6 +3275,7 @@ function recordUsage(promptText,replyText){
   const u=getUsage();
   const tok=estimateTokens(promptText)+estimateTokens(replyText);
   u.windowEvents.push({at:Date.now(),tokens:tok,messages:1});
+  u.weekEvents.push({at:Date.now(),tokens:tok,messages:1});
   u.dayTokens+=tok;u.monthTokens+=tok;
   u.dayMessages+=1;u.monthMessages+=1;
   writeUsage(u);
@@ -3603,8 +3296,8 @@ function checkLimit(){
   if(u.dayTokens>=L.rolling.tokens||u.dayMessages>=L.rolling.messages){
     return {blocked:true,scope:'window'};
   }
-  if(u.monthTokens>=L.monthly.tokens||u.monthMessages>=L.monthly.messages){
-    return {blocked:true,scope:'month'};
+  if(u.weekTokens>=L.weekly.tokens||u.weekMessages>=L.weekly.messages){
+    return {blocked:true,scope:'week'};
   }
   return {blocked:false};
 }
@@ -3662,6 +3355,12 @@ function checkImageLimit(){
 }
 // Время сброса месячного лимита — 1-е число следующего месяца 00:00.
 function nextMonthlyReset(){const d=new Date();d.setHours(24,0,0,0);d.setDate(1);d.setMonth(d.getMonth()+1);return d;}
+// Недельное окно: 7 дней с момента первого сообщения в окне (скользящее).
+function nextWeeklyReset(){
+  const u=getUsage();
+  const first=u.weekEvents&&u.weekEvents[0]?.at;
+  return first?new Date(Number(first)+7*86400000):nextMonthlyReset();
+}
 // Следующее окно заканчивается через 5 часов после самого старого события.
 function nextFiveHourReset(){
   const u=getUsage();
@@ -4479,7 +4178,7 @@ async function loadProfile(uid,email){
     const remoteNick=data?.nickname||null;
     const nickname=localNick||remoteNick||email.split('@')[0];
     if(curUser?.id!==uid)return;
-    curUser={id:uid,email,nickname,role:String(data?.role||'user').trim().toLowerCase(),plan:data?.plan,plan_expires_at:data?.plan_expires_at,settings:data?.settings||{},needsNickname:!remoteNick,profileReady:true};
+    curUser={id:uid,email,nickname,role:String(data?.role||'user').trim().toLowerCase(),plan:data?.plan,plan_expires_at:data?.plan_expires_at,created_at:data?.created_at||null,settings:data?.settings||{},needsNickname:!remoteNick,profileReady:true};
     if(!isProUser()){curModel='lite';if(['max','extra'].includes(curMode))curMode='low';thinkOn=false;}
   }catch(e){
     throw e;
@@ -10255,6 +9954,35 @@ function settingsPane(){
   if(shell){const m=shell.querySelector('.set-main');if(m)return m;}
   return document.getElementById('settingsContent');
 }
+function stpSetActive(id){
+  document.querySelectorAll('#settingsContent .set-nav-btn.on').forEach(b=>b.classList.remove('on'));
+  const btn=document.querySelector('#settingsContent .set-nav-btn[data-id="'+id+'"]');
+  if(btn)btn.classList.add('on');
+}
+/* Каркас: на десктопе строит боковое меню + панель один раз и переиспользует;
+   на мобильном возвращает сам контейнер (корневой список/подэкраны без меню). */
+function stpEnsure(active,title,backFn,bodyHtml){
+  const root=document.getElementById('settingsContent');
+  if(!root)return null;
+  if(window.matchMedia('(max-width:768px)').matches){
+    root.innerHTML=stpHead(title,backFn)+'<div class="stp-body">'+bodyHtml+'</div>';
+    return root.querySelector('.stp-body');
+  }
+  let shell=root.querySelector('.set-shell');
+  if(!shell){
+    const nav=STP_SECTIONS.map(s=>'<button type="button" class="set-nav-btn" data-id="'+s.id+'" onclick="'+s.fn+'()">'+(STP_ICONS[s.icon]||'')+'<span>'+s.label+'</span></button>').join('');
+    root.innerHTML='<div class="set-shell">'
+      +'<aside class="set-side"><nav class="set-nav">'+nav+'</nav>'
+      +'<button type="button" class="set-nav-btn set-nav-logout" onclick="logOut()">'+STP_ICONS.logout+'<span>Выйти</span></button></aside>'
+      +'<div class="set-main"></div>'
+      +'</div>';
+    shell=root.querySelector('.set-shell');
+  }
+  stpSetActive(active);
+  const pane=shell.querySelector('.set-main');
+  pane.innerHTML=stpHead(title,backFn)+'<div class="stp-body">'+bodyHtml+'</div>';
+  return pane.querySelector('.stp-body');
+}
 function stpHead(title,backFn){
   return '<div class="stp-head"><button type="button" class="stp-back" onclick="'+backFn+'"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Настройки</span></button><div class="stp-title">'+title+'</div></div>';
 }
@@ -10264,14 +9992,7 @@ function stpBackMain(){
   else closeSettings();
 }
 function stpShell(active,title,backFn,bodyHtml){
-  const root=document.getElementById('settingsContent');
-  const nav=STP_SECTIONS.map(s=>'<button type="button" class="set-nav-btn'+(s.id===active?' on':'')+'" onclick="'+s.fn+'()">'+(STP_ICONS[s.icon]||'')+'<span>'+s.label+'</span></button>').join('');
-  root.innerHTML='<div class="set-shell">'
-    +'<aside class="set-side"><nav class="set-nav">'+nav+'</nav>'
-    +'<button type="button" class="set-nav-btn set-nav-logout" onclick="logOut()">'+STP_ICONS.logout+'<span>Выйти</span></button></aside>'
-    +'<div class="set-main">'+stpHead(title,backFn)+'<div class="stp-body">'+bodyHtml+'</div></div>'
-    +'</div>';
-  return root.querySelector('.stp-body');
+  return stpEnsure(active,title,backFn,bodyHtml);
 }
 function stpRow(label,desc,control){
   return '<div class="stp-row"><div class="stp-row-label"><div class="stp-row-title">'+label+'</div>'+(desc?'<div class="stp-row-desc">'+desc+'</div>':'')+'</div>'+(control||'')+'</div>';
@@ -10281,7 +10002,9 @@ function stpToggleCtrl(key,on,extra){
 }
 let stpDdBuilt=null;
 function stpDdHtml(id,curLabel,opts){
-  const items=opts.map(o=>'<div class="stp-dd-opt'+(o.val===o.cur?' on':'')+'" data-dd="'+id+'" data-val="'+o.val+'" onclick="stpDdPick(\''+id+'\',\''+o.val+'\')"><span>'+o.label+'</span>'+(o.val===o.cur?'<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M5 12l4 4 10-10" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>':'')+'</div>').join('');
+  const items=Array.isArray(opts)
+    ?opts.map(o=>'<div class="stp-dd-opt'+(o.val===o.cur?' on':'')+'" data-dd="'+id+'" data-val="'+o.val+'" onclick="stpDdPick(\''+id+'\',\''+o.val+'\')"><span>'+o.label+'</span>'+(o.val===o.cur?'<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M5 12l4 4 10-10" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>':'')+'</div>').join('')
+    :String(opts||'');
   return '<div class="stp-dd" id="'+id+'"><button type="button" class="stp-dd-btn" onclick="stpDdToggle(\''+id+'\')"><span class="stp-dd-val">'+curLabel+'</span><svg width="11" height="7" viewBox="0 0 11 7" fill="none"><path d="M1 1l4.5 4.5L10 1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button><div class="stp-dd-menu">'+items+'</div></div>';
 }
 function stpDdToggle(id){
@@ -10391,11 +10114,12 @@ function renderSettingsMemory(){
     +'<hr class="stp-hr">'
     +'<div id="memList"><div class="mem-empty">Загрузка…</div></div>'
     +'<button type="button" class="stp-btn stp-btn-danger" style="margin-top:14px;" onclick="_memClearAll()">Удалить все факты</button>';
-  stpShell('pers','Память','renderSettingsPers()',body);
-  Promise.resolve(window.HmMemory?window.HmMemory.list():[]).then(list=>{
+  stpEnsure('pers','Память','renderSettingsPers()',body);
+  try{
+    const list=(window.HmMemory?window.HmMemory.list():[]);
     const host=document.getElementById('memList');
     if(host)host.innerHTML=_memRowsHtml(list||[]);
-  }).catch(()=>{const h=document.getElementById('memList');if(h)h.innerHTML='<div class="mem-empty">Не удалось загрузить память</div>';});
+  }catch(e){const h=document.getElementById('memList');if(h)h.innerHTML='<div class="mem-empty">Не удалось загрузить память</div>';}
 }
 function _memRowsHtml(list){
   if(!list.length){
@@ -10469,47 +10193,45 @@ function dayWord(n){
 
 function renderSettingsSubscription(){
   const el=settingsPane();
+  if(!el)return;
+  window.__setScreen='subscription';
   const plan=subscriptionLabel();
   const info=subUntilInfo();
-  const check='<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9.2" stroke="currentColor" stroke-width="1.8"/><path d="M8 12.4l2.7 2.6L16 9.6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  const perks=['Неограниченные сообщения с ИИ','Доступ ко всем моделям','Приоритетная генерация ответов','История чатов без ограничений','Экспорт и сохранение чатов'];
-  el.innerHTML=`
-    ${setHead('Управление подпиской','renderSettingsMain()')}
-    <div class="sub-wrap">
-      <div class="sub-card">
-        <div class="sub-card-label">Текущий план</div>
-        <div class="sub-plan-row">
-          <span class="sub-plan">${plan}</span>
-          <span class="sub-badge"><span class="sub-dot"></span>Активна</span>
-        </div>
-        <div class="sub-card-sub">Доступ ко всем возможностям HarmonyAI</div>
-      </div>
-      ${info?`
-      <div class="sub-card">
-        <div class="sub-card-label">Подписка действует до</div>
-        <div class="sub-date">${info.text}</div>
-        <div class="sub-card-sub">${info.days>0?('Осталось '+info.days+' '+dayWord(info.days)):'Срок действия истёк'}</div>
-      </div>`:''}
-      <div class="sub-card">
-        <div class="sub-card-title">Что входит в ${plan}</div>
-        <div class="sub-perks">
-          ${perks.map(p=>`<div class="sub-perk">${check}<span>${p}</span></div>`).join('')}
-        </div>
-      </div>
-      <div class="sub-card">
-        <div class="sub-card-title">Управление подпиской</div>
-        <!-- п.10: кнопка «Сменить план» убрана (тарифов для перехода нет),
-             вместе с ней ушло и обещание «изменить план» из подписи. -->
-        <div class="sub-card-sub">Подписку можно отменить в любой момент.</div>
-        <button class="sub-btn danger" onclick="cancelSubscription()">Отменить подписку</button>
-      </div>
-      <div class="sub-foot">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="4" y="10" width="16" height="11" rx="2.4" stroke="currentColor" stroke-width="2"/><path d="M8 10V7.5a4 4 0 018 0V10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        <span>Ваши платежи защищены. Отмена подписки вступит в силу в конце оплаченного периода.</span>
+  const isPro=isProUser();
+  const check='<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M8.2 12.3l2.6 2.6 5-5.4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const perks=['Неограниченные сообщения с ИИ','Доступ ко всем моделям','Приоритетная генерация ответов','История чатов без ограничений','Экспорт и сохранение чатов','Увеличенное хранилище'];
+  let planCard;
+  if(isPro){
+    planCard=`<div class="stp-card">
+      <div class="stp-card-label">Тарифный план Pro</div>
+      <div class="stp-card-row">
+        <span class="stp-badge">${info?'Активная · до '+info.text:'Активная'}</span>
       </div>
     </div>`;
+  }else{
+    planCard=`<div class="stp-card">
+      <div class="stp-card-label">Тарифный план Free</div>
+      <div class="stp-card-row">
+        <button type="button" class="stp-btn stp-btn-accent" onclick="goToDynatos()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 3l1.9 5.3L19 10l-5.1 1.7L12 17l-1.9-5.3L5 10l5.1-1.7L12 3z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>Обновить</button>
+      </div>
+    </div>`;
+  }
+  stpEnsure('subscription','Подписка',stpBackMain(),`${planCard}
+      <div class="stp-perks-box">
+        <div class="stp-perks-label">Что входит в подписку ${plan}</div>
+        <div class="stp-perks">${perks.map(p=>`<div class="stp-perk"><span class="stp-perk-dot">${check}</span><span>${p}</span></div>`).join('')}</div>
+      </div>
+      ${isPro?`
+      <div class="stp-hr"></div>
+      <div class="stp-row">
+        <div class="stp-row-label">
+          <div class="stp-row-title">Отменить подписку</div>
+          <div class="stp-row-desc">Доступ сохранится до конца оплаченного периода.</div>
+        </div>
+        <button type="button" class="stp-btn stp-btn-danger" onclick="cancelSubscription()">Отменить</button>
+      </div>`:''}
+    </div>`);
 }
-
 function cancelSubscription(){
   if(!confirm('Отменить подписку? Доступ сохранится до конца оплаченного периода.'))return;
   openSupportChat();
@@ -10532,45 +10254,52 @@ function renderSettingsMusic(){
 
 function renderSettingsConnections(){
   const el=settingsPane();
-  el.innerHTML=`
-    ${setHead('Плагины','renderSettingsMain()')}
-    <div class="sub-wrap">
-      <div class="sub-card" id="connYm">
-        <div class="conn-row">
-          <div class="conn-logo">Я</div>
-          <div class="conn-meta">
-            <div class="conn-name">Яндекс Музыка</div>
-            <div class="conn-state">Проверяю подключение…</div>
-          </div>
+  if(!el)return;
+  window.__setScreen='plugins';
+  const stpChev='<svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+  const plugHtml=`
+    <div class="stp-card stp-conn" id="connYm">
+      <div class="stp-conn-row">
+        <div class="stp-conn-logo ym"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 3.2l2.5 6.1 6.6.5-5 4.3 1.5 6.4L12 17l-5.6 3.5 1.5-6.4-5-4.3 6.6-.5L12 3.2z" fill="currentColor"/></svg></div>
+        <div class="stp-conn-meta">
+          <div class="stp-row-title">Яндекс музыка</div>
+          <div class="stp-conn-state">Проверяю подключение…</div>
         </div>
       </div>
-      ${hasModeratorAccess()?'<div class="sub-card"><div class="conn-row"><div class="conn-meta"><div class="conn-name">Управление</div><div class="conn-state">Состояние сервиса и статистика</div></div><a class="conn-btn primary" href="/management">Открыть</a></div></div>':''}
-      <div class="sub-card" id="connApi">
-        <div class="conn-row">
-          <div class="conn-logo api"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 7l-5 5 5 5M15 7l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-          <div class="conn-meta">
-            <div class="conn-name">API</div>
-            <div class="conn-state">Ключи, баланс и расход — в личном кабинете</div>
-          </div>
-          <a class="conn-btn primary" href="/api/dashboard" target="_blank" rel="noopener">Открыть</a>
+    </div>
+    <div class="stp-card">
+      <div class="stp-conn-row">
+        <div class="stp-conn-logo api"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M9 7l-5 5 5 5M15 7l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="stp-conn-meta">
+          <div class="stp-row-title">Управление API</div>
+          <div class="stp-conn-state">Ключи, баланс и расход</div>
         </div>
+        <a class="stp-btn stp-btn-white" href="/api/dashboard" target="_blank" rel="noopener">Перейти</a>
       </div>
-      <div class="sub-foot">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 11v5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 8h.01" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
-        <span>После подключения Яндекс Музыки можно писать в чат «включи…» — трек начнёт играть сразу.</span>
+    </div>
+    ${hasModeratorAccess()?`
+    <div class="stp-card">
+      <div class="stp-conn-row">
+        <div class="stp-conn-meta">
+          <div class="stp-row-title">Управление</div>
+          <div class="stp-conn-state">Состояние сервиса и статистика</div>
+        </div>
+        <a class="stp-btn stp-btn-white" href="/management">Открыть</a>
       </div>
-    </div>`;
+    </div>`:''}`;
+  el.innerHTML=stpHead('Плагины','stpBackMain()')+`<div class="stp-body">${plugHtml}</div>`;
   refreshYandexConn();
 }
 
 async function refreshYandexConn(){
   const card=document.getElementById('connYm');
   if(!card)return;
-  const meta=card.querySelector('.conn-meta');
-  if(!meta)return;
+  const state=card.querySelector('.stp-conn-state');
+  if(!state)return;
+  const row=card.querySelector('.stp-conn-row');
 
   if(!window.MusicClient){
-    meta.querySelector('.conn-state').textContent='Модуль музыки не загрузился — обновите страницу.';
+    state.textContent='Модуль музыки не загрузился — обновите страницу.';
     return;
   }
 
@@ -10578,21 +10307,14 @@ async function refreshYandexConn(){
   try{ st=await window.MusicClient.status(); }
   catch(e){ st=null; }
 
-  const row=card.querySelector('.conn-row');
-  const old=row.querySelector('.conn-btn');
+  const old=row.querySelector('.stp-btn');
   if(old)old.remove();
-  const slot=card.querySelector('.conn-slot');
-  if(slot)slot.remove();
-
-  const state=meta.querySelector('.conn-state');
 
   if(!st){
-    state.className='conn-state';
     state.textContent='Не удалось получить статус. Проверьте соединение.';
-    const retry=document.createElement('button');retry.className='conn-btn';retry.textContent='Повторить';retry.onclick=refreshYandexConn;row.append(retry);return;
+    const retry=document.createElement('button');retry.className='stp-btn stp-btn-ghost';retry.textContent='Повторить';retry.onclick=refreshYandexConn;row.append(retry);return;
   }
   if(st.available===false){
-    state.className='conn-state';
     state.textContent='Музыка отключена на сервере администратором.';
     return;
   }
@@ -10600,19 +10322,40 @@ async function refreshYandexConn(){
   const btn=document.createElement('button');btn.type='button';
   if(!st.connected&&st.canConnect===false){state.textContent='Подключение пока не настроено. Обратитесь к администратору.';return;}
   if(st.connected){
-    state.className='conn-state ok';
+    state.classList.add('ok');
     state.textContent='Подключено'+((st.login||st.uid)?(' · '+(st.login||st.uid)):'')+(st.hasPlus?' · Plus':'');
-    btn.className='conn-btn danger';
-    btn.textContent='Отключить';
+    btn.className='stp-btn stp-btn-green';
+    btn.textContent='Подключено';
     btn.addEventListener('click',disconnectYandex);
   }else{
-    state.className='conn-state';
+    state.classList.remove('ok');
     state.textContent=st.fallback?'Работает общий аккаунт. Подключите свой для стабильности.':'Не подключено';
-    btn.className='conn-btn primary';
+    btn.className='stp-btn stp-btn-white';
     btn.textContent='Подключить';
     btn.addEventListener('click',startYandexConnect);
   }
   row.appendChild(btn);
+}
+
+/* Тот же самый мастер подключения, что и в чате, но внутри окна настроек. */
+function startYandexConnect(){
+  const card=document.getElementById('connYm');
+  if(!card)return;
+  let slot=card.querySelector('.stp-conn-slot');
+  if(!slot){
+    slot=document.createElement('div');
+    slot.className='stp-conn-slot';
+    card.appendChild(slot);
+  }
+  renderMusicConnect(slot,async function(){
+    await refreshYandexConn();
+  });
+}
+
+async function disconnectYandex(){
+  if(!confirm('Отключить Яндекс Музыку от аккаунта?'))return;
+  try{ await window.MusicClient.authDisconnect(); }catch(e){}
+  await refreshYandexConn();
 }
 
 /* Тот же самый мастер подключения, что и в чате, но внутри окна настроек. */
@@ -10646,56 +10389,41 @@ function renderSettingsGeneral(){
   const autoSwitch=(s.autoSwitch!==false);
   const webSearch=(s.webSearch===true);
   const curLang=(window.i18n&&window.i18n.get&&window.i18n.get())||localStorage.getItem('hai_lang')||'ru';
-  const names=(window.i18n&&window.i18n.names)||{ru:'Русский',en:'English',fr:'Français',de:'Deutsch',es:'Español'};
-  el.innerHTML=`
-    ${setHead('Общие','renderSettingsMain()')}
-    <div class="s-sect">
-      <div class="s-rows">
-        <div class="s-row">
-          <div class="s-row-stack"><div class="s-row-text">Автопереключение моделей</div><div class="s-row-sub">Более умная модель — для сложных вопросов</div></div>
-          <div class="sw ${autoSwitch?'on':''}" onclick="this.classList.toggle('on');saveSetting('autoSwitch',this.classList.contains('on'))"></div>
-        </div>
-        <div class="s-row">
-          <div class="s-row-stack"><div class="s-row-text">Поиск в интернете</div><div class="s-row-sub">Искать актуальную информацию в реальном времени</div></div>
-          <div class="sw ${webSearch?'on':''}" onclick="this.classList.toggle('on');saveSetting('webSearch',this.classList.contains('on'))"></div>
-        </div>
-        <div class="s-row" onclick="renderSettingsLang()">
-          <div class="s-row-text">Язык</div>
-          <div class="s-row-val">${names[curLang]||'Русский'}</div>
-          ${SET_CHEV}
-        </div>
+  const names=(window.i18n&&window.i18n.names)||{ru:'Русский',en:'English',fr:'Français',de:'Deutsch',es:'Españол'};
+  const dd=stpDdHtml('ddLang',names[curLang]||'Русский',((window.i18n&&window.i18n.supported)||['ru','en','fr','de','es']).map(l=>`<button type="button" class="stp-dd-opt${l===curLang?' on':''}" onclick="pickLang('${l}')">${names[l]||l}</button>`).join(''));
+  stpEnsure('general','Общие',stpBackMain(),`
+      <div class="stp-row">
+        <div class="stp-row-label"><div class="stp-row-title">Язык приложения</div></div>
+        ${dd}
       </div>
-    </div>`;
+      <div class="stp-row">
+        <div class="stp-row-label">
+          <div class="stp-row-title">Поиск в интернете</div>
+          <div class="stp-row-desc">Искать актуальную информацию в реальном времени</div>
+        </div>
+        ${stpToggleCtrl('swWebSearch',webSearch,'webSearch')}
+      </div>
+      <div class="stp-row">
+        <div class="stp-row-label">
+          <div class="stp-row-title">Автопереключение</div>
+          <div class="stp-row-desc">Более умная модель — для сложных вопросов</div>
+        </div>
+        ${stpToggleCtrl('swAutoSwitch',autoSwitch,'autoSwitch')}
+      </div>
+    </div>`);
 }
 
-function renderSettingsLang(){
-  const el=settingsPane();
-  const curLang=(window.i18n&&window.i18n.get&&window.i18n.get())||localStorage.getItem('hai_lang')||'ru';
-  const supported=(window.i18n&&window.i18n.supported)||['ru','en','fr','de','es'];
-  const names=(window.i18n&&window.i18n.names)||{ru:'Русский',en:'English',fr:'Français',de:'Deutsch',es:'Español'};
-  const rows=supported.map(l=>`
-    <div class="mem-row" onclick="pickLang('${l}')" style="cursor:pointer;">
-      <div class="mem-info"><div class="mem-title">${names[l]||l}</div></div>
-      ${l===curLang?'<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12l4 4 10-10" stroke="#2f6bff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}
-    </div>`).join('');
-  el.innerHTML=`
-    ${setHead('Язык','renderSettingsGeneral()')}
-    <div class="mem-rows">${rows}</div>`;
-}
 function pickLang(lang){
   if(window.i18n&&window.i18n.set)window.i18n.set(lang);
   else localStorage.setItem('hai_lang',lang);
-  renderSettingsLang();
-  // Явно переводим только что перерисованный экран, а также весь <body>,
-  // чтобы не зависеть от таймингов MutationObserver.
+  try{if(window.persistLangToProfile)window.persistLangToProfile(lang);}catch(e){}
   try{
     if(window.i18n&&window.i18n.apply){
       window.i18n.apply(document.body);
     }
   }catch(e){}
-  // Обновляем места, где текст выставляется через JS textContent (не через HTML-шаблоны),
-  // например заголовок-приветствие: он берётся из greetingTitleText().
   try{updateLangSensitiveUI();}catch(e){}
+  renderSettingsGeneral();
 }
 // Хук: перерисовывает статические, зашитые в JS строки при смене языка.
 function updateLangSensitiveUI(){
@@ -10711,28 +10439,63 @@ function updateLangSensitiveUI(){
 function renderSettingsSecurity(){
   const el=settingsPane();
   if(!el)return;
-  window.__setScreen='security';
-  el.innerHTML=`
-    ${setHead('Безопасность','renderSettingsMain()')}
-    <div class="s-sect">
-      <div class="s-rows">
-        <div class="s-row" onclick="renderSettingsEmail()">
-          <div class="s-row-stack"><div class="s-row-text">Сменить email</div><div class="s-row-sub">${escapeHtml(curUser?.email||'')}</div></div>
-          ${SET_CHEV}
-        </div>
-        <div class="s-row" onclick="renderSettingsSessions()">
-          <div class="s-row-stack"><div class="s-row-text">Активные сеансы</div><div class="s-row-sub">Все устройства, использованные для входа</div></div>
-          ${SET_CHEV}
-        </div>
+  window.__setScreen='privacy';
+  const s=getSettings();
+  const devices=(s[DEVICES_SETTING_KEY]||[]);
+  const devCount=Array.isArray(devices)?devices.length:null;
+  const isEmail=(curUser?.user_metadata?.providers||['email']).indexOf('email')!==-1;
+  const chev='<svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+  stpEnsure('privacy','Конфиденциальность',stpBackMain(),`
+      <div class="stp-row" onclick="renderSettingsPassword()" role="button" tabindex="0">
+        <div class="stp-row-label"><div class="stp-row-title">Пароль</div></div>
+        <span class="stp-link">${isEmail?'Изменить':'Добавить'} ${chev}</span>
       </div>
-    </div>
-    <div class="s-sect">
-      <div class="s-rows">
-        <div class="s-row" onclick="confirmDeleteAllChats()">
-          <div class="s-row-stack"><div class="s-row-text" style="color:#ef4444;">Удалить все чаты</div><div class="s-row-sub">История переписки будет удалена безвозвратно</div></div>
+      <div class="stp-row" onclick="renderSettingsSessions()" role="button" tabindex="0">
+        <div class="stp-row-label">
+          <div class="stp-row-title">Активные сеансы</div>
+          <div class="stp-row-desc">Список устройств, с которых выполнялся вход в аккаунт</div>
         </div>
+        <span class="stp-link">${devCount!=null?devCount:''} ${chev}</span>
+      </div>
+    </div>`);
+}
+
+function renderSettingsPassword(){
+  const el=settingsPane();
+  if(!el)return;
+  window.__setScreen='password';
+  el.innerHTML=stpHead('Пароль','renderSettingsSecurity()')+`
+    <div class="stp-body">
+      <div class="stp-form">
+        <input class="auth-input" id="newPassInp" type="password" placeholder="Новый пароль" autocomplete="new-password" style="margin-bottom:0;">
+        <input class="auth-input" id="newPassInp2" type="password" placeholder="Повторите пароль" autocomplete="new-password" style="margin-bottom:0;" onkeydown="if(event.key==='Enter')saveNewPassword()">
+        <div class="auth-error" id="newPassErr" style="display:none;"></div>
+        <button class="stp-btn stp-btn-white stp-btn-wide" id="newPassBtn" onclick="saveNewPassword()">Сохранить</button>
       </div>
     </div>`;
+  setTimeout(()=>{const i2=document.getElementById('newPassInp');if(i2)i2.focus();},80);
+}
+async function saveNewPassword(){
+  const p1=document.getElementById('newPassInp');
+  const p2=document.getElementById('newPassInp2');
+  const err=document.getElementById('newPassErr');
+  const btn=document.getElementById('newPassBtn');
+  const val=p1?.value||'';
+  err.style.display='none';
+  if(val.length<6){err.textContent='Пароль должен быть не короче 6 символов';err.style.display='block';return;}
+  if(val!==p2?.value){err.textContent='Пароли не совпадают';err.style.display='block';return;}
+  btn.disabled=true;btn.textContent='Сохраняем...';
+  try{
+    const {error}=await sb.auth.updateUser({password:val});
+    if(error)throw error;
+    showSettingsToast('Пароль обновлён');
+    renderSettingsSecurity();
+  }catch(e){
+    err.textContent='Не удалось обновить пароль. Попробуйте ещё раз.';
+    err.style.display='block';
+  }finally{
+    btn.disabled=false;btn.textContent='Сохранить';
+  }
 }
 
 /* ===== УПРАВЛЕНИЕ ДАННЫМИ ===== */
@@ -10743,45 +10506,47 @@ function renderSettingsData(){
   const s=getSettings();
   const improveModels=(s.improveModels!==false);
   const useAudio=(s.useAudio!==false);
-  el.innerHTML=`
-    ${setHead('Управление данными','renderSettingsMain()')}
-    <div class="s-sect">
-      <div class="s-rows">
-        <div class="s-row">
-          <div class="s-row-stack"><div class="s-row-text">Помогите улучшить модели</div><div class="s-row-sub">Разрешите использовать ваш контент для улучшения наших моделей для вас и других пользователей. Мы принимаем меры для защиты вашей конфиденциальности.</div></div>
-          <div class="sw ${improveModels?'on':''}" onclick="this.classList.toggle('on');saveSetting('improveModels',this.classList.contains('on'))"></div>
+  stpEnsure('data','Управление данными',stpBackMain(),`
+      <div class="stp-row">
+        <div class="stp-row-label">
+          <div class="stp-row-title">Помогите улучшить модели</div>
+          <div class="stp-row-desc">Разрешите использовать ваш контент для улучшения наших моделей. Мы принимаем меры для защиты вашей конфиденциальности.</div>
         </div>
-        <div class="s-row">
-          <div class="s-row-stack"><div class="s-row-text">Использовать аудиозаписи</div><div class="s-row-sub">Разрешите использовать загруженные аудиозаписи произведений и нотных диктантов для улучшения наших моделей.</div></div>
-          <div class="sw ${useAudio?'on':''}" onclick="this.classList.toggle('on');saveSetting('useAudio',this.classList.contains('on'))"></div>
-        </div>
+        ${stpToggleCtrl('swImprove',improveModels,'improveModels')}
       </div>
-    </div>
-    <div class="s-sect">
-      <div class="set-storage">
-        <div class="set-storage-head">
-          <div class="set-storage-title">Хранилище</div>
-          <button type="button" class="set-storage-btn" onclick="openStorageCleanup()">Очистить…</button>
+      <div class="stp-row">
+        <div class="stp-row-label">
+          <div class="stp-row-title">Использовать аудиозаписи</div>
+          <div class="stp-row-desc">Разрешите использовать загруженные аудиозаписи произведений и нотных диктантов для улучшения наших моделей.</div>
         </div>
-        <div class="set-storage-bar"><div class="set-storage-fill" id="setStorageFill"></div></div>
-        <div class="set-storage-note" id="setStorageNote">Считаем…</div>
+        ${stpToggleCtrl('swUseAudio',useAudio,'useAudio')}
       </div>
-    </div>`;
-  renderStorageUsage();
+      <div class="stp-hr"></div>
+      <div class="stp-row">
+        <div class="stp-row-label">
+          <div class="stp-row-title">Удалить все чаты</div>
+          <div class="stp-row-desc">Вся история переписки будет удалена безвозвратно.</div>
+        </div>
+        <button type="button" class="stp-btn stp-btn-danger" onclick="confirmDeleteAllChats()">Удалить</button>
+      </div>
+    </div>`);
 }
 
 /* ===== СМЕНА EMAIL ===== */
 function renderSettingsEmail(){
   const el=settingsPane();
-  el.innerHTML=`
-    ${setHead('Сменить email','renderSettingsSecurity()')}
-    <div class="mem-rows" style="padding:14px;display:flex;flex-direction:column;gap:10px;">
-      <div class="mem-desc" style="margin-bottom:2px;">Текущий: ${(curUser?.email||'').replace(/</g,'&lt;')}</div>
-      <input class="auth-input" id="newEmailInp" type="email" placeholder="Новый email" autocomplete="email" style="margin-bottom:0;" onkeydown="if(event.key==='Enter')saveNewEmail()">
-      <div class="auth-error" id="newEmailErr" style="display:none;"></div>
-      <button class="auth-btn-primary" id="newEmailBtn" style="margin-bottom:0;" onclick="saveNewEmail()">Сохранить</button>
+  if(!el)return;
+  window.__setScreen='email';
+  el.innerHTML=stpHead('Электронная почта','renderSettingsAccount()')+`
+    <div class="stp-body">
+      <div class="stp-form">
+        <div class="stp-row-desc">Текущий адрес: ${escapeHtml(curUser?.email||'')}</div>
+        <input class="auth-input" id="newEmailInp" type="email" placeholder="Новый email" autocomplete="email" style="margin-bottom:0;" onkeydown="if(event.key==='Enter')saveNewEmail()">
+        <div class="auth-error" id="newEmailErr" style="display:none;"></div>
+        <button class="stp-btn stp-btn-white stp-btn-wide" id="newEmailBtn" onclick="saveNewEmail()">Сохранить</button>
+      </div>
     </div>`;
-  setTimeout(()=>{const i=document.getElementById('newEmailInp');if(i)i.focus();},80);
+  setTimeout(()=>{const i2=document.getElementById('newEmailInp');if(i2)i2.focus();},80);
 }
 async function saveNewEmail(){
   const inp=document.getElementById('newEmailInp');
@@ -10948,26 +10713,31 @@ function deviceCardMarkup(d,currentKey){
   const isCurrent=d.key===currentKey;
   const place=[d.city,d.country].filter(Boolean).join(', ');
   const badges=[];
-  if(d.trusted!==false)badges.push('<span class="dev-badge trusted"><span class="dev-dot"></span>Доверенное устройство</span>');
+  if(d.trusted!==false)badges.push('<span class="dev-badge"><span class="dev-dot"></span>Доверенное устройство</span>');
   if(isCurrent)badges.push('<span class="dev-badge current"><span class="dev-dot"></span>Текущий сеанс</span>');
-  return `<div class="dev-card">
-      <div class="dev-head">
-        <div class="dev-ic">${mobile?DEV_IC_PHONE:DEV_IC_DESKTOP}</div>
-        <div class="dev-main">
-          <div class="dev-name">${escapeHtml(d.device||'Устройство')}</div>
-          <div class="dev-client">${escapeHtml(d.client||'HarmonyAi Web')}${place?' · '+escapeHtml(place):''}</div>
-          <div class="dev-date">${escapeHtml(formatDeviceStamp(d.lastSeen))}</div>
+  return `<div class="stp-card">
+      <div class="stp-conn-row">
+        <div class="stp-conn-logo">${mobile?DEV_IC_PHONE:DEV_IC_DESKTOP}</div>
+        <div class="stp-conn-meta">
+          <div class="stp-row-title">${escapeHtml(d.device||'Устройство')}</div>
+          <div class="stp-conn-state">${escapeHtml(d.client||'HarmonyAi Web')}${place?' · '+escapeHtml(place):''} · ${escapeHtml(formatDeviceStamp(d.lastSeen))}</div>
+          ${badges.length?`<div class="dev-badges">${badges.join('')}</div>`:''}
         </div>
       </div>
-      ${badges.length?`<div class="dev-badges">${badges.join('')}</div>`:''}
     </div>`;
 }
 function sessionsScreenMarkup(inner){
-  return `${setHead('Активные сеансы','renderSettingsSecurity()')}
-    <div class="dev-wrap" id="devWrap">
-      <div class="dev-intro">Это список устройств, с которых выполнялся вход в ваш аккаунт HarmonyAI. Если вы не узнаёте какое-то устройство, выйдите со всех устройств и смените пароль.</div>
-      <div class="dev-label">Сеансы</div>
+  return stpHead('Активные сеансы','renderSettingsSecurity()')+`
+    <div class="stp-body" id="devWrap">
+      <div class="stp-row-desc" style="padding:2px 2px 10px;">Это список устройств, с которых выполнялся вход в ваш аккаунт HarmonyAI. Если вы не узнаёте какое-то устройство, выйдите со всех устройств и смените пароль.</div>
       ${inner}
+      <button type="button" class="dev-signout" onclick="signOutEverywhere()">
+        <div class="stp-conn-logo">${DEV_IC_EXIT}</div>
+        <div class="stp-conn-meta">
+          <div class="dev-signout-title">Выйти со всех устройств</div>
+          <div class="stp-row-desc">Все активные сеансы будут завершены, включая текущий. Это может занять до 30 минут.</div>
+        </div>
+      </button>
     </div>`;
 }
 async function renderSettingsSessions(){
@@ -10980,7 +10750,7 @@ async function renderSettingsSessions(){
   const render=(list)=>{
     const cards=list.length
       ? list.map(d=>deviceCardMarkup(d,currentKey)).join('')
-      : '<div class="dev-card"><div class="dev-empty">Пока нет сохранённых устройств. Текущее устройство появится здесь через несколько секунд после входа.</div></div>';
+      : '<div class="stp-card"><div class="stp-conn-state">Пока нет сохранённых устройств. Текущее устройство появится здесь через несколько секунд после входа.</div></div>';
     el.innerHTML=sessionsScreenMarkup(cards+
       `<button type="button" class="dev-signout" onclick="signOutEverywhere()">
         <div class="dev-ic">${DEV_IC_EXIT}</div>
@@ -11028,19 +10798,23 @@ async function confirmDeleteAllChats(){
   try{chatHistory=[];curChatId=null;}catch(e){}
   try{renderChatList();}catch(e){}
   try{newChat();}catch(e){}
-  if(window.__setScreen==='data')renderSettingsData();else renderSettingsSecurity();
+  renderSettingsData();
+  showSettingsToast('Все чаты удалены');
 }
 
 function renderSettingsName(){
   const el=settingsPane();
-  el.innerHTML=`
-    ${setHead('Имя','renderSettingsMain()')}
-    <div class="mem-rows" style="padding:14px;display:flex;flex-direction:column;gap:10px;">
-      <input class="auth-input" id="settingsNameInp" type="text" placeholder="Введите имя.." maxlength="40" autocomplete="given-name" lang="ru" value="${(curUser?.nickname||'').replace(/"/g,'&quot;')}" style="margin-bottom:0;" onkeydown="if(event.key==='Enter')saveSettingsName()">
-      <div class="auth-error" id="settingsNameErr" style="display:none;"></div>
-      <button class="auth-btn-primary" id="settingsNameBtn" style="margin-bottom:0;" onclick="saveSettingsName()">Сохранить</button>
+  if(!el)return;
+  window.__setScreen='name';
+  el.innerHTML=stpHead('Имя','renderSettingsAccount()')+`
+    <div class="stp-body">
+      <div class="stp-form">
+        <input class="auth-input" id="settingsNameInp" type="text" placeholder="Введите имя.." maxlength="40" autocomplete="given-name" lang="ru" value="${(curUser?.nickname||'').replace(/"/g,'&quot;')}" style="margin-bottom:0;" onkeydown="if(event.key==='Enter')saveSettingsName()">
+        <div class="auth-error" id="settingsNameErr" style="display:none;"></div>
+        <button class="stp-btn stp-btn-white stp-btn-wide" id="settingsNameBtn" onclick="saveSettingsName()">Сохранить</button>
+      </div>
     </div>`;
-  setTimeout(()=>{const i=document.getElementById('settingsNameInp');if(i)i.focus();},80);
+  setTimeout(()=>{const i2=document.getElementById('settingsNameInp');if(i2)i2.focus();},80);
 }
 async function saveSettingsName(){
   const inp=document.getElementById('settingsNameInp');
@@ -11060,44 +10834,18 @@ async function saveSettingsName(){
     curUser.nickname=val;
     curUser.needsNickname=false;
     updateUserUI();
-    renderSettingsMain();
+    renderSettingsAccount();
   }catch(e){
     // Сервер недоступен — сохраняем локально, чтобы ник не потерялся.
     setLocalNickname(curUser.id,val);
     curUser.nickname=val;
     curUser.needsNickname=false;
     updateUserUI();
-    renderSettingsMain();
+    renderSettingsAccount();
     err.textContent='Ник сохранён локально — на сервере временная ошибка';err.style.display='block';
   }finally{
     btn.disabled=false;btn.textContent='Сохранить';
   }
-}
-
-/* ===== ВНЕШНИЙ ВИД ===== */
-function renderSettingsAppearance(){
-  const el=settingsPane();
-  if(!el)return;
-  window.__setScreen='appearance';
-  const s=getSettings();
-  const theme=s.appearance||'system';
-  const CHECK='<div class="appear-check"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M5 12l4 4 10-10" stroke="var(--check,#22c55e)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>';
-  const OPTS=[
-    ['system','Системная','<svg width="17" height="17" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="13" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 21h8M12 17v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'],
-    ['dark','Тёмная','<svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M21 12.6A9 9 0 1111.4 3a7.2 7.2 0 009.6 9.6z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>'],
-    ['light','Светлая','<svg width="17" height="17" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4.5" stroke="currentColor" stroke-width="2"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'],
-    ['messenger','Мессенджер','<svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M21 5L3 12.2l6.4 2.2L18 8l-6.5 7.4V21l3.5-4 4.5 2.2L21 5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>']
-  ];
-  el.innerHTML=`
-    ${setHead('Внешний вид','renderSettingsMain()')}
-    <div class="s-sect"><div class="appear-rows">
-      ${OPTS.map(([k,label,icon])=>`
-      <div class="appear-row" onclick="selectAppearance('${k}')">
-        <div class="appear-row-icon">${icon}</div>
-        <div class="appear-row-text">${label}</div>
-        <div class="appear-check" id="appearCk-${k}" style="${theme===k?'opacity:1;':''}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M5 12l4 4 10-10" stroke="var(--check,#22c55e)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-      </div>`).join('')}
-    </div></div>`;
 }
 
 function applyTheme(val){
@@ -11111,29 +10859,26 @@ function applyTheme(val){
   }
 }
 function selectAppearance(val){
-  ['system','dark','light','messenger'].forEach(k=>{
-    const el=document.getElementById('appearCk-'+k);
-    if(el)el.classList.toggle('on',k===val);
-  });
   applyTheme(val);
   saveSetting('appearance',val);
+  const lbl=document.getElementById('ddThemeLbl');
+  if(lbl)lbl.textContent=({system:'Системная',dark:'Тёмная',light:'Светлая',messenger:'Мессенджер'})[val]||'Системная';
 }
 
 /* ===== СООБЩИТЬ О ПРОБЛЕМЕ В ПРИЛОЖЕНИИ ===== */
 function renderReportProblem(){
   const el=settingsPane();
-  el.innerHTML=`
-    ${setHead('Сообщить о проблеме в приложении','renderSettingsMain()')}
-    <div class="report-screen">
-      <div class="report-field-label">Что случилось?</div>
-      <div class="report-textarea-wrap">
+  if(!el)return;
+  window.__setScreen='report';
+  el.innerHTML=stpHead('Сообщить о проблеме','renderSettingsHelp()')+`
+    <div class="stp-body">
+      <div class="stp-form">
+        <div class="stp-row-label"><div class="stp-row-title">Что случилось?</div></div>
         <textarea class="report-textarea" id="reportText" maxlength="2000" placeholder="Расскажите нам о проблеме, с которой вы столкнулись" oninput="document.getElementById('reportCounter').textContent=this.value.length+' / 2000'"></textarea>
         <div class="report-counter" id="reportCounter">0 / 2000</div>
+        <div class="auth-error" id="reportErr" style="display:none;"></div>
+        <button class="stp-btn stp-btn-white stp-btn-wide" id="reportSubmitBtn" onclick="submitReportProblem()">Отправить</button>
       </div>
-      <div class="report-disclaimer">Любая предоставленная информация может быть использована для проверки и улучшения <a href="#" onclick="return false;">HarmonyAI</a>.</div>
-      <hr class="report-divider">
-      <div class="report-spacer"></div>
-      <button class="report-submit" id="reportSubmitBtn" onclick="submitReportProblem()">Отправить</button>
     </div>`;
   setTimeout(()=>{const t=document.getElementById('reportText');if(t)t.focus();},80);
 }
@@ -11156,36 +10901,38 @@ async function submitReportProblem(){
 /* ===== СООБЩЕНИЯ О ПРОБЛЕМАХ (только developer/moderator/admin) ===== */
 async function renderReportsInbox(){
   const el=settingsPane();
-  if(!hasModeratorAccess()){renderSettingsMain();return;}
-  el.innerHTML=`
-    ${setHead('Сообщения о проблемах','renderSettingsMain()')}
-    <div class="mem-rows" id="reportsInboxList" style="padding:14px;display:flex;flex-direction:column;gap:10px;">
-      <div style="font-size:13px;color:var(--text2);">Загрузка...</div>
+  if(!el)return;
+  if(!hasModeratorAccess()){renderSettingsHelp();return;}
+  window.__setScreen='inbox';
+  el.innerHTML=stpHead('Сообщения о проблемах','renderSettingsHelp()')+`
+    <div class="stp-body" id="reportsInboxList">
+      <div class="stp-conn-state">Загрузка...</div>
     </div>`;
   try{
     const r=await fetch(`/api/reports?userId=${encodeURIComponent(curUser.id)}`);
     const data=await r.json();
     const list=document.getElementById('reportsInboxList');
+    if(!list)return;
     if(!r.ok){
-      list.innerHTML=`<div style="font-size:13px;color:#ef4444;">${(data?.error?.message)||'Не удалось загрузить сообщения'}</div>`;
+      list.innerHTML=`<div class="stp-conn-state" style="color:#e5484d;">${escapeHtml((data?.error?.message)||'Не удалось загрузить сообщения')}</div>`;
       return;
     }
     const reports=data?.reports||[];
     if(!reports.length){
-      list.innerHTML=`<div style="font-size:13px;color:var(--text2);">Сообщений пока нет.</div>`;
+      list.innerHTML=`<div class="stp-conn-state">Сообщений пока нет.</div>`;
       return;
     }
     list.innerHTML=reports.map(rep=>`
-      <div style="border:1px solid var(--border);border-radius:14px;padding:12px 14px;background:var(--bg2);">
-        <div style="display:flex;justify-content:space-between;gap:10px;font-size:12.5px;color:var(--text2);margin-bottom:6px;">
+      <div class="stp-card">
+        <div class="stp-row-desc" style="display:flex;justify-content:space-between;gap:10px;margin-bottom:6px;">
           <span>${esc(rep.name||'Без имени')} · ${esc(rep.email||'нет email')}</span>
           <span>${rep.createdAt?new Date(rep.createdAt).toLocaleString('ru-RU'):''}</span>
         </div>
-        <div style="font-size:14px;color:var(--text);white-space:pre-wrap;line-height:1.5;">${esc(rep.message||'')}</div>
+        <div class="stp-row-title" style="font-weight:500;white-space:pre-wrap;line-height:1.5;">${esc(rep.message||'')}</div>
       </div>`).join('');
   }catch(e){
     const list=document.getElementById('reportsInboxList');
-    if(list)list.innerHTML=`<div style="font-size:13px;color:#ef4444;">Ошибка загрузки: ${esc(e.message||'')}</div>`;
+    if(list)list.innerHTML=`<div class="stp-conn-state" style="color:#e5484d;">Ошибка загрузки: ${esc(e.message||'')}</div>`;
   }
 }
 function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -11193,22 +10940,29 @@ function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&l
 /* ===== СВЕДЕНИЯ ===== */
 function renderAbout(){
   const el=settingsPane();
-  el.innerHTML=`
-    ${setHead('Сведения','renderSettingsMain()')}
-    <div class="about-screen">
-      <div class="about-logo-row">
-        <div class="about-app-icon">
-          <svg width="30" height="30" viewBox="0 0 64 64"><path d="M18 14h8v18h12V14h8v36h-8V39H26v11h-8z" fill="#fff"/></svg>
-        </div>
-        <div class="about-app-name">HarmonyAI</div>
-        <div class="about-app-ver">Beta 0.8.2</div>
+  if(!el)return;
+  window.__setScreen='about';
+  const chev='<svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+  el.innerHTML=stpHead('О HarmonyAI','stpBackMain()')+`
+    <div class="stp-body">
+      <div class="stp-about-hero">
+        <div class="stp-about-logo"><svg width="26" height="26" viewBox="0 0 64 64"><path d="M18 14h8v18h12V14h8v36h-8V39H26v11h-8z" fill="currentColor"/></svg></div>
+        <div class="stp-about-name">HarmonyAI</div>
+        <div class="stp-about-ver">Beta 0.8.2</div>
       </div>
-      <div class="about-rows">
-        <div class="about-row"><div class="about-row-label">Политика конфиденциальности</div><div class="about-row-val"><a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Открыть</a></div></div>
-        <div class="about-row"><div class="about-row-label">Условия использования</div><div class="about-row-val"><a href="/legal/terms.html" target="_blank" rel="noopener noreferrer">Открыть</a></div></div>
-        <div class="about-row"><div class="about-row-label">Платёжная оферта</div><div class="about-row-val"><a href="/legal/ofera.html" target="_blank" rel="noopener noreferrer">Открыть</a></div></div>
+      <div class="stp-row" onclick="window.open('/legal/privacy.html','_blank','noopener')" role="link" tabindex="0">
+        <div class="stp-row-label"><div class="stp-row-title">Политика конфиденциальности</div></div>
+        <span class="stp-link">${chev}</span>
       </div>
-      <div class="about-foot">HarmonyAI — ИИ-помощник для учеников музыкальной школы.<br>© ${new Date().getFullYear()} HarmonyAI. Все права защищены.</div>
+      <div class="stp-row" onclick="window.open('/legal/terms.html','_blank','noopener')" role="link" tabindex="0">
+        <div class="stp-row-label"><div class="stp-row-title">Условия использования</div></div>
+        <span class="stp-link">${chev}</span>
+      </div>
+      <div class="stp-row" onclick="window.open('/legal/ofera.html','_blank','noopener')" role="link" tabindex="0">
+        <div class="stp-row-label"><div class="stp-row-title">Платёжная оферта</div></div>
+        <span class="stp-link">${chev}</span>
+      </div>
+      <div class="stp-about-foot">HarmonyAI — ИИ-помощник для учеников музыкальной школы.<br>© ${new Date().getFullYear()} HarmonyAI. Все права защищены.</div>
     </div>`;
 }
 
@@ -11226,210 +10980,183 @@ function limitBarPercent(pct){
 }
 function renderSettingsLimits(){
   const el=settingsPane();
+  if(!el)return;
+  window.__setScreen='usage';
   const isPro=isProUser();
   const u=getUsage();
   const L=LIMITS.adanatos;
-  const rollingPct=combinedLimitPercent(u.dayTokens,u.dayMessages,L.rolling.tokens,L.rolling.messages);
-  const monthlyPct=combinedLimitPercent(u.monthTokens,u.monthMessages,L.monthly.tokens,L.monthly.messages);
-  const rollingReset=fmtResetHuman(nextFiveHourReset());
-  const monthlyReset=fmtResetHuman(nextMonthlyReset());
   const unlimited=isPro||hasTrainingAccess();
+  const rollingPct=combinedLimitPercent(u.dayTokens,u.dayMessages,L.rolling.tokens,L.rolling.messages);
+  const weekPct=combinedLimitPercent(u.weekTokens||0,u.weekMessages||0,L.weekly.tokens,L.weekly.messages);
+  const rollingReset=fmtResetHuman(nextFiveHourReset());
+  const weekReset=fmtResetHuman(nextWeeklyReset());
   const freeCards=`
-    <div class="limits-plan-badge"><span class="lp-dot"></span>Adanatos · Free</div>
-    <div class="limits-card">
-      <div class="limits-card-head">
-        <div class="limits-card-title">Ежедневный лимит <span class="limits-title-note">5 часов</span></div>
-        <div class="limits-reset">сброс ${rollingReset}</div>
+    <div class="stp-sec-label">Лимиты плана Free</div>
+    <div class="stp-usage-card">
+      <div class="stp-usage-top">
+        <div><div class="stp-usage-title">5 часов</div><div class="stp-usage-sub">Сброс произойдет ${rollingReset}</div></div>
+        <div class="stp-usage-pct">${rollingPct}%</div>
       </div>
-      <div class="limits-metric">
-        <div class="limits-metric-row"><span class="limits-metric-label">Общее использование</span><span class="limits-metric-val"><b>${rollingPct}%</b></span></div>
-        ${limitBarPercent(rollingPct)}
-      </div>
+      <div class="stp-bar"><div class="stp-bar-fill" style="width:${rollingPct}%"></div></div>
     </div>
-    <div class="limits-card">
-      <div class="limits-card-head">
-        <div class="limits-card-title">Ежемесячный лимит</div>
-        <div class="limits-reset">сброс ${monthlyReset}</div>
+    <div class="stp-usage-card">
+      <div class="stp-usage-top">
+        <div><div class="stp-usage-title">Неделя</div><div class="stp-usage-sub">Сброс произойдет ${weekReset}</div></div>
+        <div class="stp-usage-pct">${weekPct}%</div>
       </div>
-      <div class="limits-metric">
-        <div class="limits-metric-row"><span class="limits-metric-label">Общее использование</span><span class="limits-metric-val"><b>${monthlyPct}%</b></span></div>
-        ${limitBarPercent(monthlyPct)}
-      </div>
+      <div class="stp-bar"><div class="stp-bar-fill" style="width:${weekPct}%"></div></div>
     </div>
-    <div class="limits-note">Процент показывает общее использование лимита в выбранном окне. Перейдите на <strong>Dynatos</strong>, чтобы снять ограничения.</div>`;
+    <div class="stp-row-desc" style="padding:4px 2px;">Перейдите на <strong>Dynatos</strong>, чтобы снять ограничения.</div>`;
   const proCards=`
-    <div class="limits-plan-badge pro"><span class="lp-dot"></span>Dynatos · Pro</div>
-    <div class="limits-card">
-      <div class="limits-card-head">
-        <div class="limits-card-title">Ежедневный лимит <span class="limits-title-note">5 часов</span></div>
-        <div class="limits-reset">без ограничений</div>
+    <div class="stp-sec-label">Лимиты плана Pro</div>
+    <div class="stp-usage-card">
+      <div class="stp-usage-top">
+        <div><div class="stp-usage-title">5 часов</div><div class="stp-usage-sub">без ограничений</div></div>
+        <div class="stp-usage-pct">0%</div>
       </div>
-      <div class="limits-metric">
-        <div class="limits-metric-row"><span class="limits-metric-label">Общее использование</span><span class="limits-infinite">Без ограничений</span></div>
-        <div class="limits-bar"><div class="limits-bar-fill pro" style="width:100%"></div></div>
-      </div>
+      <div class="stp-bar"><div class="stp-bar-fill" style="width:0%"></div></div>
     </div>
-    <div class="limits-card">
-      <div class="limits-card-head">
-        <div class="limits-card-title">Ежемесячный лимит</div>
-        <div class="limits-reset">без ограничений</div>
+    <div class="stp-usage-card">
+      <div class="stp-usage-top">
+        <div><div class="stp-usage-title">Неделя</div><div class="stp-usage-sub">без ограничений</div></div>
+        <div class="stp-usage-pct">0%</div>
       </div>
-      <div class="limits-metric">
-        <div class="limits-metric-row"><span class="limits-metric-label">Общее использование</span><span class="limits-infinite">Без ограничений</span></div>
-        <div class="limits-bar"><div class="limits-bar-fill pro" style="width:100%"></div></div>
-      </div>
+      <div class="stp-bar"><div class="stp-bar-fill" style="width:0%"></div></div>
     </div>
-    <div class="limits-note">Для Pro нет жёстких лимитов. Работает автоматическая защита от слишком частых запросов подряд.</div>`;
-  el.innerHTML=`
-    ${setHead('Лимиты','renderSettingsMain()')}
-    <div class="limits-screen">${unlimited?proCards:freeCards}</div>`;
+    <div class="stp-row-desc" style="padding:4px 2px;">Для Pro нет жёстких лимитов — только защита от слишком частых запросов подряд.</div>`;
+  stpEnsure('usage','Использование',stpBackMain(),`${unlimited?proCards:freeCards}</div>`);
 }
 
-/* ===== PERSONALIZATION (mobile only) ===== */
-const STYLES={default:'По умолчанию',professional:'Профессиональный',friendly:'Дружелюбный',frank:'Откровенный',whimsical:'Причудливый',efficient:'Эффективный',cynical:'Циничный'};
-const STYLE_DESCS={default:'Предпочитаемый стиль и тон',professional:'Тактичный и точный',friendly:'Тёплый и разговорчивый',frank:'Прямой и мотивирующий',whimsical:'Весёлый и творческий',efficient:'Немногословный и чёткий',cynical:'Критикующий и саркастичный'};
-
+/* ===== ПЕРСОНАЛИЗАЦИЯ (по макету: тема, память, быстрые ответы) ===== */
 function renderSettingsPers(){
   const el=settingsPane();
+  if(!el)return;
+  window.__setScreen='pers';
   const s=getSettings();
-  const st=s.style||'default';
-  const fr=s.friendliness||'default';
-  const en=s.enthusiasm||'default';
-  const hd=s.headings||'default';
-  const em=s.emojis||'default';
+  const theme=s.appearance||'system';
+  const themeNames={system:'Системная',dark:'Тёмная',light:'Светлая',messenger:'Мессенджер'};
+  const memRecall=(s.memRecall!==false);
   const qr=(s.quickReplies!==false);
-  const ci=s.customInstructions||'';
-  el.innerHTML=`
-    <div class="sth">
-      <div class="sth-back" onclick="renderSettingsMain()">
-        <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  const dd=stpDdHtml('ddTheme',themeNames[theme]||'Системная',['system','dark','light','messenger'].map(t=>`<button type="button" class="stp-dd-opt${t===theme?' on':''}" onclick="selectAppearance('${t}');renderSettingsPers()">${themeNames[t]}</button>`).join(''));
+  stpEnsure('pers','Персонализация',stpBackMain(),`
+      <div class="stp-row">
+        <div class="stp-row-label"><div class="stp-row-title">Тема приложения</div></div>
+        ${dd}
       </div>
-      <div class="sth-title">Персонализация</div>
-      <button style="margin-left:auto;padding:7px 16px;border-radius:10px;background:var(--send-bg);color:var(--send-txt);border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;" onclick="savePers()">Сохранить</button>
-    </div>
-    <!-- Style card -->
-    <div class="pers-card">
-      <div class="pers-header">
-        <div class="pers-h-label">Базовый стиль и тон</div>
-        <div class="pers-selector" onclick="openPersDrop('style')">
-          <span class="pers-sel-text" id="ps-style">${STYLES[st]}</span>
-          <span class="pers-sel-chev">⌃</span>
+      <div class="stp-row">
+        <div class="stp-row-label">
+          <div class="stp-row-title">Ссылаться на память</div>
+          <div class="stp-row-desc">HarmonyAI будет учитывать сохранённые факты о вас в ответах</div>
         </div>
+        ${stpToggleCtrl('swMemRecall',memRecall,'memRecall')}
       </div>
-    </div>
-    <!-- Other options card -->
-    <div class="pers-card" style="margin-bottom:16px">
-      <div class="pers-row-inline" onclick="openPersDrop('friendliness')">
-        <div class="pers-row-label">Доброжелательность</div>
-        <div class="pers-row-val"><span id="ps-friendliness">${friendlinessLabel(fr)}</span><span style="font-size:10px;opacity:.5">⌃</span></div>
+      <div class="stp-row">
+        <div class="stp-row-label">
+          <div class="stp-row-title">Быстрые ответы</div>
+          <div class="stp-row-desc">Иногда HarmonyAI может использовать свои общие знания для быстрых ответов. Такие ответы не персонализированы.</div>
+        </div>
+        ${stpToggleCtrl('swQR',qr,'quickReplies')}
       </div>
-      <div class="pers-row-inline" onclick="openPersDrop('enthusiasm')">
-        <div class="pers-row-label">Энтузиазм</div>
-        <div class="pers-row-val"><span id="ps-enthusiasm">${enthusiasmLabel(en)}</span><span style="font-size:10px;opacity:.5">⌃</span></div>
+      <div class="stp-hr"></div>
+      <div class="stp-row" onclick="renderSettingsMemory()" role="button" tabindex="0">
+        <div class="stp-row-label">
+          <div class="stp-row-title">Память</div>
+          <div class="stp-row-desc">Просмотр и удаление сохранённых фактов</div>
+        </div>
+        <span class="stp-link"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
       </div>
-      <div class="pers-row-inline" onclick="openPersDrop('headings')">
-        <div class="pers-row-label">Заголовки и списки</div>
-        <div class="pers-row-val"><span id="ps-headings">${headingsLabel(hd)}</span><span style="font-size:10px;opacity:.5">⌃</span></div>
-      </div>
-      <div class="pers-row-inline" onclick="openPersDrop('emojis')">
-        <div class="pers-row-label">Эмодзи</div>
-        <div class="pers-row-val"><span id="ps-emojis">${emojisLabel(em)}</span><span style="font-size:10px;opacity:.5">⌃</span></div>
-      </div>
-    </div>
-    <!-- Quick replies toggle -->
-    <div class="pers-toggle-row">
-      <div class="pers-toggle-info">
-        <div class="pers-toggle-label">Быстрые ответы</div>
-        <div class="pers-toggle-desc">Иногда HarmonyAI может использовать свои общие знания для быстрых ответов. Такие ответы не персонализированы.</div>
-      </div>
-      <div class="sw ${qr?'on':''}" id="swQR" onclick="this.classList.toggle('on')"></div>
-    </div>
-    <!-- Custom instructions -->
-    <div class="custom-instr-label">Пользовательские инструкции</div>
-    <textarea class="custom-instr-area" id="custInstr" placeholder="Поделитесь чем-нибудь ещё, что вы хотели бы включить для рассмотрения в ответе Harmony Ai.">${escapeHtml(ci)}</textarea>
-    <button class="save-btn" onclick="savePers()">Сохранить</button>`;
-}
-function friendlinessLabel(v){
-  const map={default:'По умолчанию',low:'Низкая',medium:'Средняя',high:'Высокая'};
-  return map[v]||'По умолчанию';
-}
-function enthusiasmLabel(v){
-  const map={default:'По умолчанию',reserved:'Сдержанный',moderate:'Умеренный',high:'Высокий'};
-  return map[v]||'По умолчанию';
-}
-function headingsLabel(v){
-  const map={default:'По умолчанию',off:'Выкл',on:'Вкл'};
-  return map[v]||'По умолчанию';
-}
-function emojisLabel(v){
-  const map={default:'По умолчанию',none:'Нет',some:'Немного',many:'Много'};
-  return map[v]||'По умолчанию';
-}
-/* Строгий escapeHtml объявлен выше. Дублирующее определение через textContent удалено: оно перекрывало строгую версию и не экранировало кавычки. */
-
-/* Pers dropdown overlay */
-const PERS_OPT_DATA={
-  style:Object.keys(STYLES).map(k=>({val:k,label:STYLES[k],desc:STYLE_DESCS[k]})),
-  friendliness:[{val:'default',label:'По умолчанию'},{val:'low',label:'Низкая'},{val:'medium',label:'Средняя'},{val:'high',label:'Высокая'}],
-  enthusiasm:[{val:'default',label:'По умолчанию'},{val:'reserved',label:'Сдержанный'},{val:'moderate',label:'Умеренный'},{val:'high',label:'Высокий'}],
-  headings:[{val:'default',label:'По умолчанию'},{val:'off',label:'Выкл'},{val:'on',label:'Вкл'}],
-  emojis:[{val:'default',label:'По умолчанию'},{val:'none',label:'Нет'},{val:'some',label:'Немного'},{val:'many',label:'Много'}],
-};
-let activePersField=null;
-
-function openPersDrop(field){
-  activePersField=field;
-  const opts=PERS_OPT_DATA[field]||[];
-  const s=getSettings();
-  const cur=s[field]||'default';
-  const overlay=document.getElementById('persDropOverlay');
-  const content=document.getElementById('persDropContent');
-  let html='<div class="pds-title">'+fieldTitle(field)+'</div>';
-  opts.forEach(opt=>{
-    const sel=opt.val===cur?'selected':'';
-    html+=`<div class="pds-opt ${sel}" onclick="selectPersOpt('${field}','${opt.val}','${opt.label}')">`;
-    html+=`<div style="flex:1"><div class="pds-opt-title">${opt.label}</div>${opt.desc?`<div class="pds-opt-desc">${opt.desc}</div>`:''}</div>`;
-    if(sel)html+=`<div class="pds-check">✓</div>`;
-    html+=`</div>`;
-  });
-  content.innerHTML=html;
-  overlay.classList.add('open');
-}
-function closePersDrop(){
-  document.getElementById('persDropOverlay').classList.remove('open');
-  activePersField=null;
-}
-function selectPersOpt(field,val,label){
-  if(!curUser.settings)curUser.settings={};
-  curUser.settings[field]=val;
-  const spanId='ps-'+field;
-  const span=document.getElementById(spanId);
-  if(span)span.textContent=label;
-  const styleSpan=document.getElementById('ps-style');
-  if(field==='style'&&styleSpan)styleSpan.textContent=STYLES[val]||label;
-  closePersDrop();
-}
-function fieldTitle(f){
-  const map={style:'Базовый стиль и тон',friendliness:'Доброжелательность',enthusiasm:'Энтузиазм',headings:'Заголовки и списки',emojis:'Эмодзи'};
-  return map[f]||f;
+    </div>`);
 }
 
-async function savePers(){
-  const qr=document.getElementById('swQR')?.classList.contains('on');
-  const ci=document.getElementById('custInstr')?.value||'';
-  if(!curUser)return;
-  if(!curUser.settings)curUser.settings={};
-  curUser.settings.quickReplies=qr;
-  curUser.settings.customInstructions=ci;
-  await sb.from('profiles').upsert({id:curUser.id,settings:curUser.settings},{onConflict:'id'});
-  renderSettingsMain();
+
+/* ===== УЧЕТНАЯ ЗАПИСЬ ===== */
+function renderSettingsAccount(){
+  const el=settingsPane();
+  if(!el)return;
+  window.__setScreen='account';
+  const chev='<svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+  let created='';
+  try{
+    const d=curUser?.created_at?new Date(curUser.created_at):null;
+    if(d&&!isNaN(d)){
+      const dt=new Intl.DateTimeFormat('ru-RU',{day:'numeric',month:'long',year:'numeric'}).format(d);
+      const m=String(dt);
+      const mon={января:'январь',февраля:'февраль',марта:'март',апреля:'апрель',мая:'май',июня:'июнь',июля:'июль',августа:'август',сентября:'сентябрь',октября:'октябрь',ноября:'ноябрь',декабря:'декабрь'};
+      const parts=m.split(' ');
+      created=`<div class="stp-about-foot" style="margin-top:14px;">Учетная запись была создана ${parts[0]} ${parts[1]} ${parts[2]||''}</div>`;
+    }
+  }catch(e){}
+  stpEnsure('account','Учётная запись',stpBackMain(),`
+      <div class="stp-row" onclick="renderSettingsName()" role="button" tabindex="0">
+        <div class="stp-row-label"><div class="stp-row-title">Имя</div></div>
+        <span class="stp-link">${escapeHtml(curUser?.nickname||'')} ${chev}</span>
+      </div>
+      <div class="stp-row" onclick="renderSettingsEmail()" role="button" tabindex="0">
+        <div class="stp-row-label"><div class="stp-row-title">Электронная почта</div></div>
+        <span class="stp-link">${escapeHtml(curUser?.email||'')} ${chev}</span>
+      </div>
+      <div class="stp-hr"></div>
+      <div class="stp-row">
+        <div class="stp-row-label"><div class="stp-row-title">Удалить учетную запись</div></div>
+        <button type="button" class="stp-btn stp-btn-danger" onclick="requestAccountDeletion()">Удалить</button>
+      </div>
+      ${created}
+    </div>`);
 }
-async function saveSetting(key,val){
-  if(!curUser)return;
-  if(!curUser.settings)curUser.settings={};
-  curUser.settings[key]=val;
-  await sb.from('profiles').upsert({id:curUser.id,settings:curUser.settings},{onConflict:'id'});
+function requestAccountDeletion(){
+  if(!confirm('Удаление аккаунта выполняется через поддержку. Открыть почтовый клиент с готовым письмом?'))return;
+  const email=curUser?.email||'';
+  location.href='mailto:help@harmonyai.ru?subject='+encodeURIComponent('Удаление аккаунта')+'&body='+encodeURIComponent('Прошу удалить мою учетную запись HarmonyAI.\nEmail: '+email);
 }
+
+/* ===== ХРАНИЛИЩЕ ===== */
+function renderSettingsStorage(){
+  const el=settingsPane();
+  if(!el)return;
+  window.__setScreen='storage';
+  const chev='<svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+  stpEnsure('storage','Хранилище',stpBackMain(),`
+      <div class="stp-store-head" id="stpStoreHead">Считаем…</div>
+      <div class="stp-bar"><div class="stp-bar-fill" id="stpStoreFill" style="width:2%"></div></div>
+      <div class="stp-store-row"><span class="stp-store-name">Файлы</span><span class="stp-store-val" id="stpStoreFiles">—</span></div>
+      <div class="stp-store-row"><span class="stp-store-name">Изображения</span><span class="stp-store-val" id="stpStoreImgs">—</span></div>
+      <div class="stp-hr"></div>
+      <div class="stp-row">
+        <div class="stp-row-label"><div class="stp-row-title">Очистить хранилище</div>
+        <div class="stp-row-desc">Удалить локальный кэш. Чаты и файлы на сервере сохранятся.</div></div>
+        <span class="stp-link" onclick="openStorageCleanup()" role="button" tabindex="0">Очистить ${chev}</span>
+      </div>
+    </div>`);
+  renderStorageUsage();
+}
+
+/* ===== ПОМОЩЬ ===== */
+function renderSettingsHelp(){
+  const el=settingsPane();
+  if(!el)return;
+  window.__setScreen='help';
+  const chev='<svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+  stpEnsure('help','Помощь',stpBackMain(),`
+      <div class="stp-row" onclick="window.open('/help','_blank','noopener')" role="link" tabindex="0">
+        <div class="stp-row-label"><div class="stp-row-title">Справочный центр</div></div>
+        <span class="stp-link">${chev}</span>
+      </div>
+      <div class="stp-row" onclick="window.open('/contacts','_blank','noopener')" role="link" tabindex="0">
+        <div class="stp-row-label"><div class="stp-row-title">Поддержка</div></div>
+        <span class="stp-link">${chev}</span>
+      </div>
+      <div class="stp-row" onclick="renderReportProblem()" role="button" tabindex="0">
+        <div class="stp-row-label"><div class="stp-row-title">Сообщить о проблеме в приложении</div></div>
+        <span class="stp-link">${chev}</span>
+      </div>
+      ${hasModeratorAccess()?`
+      <div class="stp-row" onclick="renderReportsInbox()" role="button" tabindex="0">
+        <div class="stp-row-label"><div class="stp-row-title">Сообщения о проблемах</div></div>
+        <span class="stp-link">${chev}</span>
+      </div>`:''}
+    </div>`);
+}
+
 // Сохраняем выбранный язык интерфейса в профиль (внутри settings, без изменения схемы).
 window.persistLangToProfile=async function(lang){
   try{
@@ -11641,31 +11368,58 @@ function setFmtBytes(n){
   while(v>=1024&&i<u.length-1){v/=1024;i++;}
   return String(v>=100?Math.round(v):v.toFixed(1)).replace('.',',')+' '+u[i];
 }
-function renderStorageUsage(){
-  let total=0;
+window.__stpStoreCache=null;
+async function renderStorageUsage(){
+  const note=document.getElementById('stpStoreNote');
+  const bar=document.getElementById('stpStoreBar');
+  if(!note)return;
+  note.textContent='Считаем…';
+  const files={size:0,count:0},imgs={size:0,count:0};
+  let localBytes=0,serverOk=false;
   try{
     for(let i=0;i<localStorage.length;i++){
       const k=localStorage.key(i)||'';
-      total+=(k.length+(localStorage.getItem(k)||'').length)*2;
+      localBytes+=(k.length+(localStorage.getItem(k)||'').length)*2;
     }
   }catch(e){}
-  const quota=5*1024*1024;
-  const pct=Math.min(100,Math.max(2,Math.round(total/quota*100)));
-  const fill=document.getElementById('setStorageFill');
-  const note=document.getElementById('setStorageNote');
-  if(fill)fill.style.width=pct+'%';
-  if(note)note.textContent='Занято около '+setFmtBytes(total)+' из ~5 МБ локального хранилища. Сами чаты и изображения хранятся на сервере — очистка кэша их не удалит.';
-}
-function openStorageCleanup(){
-  const ok=window.confirm('Очистить локальный кэш приложения? Вход, настройки и чаты на сервере сохранятся. Локальные черновики и несохранённые вложения могут пропасть.');
-  if(!ok)return;
-  try{
-    const keep=(k)=>k.indexOf('sb-')===0||k==='hai_theme'||k==='hai_lang';
-    const kill=[];
-    for(let i=0;i<localStorage.length;i++){
-      const k=localStorage.key(i);
-      if(k&&!keep(k))kill.push(k);
+  const uid=curUser&&curUser.id;
+  if(uid&&window.sb){
+    const segs=[uid,String(uid).replace(/[^a-zA-Z0-9_-]/g,'-')];
+    for(const seg of new Set(segs)){
+      try{
+        const r=await sb.storage.from('chat-attachments').list(seg,{limit:1000,sortBy:{column:'created_at',order:'desc'}});
+        (r.data||[]).forEach(o=>{files.size+=Number(o.metadata&&o.metadata.size)||0;files.count++;});
+        if(r.data&&r.data.length)serverOk=true;
+      }catch(e){}
+      try{
+        const r=await sb.storage.from('generated-images').list(seg,{limit:1000,sortBy:{column:'created_at',order:'desc'}});
+        (r.data||[]).forEach(o=>{imgs.size+=Number(o.metadata&&o.metadata.size)||0;imgs.count++;});
+        if(r.data&&r.data.length)serverOk=true;
+      }catch(e){}
+      if(serverOk)break;
     }
+  }
+  const total=files.size+imgs.size+localBytes;
+  window.__stpStoreCache={files,imgs,total,localBytes,serverOk};
+  const fillRows=document.getElementById('stpStoreRows');
+  if(fillRows){
+    fillRows.innerHTML=`
+      <div class="stp-store-row"><span class="stp-store-name">Файлы</span><span class="stp-store-val">${files.count?setFmtBytes(files.size)+' • '+files.count+' '+(files.count%10===1&&files.count%100!==11?'файл':'файлов'):'—'}</span></div>
+      <div class="stp-store-row"><span class="stp-store-name">Изображения</span><span class="stp-store-val">${imgs.count?setFmtBytes(imgs.size)+' • '+imgs.count+' '+(imgs.count%10===1&&imgs.count%100!==11?'изображение':(imgs.count%10>=2&&imgs.count%10<=4&&(imgs.count%100<10||imgs.count%100>=20)?'изображения':'изображений')):'—'}</span></div>`;
+  }
+  const headEl=document.getElementById('stpStoreHead');
+  if(headEl)headEl.textContent='Использовано '+setFmtBytes(total);
+  if(bar)bar.style.width='100%';
+  note.textContent=serverOk
+    ?'Данные из вашего хранилища на сервере и локального кэша.'
+    :'Точно посчитать удалось только локальный кэш — файлы на сервере недоступны для списка.';
+}
+async function openStorageCleanup(){
+  if(!window.confirm('Очистить локальный кэш приложения? Вход, настройки и чаты на сервере сохранятся. Несохранённые черновики могут пропасть.'))return;
+  try{
+    const keep=k=>k.indexOf('sb-')===0||k==='hai_theme'||k==='hai_lang'||k.indexOf('nickname')!==-1;
+    const kill=[];
+    for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&!keep(k))kill.push(k);}
     kill.forEach(k=>{try{localStorage.removeItem(k);}catch(e){}});
     try{sessionStorage.clear();}catch(e){}
     showSettingsToast('Локальный кэш очищен');
