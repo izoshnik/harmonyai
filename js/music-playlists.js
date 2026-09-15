@@ -387,16 +387,16 @@
       );
     });
 
+    var integrated = !!(el.closest && el.closest('#settingsContent'));
     el.innerHTML =
-      '<div class="sth">' +
-      '  <button type="button" class="sth-back" id="plBack" aria-label="Назад">' + ICON_BACK + '</button>' +
-      '  <div class="sth-title">Плейлисты</div>' +
-      '  <button type="button" class="pl-head-btn" id="plCreate" title="Создать плейлист" aria-label="Создать плейлист">' + ICON_PLUS + '</button>' +
-      '</div>' +
+      (integrated
+        ? '<div class="pl-inline-tools"><span>Ваши плейлисты</span><button type="button" class="pl-head-btn" id="plCreate" title="Создать плейлист" aria-label="Создать плейлист">' + ICON_PLUS + '</button></div>'
+        : '<div class="sth"><button type="button" class="sth-back" id="plBack" aria-label="Назад">' + ICON_BACK + '</button><div class="sth-title">Плейлисты</div><button type="button" class="pl-head-btn" id="plCreate" title="Создать плейлист" aria-label="Создать плейлист">' + ICON_PLUS + '</button></div>') +
       '<div class="pl-rows">' + rows.join('') + '</div>' +
       '<div class="pl-note">«Найдено в HarmonyAi» пополняется автоматически: сюда попадают треки, которые нашлись в чате.</div>';
 
-    el.querySelector('#plBack').addEventListener('click', function () {
+    var back = el.querySelector('#plBack');
+    if (back) back.addEventListener('click', function () {
       if (typeof global.renderSettingsMain === 'function') global.renderSettingsMain();
     });
 
