@@ -2418,6 +2418,55 @@ html[data-theme="light"] .stp-ava{background:#6a4dff;color:#fff;}
   .composer-inner{max-width:none!important;width:100%!important;}
 }
 </style>
+
+<style id="settings-reference-match">
+/* Settings: reference layout from the supplied screenshots. */
+.settings-overlay{
+  --set-panel:#000;--set-side:#242424;--set-active:#666;--set-text:#f5f5f5;--set-muted:#aaa;
+  --set-line:#737373;--set-soft:#2f2f2f;--set-soft2:#3a3a3a;--set-danger:#ff3b30;--set-accent:#fff;
+  background:rgba(4,5,7,.82)!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
+}
+.settings-box{background:var(--set-panel)!important;color:var(--set-text)!important;border:0!important;position:relative;overflow:hidden;}
+html[data-theme="light"] .settings-overlay{--set-panel:#fbfaf8;--set-side:#ebe9e5;--set-active:#d0cdc7;--set-text:#26241f;--set-muted:#78736a;--set-line:#aaa69d;--set-soft:#ece9e3;--set-soft2:#e2dfd8;--set-danger:#dc3f45;--set-accent:#6a4dff;background:rgba(32,29,24,.22)!important;}
+html[data-theme="messenger"] .settings-overlay{--set-panel:#f8fcff;--set-side:#e3f0f7;--set-active:#c4e4f5;--set-text:#17212b;--set-muted:#6a8295;--set-line:#9bb8ca;--set-soft:#e5f1f7;--set-soft2:#d7eaf4;--set-danger:#e34b52;--set-accent:#229ed9;background:rgba(23,33,43,.24)!important;}
+.settings-box,.settings-box *{box-sizing:border-box;}
+.set-shell{height:100%;min-height:0;padding:66px 14px 14px;gap:0;}
+.set-side{width:276px;flex-basis:276px;height:100%;padding:14px 12px;background:var(--set-side)!important;border:0!important;border-radius:42px;overflow:auto;scrollbar-width:none;}
+.set-side::-webkit-scrollbar{display:none}.set-nav{gap:0}.set-nav-logout{display:none!important;}
+.set-nav-btn{min-height:38px;padding:7px 13px;border-radius:22px;font-size:17px;font-weight:400;line-height:1.1;color:var(--set-text)!important;gap:9px;}
+.set-nav-btn svg{width:20px;height:20px;color:var(--set-text)!important;opacity:.95}.set-nav-btn:hover{background:color-mix(in srgb,var(--set-active) 72%,transparent)!important}.set-nav-btn.on{background:var(--set-active)!important;box-shadow:none!important;}
+.set-main{position:relative;background:transparent!important;padding:0 32px 0 28px;min-width:0;overflow:hidden;}
+.stp-head{position:relative;height:74px;padding:5px 0 14px;border-bottom:1px solid var(--set-line)!important;display:flex;align-items:flex-start;justify-content:center;}
+.stp-title{font-size:34px;font-weight:400;line-height:1.15;letter-spacing:0;color:var(--set-text)!important;}
+.stp-back{position:absolute!important;left:-307px!important;top:-51px!important;bottom:auto!important;padding:4px 7px;background:transparent!important;color:var(--set-text)!important;font-size:18px;font-weight:400;border-radius:12px;gap:8px;white-space:nowrap;z-index:5;}
+.stp-back svg{width:21px;height:21px}.stp-back:hover{background:color-mix(in srgb,var(--set-active) 50%,transparent)!important;}
+.stp-body{padding:18px 4px 26px;overflow-y:auto;color:var(--set-text);scrollbar-width:thin;scrollbar-color:var(--set-active) transparent;}
+.stp-row{padding:12px 4px!important;margin:0!important;border-radius:10px!important;background:transparent!important;min-height:48px;gap:20px;color:var(--set-text);}
+.stp-row[role=button]:hover,.stp-row[role=link]:hover{background:color-mix(in srgb,var(--set-active) 22%,transparent)!important;}
+.stp-row-title{font-size:18px;font-weight:400;color:var(--set-text)!important;line-height:1.25;}.stp-row-desc{font-size:14px;color:var(--set-muted)!important;line-height:1.35;max-width:600px;margin-top:4px}.stp-sec-label{font-size:16px;font-weight:400;color:var(--set-text)!important;margin:3px 0 10px}.stp-hr{border:0;border-top:1px solid color-mix(in srgb,var(--set-line) 54%,transparent);margin:13px 0;}
+.stp-link,.stp-dd-btn{font-size:16px;color:var(--set-text)!important;background:transparent!important;font-weight:400;}.stp-link:hover,.stp-dd-btn:hover{background:color-mix(in srgb,var(--set-active) 26%,transparent)!important;}
+.stp-toggle{width:43px!important;height:25px!important;border-radius:999px!important;background:#8a8a8a!important;box-shadow:none!important;}.stp-toggle::after{width:21px!important;height:21px!important;top:2px!important;left:2px!important;background:#fff!important;box-shadow:none!important}.stp-toggle.on{background:var(--set-accent)!important}.stp-toggle.on::after{transform:translateX(18px)!important;background:var(--set-panel)!important}.stp-toggle:active::after{width:21px!important}.stp-toggle.on:active::after{transform:translateX(18px)!important;}
+html[data-theme="light"] .stp-toggle.on::after,html[data-theme="messenger"] .stp-toggle.on::after{background:#fff!important}.stp-dd-menu{background:var(--set-side)!important;border:1px solid color-mix(in srgb,var(--set-line) 42%,transparent)!important;color:var(--set-text)!important}.stp-dd-opt{color:var(--set-text)!important}.stp-dd-opt:hover{background:var(--set-active)!important}.stp-dd-opt.on{color:var(--set-text)!important;background:color-mix(in srgb,var(--set-active) 68%,transparent)!important;}
+.stp-btn{padding:7px 15px;border-radius:999px;font-size:14px;font-weight:500;min-height:31px}.stp-btn-white{background:#fff!important;color:#111!important;box-shadow:none!important}.stp-btn-accent{background:#315dff!important;color:#fff!important;box-shadow:none!important}.stp-btn-danger{background:var(--set-danger)!important;color:#fff!important}.stp-btn-green{background:transparent!important;border:1.4px solid #1fb167!important;color:#35d07f!important}.stp-btn:hover{box-shadow:none!important;filter:brightness(1.04)}
+.stp-card{background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important;margin:0 0 10px!important}.stp-card-label{font-size:18px;color:var(--set-text);}.stp-card-row{display:flex;justify-content:flex-end;align-items:center;margin-top:-27px}.stp-badge{display:inline-flex;align-items:center;border-radius:999px;background:#fff;color:#111;padding:5px 13px;font-size:12px}.stp-perks-box{margin-top:22px}.stp-perks-label{font-size:15px;margin-bottom:8px}.stp-perks{background:transparent!important;border:1px solid color-mix(in srgb,var(--set-line) 50%,transparent)!important;box-shadow:none!important;border-radius:9px;padding:9px 15px;max-width:430px}.stp-perk{font-size:12px;line-height:1.75;gap:7px}.stp-perk::before{display:none}.stp-perk-dot{display:flex;color:var(--set-text)}.stp-perk-dot svg{width:12px;height:12px}
+.stp-usage-card{background:var(--set-soft2)!important;border:0!important;box-shadow:none!important;border-radius:16px;padding:12px 14px;margin-bottom:10px;gap:9px}.stp-usage-title{font-size:15px;font-weight:600;color:var(--set-text)!important}.stp-usage-sub,.stp-usage-pct{font-size:11px;color:var(--set-muted)!important}.stp-bar{height:5px;background:color-mix(in srgb,var(--set-muted) 42%,transparent);}.stp-bar-fill{background:#fff!important}.stp-store-head{font-size:14px;font-weight:600;color:var(--set-text)!important;margin:0 0 8px}.stp-store-bar{margin-bottom:10px}.stp-store-row{padding:7px 1px}.stp-store-name{font-size:15px;color:var(--set-text)!important}.stp-store-val{font-size:12px;color:var(--set-muted)!important}.stp-storage-clean{padding-top:7px!important}.stp-storage-clean .stp-link{padding-right:0}
+.stp-conn-row{display:flex;align-items:center;gap:12px;min-height:44px}.stp-conn-logo{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}.stp-conn-logo.ym{background:transparent;color:inherit}.stp-conn-logo.api{background:transparent!important;color:var(--set-text)!important}.stp-conn-logo.api svg{width:22px;height:22px}.stp-conn-meta{min-width:0;flex:1}.stp-conn-state{font-size:12px;color:var(--set-muted)!important;margin-top:2px}.stp-conn-state.ok{color:#35d07f!important}
+.stp-about-hero{text-align:center;padding:10px 0 18px}.stp-about-logo{margin:0 auto;width:58px;height:58px;border-radius:17px;background:var(--set-text)!important;color:var(--set-panel)!important}.stp-about-name{font-size:22px}.stp-about-ver{font-size:13px;color:var(--set-muted)!important}.stp-about-foot{font-size:11px;color:var(--set-muted)!important}
+/* The four screens that were not present in the references use the same visual system. */
+#settingsContent .hm-stats{padding:0;color:var(--set-text)}#settingsContent .hm-stats-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:14px}#settingsContent .hm-stat-card{padding:13px 14px;border:0;border-radius:14px;background:var(--set-soft2);min-width:0}#settingsContent .hm-stat-label{font-size:12px;color:var(--set-muted)}#settingsContent .hm-stat-value{font-size:24px;font-weight:500;margin:4px 0;color:var(--set-text)}#settingsContent .hm-stat-note{font-size:11px;line-height:1.4;color:var(--set-muted)}
+#settingsContent .pl-inline-tools{display:flex;align-items:center;justify-content:space-between;padding:0 6px 8px;font-size:15px;color:var(--set-text)}#settingsContent .pl-rows{padding:0!important;border:0!important;background:transparent!important}#settingsContent .pl-row{border:0!important;border-radius:12px!important;padding:9px 6px!important;background:transparent!important}#settingsContent .pl-row:hover{background:color-mix(in srgb,var(--set-active) 22%,transparent)!important}#settingsContent .pl-row__cover{width:38px;height:38px;border-radius:10px}#settingsContent .pl-note{font-size:11px;color:var(--set-muted);padding:12px 6px!important}#settingsContent .pl-head-btn{background:transparent;color:var(--set-text);border:0}
+@media(min-width:769px){
+  .settings-box{width:min(1040px,calc(100vw - 64px))!important;height:min(570px,calc(100dvh - 80px))!important;border-radius:30px!important;box-shadow:0 28px 100px rgba(0,0,0,.48)!important;}
+  html[data-theme="light"] .settings-box{box-shadow:0 24px 80px rgba(40,35,28,.20)!important}html[data-theme="messenger"] .settings-box{box-shadow:0 24px 80px rgba(23,57,78,.22)!important}
+}
+@media(max-width:768px){
+  .settings-overlay{background:var(--set-panel)!important}.settings-box{background:var(--set-panel)!important;border-radius:0!important;height:100dvh!important;width:100%!important;transform:none!important}.settings-overlay.open .settings-box{transform:none!important}
+  .sth{margin:calc(18px + env(safe-area-inset-top)) 18px 8px;min-height:44px}.sth-title{font-size:25px;font-weight:500;color:var(--set-text)!important}.sth-close,.sth-back{width:40px;height:40px;border-radius:12px;background:var(--set-soft)!important;color:var(--set-text)!important}
+  .stp-root{padding:4px 16px calc(30px + env(safe-area-inset-bottom))}.stp-root-hero{padding:9px 4px 18px}.stp-ava{width:48px;height:48px;background:var(--set-text)!important;color:var(--set-panel)!important}.stp-root-name{font-size:16px;color:var(--set-text)!important}.stp-root-email{font-size:12px;color:var(--set-muted)!important}.stp-root-item{min-height:50px;padding:9px 8px!important;border-top:1px solid color-mix(in srgb,var(--set-line) 26%,transparent)!important;border-radius:10px!important;color:var(--set-text)!important;font-size:15px;gap:11px}.stp-root-item svg{color:var(--set-muted)!important}.stp-root-item:hover{background:var(--set-soft)!important}.stp-root-logout{display:flex;color:var(--set-danger)!important}
+  .stp-head{height:64px;margin:calc(10px + env(safe-area-inset-top)) 16px 0!important;padding:8px 0 12px;align-items:flex-start}.stp-title{font-size:24px;font-weight:500}.stp-back{position:absolute!important;left:0!important;top:7px!important;font-size:0!important;padding:7px!important;background:var(--set-soft)!important;width:40px;height:40px;justify-content:center}.stp-back span{display:none}.stp-back svg{width:20px;height:20px}.stp-body{padding:10px 16px calc(34px + env(safe-area-inset-bottom))!important}.stp-row{padding:13px 6px!important;min-height:56px}.stp-row-title{font-size:16px}.stp-row-desc{font-size:12px;max-width:78vw}.stp-link,.stp-dd-btn{font-size:14px}.stp-toggle{flex:0 0 auto}.stp-card-row{margin-top:-26px}.stp-perks{max-width:none}.stp-usage-card{padding:13px}.stp-conn-row{min-height:52px}.stp-btn{font-size:13px;padding:7px 13px}.stp-store-row{padding:9px 2px}
+  #settingsContent .hm-stats-grid{grid-template-columns:1fr}.set-shell{display:block;padding:0}.set-side{display:none}.set-main{padding:0;overflow:visible}
+}
+</style>
 </head>
 <body>
 <div id="initialLoading" role="status" aria-live="polite"><span class="boot-spinner"></span><span>Загрузка HarmonyAI…</span></div>
@@ -10004,7 +10053,7 @@ const STP_SECTIONS=[
   {id:'stats',label:'Статистика',icon:'chart',fn:'renderPersonalStats'},
   {id:'subscription',label:'Подписка',icon:'crown',fn:'renderSettingsSubscription'},
   {id:'pers',label:'Персонализация',icon:'spark',fn:'renderSettingsPers'},
-  {id:'account',label:'Учётная запись',icon:'user',fn:'renderSettingsAccount'},
+  {id:'account',label:'Учетная запись',icon:'user',fn:'renderSettingsAccount'},
   {id:'data',label:'Управление данными',icon:'db',fn:'renderSettingsData'},
   {id:'storage',label:'Хранилище',icon:'box',fn:'renderSettingsStorage'},
   {id:'help',label:'Помощь',icon:'info',fn:'renderSettingsHelp'},
@@ -10278,18 +10327,9 @@ function renderSettingsSubscription(){
     </div>`;
   }
   stpEnsure('subscription','Подписка',stpBackMain(),`${planCard}
-      <div class="stp-perks-box">
+      ${isPro?`<div class="stp-perks-box">
         <div class="stp-perks-label">Что входит в подписку ${plan}</div>
         <div class="stp-perks">${perks.map(p=>`<div class="stp-perk"><span class="stp-perk-dot">${check}</span><span>${p}</span></div>`).join('')}</div>
-      </div>
-      ${isPro?`
-      <div class="stp-hr"></div>
-      <div class="stp-row">
-        <div class="stp-row-label">
-          <div class="stp-row-title">Отменить подписку</div>
-          <div class="stp-row-desc">Доступ сохранится до конца оплаченного периода.</div>
-        </div>
-        <button type="button" class="stp-btn stp-btn-danger" onclick="cancelSubscription()">Отменить</button>
       </div>`:''}
     </div>`);
 }
@@ -10306,11 +10346,12 @@ function renderSettingsMusic(){
   const el=settingsPane();
   if(!el)return;
   window.__setScreen='music';
+  const body=stpEnsure('music','Плейлисты',stpBackMain(),'<div class="pl-empty">Загружаем плейлисты…</div>');
   if(!window.MusicPlaylists){
-    el.innerHTML=`${setHead('Плейлисты','renderSettingsMain()')}<div class="pl-empty">Модуль плейлистов не загрузился — обновите страницу.</div>`;
+    if(body)body.innerHTML='<div class="pl-empty">Модуль плейлистов не загрузился — обновите страницу.</div>';
     return;
   }
-  window.MusicPlaylists.renderList(el);
+  window.MusicPlaylists.renderList(body);
 }
 
 function renderSettingsConnections(){
@@ -10321,7 +10362,7 @@ function renderSettingsConnections(){
   const plugHtml=`
     <div class="stp-card stp-conn" id="connYm">
       <div class="stp-conn-row">
-        <div class="stp-conn-logo ym"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 3.2l2.5 6.1 6.6.5-5 4.3 1.5 6.4L12 17l-5.6 3.5 1.5-6.4-5-4.3 6.6-.5L12 3.2z" fill="currentColor"/></svg></div>
+        <div class="stp-conn-logo ym"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><defs><linearGradient id="ymg" x1="3" y1="3" x2="21" y2="21"><stop stop-color="#FFD43B"/><stop offset=".48" stop-color="#FF7A00"/><stop offset="1" stop-color="#FF2F6D"/></linearGradient></defs><circle cx="12" cy="12" r="10" fill="url(#ymg)"/><path d="M10.2 8.2v7.6l6-3.8-6-3.8z" fill="#111"/></svg></div>
         <div class="stp-conn-meta">
           <div class="stp-row-title">Яндекс музыка</div>
           <div class="stp-conn-state">Проверяю подключение…</div>
@@ -10348,7 +10389,7 @@ function renderSettingsConnections(){
         <a class="stp-btn stp-btn-white" href="/management">Открыть</a>
       </div>
     </div>`:''}`;
-  el.innerHTML=stpHead('Плагины','stpBackMain()')+`<div class="stp-body">${plugHtml}</div>`;
+  stpEnsure('plugins','Плагины',stpBackMain(),plugHtml);
   refreshYandexConn();
 }
 
@@ -10467,7 +10508,7 @@ function renderSettingsGeneral(){
       <div class="stp-row">
         <div class="stp-row-label">
           <div class="stp-row-title">Автопереключение</div>
-          <div class="stp-row-desc">Более умная модель — для сложных вопросов</div>
+          <div class="stp-row-desc">Автоматически переключать модели для решения разных задач по сложности и времени.</div>
         </div>
         ${stpToggleCtrl('autoSwitch',autoSwitch)}
       </div>
@@ -11004,8 +11045,7 @@ function renderAbout(){
   if(!el)return;
   window.__setScreen='about';
   const chev='<svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
-  el.innerHTML=stpHead('О HarmonyAI','stpBackMain()')+`
-    <div class="stp-body">
+  stpEnsure('about','О HarmonyAI',stpBackMain(),`
       <div class="stp-about-hero">
         <div class="stp-about-logo"><svg width="26" height="26" viewBox="0 0 64 64"><path d="M18 14h8v18h12V14h8v36h-8V39H26v11h-8z" fill="currentColor"/></svg></div>
         <div class="stp-about-name">HarmonyAI</div>
@@ -11024,7 +11064,7 @@ function renderAbout(){
         <span class="stp-link">${chev}</span>
       </div>
       <div class="stp-about-foot">HarmonyAI — ИИ-помощник для учеников музыкальной школы.<br>© ${new Date().getFullYear()} HarmonyAI. Все права защищены.</div>
-    </div>`;
+    </div>`);
 }
 
 /* ===== ЭКРАН «ЛИМИТЫ» ===== */
@@ -11118,14 +11158,6 @@ function renderSettingsPers(){
         </div>
         ${stpToggleCtrl('quickReplies',qr)}
       </div>
-      <div class="stp-hr"></div>
-      <div class="stp-row" onclick="renderSettingsMemory()" role="button" tabindex="0">
-        <div class="stp-row-label">
-          <div class="stp-row-title">Память</div>
-          <div class="stp-row-desc">Просмотр и удаление сохранённых фактов</div>
-        </div>
-        <span class="stp-link"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
-      </div>
     </div>`);
 }
 
@@ -11147,7 +11179,7 @@ function renderSettingsAccount(){
       created=`<div class="stp-about-foot" style="margin-top:14px;">Учетная запись была создана ${parts[0]} ${parts[1]} ${parts[2]||''}</div>`;
     }
   }catch(e){}
-  stpEnsure('account','Учётная запись',stpBackMain(),`
+  stpEnsure('account','Учетная запись',stpBackMain(),`
       <div class="stp-row" onclick="renderSettingsName()" role="button" tabindex="0">
         <div class="stp-row-label"><div class="stp-row-title">Имя</div></div>
         <span class="stp-link">${escapeHtml(curUser?.nickname||'')} ${chev}</span>
@@ -11178,14 +11210,16 @@ function renderSettingsStorage(){
   const chev='<svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
   stpEnsure('storage','Хранилище',stpBackMain(),`
       <div class="stp-store-head" id="stpStoreHead">Считаем…</div>
-      <div class="stp-bar"><div class="stp-bar-fill" id="stpStoreFill" style="width:2%"></div></div>
-      <div class="stp-store-row"><span class="stp-store-name">Файлы</span><span class="stp-store-val" id="stpStoreFiles">—</span></div>
-      <div class="stp-store-row"><span class="stp-store-name">Изображения</span><span class="stp-store-val" id="stpStoreImgs">—</span></div>
+      <div class="stp-bar stp-store-bar"><div class="stp-bar-fill" id="stpStoreBar" style="width:0%"></div></div>
+      <div id="stpStoreRows">
+        <div class="stp-store-row"><span class="stp-store-name">Файлы</span><span class="stp-store-val">—</span></div>
+        <div class="stp-store-row"><span class="stp-store-name">Изображения</span><span class="stp-store-val">—</span></div>
+      </div>
+      <div id="stpStoreNote" class="stp-row-desc" style="display:none"></div>
       <div class="stp-hr"></div>
-      <div class="stp-row">
-        <div class="stp-row-label"><div class="stp-row-title">Очистить хранилище</div>
-        <div class="stp-row-desc">Удалить локальный кэш. Чаты и файлы на сервере сохранятся.</div></div>
-        <span class="stp-link" onclick="openStorageCleanup()" role="button" tabindex="0">Очистить ${chev}</span>
+      <div class="stp-row stp-storage-clean">
+        <div class="stp-row-label"><div class="stp-row-title">Очистить хранилище</div></div>
+        <button type="button" class="stp-link" onclick="openStorageCleanup()">Очистить ${chev}</button>
       </div>
     </div>`);
   renderStorageUsage();
@@ -11468,9 +11502,10 @@ async function renderStorageUsage(){
       <div class="stp-store-row"><span class="stp-store-name">Файлы</span><span class="stp-store-val">${files.count?setFmtBytes(files.size)+' • '+files.count+' '+(files.count%10===1&&files.count%100!==11?'файл':'файлов'):'—'}</span></div>
       <div class="stp-store-row"><span class="stp-store-name">Изображения</span><span class="stp-store-val">${imgs.count?setFmtBytes(imgs.size)+' • '+imgs.count+' '+(imgs.count%10===1&&imgs.count%100!==11?'изображение':(imgs.count%10>=2&&imgs.count%10<=4&&(imgs.count%100<10||imgs.count%100>=20)?'изображения':'изображений')):'—'}</span></div>`;
   }
-  const headEl=document.getElementById('stpStoreHead');
-  if(headEl)headEl.textContent='Использовано '+setFmtBytes(total);
-  if(bar)bar.style.width='100%';
+  const quota=128*1024*1024;
+  if(bar)bar.style.width=Math.min(100,(total/quota)*100).toFixed(1)+'%';
+  const headEl2=document.getElementById('stpStoreHead');
+  if(headEl2)headEl2.textContent='Использовано '+setFmtBytes(total)+' из 128 МБ';
   note.textContent=serverOk
     ?'Данные из вашего хранилища на сервере и локального кэша.'
     :'Точно посчитать удалось только локальный кэш — файлы на сервере недоступны для списка.';
@@ -11530,7 +11565,7 @@ function setFmtBytes(n){
   const s=v>=100?String(Math.round(v)):(v>=10?v.toFixed(1):v.toFixed(2));
   return s.replace('.',',')+' '+u[i];
 }
-function renderStorageUsage(){
+function renderStorageUsageLegacy(){
   const fill=document.getElementById('setStorageFill');
   const note=document.getElementById('setStorageNote');
   if(!note)return;
@@ -11546,7 +11581,7 @@ function renderStorageUsage(){
   if(fill)fill.style.width=pct+'%';
   note.textContent='Занято около '+setFmtBytes(total)+' из ~5 МБ локального кэша. Сами чаты, память и изображения хранятся на сервере и не пострадают.';
 }
-function openStorageCleanup(){
+function openStorageCleanupLegacy(){
   if(!confirm('Очистить локальный кэш приложения? Вход, настройки и вся история чатов на сервере сохранятся. Несохранённые черновики могут пропасть.'))return;
   try{
     const keep=k=>k.startsWith('sb-')||k==='hai_theme'||k==='hai_lang'||k.indexOf('nickname')!==-1;
@@ -11558,7 +11593,7 @@ function openStorageCleanup(){
   }catch(e){
     showSettingsToast('Не удалось очистить кэш');
   }
-  renderStorageUsage();
+  renderStorageUsageLegacy();
 }
 /* Личная статистика: на десктопе рендерится в правую панель настроек */
 (function(){
