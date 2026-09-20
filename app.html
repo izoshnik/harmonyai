@@ -2455,6 +2455,21 @@ html[data-theme="light"] .stp-toggle.on::after,html[data-theme="messenger"] .stp
 /* The four screens that were not present in the references use the same visual system. */
 #settingsContent .hm-stats{padding:0;color:var(--set-text)}#settingsContent .hm-stats-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:14px}#settingsContent .hm-stat-card{padding:13px 14px;border:0;border-radius:14px;background:var(--set-soft2);min-width:0}#settingsContent .hm-stat-label{font-size:12px;color:var(--set-muted)}#settingsContent .hm-stat-value{font-size:24px;font-weight:500;margin:4px 0;color:var(--set-text)}#settingsContent .hm-stat-note{font-size:11px;line-height:1.4;color:var(--set-muted)}
 #settingsContent .pl-inline-tools{display:flex;align-items:center;justify-content:space-between;padding:0 6px 8px;font-size:15px;color:var(--set-text)}#settingsContent .pl-rows{padding:0!important;border:0!important;background:transparent!important}#settingsContent .pl-row{border:0!important;border-radius:12px!important;padding:9px 6px!important;background:transparent!important}#settingsContent .pl-row:hover{background:color-mix(in srgb,var(--set-active) 22%,transparent)!important}#settingsContent .pl-row__cover{width:38px;height:38px;border-radius:10px}#settingsContent .pl-note{font-size:11px;color:var(--set-muted);padding:12px 6px!important}#settingsContent .pl-head-btn{background:transparent;color:var(--set-text);border:0}
+
+/* В отмеченных местах сама иконка уже даёт достаточный affordance. Общий
+   liquid-glass слой раньше повторно добавлял ей отдельную круглую карточку. */
+.sb-user-row,
+.bar-icon,.mic-btn,
+.bar-icon:hover,.mic-btn:hover,
+.bar-icon:active,.mic-btn:active{
+  background:transparent!important;
+  border:0!important;
+  box-shadow:none!important;
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+}
+.sb-user-row{border-radius:0!important;}
+.bar-icon::before,.bar-icon::after,.mic-btn::before,.mic-btn::after{display:none!important;}
 @media(min-width:769px){
   .settings-box{width:min(1040px,calc(100vw - 64px))!important;height:min(570px,calc(100dvh - 80px))!important;border-radius:30px!important;box-shadow:0 28px 100px rgba(0,0,0,.48)!important;}
   html[data-theme="light"] .settings-box{box-shadow:0 24px 80px rgba(40,35,28,.20)!important}html[data-theme="messenger"] .settings-box{box-shadow:0 24px 80px rgba(23,57,78,.22)!important}
@@ -3024,7 +3039,7 @@ html[data-theme="light"] .stp-toggle.on::after,html[data-theme="messenger"] .stp
 <!-- ===================== SETTINGS ===================== -->
 <div class="settings-overlay" id="settingsOverlay" onclick="if(event.target===this)closeSettings()">
   <div class="settings-box" id="settingsBox">
-    <div id="settingsContent"></div>
+    <div id="settingsContent" onclick="event.stopPropagation()"></div>
   </div>
 </div>
 
@@ -9997,9 +10012,12 @@ async function handleTextReply(pendingText){
 }
 
 /* ===== SETTINGS ===== */
+let settingsReturnRoute=null;
 function openSettings(){
   document.getElementById('notifHost')?.replaceChildren();
   closeSidebar();
+  const route=currentRoute();
+  if(route!=='/settings')settingsReturnRoute=(window.location.pathname||'/chat')+(window.location.search||'');
   if(window.matchMedia('(max-width:768px)').matches)renderSettingsMain();
   else renderSettingsGeneral();
   document.getElementById('settingsOverlay').classList.add('open');
@@ -10007,9 +10025,15 @@ function openSettings(){
 }
 function closeSettings(){
   document.getElementById('settingsOverlay').classList.remove('open');
-  // Возвращаем адрес чата, а не просто /chat: иначе закрытие настроек
-  // выбрасывало бы /chat/<id> из строки и ссылка на чат терялась.
-  if(!routeNavigating&&currentRoute()==='/settings')setChatRoute(curChatId||null,false);
+  // Возвращаемся ровно туда, откуда открыли панель. Это сохраняет адрес
+  // конкретного чата и не превращает переключение разделов в переход /chat.
+  if(!routeNavigating&&currentRoute()==='/settings'){
+    const fallback=curChatId?'/chat/'+curChatId:'/chat';
+    const target=settingsReturnRoute&&/^\/chat(?:\/[A-Za-z0-9_-]{4,64})?(?:\?.*)?$/.test(settingsReturnRoute)
+      ?settingsReturnRoute:fallback;
+    settingsReturnRoute=null;
+    try{history.replaceState({route:target},'',target);}catch(e){setChatRoute(curChatId||null,false);}
+  }
 }
 
 function getSettings(){return curUser?.settings||{};}
@@ -10069,6 +10093,12 @@ function stpSetActive(id){
   const btn=document.querySelector('#settingsContent .set-nav-btn[data-id="'+id+'"]');
   if(btn)btn.classList.add('on');
 }
+function stpOpenSection(fn,event){
+  if(event){event.preventDefault();event.stopPropagation();}
+  if(currentRoute()!=='/settings')setRoute('/settings',false);
+  const render=window[fn];
+  if(typeof render==='function')render();
+}
 /* Каркас: на десктопе строит боковое меню + панель один раз и переиспользует;
    на мобильном возвращает сам контейнер (корневой список/подэкраны без меню). */
 function stpEnsure(active,title,backFn,bodyHtml){
@@ -10080,7 +10110,7 @@ function stpEnsure(active,title,backFn,bodyHtml){
   }
   let shell=root.querySelector('.set-shell');
   if(!shell){
-    const nav=STP_SECTIONS.map(s=>'<button type="button" class="set-nav-btn" data-id="'+s.id+'" onclick="'+s.fn+'()">'+(STP_ICONS[s.icon]||'')+'<span>'+s.label+'</span></button>').join('');
+    const nav=STP_SECTIONS.map(s=>'<button type="button" class="set-nav-btn" data-id="'+s.id+'" onclick="stpOpenSection(\''+s.fn+'\',event)">'+(STP_ICONS[s.icon]||'')+'<span>'+s.label+'</span></button>').join('');
     root.innerHTML='<div class="set-shell">'
       +'<aside class="set-side"><nav class="set-nav">'+nav+'</nav>'
       +'<button type="button" class="set-nav-btn set-nav-logout" onclick="logOut()">'+STP_ICONS.logout+'<span>Выйти</span></button></aside>'
