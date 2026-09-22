@@ -2517,6 +2517,48 @@ html[data-theme="messenger"] .settings-overlay{
 }
 @media(max-width:768px){.stp-created-at{position:static!important;margin-top:26px!important;padding-bottom:8px!important;color:var(--set-muted)!important}}
 @media(max-width:430px){.set-side{width:66px!important;flex-basis:66px!important;padding-left:6px!important;padding-right:6px!important}.set-nav-btn{min-height:44px!important;border-radius:13px!important}.set-nav-btn svg{width:22px!important;height:22px!important}.set-main{padding:0 11px!important}.stp-title{font-size:21px!important}.stp-row-title{font-size:15px!important}.stp-row-desc{font-size:11.5px!important}.stp-btn{padding:7px 10px!important}.stp-plan-line{gap:8px!important}.stp-upgrade-btn span{display:none!important}.stp-upgrade-btn{width:40px!important;height:36px!important;padding:8px!important}.stp-conn-row{gap:8px!important}}
+
+/* Interaction reliability: settings trigger and microphone modal. */
+.sb-user-row{appearance:none;-webkit-appearance:none;border:0;color:inherit;font:inherit;text-align:left;}
+.settings-overlay{visibility:hidden;z-index:700!important;}
+.settings-overlay.open{visibility:visible;}
+.rec-overlay{
+  position:fixed;inset:0;z-index:760;display:flex;align-items:center;justify-content:center;
+  padding:24px;background:rgba(0,0,0,.66);opacity:0;visibility:hidden;pointer-events:none;
+  transition:opacity .18s ease,visibility 0s linear .18s;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+}
+.rec-overlay.open{opacity:1;visibility:visible;pointer-events:auto;transition-delay:0s;}
+.rec-modal{
+  width:min(520px,100%);max-height:min(680px,calc(100dvh - 48px));overflow:auto;
+  background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:24px;
+  padding:22px;box-shadow:0 28px 90px rgba(0,0,0,.45);transform:translateY(10px) scale(.99);
+  transition:transform .2s cubic-bezier(.22,.61,.36,1);
+}
+.rec-overlay.open .rec-modal{transform:none;}
+.rec-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:16px;}
+.rec-title{font-size:22px;font-weight:700;line-height:1.2;}
+.rec-close{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:50%;background:var(--bg3);color:var(--text);cursor:pointer;}
+.rec-modes{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
+.rec-mode,.rec-record-btn,.rec-file-btn{min-height:42px;border-radius:12px;border:1px solid var(--border);font:inherit;cursor:pointer;}
+.rec-mode{background:var(--bg);color:var(--text2);padding:8px 12px;}
+.rec-mode.active{background:var(--text);color:var(--bg);border-color:transparent;}
+.rec-desc{font-size:13px;line-height:1.5;color:var(--text2);margin-bottom:16px;}
+.rec-timer{font-variant-numeric:tabular-nums;text-align:center;font-size:38px;font-weight:700;letter-spacing:.04em;margin:10px 0 18px;}
+.rec-timer.recording{color:#ff4d4f;}
+.rec-actions{display:flex;gap:10px;flex-wrap:wrap;}
+.rec-record-btn,.rec-file-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:9px 14px;}
+.rec-record-btn{background:var(--text);color:var(--bg);border-color:transparent;}
+.rec-record-btn.stop{background:#ff3b30;color:#fff;}
+.rec-file-btn{background:var(--bg3);color:var(--text);}
+.rec-status{min-height:20px;margin-top:13px;font-size:12px;line-height:1.45;color:var(--text2);}
+html[data-theme="light"] .rec-overlay{background:rgba(32,29,24,.28);}
+html[data-theme="messenger"] .rec-overlay{background:rgba(23,33,43,.34);}
+@media(max-width:768px){
+  .rec-overlay{align-items:flex-end;padding:12px 12px calc(12px + env(safe-area-inset-bottom));}
+  .rec-modal{width:100%;max-height:min(76dvh,680px);border-radius:24px;padding:20px;}
+  .rec-actions{display:grid;grid-template-columns:1fr;}
+}
+@media(prefers-reduced-motion:reduce){.rec-overlay,.rec-modal{transition:none!important;}}
 </style>
 </head>
 <body>
@@ -2620,10 +2662,10 @@ html[data-theme="messenger"] .settings-overlay{
     <div class="sb-label">Недавние</div>
     <div class="sb-chat-list" id="sbChatList"></div>
     <div class="sb-footer">
-      <div class="sb-user-row" onclick="openSettings()">
+      <button type="button" class="sb-user-row" id="settingsBtn" aria-label="Открыть настройки">
         <div class="sb-avatar" id="sbAvatar">?</div>
         <div class="sb-username" id="sbUsername">Загрузка...</div>
-      </div>
+      </button>
     </div>
   </div>
 
@@ -2774,7 +2816,7 @@ html[data-theme="messenger"] .settings-overlay{
               </div>
             </div>
             <!-- Кнопка «Распознать музыку» — слева от отправки. Для не-Pro — апселл. -->
-            <button class="mic-btn" id="micBtn" onclick="openRecognizeModal()" title="Распознать музыку" aria-label="Распознать музыку">
+            <button type="button" class="mic-btn" id="micBtn" title="Распознать музыку" aria-label="Распознать музыку">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="9" y="3" width="6" height="12" rx="3" stroke="currentColor" stroke-width="1.9"/><path d="M5 11a7 7 0 0014 0M12 18v3M8 21h8" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
             </button>
             <button class="send-btn" id="sendBtn" onclick="sendMsg()" title="Отправить">
@@ -2827,10 +2869,10 @@ html[data-theme="messenger"] .settings-overlay{
 <!-- ===================== ПРОМО-УВЕДОМЛЕНИЯ (появляются над строкой ввода) ===================== -->
 
 <!-- ===================== МОДАЛКА РАСПОЗНАВАНИЯ МУЗЫКИ ===================== -->
-<div class="rec-overlay" id="recOverlay" onclick="if(event.target===this)closeRecognizeModal()">
+<div class="rec-overlay" id="recOverlay" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="recTitle" onclick="if(event.target===this)closeRecognizeModal()">
   <div class="rec-modal" onclick="event.stopPropagation()">
     <div class="rec-head">
-      <div class="rec-title">Распознать музыку</div>
+      <div class="rec-title" id="recTitle">Распознать музыку</div>
       <button class="rec-close" onclick="closeRecognizeModal()" aria-label="Закрыть">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 5l14 14M19 5L5 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
@@ -3073,7 +3115,7 @@ html[data-theme="messenger"] .settings-overlay{
 </div>
 
 <!-- ===================== SETTINGS ===================== -->
-<div class="settings-overlay" id="settingsOverlay" onclick="if(event.target===this)closeSettings()">
+<div class="settings-overlay" id="settingsOverlay" aria-hidden="true" onclick="if(event.target===this)closeSettings()">
   <div class="settings-box" id="settingsBox">
     <div id="settingsContent" onclick="event.stopPropagation()"></div>
   </div>
@@ -4285,6 +4327,29 @@ window.addEventListener('popstate',()=>{
       else if(!id&&r==='/chat'&&curChatId)newChat();
     }
   }finally{routeNavigating=false;}
+});
+
+/* Критичные кнопки привязываем через addEventListener, а не только через inline onclick.
+   Это исключает случай, когда после редизайна/перерендера визуальная кнопка остаётся,
+   но старый обработчик теряется или заменяется. */
+function bindPrimaryUiActions(){
+  const settingsBtn=document.getElementById('settingsBtn');
+  if(settingsBtn&&!settingsBtn.dataset.hmBound){
+    settingsBtn.dataset.hmBound='1';
+    settingsBtn.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();openSettings();});
+  }
+  const micBtn=document.getElementById('micBtn');
+  if(micBtn&&!micBtn.dataset.hmBound){
+    micBtn.dataset.hmBound='1';
+    micBtn.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();openRecognizeModal();});
+  }
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bindPrimaryUiActions,{once:true});
+else bindPrimaryUiActions();
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Escape')return;
+  if(document.getElementById('recOverlay')?.classList.contains('open')){closeRecognizeModal();return;}
+  if(document.getElementById('settingsOverlay')?.classList.contains('open'))closeSettings();
 });
 
 /* ===== SESSION ===== */
@@ -8888,16 +8953,20 @@ let _rec={mode:'identify',mediaRecorder:null,chunks:[],startedAt:0,timerId:null,
 const REC_MAX_MS=5*60*1000; // До 5 минут записи.
 
 function openRecognizeModal(){
-  // Pro-гейт: обычному пользователю показываем апселл, ничего не открываем.
-  if(!isProUser()){if(typeof goToDynatos==='function')goToDynatos();return;}
-  document.getElementById('recOverlay')?.classList.add('open');
+  const overlay=document.getElementById('recOverlay');
+  if(!overlay)return;
+  overlay.classList.add('open');
+  overlay.setAttribute('aria-hidden','false');
   setRecognizeMode(_rec.mode||'identify');
-  setRecStatus('');
   setRecTimer(0);
+  if(isProUser())setRecStatus('');
+  else setRecStatus('Распознавание музыки доступно в Pro. Окно можно открыть и посмотреть; запись предложит перейти на Pro.');
+  requestAnimationFrame(()=>document.getElementById('recRecordBtn')?.focus({preventScroll:true}));
 }
 function closeRecognizeModal(){
   if(_rec.recording)stopRecognizeRecord(true);
-  document.getElementById('recOverlay')?.classList.remove('open');
+  const overlay=document.getElementById('recOverlay');
+  if(overlay){overlay.classList.remove('open');overlay.setAttribute('aria-hidden','true');}
 }
 function setRecognizeMode(mode){
   _rec.mode=mode;
@@ -8921,15 +8990,27 @@ function setRecTimer(ms){
 
 async function toggleRecognizeRecord(){
   if(_rec.recording){stopRecognizeRecord();return;}
+  if(!isProUser()){
+    setRecStatus('Запись и распознавание доступны в Pro.');
+    if(typeof goToDynatos==='function')goToDynatos();
+    return;
+  }
   try{
+    if(!navigator.mediaDevices||typeof navigator.mediaDevices.getUserMedia!=='function')throw new Error('Браузер не предоставляет доступ к микрофону. Откройте сайт по HTTPS и проверьте разрешение микрофона.');
+    if(typeof MediaRecorder==='undefined')throw new Error('Запись с микрофона не поддерживается этим браузером.');
     const stream=await navigator.mediaDevices.getUserMedia({audio:true});
     _rec.stream=stream;
-    const mime=MediaRecorder.isTypeSupported('audio/webm;codecs=opus')?'audio/webm;codecs=opus':'audio/webm';
-    _rec.mediaRecorder=new MediaRecorder(stream,{mimeType:mime});
+    let mime='';
+    if(typeof MediaRecorder.isTypeSupported==='function'){
+      if(MediaRecorder.isTypeSupported('audio/webm;codecs=opus'))mime='audio/webm;codecs=opus';
+      else if(MediaRecorder.isTypeSupported('audio/webm'))mime='audio/webm';
+      else if(MediaRecorder.isTypeSupported('audio/mp4'))mime='audio/mp4';
+    }
+    _rec.mediaRecorder=mime?new MediaRecorder(stream,{mimeType:mime}):new MediaRecorder(stream);
     _rec.chunks=[];
     _rec.mediaRecorder.ondataavailable=e=>{if(e.data&&e.data.size)_rec.chunks.push(e.data);};
     _rec.mediaRecorder.onstop=()=>{
-      const blob=new Blob(_rec.chunks,{type:mime});
+      const blob=new Blob(_rec.chunks,{type:_rec.mediaRecorder?.mimeType||mime||'audio/webm'});
       _rec.stream?.getTracks().forEach(t=>t.stop());
       _rec.stream=null;
       _rec.recording=false;
@@ -8977,6 +9058,12 @@ function startRecTimer(){
 function stopRecTimer(){if(_rec.timerId){clearInterval(_rec.timerId);_rec.timerId=null;}}
 
 async function handleRecognizeFile(inp){
+  if(!isProUser()){
+    if(inp)inp.value='';
+    setRecStatus('Анализ аудиофайлов доступен в Pro.');
+    if(typeof goToDynatos==='function')goToDynatos();
+    return;
+  }
   const file=inp.files&&inp.files[0];
   if(!file)return;
   inp.value='';
@@ -10057,16 +10144,24 @@ async function handleTextReply(pendingText){
 let settingsReturnRoute=null;
 let settingsActiveSection='general';
 function openSettings(){
+  const overlay=document.getElementById('settingsOverlay');
+  if(!overlay)return;
   document.getElementById('notifHost')?.replaceChildren();
   closeSidebar();
   const route=currentRoute();
   if(route!=='/settings')settingsReturnRoute=(window.location.pathname||'/chat')+(window.location.search||'');
-  document.getElementById('settingsOverlay').classList.add('open');
+  overlay.classList.add('open');
+  overlay.setAttribute('aria-hidden','false');
   if(!routeNavigating&&route!=='/settings')setRoute('/settings',true);
-  openSettingsSection(settingsActiveSection||'general');
+  try{openSettingsSection(settingsActiveSection||'general');}
+  catch(err){
+    console.error('Settings open failed',err);
+    try{renderSettingsGeneral();}catch(inner){console.error('Settings fallback failed',inner);}
+  }
 }
 function closeSettings(){
-  document.getElementById('settingsOverlay').classList.remove('open');
+  const overlay=document.getElementById('settingsOverlay');
+  if(overlay){overlay.classList.remove('open');overlay.setAttribute('aria-hidden','true');}
   // Возвращаемся ровно туда, откуда открыли панель. Это сохраняет адрес
   // конкретного чата и не превращает переключение разделов в переход /chat.
   if(!routeNavigating&&currentRoute()==='/settings'){
