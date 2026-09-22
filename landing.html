@@ -26,6 +26,19 @@
 (function(){
   try{
     if(location.pathname!=='/')return;
+
+    /* OAuth providers can return to the site root when the provider/dashboard
+       still has / configured as an allowed callback. Hand the callback to the
+       app route immediately so Supabase can finish the session there. */
+    var search=location.search||'';
+    var hash=location.hash||'';
+    var oauthCallback=/(?:^|[?&])code=/.test(search)
+      || /(?:^|[#&])(?:access_token|refresh_token|error|error_description)=/.test(hash);
+    if(oauthCallback){
+      location.replace('/chat'+search+hash);
+      return;
+    }
+
     var ls=localStorage;
     for(var i=0;i<ls.length;i++){
       var k=ls.key(i);
@@ -38,7 +51,7 @@
 })();
 </script>
 </head>
-<body>
+<body class="landing-page">
 
 <a class="skip-link" href="#main">Перейти к содержимому</a>
 
