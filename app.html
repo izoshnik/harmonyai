@@ -11,7 +11,7 @@
    отстала, человек попадает на 404.html, и та уводит его сюда с ?boot=<путь>.
    Возвращаем настоящий адрес в строку ДО всей остальной логики: ниже маршрут
    читается из location.pathname, и «/app.html» он не понимает.
-   Путь проверяем по закрытому списк — произвольный адрес в строку не пустим. */
+   Путь проверяем по закрытому списку — произвольный адрес в строку не пустим. */
 try{
   if(location.pathname==='/app.html'){
     var __b=new URLSearchParams(location.search).get('boot')||'';
@@ -2482,6 +2482,42 @@ html[data-theme="light"] .stp-toggle.on::after,html[data-theme="messenger"] .stp
   #settingsContent .hm-stats-grid{grid-template-columns:1fr}.set-shell{display:block;padding:0}.set-side{display:none}.set-main{padding:0;overflow:visible}
 }
 </style>
+
+<style id="settings-reference-match-v4">
+/* Supplied 2048×1152 references: 1152×698 dialog, persistent left navigation. */
+.settings-overlay{
+  --set-panel:#000;--set-side:#202020;--set-active:#636363;--set-text:#f5f5f5;--set-muted:#a9a9a9;
+  --set-line:#8d8d8d;--set-soft:#2c2c2c;--set-soft2:#747474;--set-danger:#ff3737;--set-accent:#1f5cff;
+  background:rgba(10,10,12,.86)!important;align-items:center!important;justify-content:center!important;padding:24px!important;
+}
+html[data-theme="light"] .settings-overlay{
+  --set-panel:#fbfaf8;--set-side:#ebe9e5;--set-active:#c9c6c0;--set-text:#26241f;--set-muted:#777269;
+  --set-line:#aaa69d;--set-soft:#e7e4de;--set-soft2:#cbc7c0;--set-danger:#dc3f45;--set-accent:#1f5cff;
+  background:rgba(34,31,27,.22)!important;
+}
+html[data-theme="messenger"] .settings-overlay{
+  --set-panel:#f8fcff;--set-side:#e2f0f7;--set-active:#bddfed;--set-text:#17212b;--set-muted:#688095;
+  --set-line:#91afc0;--set-soft:#e5f2f8;--set-soft2:#b9d7e6;--set-danger:#e34b52;--set-accent:#1697ff;
+  background:rgba(23,33,43,.24)!important;
+}
+.settings-box{width:min(1152px,calc(100vw - 48px))!important;height:min(698px,calc(100dvh - 48px))!important;border-radius:52px!important;background:var(--set-panel)!important;color:var(--set-text)!important;border:0!important;box-shadow:0 28px 90px rgba(0,0,0,.42)!important;transform:translateY(10px) scale(.99)!important;}
+.settings-overlay.open .settings-box{transform:none!important;}
+.set-shell{display:flex!important;height:100%!important;min-height:0!important;padding:24px 10px 19px!important;gap:0!important;}
+.set-side{display:flex!important;width:331px!important;flex:0 0 331px!important;height:calc(100% - 46px)!important;margin-top:46px!important;padding:14px 12px 12px!important;background:var(--set-side)!important;border:0!important;border-radius:48px!important;overflow-y:auto!important;scrollbar-width:none!important;}
+.set-side::-webkit-scrollbar{display:none!important}.set-nav{gap:0!important;width:100%!important}.set-nav-logout{display:none!important}.set-nav-btn{min-height:43px!important;padding:7px 13px!important;border-radius:24px!important;gap:9px!important;font-size:20px!important;font-weight:400!important;line-height:1.05!important;color:var(--set-text)!important;background:transparent!important;white-space:nowrap!important;}
+.set-nav-btn svg{width:23px!important;height:23px!important;color:var(--set-text)!important;opacity:.96!important}.set-nav-btn:hover{background:color-mix(in srgb,var(--set-active) 58%,transparent)!important}.set-nav-btn.on{background:var(--set-active)!important;box-shadow:none!important}.set-nav-btn:last-child{font-weight:700!important}.set-main{position:relative!important;flex:1 1 auto!important;min-width:0!important;padding:0 43px 0 28px!important;background:transparent!important;overflow:hidden!important;display:flex!important;flex-direction:column!important;}
+.stp-head{position:relative!important;flex:0 0 64px!important;height:64px!important;margin:0!important;padding:0 0 11px!important;border-bottom:1px solid var(--set-line)!important;display:flex!important;align-items:flex-start!important;justify-content:center!important;}
+.stp-title{font-size:34px!important;font-weight:400!important;line-height:1.14!important;letter-spacing:0!important;color:var(--set-text)!important;white-space:nowrap!important}.stp-back{position:absolute!important;left:-315px!important;top:-1px!important;bottom:auto!important;width:auto!important;height:auto!important;padding:4px 7px!important;border:0!important;border-radius:12px!important;background:transparent!important;color:var(--set-text)!important;font-size:21px!important;font-weight:400!important;line-height:1.2!important;gap:7px!important;white-space:nowrap!important;z-index:6!important}.stp-back svg{width:23px!important;height:23px!important}.stp-back:hover{background:color-mix(in srgb,var(--set-active) 45%,transparent)!important}.stp-body{flex:1 1 auto!important;min-height:0!important;padding:14px 0 22px!important;overflow-y:auto!important;overflow-x:hidden!important;color:var(--set-text)!important;scrollbar-width:thin!important;position:relative!important;scrollbar-color:var(--set-active) transparent!important;}
+.stp-row{display:flex!important;align-items:center!important;justify-content:space-between!important;min-height:58px!important;padding:8px 2px!important;margin:0!important;border-radius:10px!important;background:transparent!important;color:var(--set-text)!important;gap:24px!important}.stp-row[role=button]:hover,.stp-row[role=link]:hover{background:color-mix(in srgb,var(--set-active) 20%,transparent)!important}.stp-row-label{min-width:0!important;flex:1 1 auto!important}.stp-row-title{font-size:20px!important;font-weight:400!important;line-height:1.24!important;color:var(--set-text)!important}.stp-row-desc{font-size:15px!important;line-height:1.35!important;color:var(--set-muted)!important;max-width:560px!important;margin-top:3px!important}.stp-sec-label{font-size:20px!important;font-weight:400!important;color:var(--set-text)!important;margin:0 0 11px!important}.stp-hr{border:0!important;border-top:1px solid var(--set-line)!important;margin:10px 0!important}.stp-link,.stp-dd-btn{font-size:17px!important;font-weight:400!important;color:var(--set-text)!important;background:transparent!important}.stp-link{display:inline-flex!important;align-items:center!important;gap:9px!important;border:0!important;white-space:nowrap!important}.stp-link:hover,.stp-dd-btn:hover{background:color-mix(in srgb,var(--set-active) 22%,transparent)!important}.stp-dd-menu{background:var(--set-side)!important;border:1px solid color-mix(in srgb,var(--set-line) 45%,transparent)!important;color:var(--set-text)!important}.stp-dd-opt{color:var(--set-text)!important}.stp-dd-opt:hover{background:var(--set-active)!important}.stp-dd-opt.on{background:color-mix(in srgb,var(--set-active) 72%,transparent)!important;color:var(--set-text)!important}.stp-toggle{width:48px!important;height:28px!important;border-radius:999px!important;background:#8c8c8c!important;box-shadow:none!important;flex:0 0 auto!important}.stp-toggle::after{width:24px!important;height:24px!important;top:2px!important;left:2px!important;background:#fff!important;box-shadow:none!important}.stp-toggle.on{background:var(--set-accent)!important}.stp-toggle.on::after{transform:translateX(20px)!important;background:#fff!important}.stp-toggle:active::after{width:24px!important}.stp-toggle.on:active::after{transform:translateX(20px)!important}.stp-btn{min-height:37px!important;padding:7px 18px!important;border-radius:999px!important;font-size:16px!important;font-weight:600!important;line-height:1!important;box-shadow:none!important}.stp-btn-white{background:#fff!important;color:#111!important;border:0!important}.stp-btn-accent{background:#4f72ff!important;color:#fff!important;border:0!important}.stp-btn-danger{background:var(--set-danger)!important;color:#fff!important;border:0!important}.stp-btn-green{background:transparent!important;border:2px solid #0bcf72!important;color:#0bd879!important}.stp-btn:hover{filter:brightness(1.04)!important;box-shadow:none!important}.stp-card{background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important;margin:0 0 2px!important}.stp-plan-line{display:flex!important;align-items:flex-start!important;justify-content:space-between!important;gap:20px!important;padding:2px 0 5px!important}.stp-card-label{font-size:20px!important;font-weight:400!important;color:var(--set-text)!important}.stp-card-label strong{font-weight:700!important}.stp-plan-status{display:flex!important;flex-direction:column!important;align-items:flex-end!important;gap:5px!important}.stp-badge{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:184px!important;padding:7px 20px!important;border-radius:999px!important;background:#fff!important;color:#111!important;font-size:14px!important;line-height:1!important}.stp-plan-date{font-size:12px!important;color:var(--set-text)!important;white-space:nowrap!important}.stp-upgrade-btn{display:inline-flex!important;align-items:center!important;gap:8px!important;min-width:176px!important;justify-content:center!important}.stp-plan-hr{margin:6px 0 12px!important}.stp-perks-box{margin-top:0!important}.stp-perks-label{font-size:19px!important;margin:0 0 8px!important;color:var(--set-text)!important}.stp-perks{max-width:374px!important;padding:9px 15px!important;border:2px solid color-mix(in srgb,var(--set-line) 78%,transparent)!important;border-radius:24px!important;background:transparent!important;box-shadow:none!important}.stp-perk{display:flex!important;align-items:flex-start!important;gap:8px!important;font-size:14px!important;line-height:1.55!important;color:var(--set-text)!important}.stp-perk-dot{display:inline-block!important;width:5px!important;height:5px!important;border-radius:50%!important;background:currentColor!important;color:var(--set-text)!important;flex:0 0 5px!important;margin-top:.55em!important}.stp-usage-card{min-height:94px!important;padding:13px 17px!important;margin:0 0 18px!important;border-radius:28px!important;background:var(--set-soft2)!important;border:0!important;box-shadow:none!important}.stp-usage-top{align-items:center!important}.stp-usage-title{font-size:20px!important;font-weight:700!important;color:var(--set-text)!important}.stp-usage-sub{font-size:13px!important;color:color-mix(in srgb,var(--set-text) 80%,transparent)!important}.stp-usage-pct{font-size:15px!important;color:var(--set-text)!important}.stp-bar{height:9px!important;border-radius:999px!important;background:color-mix(in srgb,#fff 90%,transparent)!important;overflow:hidden!important}.stp-bar-fill{height:100%!important;border-radius:999px!important;background:#2d2d2d!important}html[data-theme="light"] .stp-bar-fill,html[data-theme="messenger"] .stp-bar-fill{background:var(--set-text)!important}.stp-store-head{font-size:15px!important;font-weight:700!important;color:var(--set-text)!important;margin:0 0 11px!important}.stp-store-bar{margin-bottom:18px!important}.stp-store-row{display:block!important;padding:7px 0!important}.stp-store-name{display:block!important;font-size:20px!important;color:var(--set-text)!important}.stp-store-val{display:block!important;font-size:12px!important;color:var(--set-text)!important;margin-top:2px!important}.stp-storage-clean{padding-top:5px!important}.stp-conn{margin:0!important}.stp-conn-row{display:flex!important;align-items:center!important;gap:12px!important;min-height:55px!important}.stp-conn-logo{width:38px!important;height:38px!important;border-radius:0!important;display:flex!important;align-items:center!important;justify-content:center!important;flex:0 0 auto!important;background:transparent!important}.stp-conn-logo.ym svg{width:36px!important;height:36px!important}.stp-conn-logo.api{color:var(--set-text)!important}.stp-conn-logo.api svg{width:34px!important;height:26px!important}.stp-conn-meta{min-width:0!important;flex:1!important}.stp-conn-state{font-size:12px!important;line-height:1.2!important;color:var(--set-muted)!important;margin-top:2px!important}.stp-conn-state.ok{display:none!important}.stp-conn-slot,.conn-slot{margin:8px 0 10px 50px!important}.stp-about-hero{text-align:center!important;padding:14px 0 20px!important}.stp-about-logo{margin:0 auto!important;width:64px!important;height:64px!important;border-radius:18px!important;background:var(--set-text)!important;color:var(--set-panel)!important}.stp-about-name{font-size:24px!important;color:var(--set-text)!important}.stp-about-ver,.stp-about-foot{font-size:12px!important;color:var(--set-muted)!important}.stp-about-foot{text-align:center!important}.stp-created-at{position:absolute!important;left:0!important;right:0!important;bottom:5px!important;text-align:center!important;font-size:12px!important;color:var(--set-text)!important}.report-textarea,.auth-input{max-width:100%!important}
+#settingsContent .hm-stats{padding:0!important;color:var(--set-text)!important}#settingsContent .hm-stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important;margin-bottom:14px!important}#settingsContent .hm-stat-card{padding:15px 16px!important;border:0!important;border-radius:18px!important;background:color-mix(in srgb,var(--set-side) 84%,var(--set-panel))!important;min-width:0!important}#settingsContent .hm-stat-label{font-size:12px!important;color:var(--set-muted)!important}#settingsContent .hm-stat-value{font-size:25px!important;font-weight:500!important;margin:3px 0!important;color:var(--set-text)!important}#settingsContent .hm-stat-note{font-size:11px!important;line-height:1.4!important;color:var(--set-muted)!important}
+#settingsContent .pl-inline-tools{display:flex!important;align-items:center!important;justify-content:space-between!important;padding:0 2px 10px!important;font-size:19px!important;color:var(--set-text)!important}#settingsContent .pl-rows{padding:0!important;border:0!important;background:transparent!important}#settingsContent .pl-row{border:0!important;border-radius:13px!important;padding:9px 4px!important;background:transparent!important;color:var(--set-text)!important}#settingsContent .pl-row:hover{background:color-mix(in srgb,var(--set-active) 22%,transparent)!important}#settingsContent .pl-row__cover{width:42px!important;height:42px!important;border-radius:11px!important}#settingsContent .pl-row__title{color:var(--set-text)!important}#settingsContent .pl-row__sub,#settingsContent .pl-note{color:var(--set-muted)!important}#settingsContent .pl-note{font-size:11px!important;padding:12px 4px!important}#settingsContent .pl-head-btn{background:transparent!important;color:var(--set-text)!important;border:0!important}
+@media(max-width:900px) and (min-width:769px){.settings-box{width:calc(100vw - 28px)!important}.set-side{width:284px!important;flex-basis:284px!important}.set-nav-btn{font-size:17px!important}.stp-back{left:-268px!important}.set-main{padding-right:24px!important;padding-left:22px!important}.stp-title{font-size:30px!important}}
+@media(max-width:768px){
+  .settings-overlay{padding:0!important;background:var(--set-panel)!important;align-items:stretch!important;justify-content:stretch!important}.settings-box{width:100%!important;height:100dvh!important;border-radius:0!important;box-shadow:none!important;transform:none!important;background:var(--set-panel)!important}.set-shell{display:flex!important;padding:0!important;height:100dvh!important}.set-side{display:flex!important;width:78px!important;flex:0 0 78px!important;height:100%!important;margin:0!important;padding:calc(14px + env(safe-area-inset-top)) 8px calc(14px + env(safe-area-inset-bottom))!important;border-radius:0!important;border-right:1px solid color-mix(in srgb,var(--set-line) 28%,transparent)!important;background:var(--set-side)!important}.set-nav{gap:3px!important}.set-nav-btn{min-height:48px!important;padding:8px!important;border-radius:15px!important;justify-content:center!important;gap:0!important;font-size:0!important}.set-nav-btn span{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}.set-nav-btn svg{width:24px!important;height:24px!important}.set-main{padding:0 14px!important;overflow:hidden!important;min-width:0!important}.stp-head{flex-basis:64px!important;height:64px!important;padding:calc(12px + env(safe-area-inset-top)) 0 10px!important;align-items:flex-start!important}.stp-title{font-size:24px!important;font-weight:500!important;max-width:calc(100% - 54px)!important;overflow:hidden!important;text-overflow:ellipsis!important}.stp-back{left:0!important;top:calc(9px + env(safe-area-inset-top))!important;width:40px!important;height:40px!important;padding:8px!important;background:var(--set-soft)!important;font-size:0!important;justify-content:center!important}.stp-back span{display:none!important}.stp-back svg{width:21px!important;height:21px!important}.stp-body{padding:12px 0 calc(26px + env(safe-area-inset-bottom))!important}.stp-row{min-height:60px!important;padding:10px 2px!important;gap:12px!important;align-items:center!important}.stp-row-title{font-size:16px!important}.stp-row-desc{font-size:12px!important;max-width:none!important}.stp-link,.stp-dd-btn{font-size:14px!important}.stp-toggle{width:44px!important;height:26px!important}.stp-toggle::after{width:22px!important;height:22px!important}.stp-toggle.on::after{transform:translateX(18px)!important}.stp-card-label{font-size:17px!important}.stp-plan-line{align-items:center!important}.stp-badge{min-width:0!important;padding:6px 12px!important;font-size:12px!important}.stp-upgrade-btn{min-width:0!important}.stp-perks{max-width:none!important;border-radius:18px!important}.stp-usage-card{min-height:84px!important;border-radius:22px!important;padding:12px 13px!important;margin-bottom:12px!important}.stp-usage-title{font-size:17px!important}.stp-usage-sub{font-size:11px!important}.stp-store-name{font-size:17px!important}.stp-conn-row{min-height:58px!important}.stp-btn{font-size:13px!important;padding:7px 12px!important}.stp-conn-logo{width:32px!important;height:32px!important}.stp-conn-logo.ym svg{width:31px!important;height:31px!important}.stp-conn-logo.api svg{width:29px!important}.stp-conn-state{font-size:10px!important}#settingsContent .hm-stats-grid{grid-template-columns:1fr!important}.settings-overlay .sth,.settings-overlay .stp-root{display:none!important}
+}
+@media(max-width:768px){.stp-created-at{position:static!important;margin-top:26px!important;padding-bottom:8px!important;color:var(--set-muted)!important}}
+@media(max-width:430px){.set-side{width:66px!important;flex-basis:66px!important;padding-left:6px!important;padding-right:6px!important}.set-nav-btn{min-height:44px!important;border-radius:13px!important}.set-nav-btn svg{width:22px!important;height:22px!important}.set-main{padding:0 11px!important}.stp-title{font-size:21px!important}.stp-row-title{font-size:15px!important}.stp-row-desc{font-size:11.5px!important}.stp-btn{padding:7px 10px!important}.stp-plan-line{gap:8px!important}.stp-upgrade-btn span{display:none!important}.stp-upgrade-btn{width:40px!important;height:36px!important;padding:8px!important}.stp-conn-row{gap:8px!important}}
+</style>
 </head>
 <body>
 <div id="initialLoading" role="status" aria-live="polite"><span class="boot-spinner"></span><span>Загрузка HarmonyAI…</span></div>
@@ -4185,6 +4221,12 @@ function consumeNextParam(){
 // После показа оболочки чата: / и /login превращаются в /chat, /settings открывает настройки.
 async function syncSignedInRoute(){
   markChatSeen();
+  try{
+    if(sessionStorage.getItem('oauth_next')==='/chat'){
+      sessionStorage.removeItem('oauth_next');
+      if(currentRoute()!=='/settings')setRoute('/chat',false);
+    }
+  }catch(e){}
 
   // 1) Возврат на страницу, с которой пришли на вход.
   // Это единственный переход отсюда с полной перезагрузкой: браузер оборвёт
@@ -10013,15 +10055,15 @@ async function handleTextReply(pendingText){
 
 /* ===== SETTINGS ===== */
 let settingsReturnRoute=null;
+let settingsActiveSection='general';
 function openSettings(){
   document.getElementById('notifHost')?.replaceChildren();
   closeSidebar();
   const route=currentRoute();
   if(route!=='/settings')settingsReturnRoute=(window.location.pathname||'/chat')+(window.location.search||'');
-  if(window.matchMedia('(max-width:768px)').matches)renderSettingsMain();
-  else renderSettingsGeneral();
   document.getElementById('settingsOverlay').classList.add('open');
-  if(!routeNavigating)setRoute('/settings',true);
+  if(!routeNavigating&&route!=='/settings')setRoute('/settings',true);
+  openSettingsSection(settingsActiveSection||'general');
 }
 function closeSettings(){
   document.getElementById('settingsOverlay').classList.remove('open');
@@ -10089,48 +10131,50 @@ function settingsPane(){
   return document.getElementById('settingsContent');
 }
 function stpSetActive(id){
+  settingsActiveSection=id||settingsActiveSection||'general';
   document.querySelectorAll('#settingsContent .set-nav-btn.on').forEach(b=>b.classList.remove('on'));
-  const btn=document.querySelector('#settingsContent .set-nav-btn[data-id="'+id+'"]');
+  const btn=document.querySelector('#settingsContent .set-nav-btn[data-id="'+settingsActiveSection+'"]');
   if(btn)btn.classList.add('on');
 }
-function stpOpenSection(fn,event){
+function openSettingsSection(id,event){
   if(event){event.preventDefault();event.stopPropagation();}
-  if(currentRoute()!=='/settings')setRoute('/settings',false);
-  const render=window[fn];
+  const section=STP_SECTIONS.find(s=>s.id===id)||STP_SECTIONS[0];
+  settingsActiveSection=section.id;
+  if(currentRoute()!=='/settings'&&!routeNavigating)setRoute('/settings',false);
+  const render=window[section.fn];
   if(typeof render==='function')render();
 }
-/* Каркас: на десктопе строит боковое меню + панель один раз и переиспользует;
-   на мобильном возвращает сам контейнер (корневой список/подэкраны без меню). */
+function stpOpenSection(fn,event){
+  const section=STP_SECTIONS.find(s=>s.fn===fn);
+  openSettingsSection(section?section.id:'general',event);
+}
+/* Единый каркас настроек. Боковая навигация не размонтируется при переключении
+   разделов: меняется только правая панель. На телефоне тот же принцип сохранён,
+   но меню превращается в компактную иконную рейку. */
 function stpEnsure(active,title,backFn,bodyHtml){
   const root=document.getElementById('settingsContent');
   if(!root)return null;
-  if(window.matchMedia('(max-width:768px)').matches){
-    root.innerHTML=stpHead(title,backFn)+'<div class="stp-body">'+bodyHtml+'</div>';
-    return root.querySelector('.stp-body');
-  }
   let shell=root.querySelector('.set-shell');
   if(!shell){
-    const nav=STP_SECTIONS.map(s=>'<button type="button" class="set-nav-btn" data-id="'+s.id+'" onclick="stpOpenSection(\''+s.fn+'\',event)">'+(STP_ICONS[s.icon]||'')+'<span>'+s.label+'</span></button>').join('');
+    const nav=STP_SECTIONS.map(s=>'<button type="button" class="set-nav-btn" data-id="'+s.id+'" aria-label="'+s.label+'" title="'+s.label+'" onclick="openSettingsSection(\''+s.id+'\',event)">'+(STP_ICONS[s.icon]||'')+'<span>'+s.label+'</span></button>').join('');
     root.innerHTML='<div class="set-shell">'
-      +'<aside class="set-side"><nav class="set-nav">'+nav+'</nav>'
-      +'<button type="button" class="set-nav-btn set-nav-logout" onclick="logOut()">'+STP_ICONS.logout+'<span>Выйти</span></button></aside>'
-      +'<div class="set-main"></div>'
+      +'<aside class="set-side" aria-label="Разделы настроек"><nav class="set-nav">'+nav+'</nav>'
+      +'<button type="button" class="set-nav-btn set-nav-logout" onclick="logOut()" aria-label="Выйти">'+STP_ICONS.logout+'<span>Выйти</span></button></aside>'
+      +'<main class="set-main"></main>'
       +'</div>';
     shell=root.querySelector('.set-shell');
   }
   stpSetActive(active);
   const pane=shell.querySelector('.set-main');
   pane.innerHTML=stpHead(title,backFn)+'<div class="stp-body">'+bodyHtml+'</div>';
+  pane.scrollTop=0;
   return pane.querySelector('.stp-body');
 }
 function stpHead(title,backFn){
   return '<div class="stp-head"><button type="button" class="stp-back" onclick="'+backFn+'"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Настройки</span></button><div class="stp-title">'+title+'</div></div>';
 }
 function setHead(title,backFn){return stpHead(title,backFn);}
-function stpBackMain(){
-  if(window.matchMedia('(max-width:768px)').matches)renderSettingsMain();
-  else closeSettings();
-}
+function stpBackMain(){closeSettings();}
 function stpShell(active,title,backFn,bodyHtml){
   return stpEnsure(active,title,backFn,bodyHtml);
 }
@@ -10174,15 +10218,7 @@ function settingsInitialsOf(u){
 }
 /* ===== Мобильный корневой список настроек ===== */
 function renderSettingsMain(){
-  const root=document.getElementById('settingsContent');
-  const item=(fn,label,icon)=>'<button type="button" class="stp-root-item" onclick="'+fn+'()">'+(STP_ICONS[icon]||'')+'<span>'+label+'</span><span class="stp-root-chev">'+SET_CHEV+'</span></button>';
-  root.innerHTML=
-    '<div class="sth"><div class="sth-title">Настройки</div><button type="button" class="sth-close" onclick="closeSettings()" aria-label="Закрыть">'+SET_X+'</button></div>'
-    +'<div class="stp-root">'
-    +'<div class="stp-root-hero"><div class="stp-ava">'+settingsInitialsOf(curUser)+'</div><div><div class="stp-root-name">'+settingsDisplayName()+'</div><div class="stp-root-email">'+String(curUser?.email||'').replace(/</g,'&lt;')+'</div></div></div>'
-    +STP_SECTIONS.map(s=>item(s.fn,s.label,s.icon)).join('')
-    +'<button type="button" class="stp-root-item stp-root-logout" onclick="logOut()">'+STP_ICONS.logout+'<span>Выйти</span></button>'
-    +'</div>';
+  openSettingsSection(settingsActiveSection||'general');
 }
 
 function goToDynatos(){
@@ -10318,7 +10354,7 @@ function subUntilInfo(){
   const d=new Date(raw);
   if(isNaN(d.getTime()))return null;
   return {
-    text:d.toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'}),
+    text:d.toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'}).replace(/\s*г\.?$/i,'')+' года',
     days:Math.max(0,Math.ceil((d.getTime()-Date.now())/86400000))
   };
 }
@@ -10335,34 +10371,28 @@ function renderSettingsSubscription(){
   const el=settingsPane();
   if(!el)return;
   window.__setScreen='subscription';
-  const plan=subscriptionLabel();
   const info=subUntilInfo();
   const isPro=isProUser();
-  const check='<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M8.2 12.3l2.6 2.6 5-5.4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const dot='<span class="stp-perk-dot" aria-hidden="true"></span>';
   const perks=['Неограниченные сообщения с ИИ','Доступ ко всем моделям','Приоритетная генерация ответов','История чатов без ограничений','Экспорт и сохранение чатов','Увеличенное хранилище'];
-  let planCard;
-  if(isPro){
-    planCard=`<div class="stp-card">
-      <div class="stp-card-label">Тарифный план Pro</div>
-      <div class="stp-card-row">
-        <span class="stp-badge">${info?'Активная · до '+info.text:'Активная'}</span>
-      </div>
+  const upgradeIcon='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2.5l1.8 5.7 5.7 1.8-5.7 1.8-1.8 5.7-1.8-5.7L4.5 10l5.7-1.8L12 2.5z" fill="currentColor"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15z" fill="currentColor"/></svg>';
+  const planCard=isPro?`
+    <div class="stp-plan-line">
+      <div class="stp-card-label">Тарифный план <strong>Pro</strong></div>
+      <div class="stp-plan-status"><span class="stp-badge">Активна</span>${info?`<span class="stp-plan-date">до ${info.text}</span>`:''}</div>
+    </div>
+    <div class="stp-hr stp-plan-hr"></div>
+    <div class="stp-perks-box">
+      <div class="stp-perks-label">Что входит в подписку Pro</div>
+      <div class="stp-perks">${perks.map(p=>`<div class="stp-perk">${dot}<span>${p}</span></div>`).join('')}</div>
+    </div>`:`
+    <div class="stp-plan-line">
+      <div class="stp-card-label">Тарифный план <strong>Free</strong></div>
+      <button type="button" class="stp-btn stp-btn-accent stp-upgrade-btn" onclick="goToDynatos()">${upgradeIcon}<span>Обновить</span></button>
     </div>`;
-  }else{
-    planCard=`<div class="stp-card">
-      <div class="stp-card-label">Тарифный план Free</div>
-      <div class="stp-card-row">
-        <button type="button" class="stp-btn stp-btn-accent" onclick="goToDynatos()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 3l1.9 5.3L19 10l-5.1 1.7L12 17l-1.9-5.3L5 10l5.1-1.7L12 3z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>Обновить</button>
-      </div>
-    </div>`;
-  }
-  stpEnsure('subscription','Подписка',stpBackMain(),`${planCard}
-      ${isPro?`<div class="stp-perks-box">
-        <div class="stp-perks-label">Что входит в подписку ${plan}</div>
-        <div class="stp-perks">${perks.map(p=>`<div class="stp-perk"><span class="stp-perk-dot">${check}</span><span>${p}</span></div>`).join('')}</div>
-      </div>`:''}
-    </div>`);
+  stpEnsure('subscription','Подписка',stpBackMain(),planCard);
 }
+
 function cancelSubscription(){
   if(!confirm('Отменить подписку? Доступ сохранится до конца оплаченного периода.'))return;
   openSupportChat();
@@ -10388,34 +10418,28 @@ function renderSettingsConnections(){
   const el=settingsPane();
   if(!el)return;
   window.__setScreen='plugins';
-  const stpChev='<svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+  const ymLogo='<svg width="36" height="36" viewBox="0 0 36 36" fill="none" aria-hidden="true"><g fill="#FFD400"><path d="M18 0l2.2 10.1L26.5 2l-2.9 10 9.1-5.1-7.5 7.1L36 14.7l-10.6 2.2L35 21.4l-10.8-1 7.4 7.9-9.2-5.7 3 10.4-6.4-8.7L18 36l-2.2-10.7L9.5 34l2.9-10.5-9.1 5.6 7.5-7.6L0 20.5l10.7-2.1L1 14l10.8.8-7.4-7.6 9.1 5.3L10.6 2l6.3 8.7L18 0z"/><circle cx="18" cy="18" r="5.2"/></g></svg>';
+  const apiLogo='<svg width="34" height="26" viewBox="0 0 34 26" fill="none" aria-hidden="true"><path d="M11 4L3 13l8 9M23 4l8 9-8 9M20 2l-6 22" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   const plugHtml=`
     <div class="stp-card stp-conn" id="connYm">
       <div class="stp-conn-row">
-        <div class="stp-conn-logo ym"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><defs><linearGradient id="ymg" x1="3" y1="3" x2="21" y2="21"><stop stop-color="#FFD43B"/><stop offset=".48" stop-color="#FF7A00"/><stop offset="1" stop-color="#FF2F6D"/></linearGradient></defs><circle cx="12" cy="12" r="10" fill="url(#ymg)"/><path d="M10.2 8.2v7.6l6-3.8-6-3.8z" fill="#111"/></svg></div>
+        <div class="stp-conn-logo ym">${ymLogo}</div>
         <div class="stp-conn-meta">
           <div class="stp-row-title">Яндекс музыка</div>
           <div class="stp-conn-state">Проверяю подключение…</div>
         </div>
       </div>
     </div>
-    <div class="stp-card">
+    <div class="stp-card stp-conn">
       <div class="stp-conn-row">
-        <div class="stp-conn-logo api"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M9 7l-5 5 5 5M15 7l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        <div class="stp-conn-meta">
-          <div class="stp-row-title">Управление API</div>
-          <div class="stp-conn-state">Ключи, баланс и расход</div>
-        </div>
+        <div class="stp-conn-logo api">${apiLogo}</div>
+        <div class="stp-conn-meta"><div class="stp-row-title">Управление API</div></div>
         <a class="stp-btn stp-btn-white" href="/api/dashboard" target="_blank" rel="noopener">Перейти</a>
       </div>
     </div>
-    ${hasModeratorAccess()?`
-    <div class="stp-card">
+    ${hasModeratorAccess()?`<div class="stp-card stp-conn stp-admin-conn">
       <div class="stp-conn-row">
-        <div class="stp-conn-meta">
-          <div class="stp-row-title">Управление</div>
-          <div class="stp-conn-state">Состояние сервиса и статистика</div>
-        </div>
+        <div class="stp-conn-meta"><div class="stp-row-title">Управление</div><div class="stp-conn-state">Состояние сервиса и статистика</div></div>
         <a class="stp-btn stp-btn-white" href="/management">Открыть</a>
       </div>
     </div>`:''}`;
@@ -10490,29 +10514,6 @@ async function disconnectYandex(){
   await refreshYandexConn();
 }
 
-/* Тот же самый мастер подключения, что и в чате, но внутри окна настроек. */
-function startYandexConnect(){
-  const card=document.getElementById('connYm');
-  if(!card)return;
-  const btn=card.querySelector('.conn-btn');
-  if(btn)btn.remove();
-  let slot=card.querySelector('.conn-slot');
-  if(!slot){
-    slot=document.createElement('div');
-    slot.className='conn-slot';
-    card.appendChild(slot);
-  }
-  renderMusicConnect(slot,async function(){
-    await refreshYandexConn();
-  });
-}
-
-async function disconnectYandex(){
-  if(!confirm('Отключить Яндекс Музыку от аккаунта?'))return;
-  try{ await window.MusicClient.authDisconnect(); }catch(e){}
-  await refreshYandexConn();
-}
-
 function renderSettingsGeneral(){
   const el=settingsPane();
   if(!el)return;
@@ -10531,7 +10532,7 @@ function renderSettingsGeneral(){
       <div class="stp-row">
         <div class="stp-row-label">
           <div class="stp-row-title">Поиск в интернете</div>
-          <div class="stp-row-desc">Искать актуальную информацию в реальном времени</div>
+          <div class="stp-row-desc">Искать актуальную информацию в реальном времени.</div>
         </div>
         ${stpToggleCtrl('webSearch',webSearch)}
       </div>
@@ -10575,17 +10576,16 @@ function renderSettingsSecurity(){
   const s=getSettings();
   const devices=(s[DEVICES_SETTING_KEY]||[]);
   const devCount=Array.isArray(devices)?devices.length:null;
-  const isEmail=(curUser?.user_metadata?.providers||['email']).indexOf('email')!==-1;
   const chev='<svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
   stpEnsure('privacy','Конфиденциальность',stpBackMain(),`
       <div class="stp-row" onclick="renderSettingsPassword()" role="button" tabindex="0">
         <div class="stp-row-label"><div class="stp-row-title">Пароль</div></div>
-        <span class="stp-link">${isEmail?'Изменить':'Добавить'} ${chev}</span>
+        <span class="stp-link">Добавить ${chev}</span>
       </div>
       <div class="stp-row" onclick="renderSettingsSessions()" role="button" tabindex="0">
         <div class="stp-row-label">
           <div class="stp-row-title">Активные сеансы</div>
-          <div class="stp-row-desc">Список устройств, с которых выполнялся вход в аккаунт</div>
+          <div class="stp-row-desc">Просмотрите все устройства, которые входили в ваш аккаунт. Здесь можно проверить активные сеансы, удалить доверенные устройства или выбрать «Выйти со всех устройств», чтобы завершить все сеансы.</div>
         </div>
         <span class="stp-link">${devCount!=null?devCount:''} ${chev}</span>
       </div>
@@ -11206,7 +11206,7 @@ function renderSettingsAccount(){
       const m=String(dt);
       const mon={января:'январь',февраля:'февраль',марта:'март',апреля:'апрель',мая:'май',июня:'июнь',июля:'июль',августа:'август',сентября:'сентябрь',октября:'октябрь',ноября:'ноябрь',декабря:'декабрь'};
       const parts=m.split(' ');
-      created=`<div class="stp-about-foot" style="margin-top:14px;">Учетная запись была создана ${parts[0]} ${parts[1]} ${parts[2]||''}</div>`;
+      created=`<div class="stp-created-at">Учетная запись была создана ${parts[0]} ${parts[1]} ${parts[2]||''} года</div>`;
     }
   }catch(e){}
   stpEnsure('account','Учетная запись',stpBackMain(),`
@@ -11216,7 +11216,7 @@ function renderSettingsAccount(){
       </div>
       <div class="stp-row" onclick="renderSettingsEmail()" role="button" tabindex="0">
         <div class="stp-row-label"><div class="stp-row-title">Электронная почта</div></div>
-        <span class="stp-link">${escapeHtml(curUser?.email||'')} ${chev}</span>
+        <span class="stp-link">${escapeHtml(curUser?.email||'')}</span>
       </div>
       <div class="stp-hr"></div>
       <div class="stp-row">
