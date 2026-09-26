@@ -6,7 +6,7 @@ export const config = {
 import { FREE_TEXT_MODEL, PRO_TEXT_MODEL, envModel } from '../lib/models.js';
 import { authenticateRequest } from '../lib/auth.js';
 
-// Adanatos (free) отвечает на claude-haiku-4-5, Dynatos (pro) — на gpt-5.5 (см. lib/models.js).
+// Adanatos (free) отвечает на claude-haiku-4-5, Dynatos (pro) — на gpt-5.6-luna (см. lib/models.js).
 // Режим low/max НЕ меняют модель, они меняют только таймаут/глубину (см. selectRoute/handler).
 /* ===== REASONING EFFORT ====================================================
    Четыре уровня, единые с интерфейсом: low | medium | max | extra.
@@ -743,97 +743,114 @@ async function callGemini(apiKey, modelName, body, timeoutMs = 35000) {
   return { response, data };
 }
 
-async function callOpenAI(apiKey, modelName, messages, timeoutMs = 35000, maxTokens = 0, reasoningEffort = '') {
-  const baseUrl = String(readEnv('OPENAI_BASE_URL') || 'https://api.codex-api.online/v1').replace(/\/+$/, '');
-  const body = { model: modelName, messages };
-  if (maxTokens > 0) body.max_tokens = maxTokens;
-  if (reasoningEffort) body.reasoning_effort = reasoningEffort;
-  const response = await withTimeout(
+/* ===== ЗАПРОС К ПРОВАЙДЕРУ: подготовка и повтор при 400 invalid_request =====
+   Провайдер отвечал 400 invalid_request, и чат показывал «Не удалось получить
+   ответ» / «модель временно недоступна». Частые причины такого 400 у
+   OpenAI-совместимых шлюзов:
+     • модели семейства gpt-5 не принимают max_tokens (нужен max_completion_tokens);
+     • модель не знает reasoning_effort;
+     • в истории есть пустые сообщения или несколько сообщений одной роли подряд
+       (так бывает после ответов-ошибок: «привет», ошибка, «привет», ошибка…).
+   Поэтому история чистится ДО отправки, а при 400 запрос повторяется в более
+   простом виде. Текст ошибки провайдера пишется в логи Vercel целиком. */
+function contentIsEmpty(content) {
+  if (typeof content === 'string') return !content.trim();
+  if (Array.isArray(content)) return !content.some((p) => (p && p.type === 'image_url') || (p && p.type === 'text' && String(p.text || '').trim()));
+  return true;
+}
+function toParts(content) {
+  if (typeof content === 'string') return [{ type: 'text', text: content }];
+  return Array.isArray(content) ? content.filter((p) => p && !(p.type === 'text' && !String(p.text || '').trim())) : [];
+}
+function sanitizeMessagesForProvider(messages) {
+  const out = [];
+  let system = null;
+  for (const msg of Array.isArray(messages) ? messages : []) {
+    if (!msg) continue;
+    if (msg.role === 'system') {
+      if (!contentIsEmpty(msg.content)) system = system ? { role: 'system', content: system.content + '\n\n' + (typeof msg.content === 'string' ? msg.content : '') } : { role: 'system', content: typeof msg.content === 'string' ? msg.content : '' };
+      continue;
+    }
+    if (msg.role !== 'user' && msg.role !== 'assistant') continue;
+    if (contentIsEmpty(msg.content)) continue;
+    const prev = out[out.length - 1];
+    if (prev && prev.role === msg.role) {
+      // Две реплики одной роли подряд склеиваем в одну.
+      if (typeof prev.content === 'string' && typeof msg.content === 'string') prev.content = prev.content + '\n\n' + msg.content;
+      else prev.content = toParts(prev.content).concat(toParts(msg.content));
+      continue;
+    }
+    out.push({ role: msg.role, content: msg.content });
+  }
+  // История должна начинаться с пользователя.
+  while (out.length && out[0].role !== 'user') out.shift();
+  return system ? [system].concat(out) : out;
+}
+function looksLikeBadRequest(status, text) {
+  const low = String(text || '').toLowerCase();
+  return status === 400 || status === 422 || low.includes('invalid_request') || low.includes('unsupported parameter') || isUnsupportedReasoning(low);
+}
+/* Варианты тела запроса от полного к минимальному. */
+function providerBodyVariants(modelName, messages, maxTokens, reasoningEffort, stream) {
+  const base = { model: modelName, messages: sanitizeMessagesForProvider(messages) };
+  if (stream) base.stream = true;
+  const variants = [];
+  const full = { ...base };
+  if (maxTokens > 0) full.max_tokens = maxTokens;
+  if (reasoningEffort) full.reasoning_effort = reasoningEffort;
+  variants.push(full);
+  if (maxTokens > 0) {
+    const v = { ...base, max_completion_tokens: maxTokens };
+    if (reasoningEffort) v.reasoning_effort = reasoningEffort;
+    variants.push(v);
+  }
+  variants.push({ ...base });
+  // Убираем дубликаты (например, если лимита и reasoning не было вовсе).
+  const seen = new Set();
+  return variants.filter((v) => { const k = Object.keys(v).sort().join(','); if (seen.has(k)) return false; seen.add(k); return true; });
+}
+async function postProvider(baseUrl, apiKey, body, timeoutMs, label) {
+  return withTimeout(
     fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`
-      },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify(body)
     }),
     timeoutMs,
-    `OpenAI request timed out for ${modelName}`
+    label
   );
-  let data = {};
-  try {
-    data = await response.json();
-  } catch (error) {
-    data = {};
+}
+
+async function callOpenAI(apiKey, modelName, messages, timeoutMs = 35000, maxTokens = 0, reasoningEffort = '') {
+  const baseUrl = String(readEnv('OPENAI_BASE_URL') || 'https://api.codex-api.online/v1').replace(/\/+$/, '');
+  const variants = providerBodyVariants(modelName, messages, maxTokens, reasoningEffort, false);
+  let last = null;
+  for (let i = 0; i < variants.length; i++) {
+    const response = await postProvider(baseUrl, apiKey, variants[i], timeoutMs, `OpenAI request timed out for ${modelName}`);
+    let data = {};
+    try { data = await response.json(); } catch (error) { data = {}; }
+    last = { response, data };
+    if (response.ok && !data?.error) return last;
+    const errText = JSON.stringify(data?.error || data || '');
+    console.error(`[harmonyai] provider error | model=${modelName} | try=${i + 1}/${variants.length} | status=${response.status} | ${compactErrorValue(errText, 800)}`);
+    if (!looksLikeBadRequest(response.status, errText)) return last;
   }
-  // Модель не поддерживает уровень reasoning — повторяем без параметра.
-  if (reasoningEffort && !response.ok && isUnsupportedReasoning(data && data.error && data.error.message)) {
-    delete body.reasoning_effort;
-    const retry = await withTimeout(
-      fetch(`${baseUrl}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`
-        },
-        body: JSON.stringify(body)
-      }),
-      timeoutMs,
-      `OpenAI request timed out for ${modelName}`
-    );
-    let retryData = {};
-    try {
-      retryData = await retry.json();
-    } catch (error) {
-      retryData = {};
-    }
-    return { response: retry, data: retryData };
-  }
-  return { response, data };
+  return last;
 }
 
 async function callOpenAIStream(apiKey, modelName, messages, timeoutMs = 65000, maxTokens = 0, reasoningEffort = '') {
   const baseUrl = String(readEnv('OPENAI_BASE_URL') || 'https://api.codex-api.online/v1').replace(/\/+$/, '');
-  const body = { model: modelName, messages, stream: true };
-  if (maxTokens > 0) body.max_tokens = maxTokens;
-  if (reasoningEffort) body.reasoning_effort = reasoningEffort;
-  const streamResponse = await withTimeout(
-    fetch(`${baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`
-      },
-      body: JSON.stringify(body)
-    }),
-    timeoutMs,
-    `OpenAI stream timed out for ${modelName}`
-  );
-  // Тот же fallback для стрима: уровень reasoning не должен ломать запрос.
-  if (reasoningEffort && !streamResponse.ok) {
+  const variants = providerBodyVariants(modelName, messages, maxTokens, reasoningEffort, true);
+  let response = null;
+  for (let i = 0; i < variants.length; i++) {
+    response = await postProvider(baseUrl, apiKey, variants[i], timeoutMs, `OpenAI stream timed out for ${modelName}`);
+    if (response.ok) return response;
     let errText = '';
-    try {
-      errText = await streamResponse.clone().text();
-    } catch (error) {
-      errText = '';
-    }
-    if (isUnsupportedReasoning(errText)) {
-      delete body.reasoning_effort;
-      return await withTimeout(
-        fetch(`${baseUrl}/chat/completions`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${apiKey}`
-          },
-          body: JSON.stringify(body)
-        }),
-        timeoutMs,
-        `OpenAI stream timed out for ${modelName}`
-      );
-    }
+    try { errText = await response.clone().text(); } catch (error) { errText = ''; }
+    console.error(`[harmonyai] provider stream error | model=${modelName} | try=${i + 1}/${variants.length} | status=${response.status} | ${compactErrorValue(errText, 800)}`);
+    if (!looksLikeBadRequest(response.status, errText)) return response;
   }
-  return streamResponse;
+  return response;
 }
 
 function isQuotaExceeded(status, message = '') {
@@ -853,7 +870,8 @@ function isQuotaExceeded(status, message = '') {
 
 function isModelUnavailable(message = '') {
   const low = String(message || '').toLowerCase();
-  return low.includes('model is not available') || low.includes('model_not_found') || low.includes('unsupported model');
+  return low.includes('model is not available') || low.includes('model_not_found') || low.includes('unsupported model')
+    || low.includes('does not exist') || low.includes('no such model') || low.includes('unknown model') || low.includes('invalid model');
 }
 
 function compactErrorValue(value, limit = 500) {
@@ -1416,7 +1434,7 @@ function selectRoute(profile, requestedModel) {
   return {
     provider: 'openai',
     apiKey: readEnv('OPENAI_API_KEY'),
-    models: modelChain,
+    models: Array.from(new Set(modelChain)),
     proDowngraded: wantsPro && !allowedPro
   };
 }
@@ -1752,13 +1770,10 @@ export default async function handler(req, res) {
           };
           const errorMessage = lastError.message || '';
           if (isModelUnavailable(errorMessage)) {
+            // Пробуем следующую модель цепочки (fallback), а не сдаёмся сразу.
             console.error(`[harmonyai] model unavailable | model=${modelName} | reason=${compactErrorValue(errorMessage, 500)}`);
-            return res.status(400).json({
-              error: {
-                message: 'Выбранная модель временно недоступна. Попробуйте другую модель или повторите позже.',
-                status: lastError.status || 400
-              }
-            });
+            lastError.unavailable = true;
+            continue;
           }
           if (isQuotaExceeded(lastError.status, errorMessage)) {
             return res.status(429).json({
@@ -1780,12 +1795,8 @@ export default async function handler(req, res) {
           lastError = { status: response.status || 500, message: errorMessage || `Ошибка модели ${modelName}`, model: modelName };
           if (isModelUnavailable(errorMessage)) {
             console.error(`[harmonyai] model unavailable | model=${modelName} | reason=${compactErrorValue(errorMessage, 500)}`);
-            return res.status(400).json({
-              error: {
-                message: 'Выбранная модель временно недоступна. Попробуйте другую модель или повторите позже.',
-                status: response.status || 400
-              }
-            });
+            lastError.unavailable = true;
+            continue;
           }
           if (isQuotaExceeded(response.status, errorMessage)) {
             return res.status(429).json({
@@ -1816,6 +1827,14 @@ export default async function handler(req, res) {
     }
 
     if (route.provider === 'openai') {
+      if (lastError && lastError.unavailable) {
+        return res.status(503).json({
+          error: {
+            message: 'Выбранная модель временно недоступна. Попробуйте другую модель или повторите позже.',
+            status: 503
+          }
+        });
+      }
       if (lastError && isQuotaExceeded(lastError.status, lastError.message)) {
         return res.status(429).json({
           error: {
