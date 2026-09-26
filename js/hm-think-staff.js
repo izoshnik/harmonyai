@@ -160,7 +160,8 @@
   }
 
   /* ---------- генерация картинки: «проявка» мозаикой ---------- */
-  function image(canvasEl){
+  function image(canvasEl,opts){
+    opts=opts||{};
     if(!canvasEl)return {stop:function(){}};
     var host=el('span','hga-img');host.setAttribute('aria-hidden','true');
     var cv=document.createElement('canvas');host.appendChild(cv);
@@ -168,7 +169,8 @@
     var clock=el('span','hga-clock','');
     canvasEl.appendChild(host);canvasEl.appendChild(clock);
     canvasEl.classList.add('hga-on');
-    var ctx=cv.getContext('2d'),N=12,raf=0,alive=true,t0=performance.now(),seed=Math.random()*360,lastSec=-1;
+    if(opts.mini){host.classList.add('hga-img-mini');clock.remove();}
+    var ctx=cv.getContext('2d'),N=opts.mini?5:12,raf=0,alive=true,t0=performance.now(),seed=Math.random()*360,lastSec=-1;
     var cells=[];for(var i=0;i<N*N;i++)cells.push({d:Math.random(),v:0});
     function size(){
       var r=host.getBoundingClientRect(),dpr=Math.min(2,window.devicePixelRatio||1);
@@ -184,7 +186,7 @@
       ctx.clearRect(0,0,w,h);
       // Фронт «проявки» идёт волной из центра и возвращается: картинка как будто
       // набирается пятнами цвета, но никогда не «заканчивается» раньше ответа сервера.
-      var front=(Math.sin(e*0.55-Math.PI/2)+1)/2*1.25;
+      var front=(Math.sin(e*0.55-Math.PI/2)+1)/2*1.25+(opts.mini?0.45:0.12);
       for(var y=0;y<N;y++)for(var x=0;x<N;x++){
         var c=cells[y*N+x];
         var dx=(x+.5)/N-.5,dy=(y+.5)/N-.5,dist=Math.sqrt(dx*dx+dy*dy)*1.4+c.d*.25;
