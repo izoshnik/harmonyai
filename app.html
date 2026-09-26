@@ -22,6 +22,23 @@ try{
     }
   }
 }catch(e){}
+/* ===== ОШИБКА ВХОДА ЧЕРЕЗ GOOGLE / GITHUB / DISCORD =====
+   Если провайдер или сервер авторизации не смог завершить вход, он возвращает
+   человека на /chat с «#error=...&error_description=...» в адресе. Раньше это
+   молча выкидывало на /login без единого слова — выглядело как «Google переносит
+   обратно на вход». Запоминаем причину ДО того, как SDK очистит адрес, и потом
+   показываем её на экране входа. */
+try{
+  var __oa=(location.hash||'').replace(/^#/,'')+'&'+(location.search||'').replace(/^\?/,'');
+  var __op=new URLSearchParams(__oa);
+  var __oe=__op.get('error_description')||__op.get('error');
+  if(__oe&&/(?:^|[#&?])error(?:_description|_code)?=/.test(location.hash+location.search)){
+    window.__hmOAuthError={error:__op.get('error')||'',code:__op.get('error_code')||'',text:String(__oe).replace(/\+/g,' ')};
+    try{sessionStorage.removeItem('oauth_next');}catch(e){}
+    // Чистим адрес, чтобы ошибка не «застревала» после обновления страницы.
+    history.replaceState(null,'',location.pathname);
+  }
+}catch(e){}
 // Применяем сохранённую тему ДО отрисовки, чтобы не было "вспышки" неправильной темы.
 // Если тема не выбрана (или выбрана "system") — поведение НЕ меняется: мобильная тёмная,
 // десктопная светлая (как было). Явные темы применяются поверх системной.
@@ -76,6 +93,57 @@ setTimeout(function(){
 <script defer src="/js/hm-memory.js"></script>
 <script defer src="/js/audio-analyzer.js"></script>
 <script defer src="/js/thinking-loader.js"></script>
+<link rel="stylesheet" href="/css/hm-think.css">
+<script defer src="/js/hm-think-staff.js"></script>
+<style id="restored-core">
+/* Стили, случайно удалённые 14.09 вместе с «неиспользуемыми» классами.
+   Стоят ПЕРЕД основным блоком: при любом конфликте побеждает новый дизайн. */
+.conn-btn{flex:0 0 auto;padding:9px 15px;border-radius:10px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:13.5px;font-weight:700;font-family:inherit;cursor:pointer;white-space:nowrap;}
+a.conn-btn{display:inline-flex;align-items:center;text-decoration:none;}
+.conn-btn.primary{background:var(--accent,#1f5cff);border-color:var(--accent,#1f5cff);color:#fff;}
+.conn-btn.danger{color:#ff5a5f;border-color:rgba(255,90,95,.32);}
+.report-counter{position:absolute;right:14px;bottom:12px;font-size:12px;color:var(--text2);}
+.limits-bar{height:8px;border-radius:999px;background:rgba(127,127,140,.18);overflow:hidden;}
+.limits-bar-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#22c55e,#16a34a);transition:width .4s cubic-bezier(.22,.61,.36,1);}
+.limits-bar-fill.warn{background:linear-gradient(90deg,#f59e0b,#ea580c);}
+.limits-bar-fill.full{background:linear-gradient(90deg,#ef4444,#dc2626);}
+.limits-bar-fill.pro{background:linear-gradient(90deg,#4aa3f0,#2f80ed);}
+.limit-reached{align-self:stretch;display:flex;gap:12px;padding:14px 16px;border-radius:16px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.22);color:var(--text);margin:4px 0;}
+html[data-theme="light"] .limit-reached{background:rgba(239,68,68,.07);border-color:rgba(239,68,68,.2);}
+.limit-reached-ic{flex-shrink:0;color:#ef4444;margin-top:1px;}
+.limit-reached-body{display:flex;flex-direction:column;gap:4px;min-width:0;}
+.limit-reached-title{font-size:14px;font-weight:700;color:var(--text);}
+.limit-reached-text{font-size:13px;color:var(--text2);line-height:1.5;}
+.limit-reached-text b{color:var(--text);}
+.training-greeting{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 20px;width:100%;}
+.training-icon-circle{width:88px;height:88px;border-radius:50%;border:1px solid var(--border);background:var(--bg2);display:flex;align-items:center;justify-content:center;color:var(--text);margin-bottom:22px;flex-shrink:0;}
+.training-title{font-size:30px;font-weight:800;color:var(--text);letter-spacing:-.6px;margin-bottom:10px;line-height:1.15;}
+.training-desc{font-size:15px;color:var(--text2);line-height:1.5;max-width:380px;margin-bottom:28px;}
+.training-rows{width:100%;max-width:420px;display:flex;flex-direction:column;gap:10px;margin-bottom:18px;}
+.train-row{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:16px;background:var(--bg2);border:1px solid var(--border);text-align:left;cursor:default;transition:background .12s;}
+.train-row-icon{width:38px;height:38px;border-radius:50%;background:var(--hover);display:flex;align-items:center;justify-content:center;color:var(--text);flex-shrink:0;}
+.train-row-text{flex:1;min-width:0;}
+.train-row-title{font-size:14.5px;font-weight:600;color:var(--text);margin-bottom:2px;}
+.train-row-desc{font-size:12.5px;color:var(--text2);}
+.train-row-chevron{color:var(--text2);flex-shrink:0;opacity:.6;}
+.training-tip{width:100%;max-width:420px;display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:14px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:12.5px;line-height:1.5;text-align:left;}
+.training-tip svg{flex-shrink:0;}
+.reco-abc-edit{margin-top:8px;padding:8px 12px;border-radius:10px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:12.5px;font-weight:600;cursor:pointer;align-self:flex-start;font-family:inherit;}
+.reco-abc-edit:hover{background:var(--hover);}
+.reco-abc-textarea{width:100%;min-height:120px;padding:10px 12px;border-radius:10px;background:var(--input-bg);border:1px solid var(--border);color:var(--text);font-family:'SF Mono',Menlo,Consolas,monospace;font-size:12.5px;line-height:1.5;resize:vertical;outline:none;margin-top:8px;}
+.reco-abc-textarea:focus{border-color:var(--text);}
+.reco-abc-actions{display:flex;gap:8px;margin-top:8px;}
+.reco-abc-save{padding:8px 14px;border-radius:10px;background:#0a84ff;color:#fff;font-size:12.5px;font-weight:600;border:none;cursor:pointer;font-family:inherit;}
+.reco-abc-cancel{padding:8px 14px;border-radius:10px;background:transparent;color:var(--text2);font-size:12.5px;font-weight:600;border:1px solid var(--border);cursor:pointer;font-family:inherit;}
+@media(max-width:768px){
+  .conn-btn{padding:8px 13px;font-size:13px;}
+  .auth-input,.fb-textarea,.fb-qa-input,.report-textarea,.reco-abc-textarea,
+  .custom-instr-area,.cmp-search-bar input{font-size:16px;}
+  .training-greeting{padding:64px 18px 24px;justify-content:flex-start;}
+  .training-icon-circle{width:96px;height:96px;}
+  .training-title{font-size:30px;}
+}
+</style>
 <style>
 /* Шрифты подключены через <link rel="stylesheet"> в <head> — быстрее, чем @import внутри CSS. */
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -338,16 +406,15 @@ html[data-theme="light"] .survey-opt:hover{background:rgba(0,0,0,.08);border-col
 .sb-icon-btn,.topbar-btn,.sth-back,.mmp-opt,.desktop-option,.auth-btn-primary,
 .auth-btn-secondary,.mac-btn,.more-item,.composer-attachment,.msg-user-attachment,
 .sb-user-row,.sb-chat-item,.training-tip,.otp-box,
-.md-option,.md-mode-row,.ms-option,.desktop-row,,,
+.md-option,.md-mode-row,.ms-option,.desktop-row,
 .composer-attachment-remove,.sw,.mm-close{
   transition:transform .16s cubic-bezier(.34,1.56,.64,1),background-color .15s ease,box-shadow .18s ease,opacity .15s ease,color .15s ease,border-color .15s ease;
   will-change:transform;
 }
-.sb-icon-btn:active,.topbar-btn:active,.sth-back:active,:active,.mmp-opt:active,
+.sb-icon-btn:active,.topbar-btn:active,.sth-back:active,.mmp-opt:active,
 .desktop-option:active,.auth-btn-primary:active,.auth-btn-secondary:active,.mac-btn:active,
-.more-item:active,:active,.composer-attachment:active,.msg-user-attachment:active,
-.md-option:active,.md-mode-row:active,.ms-option:active,.desktop-row:active,:active,
-:active,:active,:active,.composer-attachment-remove:active,
+.more-item:active,.composer-attachment:active,.msg-user-attachment:active,
+.md-option:active,.md-mode-row:active,.ms-option:active,.desktop-row:active,.composer-attachment-remove:active,
 .sw:active,.mm-close:active{
   transform:scale(.94);
   transition:transform .08s cubic-bezier(.4,0,.2,1);
@@ -381,13 +448,12 @@ button:active,.model-pill:active,.send-btn:active{
 @media(prefers-reduced-motion:reduce){
   .sb-icon-btn,.topbar-btn,.sth-back,.mmp-opt,.desktop-option,.auth-btn-primary,
   .auth-btn-secondary,.mac-btn,.more-item,button,.model-pill,.send-btn,
-  .md-option,.md-mode-row,.ms-option,.desktop-row,,,
+  .md-option,.md-mode-row,.ms-option,.desktop-row,
   .composer-attachment-remove,.sw,.mm-close{transition:none!important;}
-  .sb-icon-btn:active,.topbar-btn:active,.sth-back:active,:active,.mmp-opt:active,
+  .sb-icon-btn:active,.topbar-btn:active,.sth-back:active,.mmp-opt:active,
   .desktop-option:active,.auth-btn-primary:active,.auth-btn-secondary:active,.mac-btn:active,
-  .more-item:active,:active,button:active,.model-pill:active,.send-btn:active,
-  .md-option:active,.md-mode-row:active,.ms-option:active,.desktop-row:active,:active,
-  :active,:active,:active,.composer-attachment-remove:active,
+  .more-item:active,button:active,.model-pill:active,.send-btn:active,
+  .md-option:active,.md-mode-row:active,.ms-option:active,.desktop-row:active,.composer-attachment-remove:active,
   .sw:active,.mm-close:active{transform:none;filter:none;}
 }
 
@@ -408,8 +474,7 @@ button:active,.model-pill:active,.send-btn:active{
    .lg-sheen -> амбиентный отблеск, реагирующий на курсор/скролл (Layer 8)
    Контент рисуется в отдельном слое сверху и никогда не искажается. */
 .bg-liquid-glass,
-.sidebar,.settings-box,.mobile-model-drop,.desktop-model-drop,.desktop-sub-drop,.input-box,
-,,.more-menu,.model-drop,.mode-sub,.fb-modal{position:relative;isolation:isolate;}
+.sidebar,.settings-box,.mobile-model-drop,.desktop-model-drop,.desktop-sub-drop,.input-box,.more-menu,.model-drop,.mode-sub,.fb-modal{position:relative;isolation:isolate;}
 
 /* Liquid Glass материал — только для мобильной версии (тёмная тема), как и задумано.
    На десктопе у этих же классов уже есть собственный сплошной светлый фон (var(--bg2)/var(--drop-bg))
@@ -417,8 +482,7 @@ button:active,.model-pill:active,.send-btn:active{
    что и давало "неровный", полупрозрачный вид панелей на светлой десктопной теме. */
 @media(max-width:768px){
 .bg-liquid-glass::before,
-.sidebar::before,.settings-box::before,.mobile-model-drop::before,.desktop-model-drop::before,.desktop-sub-drop::before,.input-box::before,::before,
-::before,::before,::before,.more-menu::before,.model-drop::before,.mode-sub::before,.fb-modal::before{
+.sidebar::before,.settings-box::before,.mobile-model-drop::before,.desktop-model-drop::before,.desktop-sub-drop::before,.input-box::before,.more-menu::before,.model-drop::before,.mode-sub::before,.fb-modal::before{
   content:"";position:absolute;inset:0;z-index:-2;border-radius:inherit;overflow:hidden;
   backdrop-filter:blur(20px) saturate(165%) brightness(1.03);
   -webkit-backdrop-filter:blur(20px) saturate(165%) brightness(1.03);
@@ -432,8 +496,7 @@ button:active,.model-pill:active,.send-btn:active{
 }
 /* Layer 7 — inner rim lighting: свет, "проходящий" через край, вместо обычной границы */
 .bg-liquid-glass::after,
-.sidebar::after,.settings-box::after,.mobile-model-drop::after,.desktop-model-drop::after,.desktop-sub-drop::after,.input-box::after,::after,
-::after,::after,::after,.more-menu::after,.model-drop::after,.mode-sub::after,.fb-modal::after{
+.sidebar::after,.settings-box::after,.mobile-model-drop::after,.desktop-model-drop::after,.desktop-sub-drop::after,.input-box::after,.more-menu::after,.model-drop::after,.mode-sub::after,.fb-modal::after{
   content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;
   /* Layer 5: верхняя кромка светлее. Layer 6: нижняя кромка темнее/компрессия. Layer 7: тонкий внутренний rim. */
   box-shadow:
@@ -458,8 +521,7 @@ button:active,.model-pill:active,.send-btn:active{
 
 /* ===================== ДЕСКТОП: чистая светлая тема без стекла, ровные карточки с мягкой анимацией ===================== */
 @media(min-width:769px){
-  .sidebar,.settings-box,.desktop-model-drop,.desktop-sub-drop,.input-box,
-  ,,.more-menu,.model-drop,.mode-sub,.fb-modal{
+  .sidebar,.settings-box,.desktop-model-drop,.desktop-sub-drop,.input-box,.more-menu,.model-drop,.mode-sub,.fb-modal{
     box-shadow:0 1px 2px rgba(20,18,12,.04),0 10px 28px -8px rgba(20,18,12,.08);
     transition:box-shadow .2s ease,border-color .2s ease,transform .2s cubic-bezier(.22,.61,.36,1);
   }
@@ -467,8 +529,7 @@ button:active,.model-pill:active,.send-btn:active{
   .sidebar{box-shadow:none;}
 }
 @media(min-width:769px) and (prefers-reduced-motion:reduce){
-  .sidebar,.settings-box,.desktop-model-drop,.desktop-sub-drop,.input-box,
-  ,,.more-menu,.model-drop,.mode-sub,.fb-modal{transition:none;}
+  .sidebar,.settings-box,.desktop-model-drop,.desktop-sub-drop,.input-box,.more-menu,.model-drop,.mode-sub,.fb-modal{transition:none;}
 }
 
 /* ===================== AUTH ===================== */
@@ -1522,7 +1583,348 @@ html[data-theme="messenger"] .settings-overlay{background:radial-gradient(130% 7
   .stp-row .stp-toggle,.stp-row .stp-dd,.stp-row .stp-btn,.stp-row .stp-link{flex:0 0 auto;}
   .settings-overlay,.settings-box{border-radius:0;}
 }
-height:40px;
+/* ВОССТАНОВЛЕНО: базовые стили нижнего листа модели, просмотрщика фото и начало
+   блока MOBILE LIQUID GLASS v2 — были случайно вырезаны 14–15.09. */
+.mm-overlay{position:fixed;inset:0;z-index:700;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.5);backdrop-filter:blur(6px);opacity:0;visibility:hidden;transition:opacity .22s,visibility .22s;}
+.mm-overlay.open{opacity:1;visibility:visible;}
+.mm-sheet{width:100%;max-width:560px;max-height:88vh;max-height:88dvh;overflow-y:auto;background:rgba(24,24,29,.72);backdrop-filter:blur(28px) saturate(160%);-webkit-backdrop-filter:blur(28px) saturate(160%);border:1px solid rgba(255,255,255,.10);border-top-left-radius:28px;border-top-right-radius:28px;box-shadow:0 -18px 48px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.06);padding:10px 18px 28px;transform:translateY(16px);transition:transform .25s cubic-bezier(.2,.9,.3,1.1);}
+.mm-overlay.open .mm-sheet{transform:translateY(0);}
+@media(min-width:769px){
+  .mm-overlay{align-items:center;}
+  .mm-sheet{max-width:420px;border-radius:24px;}
+}
+
+.mm-handle{width:36px;height:5px;border-radius:3px;background:rgba(255,255,255,.22);margin:6px auto 14px;}
+.mm-screen{display:none;}
+.mm-screen.active{display:block;}
+.mm-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+.mm-close{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.10);display:flex;align-items:center;justify-content:center;color:var(--text);cursor:pointer;flex-shrink:0;}
+.mm-close:active{background:rgba(255,255,255,.14);}
+.mm-title{font-size:17px;font-weight:700;color:var(--text);}
+.mm-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:18px;overflow:hidden;margin-bottom:14px;}
+.mm-opt{display:block;width:100%;text-align:left;padding:14px 16px;background:none;border:none;color:var(--text);font-family:inherit;cursor:pointer;position:relative;}
+.mm-opt-main{display:flex;align-items:center;gap:8px;}
+.mm-opt-name{font-size:16px;font-weight:700;color:var(--text);}
+.mm-opt-badge{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:rgba(255,255,255,.14);color:var(--text);}
+.mm-opt-badge.mm-badge-neutral{background:rgba(255,255,255,.08);color:var(--text2);}
+.mm-opt-desc{font-size:13px;color:var(--text2);margin-top:3px;}
+.mm-opt-check{position:absolute;right:16px;top:14px;font-size:16px;color:var(--text);opacity:0;transition:opacity .12s;}
+.mm-divider{height:1px;background:rgba(255,255,255,.08);margin:0 16px;}
+.mm-card-link{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;}
+.mm-row-title{font-size:15px;color:var(--text2);}
+.mm-row-val{display:flex;align-items:center;gap:6px;font-size:15px;color:var(--text);font-weight:600;}
+.mm-row-val svg{color:var(--text2);}
+.mm-hint{font-size:12.5px;color:var(--text2);line-height:1.5;padding:0 4px 14px;}
+.mm-think-card{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;}
+.mm-think-title{font-size:15px;font-weight:700;color:var(--text);}
+.mm-think-sub{font-size:12.5px;color:var(--text2);margin-top:2px;}
+
+/* ============================================================================
+   ДЕСКТОПНЫЙ ПРОСМОТРЩИК СГЕНЕРИРОВАННОГО ФОТО (модальное окно).
+   Не на весь экран, как мобильный, а компактная модалка поверх чата с блюром фона.
+   Две темы через html[data-theme] — тот же механизм, что и во всём проекте.
+   Скругления «liquid glass», анимация opacity + лёгкий scale 150–200ms. */
+.pv-overlay{
+  position:fixed;inset:0;z-index:720;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.5);
+  backdrop-filter:blur(14px) saturate(140%);
+  -webkit-backdrop-filter:blur(14px) saturate(140%);
+  opacity:0;visibility:hidden;
+  transition:opacity .18s cubic-bezier(.22,.61,.36,1),visibility .18s;
+  padding:24px;
+}
+.pv-overlay.open{opacity:1;visibility:visible;}
+.pv-window{
+  position:relative;display:flex;flex-direction:column;
+  max-width:min(92vw,900px);max-height:min(90vh,760px);
+  border-radius:24px;overflow:hidden;
+  background:#141416;border:1px solid rgba(255,255,255,.10);
+  box-shadow:0 30px 80px rgba(0,0,0,.55);
+  transform:scale(.96);opacity:0;
+  transition:transform .18s cubic-bezier(.22,.61,.36,1),opacity .18s cubic-bezier(.22,.61,.36,1);
+}
+.pv-overlay.open .pv-window{transform:scale(1);opacity:1;}
+/* Верхняя панель: крестик слева, три точки справа */
+.pv-topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 12px;flex-shrink:0;
+  background:rgba(28,28,32,.72);
+  border-bottom:1px solid rgba(255,255,255,.06);
+}
+.pv-icon-btn{
+  width:36px;height:36px;border-radius:50%;border:none;
+  background:rgba(255,255,255,.07);color:#e8e8ec;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  transition:background .12s,transform .12s;
+}
+.pv-icon-btn:hover{background:rgba(255,255,255,.14);}
+.pv-icon-btn:active{transform:scale(.92);}
+.pv-icon-btn svg{width:18px;height:18px;display:block;}
+.pv-menu-wrap{position:relative;}
+/* Меню «три точки» */
+.pv-menu{
+  position:absolute;top:42px;right:0;min-width:180px;
+  padding:6px;border-radius:14px;
+  background:rgba(28,28,32,.92);
+  border:1px solid rgba(255,255,255,.10);
+  backdrop-filter:blur(22px) saturate(150%);
+  -webkit-backdrop-filter:blur(22px) saturate(150%);
+  box-shadow:0 16px 40px rgba(0,0,0,.45);
+  opacity:0;transform:translateY(-6px) scale(.96);transform-origin:top right;
+  transition:opacity .16s cubic-bezier(.22,.61,.36,1),transform .16s cubic-bezier(.22,.61,.36,1);
+  pointer-events:none;z-index:5;
+}
+.pv-menu.open{opacity:1;transform:translateY(0) scale(1);pointer-events:auto;}
+.pv-menu-item{
+  display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:10px;
+  font-size:14px;font-weight:600;color:#e8e8ec;cursor:pointer;transition:background .12s;
+}
+.pv-menu-item:hover{background:rgba(255,255,255,.08);}
+.pv-menu-item.pv-danger{color:#ef4444;}
+.pv-menu-item.pv-danger:hover{background:rgba(239,68,68,.12);}
+.pv-menu-item svg{width:16px;height:16px;flex-shrink:0;opacity:.9;}
+/* Центр — само фото */
+.pv-stage{
+  flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;
+  background:#0d0d0d;padding:14px;overflow:hidden;
+}
+.pv-stage img{
+  max-width:100%;max-height:100%;object-fit:contain;
+  border-radius:12px;display:block;
+  box-shadow:0 8px 28px rgba(0,0,0,.4);
+}
+/* Низ — три круглые кнопки: Скачать / Поделиться / Редактировать */
+.pv-actions{
+  display:flex;align-items:center;justify-content:center;gap:18px;
+  padding:14px 12px calc(14px + env(safe-area-inset-bottom,0px));flex-shrink:0;
+  background:rgba(28,28,32,.72);
+  border-top:1px solid rgba(255,255,255,.06);
+}
+.pv-action{
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  background:none;border:none;cursor:pointer;color:#c9c9d2;
+  font-size:11px;font-weight:600;transition:color .12s,transform .12s;
+}
+.pv-action:hover{color:#fff;}
+.pv-action:active{transform:scale(.92);}
+.pv-action-circle{
+  width:48px;height:48px;border-radius:50%;
+  background:rgba(255,255,255,.08);
+  display:flex;align-items:center;justify-content:center;
+  transition:background .12s;
+}
+.pv-action:hover .pv-action-circle{background:rgba(255,255,255,.16);}
+.pv-action-circle svg{width:22px;height:22px;display:block;}
+/* Светлая тема: светлый фон окна, тёмные иконки/текст, светло-серые кнопки */
+html[data-theme="light"] .pv-overlay{background:rgba(20,18,12,.32);}
+html[data-theme="light"] .pv-window{
+  background:#fbfaf8;border:1px solid rgba(20,18,12,.08);
+  box-shadow:0 30px 80px rgba(20,18,12,.28);
+}
+html[data-theme="light"] .pv-topbar{background:rgba(252,251,249,.9);border-bottom-color:rgba(20,18,12,.07);}
+html[data-theme="light"] .pv-icon-btn{background:rgba(20,18,12,.05);color:#26241f;}
+html[data-theme="light"] .pv-icon-btn:hover{background:rgba(20,18,12,.1);}
+html[data-theme="light"] .pv-menu{
+  background:rgba(252,251,249,.94);border-color:rgba(20,18,12,.08);
+  box-shadow:0 16px 40px rgba(20,18,12,.16);
+}
+html[data-theme="light"] .pv-menu-item{color:#26241f;}
+html[data-theme="light"] .pv-menu-item:hover{background:rgba(20,18,12,.05);}
+html[data-theme="light"] .pv-menu-item.pv-danger{color:#dc2626;}
+html[data-theme="light"] .pv-menu-item.pv-danger:hover{background:rgba(220,38,38,.08);}
+html[data-theme="light"] .pv-stage{background:#f1efe9;}
+html[data-theme="light"] .pv-stage img{box-shadow:0 8px 24px rgba(20,18,12,.16);}
+html[data-theme="light"] .pv-actions{background:rgba(252,251,249,.9);border-top-color:rgba(20,18,12,.07);}
+html[data-theme="light"] .pv-action{color:#5a574f;}
+html[data-theme="light"] .pv-action:hover{color:#26241f;}
+html[data-theme="light"] .pv-action-circle{background:rgba(20,18,12,.06);}
+html[data-theme="light"] .pv-action:hover .pv-action-circle{background:rgba(20,18,12,.12);}
+/* Мобильные/узкие экраны: модалка занимает больше места, кнопки крупнее */
+@media(max-width:768px){
+  .pv-overlay{padding:0;}
+  .pv-window{max-width:100vw;max-height:100vh;max-height:100dvh;border-radius:0;border:none;}
+  .pv-action-circle{width:52px;height:52px;}
+  .pv-action-circle svg{width:24px;height:24px;}
+}
+@media(prefers-reduced-motion:reduce){
+  .pv-overlay,.pv-window,.pv-menu,.pv-icon-btn,.pv-action,.pv-action-circle{transition:none!important;}
+}
+/* Заглушка удалённого фото: неактивное (некликабельное) сообщение в чате. */
+.msg-ai-wrap.photo-deleted{opacity:.6;pointer-events:none;}
+.photo-deleted-msg{
+  font-style:italic;color:var(--text2);font-size:14px;
+  padding:10px 14px;border-radius:14px;
+  background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.12);
+}
+html[data-theme="light"] .photo-deleted-msg{
+  background:rgba(20,18,12,.04);border-color:rgba(20,18,12,.12);
+}
+
+/* ============================================================================
+   LIQUID GLASS — только раздел чата, только мобильная версия (max-width:768px).
+   Реализация 1:1 по инструкции: полупрозрачное стекло + backdrop-filter blur +
+   внешняя тонкая обводка/тень + верхний эллиптический блик (::before) +
+   нижняя мягкая световая полоса (::after). Никаких сторонних файлов.
+   ========================================================================= */
+@media(max-width:768px){
+  .main .topbar-btn,
+  .main .bar-icon,
+  .main .mic-btn,
+  .main .send-btn,
+  .main .mac-btn{
+    position:relative;
+    overflow:hidden;
+    isolation:isolate;
+    border:1px solid rgba(255,255,255,.08);
+    background:rgba(18,18,22,.24)!important;
+    box-shadow:
+      inset 0 0 0 .5px rgba(255,255,255,.025),
+      0 10px 26px rgba(0,0,0,.18);
+    backdrop-filter:blur(18px) saturate(140%);
+    -webkit-backdrop-filter:blur(18px) saturate(140%);
+  }
+  .main .topbar-btn::before,
+  .main .bar-icon::before,
+  .main .mic-btn::before,
+  .main .send-btn::before,
+  .main .mac-btn::before{
+    content:"";
+    position:absolute;
+    inset:-1px;
+    border-radius:inherit;
+    pointer-events:none;
+    z-index:-2;
+    backdrop-filter:blur(20px) saturate(150%) contrast(1.02);
+    -webkit-backdrop-filter:blur(20px) saturate(150%) contrast(1.02);
+    background:linear-gradient(180deg,rgba(255,255,255,.018),rgba(255,255,255,.006) 44%,rgba(0,0,0,.085) 100%);
+    filter:url(#liquidGlassFilterEdge);
+    opacity:.96;
+  }
+  .main .topbar-btn::after,
+  .main .bar-icon::after,
+  .main .mic-btn::after,
+  .main .send-btn::after,
+  .main .mac-btn::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    border-radius:inherit;
+    pointer-events:none;
+    z-index:-1;
+    box-shadow:
+      inset 0 0 0 1px rgba(255,255,255,.045),
+      inset 0 -1px 0 rgba(0,0,0,.24),
+      inset 0 1px 0 rgba(255,255,255,.02);
+    opacity:.92;
+  }
+  .main .topbar-btn:hover,
+  .main .bar-icon:hover,
+  .main .mic-btn:hover,
+  .main .send-btn:hover,
+  .main .mac-btn:hover{
+    background:rgba(18,18,22,.30)!important;
+  }
+  .main .topbar-btn:active,
+  .main .bar-icon:active,
+  .main .mic-btn:active,
+  .main .send-btn:active,
+  .main .mac-btn:active{
+    background:rgba(18,18,22,.34)!important;
+    box-shadow:
+      inset 0 0 0 .5px rgba(255,255,255,.03),
+      0 7px 18px rgba(0,0,0,.18);
+  }
+  .main .send-btn,
+  .main .mic-btn.recording,
+  .main .send-btn.is-stop{
+    color:rgba(255,255,255,.96);
+  }
+}
+
+/* ============================================================================
+   Кнопки «+» (bar-icon) и микрофона — полностью БЕЗ обводки во всех состояниях.
+   Р��змеры, расположение, анимации и Liquid Glass (blur/фон/блик ::before) не
+   меняются: убираем только border/ring/outline. Ширина границы сохранена
+   (transparent), поэтому геометрия кнопок не сдвигается.
+   ========================================================================= */
+.bar-icon,.mic-btn,
+.bar-icon:hover,.mic-btn:hover,
+.bar-icon:active,.mic-btn:active,
+.bar-icon:focus,.mic-btn:focus,
+.bar-icon:focus-visible,.mic-btn:focus-visible{outline:none;}
+@media(max-width:768px){
+  .main .bar-icon,.main .mic-btn,
+  .main .bar-icon:hover,.main .mic-btn:hover,
+  .main .bar-icon:active,.main .mic-btn:active,
+  .main .bar-icon:focus,.main .mic-btn:focus,
+  .main .bar-icon:focus-visible,.main .mic-btn:focus-visible{
+    border:none!important;
+    outline:none!important;
+    box-shadow:none!important;
+    background:transparent!important;
+    backdrop-filter:none!important;
+    -webkit-backdrop-filter:none!important;
+  }
+  .main .bar-icon::before,.main .mic-btn::before,
+  .main .bar-icon::after,.main .mic-btn::after{content:none!important;display:none!important;box-shadow:none!important;background:none!important;}
+  html[data-theme="light"] .main .bar-icon,html[data-theme="light"] .main .mic-btn,
+  html[data-theme="messenger"] .main .bar-icon,html[data-theme="messenger"] .main .mic-btn{color:var(--text2)!important;}
+}
+/* =====================================================================
+   MOBILE LIQUID GLASS v2 - only mobile (max-width:768px).
+   Desktop layout/colors untouched. Settings screen keeps its structure,
+   only its background becomes one solid surface.
+   Accent #084CFD, no purple.
+   ===================================================================== */
+@media(max-width:768px){
+
+  :root{
+    --lg-accent:#084CFD;
+    --lg-tint:rgba(255,255,255,.06);
+    --lg-tint-2:rgba(255,255,255,.10);
+    --lg-stroke:rgba(255,255,255,.12);
+    --lg-blur:blur(15px) saturate(160%);
+    --lg-blur-lg:blur(28px) saturate(170%);
+    --lg-shadow:0 12px 30px rgba(0,0,0,.38);
+    --lg-inner:inset 0 1px 0 rgba(255,255,255,.20),inset 0 -1px 0 rgba(0,0,0,.20);
+  }
+
+  /* ---------- pure black canvas (dark mobile theme only) ---------- */
+  html:not([data-theme="light"]):not([data-theme="messenger"]) body,
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .app{background:#000;}
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .main,
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .chat-area{background:transparent;}
+
+  /* background light blobs: accent blue instead of grey/violet */
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .mobile-glossy .bubble{opacity:.22;}
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .mobile-glossy .b1{background:radial-gradient(circle,rgba(8,76,253,.42) 0%,transparent 70%);}
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .mobile-glossy .b2{background:radial-gradient(circle,rgba(8,76,253,.22) 0%,transparent 70%);}
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .mobile-glossy .b3{background:radial-gradient(circle,rgba(130,150,190,.14) 0%,transparent 70%);}
+  html:not([data-theme="light"]):not([data-theme="messenger"]) .mobile-glossy .b4{background:radial-gradient(circle,rgba(8,76,253,.18) 0%,transparent 70%);}
+
+  /* ---------- TOPBAR ---------- */
+  .topbar{background:transparent;}
+  .topbar-btn{
+    width:40px;height:40px;
+    background:rgba(255,255,255,.06);
+    -webkit-backdrop-filter:var(--lg-blur);backdrop-filter:var(--lg-blur);
+    border:1px solid var(--lg-stroke);
+    box-shadow:var(--lg-inner),0 6px 16px rgba(0,0,0,.30);
+    color:rgba(255,255,255,.88);
+  }
+  .topbar-btn:hover,.topbar-btn:active{background:rgba(255,255,255,.11);}
+
+  .topbar-model-pill{
+    height:40px;
+    background:rgba(255,255,255,.06);
+    -webkit-backdrop-filter:var(--lg-blur);backdrop-filter:var(--lg-blur);
+    border:1px solid var(--lg-stroke);
+    box-shadow:var(--lg-inner),0 8px 22px rgba(0,0,0,.34);
+  }
+  .topbar-model-pill .pill-name{color:#fff;font-weight:700;font-size:17px;}
+  .topbar-training-pill{
+    height:40px;
     background:rgba(255,255,255,.06);
     -webkit-backdrop-filter:var(--lg-blur);backdrop-filter:var(--lg-blur);
     border:1px solid var(--lg-stroke);
@@ -2419,6 +2821,19 @@ html[data-theme="light"] .stp-ava{background:#6a4dff;color:#fff;}
 }
 </style>
 
+<style id="system-theme-desktop-fix">
+/* Системная тема на десктопе светлая (--text тёмный), а листы «+» и выбора модели
+   по умолчанию тёмные — получался тёмный текст на тёмном фоне. */
+@media(min-width:769px){
+  html:not([data-theme]) .attach-sheet{background:rgba(255,255,255,.96);border-color:rgba(20,18,12,.10);box-shadow:0 -18px 48px rgba(0,0,0,.12),inset 0 1px 0 rgba(255,255,255,.6);}
+  html:not([data-theme]) .attach-handle{background:rgba(20,18,12,.16);}
+  html:not([data-theme]) .attach-opt:hover{background:rgba(20,18,12,.05);}
+  html:not([data-theme]) .mm-overlay{background:rgba(20,18,12,.3);}
+  html:not([data-theme]) .mm-sheet{background:rgba(252,251,249,.96);border:1px solid rgba(20,18,12,.08);box-shadow:0 18px 48px rgba(20,18,12,.16);}
+  html:not([data-theme]) .mm-card{background:rgba(255,255,255,.6);border:1px solid rgba(20,18,12,.06);}
+  html:not([data-theme]) .mm-close{background:rgba(20,18,12,.05);border-color:rgba(20,18,12,.08);color:#26241f;}
+}
+</style>
 <style id="settings-reference-match">
 /* Settings: reference layout from the supplied screenshots. */
 .settings-overlay{
@@ -4378,7 +4793,27 @@ async function initSession(){
   document.getElementById('app').classList.remove('show');
   const mg1=document.querySelector('.mobile-glossy');if(mg1)mg1.style.display='';
   showAuthS(1);
+  showOAuthReturnError();
   return null;
+}
+/* Понятный текст вместо молчаливого возврата на /login после неудачного OAuth. */
+function oauthErrorText(info){
+  const raw=String(info?.text||'');const low=(raw+' '+(info?.error||'')+' '+(info?.code||'')).toLowerCase();
+  if(low.includes('access_denied')||low.includes('cancel'))return 'Вход через Google отменён. Попробуйте ещё раз или войдите по email.';
+  if(low.includes('database error')||low.includes('saving new user')||low.includes('unexpected_failure'))
+    return 'Google подтвердил аккаунт, но сервер не смог создать профиль. Мы уже знаем о проблеме — пока войдите по email или попробуйте позже.';
+  if(low.includes('exchange external code')||low.includes('invalid_client')||low.includes('unauthorized_client'))
+    return 'Вход через Google временно не работает (ошибка настройки на сервере). Войдите по email.';
+  if(low.includes('redirect'))return 'Вход через Google вернул на неверный адрес. Попробуйте ещё раз — или войдите по email.';
+  return 'Не удалось войти через Google. Попробуйте ещё раз или войдите по email.';
+}
+function showOAuthReturnError(){
+  const info=window.__hmOAuthError;
+  if(!info)return;
+  window.__hmOAuthError=null;
+  console.warn('OAuth callback error:',info);
+  const h=document.getElementById('loginHint');
+  if(h){h.textContent=oauthErrorText(info);h.style.display='block';}
 }
 /* Регистрируется в startAfterSupabase() после готовности клиента. */
 function onAuthStateChanged(event,session){
@@ -6321,7 +6756,9 @@ function buildFileCard(spec,fmt){
 }
 async function downloadGeneratedFile(spec,fmt,btn){
   const orig=btn.textContent;
-  btn.disabled=true;btn.textContent='...';
+  btn.disabled=true;btn.textContent='Создаю…';
+  const card=btn.closest('.file-card');
+  const anim=(window.HmGenAnim&&card)?window.HmGenAnim.file(card):{stop(){}};
   try{
     const res=await fetch('/api/generate-file',{
       method:'POST',
@@ -6331,6 +6768,7 @@ async function downloadGeneratedFile(spec,fmt,btn){
     if(!res.ok){
       let msg='Не удалось создать файл.';
       try{const j=await res.json();if(j?.message)msg=j.message;}catch(e){}
+      anim.stop(false);
       btn.textContent='Ошибка';setTimeout(()=>{btn.textContent=orig;btn.disabled=false;},2200);
       showFileError(msg);
       return;
@@ -6342,8 +6780,10 @@ async function downloadGeneratedFile(spec,fmt,btn){
     a.href=url;a.download=name+'.'+FILE_FMT_META[fmt].ext;
     document.body.appendChild(a);a.click();a.remove();
     setTimeout(()=>URL.revokeObjectURL(url),4000);
+    anim.stop(true);
     btn.textContent='Готово';setTimeout(()=>{btn.textContent=orig;btn.disabled=false;},1600);
   }catch(e){
+    anim.stop(false);
     btn.textContent='Ошибка';setTimeout(()=>{btn.textContent=orig;btn.disabled=false;},2200);
     showFileError('Не удалось создать файл. Проверьте соединение.');
   }
@@ -7731,6 +8171,21 @@ function ensureReasoningBlock(msgEl){
 
   header.appendChild(glyph);
   header.appendChild(label);
+  // Нотный стан «Думаю» вместо значка-объектива. Время отсчитываем с момента,
+  // когда появился индикатор ожидания, чтобы секунды не начинались заново.
+  if(window.HmThinkStaff){
+    try{
+      const t0=window.__hmThinkStartedAt;
+      const fresh=t0&&(performance.now()-t0)<10*60*1000;
+      const hts=window.HmThinkStaff.create(trReadLastUserText(),fresh?{startedAt:t0}:{});
+      glyph.classList.add('hts-host');
+      glyph.innerHTML='';
+      header.insertBefore(hts.el,glyph);
+      glyph.remove();
+      tr.classList.add('has-hts');
+      tr._hts=hts;
+    }catch(e){}
+  }
   header.appendChild(chevron);
 
   const collapsible=document.createElement('div');
@@ -7869,10 +8324,11 @@ function finalizeReasoningBlock(tr){
   // сервер сообщил, что модель думала в скрытом канале и сводки не написала
   // (reasoning_end.hidden): время работы модели реально было, и показать его
   // честнее, чем убрать блок.
-  if(!formatReasoningText(tr._text||'').trim()&&!tr._keepEmpty){tr.remove();return;}
+  if(!formatReasoningText(tr._text||'').trim()&&!tr._keepEmpty){if(tr._hts)try{tr._hts.stop();}catch(e){}tr.remove();return;}
 
   const human='Думал '+fmtThinkDuration(tr._durationMs);
   if(tr._verb)tr._verb.textContent=human;
+  if(tr._hts)try{tr._hts.finish(tr._durationMs,human);}catch(e){}
   if(tr._header)tr._header.setAttribute('aria-label',human);
   tr.classList.add('is-done');
   // Если пользователь уже раскрыл блок вручную — не закрываем.
@@ -7896,6 +8352,7 @@ function dropReasoningBlock(msgEl){
   if(!tr)return;
   if(tr._raf){cancelAnimationFrame(tr._raf);tr._raf=0;}
   tr._done=true;
+  if(tr._hts)try{tr._hts.stop();}catch(e){}
   tr.remove();
 }
 
@@ -8034,6 +8491,19 @@ function showTyping(kind='text',steps=[]){
   // Облако частиц показываем там, где ждать заведомо долго: разбор запроса,
   // файл, фото, картинка, перегенерация. Простой текстовый запрос отвечает
   // за секунду — там по-прежнему три точки, анимация не успела бы ожить.
+  // Режим «Думаю» (включён «Думать»/Max/Extra или вопрос сложный): нотный стан
+  // из /js/hm-think-staff.js — ноты бегут по линейкам, цвет зависит от тональности
+  // в вопросе, рядом идут реальные секунды ожидания.
+  if(kind==='text'&&label&&window.HmThinkStaff){
+    const staff=window.HmThinkStaff.create(trReadLastUserText());
+    window.__hmThinkStartedAt=staff.startedAt;
+    d.classList.add('think-staff');
+    d.appendChild(staff.el);
+    d._staff=staff;
+    inner.appendChild(d);
+    if(typeof scrollChat==='function')scrollChat();
+    return;
+  }
   const wantOrb=kind!=='text'||label!=='';
   const orb=wantOrb&&window.hmThinkLoader?window.hmThinkLoader.mount(d):null;
 
@@ -8066,6 +8536,7 @@ function hideTyping(){
     // Гасим цикл кадров вместе с элементом (сам он тоже это заметит, но
     // отменить requestAnimationFrame сразу — дешевле).
     if(t._orb&&t._orb.stop)try{t._orb.stop();}catch(e){}
+    if(t._staff)try{t._staff.stop();}catch(e){}
     t.remove();
   }
 }
@@ -8625,6 +9096,9 @@ function renderImageGenPlaceholder(msgEl,prompt,resolution){
   canvas.appendChild(dots);
   canvas.appendChild(glow);
   canvas.appendChild(res);
+  // Новая анимация генерации: цветная мозаика «проявляется» волнами + таймер.
+  // Цикл гаснет сам, когда плейсхолдер заменяется готовой картинкой.
+  if(window.HmGenAnim)try{wrap._hga=window.HmGenAnim.image(canvas);}catch(e){}
 
   const meta=document.createElement('div');
   meta.className='igMeta';
@@ -10269,7 +10743,10 @@ function stpHead(title,backFn){
   return '<div class="stp-head"><button type="button" class="stp-back" onclick="'+backFn+'"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Настройки</span></button><div class="stp-title">'+title+'</div></div>';
 }
 function setHead(title,backFn){return stpHead(title,backFn);}
-function stpBackMain(){closeSettings();}
+/* Возвращает ТЕКСТ обработчика для кнопки «← Настройки» (его подставляют в onclick).
+   Раньше функция сразу вызывала closeSettings(), и каждое открытие настроек
+   тут же само себя закрывало — кнопка с аватаром «не работала». */
+function stpBackMain(){return 'closeSettings()';}
 function stpShell(active,title,backFn,bodyHtml){
   return stpEnsure(active,title,backFn,bodyHtml);
 }
