@@ -2975,6 +2975,44 @@ html[data-theme="messenger"] .rec-overlay{background:rgba(23,33,43,.34);}
 }
 @media(prefers-reduced-motion:reduce){.rec-overlay,.rec-modal{transition:none!important;}}
 </style>
+<style id="settings-theme-close">
+/* Крестик закрытия настроек — в правом верхнем углу панели. */
+.stp-close{position:absolute!important;right:0!important;top:0!important;width:38px!important;height:38px!important;border-radius:50%!important;border:0!important;display:flex!important;align-items:center!important;justify-content:center!important;background:color-mix(in srgb,var(--set-text,#fff) 9%,transparent)!important;color:var(--set-text,var(--text))!important;cursor:pointer!important;padding:0!important;z-index:7!important;transition:background .15s,transform .15s!important;}
+.stp-close svg{width:18px;height:18px;}
+.stp-close:hover{background:color-mix(in srgb,var(--set-text,#fff) 16%,transparent)!important;}
+.stp-close:active{transform:scale(.92)!important;}
+@media(max-width:768px){.stp-close{top:calc(9px + env(safe-area-inset-top))!important;width:40px!important;height:40px!important;}.stp-title{max-width:calc(100% - 100px)!important;}}
+
+/* Выбор темы — карточки с превью */
+.stp-theme-block{padding:10px 2px 16px;}
+.stp-theme-block>.stp-row-title{margin-bottom:12px;}
+.thp{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;}
+@media(max-width:900px){.thp{grid-template-columns:repeat(2,minmax(0,1fr));}}
+.thp-card{position:relative;display:flex;flex-direction:column;gap:9px;padding:8px 8px 10px;border-radius:18px;border:1.5px solid color-mix(in srgb,var(--set-text,var(--text)) 14%,transparent);background:color-mix(in srgb,var(--set-text,var(--text)) 4%,transparent);color:var(--set-text,var(--text));font:inherit;text-align:left;cursor:pointer;transition:border-color .18s,background .18s,transform .18s;}
+.thp-card:hover{border-color:color-mix(in srgb,var(--set-text,var(--text)) 30%,transparent);transform:translateY(-1px);}
+.thp-card.on{border-color:var(--set-accent,#1f5cff);background:color-mix(in srgb,var(--set-accent,#1f5cff) 10%,transparent);}
+.thp-card:focus-visible{outline:2px solid var(--set-accent,#1f5cff);outline-offset:2px;}
+.thp-prev{position:relative;display:flex;aspect-ratio:4/3;border-radius:12px;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(127,127,127,.22);}
+.thp-half{position:relative;flex:1;display:block;height:100%;}
+.thp-prev:not(.thp-system),.thp-half{--bg:#fafaf9;--side:#efede8;--b1:#ffffff;--b2:#1a1a1a;--in:#ffffff;--line:rgba(0,0,0,.09);background:var(--bg);}
+.thp-prev.thp-dark,.thp-half.thp-dark{--bg:#0b0b0e;--side:#17171b;--b1:#26262c;--b2:#f2f2f2;--in:#1d1d22;--line:rgba(255,255,255,.1);}
+.thp-prev.thp-messenger{--bg:#e8f2f8;--side:#d5e7f2;--b1:#ffffff;--b2:#2f9be0;--in:#ffffff;--line:rgba(40,100,140,.14);}
+.thp-side{position:absolute;left:0;top:0;bottom:0;width:18%;background:var(--side);}
+.thp-b{position:absolute;height:12%;border-radius:999px;}
+.thp-b1{left:26%;top:18%;width:46%;background:var(--b1);box-shadow:0 0 0 1px var(--line);}
+.thp-b2{right:8%;top:38%;width:38%;background:var(--b2);}
+.thp-in{position:absolute;left:26%;right:8%;bottom:10%;height:16%;border-radius:999px;background:var(--in);box-shadow:0 0 0 1px var(--line);}
+.thp-system .thp-half .thp-side{width:36%;}
+.thp-system .thp-half .thp-b1,.thp-system .thp-half .thp-in{left:44%;}
+.thp-system .thp-half .thp-b2{width:60%;}
+.thp-meta{display:flex;flex-direction:column;gap:1px;padding:0 4px;min-width:0;}
+.thp-name{font-size:15px;font-weight:600;line-height:1.25;}
+.thp-hint{font-size:12px;opacity:.6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.thp-check{position:absolute;top:14px;right:14px;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--set-accent,#1f5cff);color:#fff;transform:scale(0);transition:transform .2s cubic-bezier(.34,1.56,.64,1);box-shadow:0 2px 8px rgba(0,0,0,.25);}
+.thp-check svg{width:13px;height:13px;}
+.thp-card.on .thp-check{transform:scale(1);}
+@media(prefers-reduced-motion:reduce){.thp-card,.thp-check{transition:none;}}
+</style>
 </head>
 <body>
 <div id="initialLoading" role="status" aria-live="polite"><span class="boot-spinner"></span><span>Загрузка HarmonyAI…</span></div>
@@ -3162,7 +3200,7 @@ html[data-theme="messenger"] .rec-overlay{background:rgba(23,33,43,.34);}
             <!-- Кнопка «+»: открывает меню (файл/фото + поиск в интернете) -->
             <div class="plus-btn-wrap" style="position:relative;">
               <button class="bar-icon" onclick="togglePlusDrop(event)" title="Добавить файл/фото или поиск" aria-label="Меню добавления">
-                <svg class="bar-icon-clip desktop-only" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M16.5 6.5L9 14a3.5 3.5 0 105 5l8-8a5.5 5.5 0 00-7.78-7.78l-8.7 8.7a7.5 7.5 0 1010.6 10.6l7.4-7.4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <svg class="bar-icon-clip desktop-only" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l8.57-8.57A4 4 0 1118 8.84l-8.59 8.57a2 2 0 01-2.83-2.83l8.49-8.48" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 <svg class="bar-icon-plus mobile-only" width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></svg>
               </button>
             </div>
@@ -5954,6 +5992,7 @@ async function openChat(id,opts){
       // Сообщение с сгенерированной картинкой — рендерим <img> по URL из Storage.
       const shell=createAiBubbleShell({showActions:false,createdAt:m.createdAt,historyIndex:idx});
       appendImageToShell(shell.msg,m.image);
+      attachImageMessageActions(shell,imagePromptFromHistory(m));
     }else{
       const result=addAiBubble(normalizeReplyNotation(txt||''),false,{createdAt:m.createdAt,historyIndex:idx});
       if(m.generatedFile)result.then(shell=>shell.msg.appendChild(buildFileCard(m.generatedFile,m.generatedFile.format)));
@@ -5976,7 +6015,7 @@ function trainingGreetingHTML(){
     <div class="training-desc">Все, что вы отправляете, помогает мне становиться умнее и точнее.</div>
     <div class="training-rows">
       <div class="train-row" style="cursor:pointer" onclick="document.getElementById('fileInp').click()">
-        <div class="train-row-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M16.5 6.5L9 14a3.5 3.5 0 105 5l8-8a5.5 5.5 0 00-7.78-7.78l-8.7 8.7a7.5 7.5 0 1010.6 10.6l7.4-7.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="train-row-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l8.57-8.57A4 4 0 1118 8.84l-8.59 8.57a2 2 0 01-2.83-2.83l8.49-8.48" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         <div class="train-row-text"><div class="train-row-title">Прикрепляйте файлы</div><div class="train-row-desc">PDF, DOCX, TXT и другие</div></div>
         <div class="train-row-chevron">›</div>
       </div>
@@ -7609,6 +7648,8 @@ function scheduleViewportSync(){
   syncViewportMetrics();
 })();
 function cpMsg(btn){
+  const imgEl=btn.closest('.msg-ai-wrap')?.querySelector('.msg-ai-img');
+  if(imgEl){navigator.clipboard.writeText(imgEl.dataset.src||imgEl.src).catch(()=>{});btn.classList.add('liked');setTimeout(()=>btn.classList.remove('liked'),800);return;}
   const txt=(btn.closest('.msg-ai-wrap').querySelector('.msg-ai').dataset.raw||btn.closest('.msg-ai-wrap').querySelector('.msg-ai').textContent);
   navigator.clipboard.writeText(txt).catch(()=>{});
   btn.classList.add('liked');setTimeout(()=>btn.classList.remove('liked'),800);
@@ -7734,6 +7775,15 @@ async function regenMsg(item){
   if(isGenerating)return;
   item.parentElement.classList.remove('open');
   const wrap=item.closest('.msg-ai-wrap');
+  if(wrap&&wrap.dataset.imgPrompt){
+    // Повтор для фото: удаляем старое фото из ленты и истории, рисуем заново.
+    const prompt=wrap.dataset.imgPrompt;
+    const last=chatHistory[chatHistory.length-1];
+    if(last&&last.role==='assistant'&&last.image)chatHistory.pop();
+    wrap.remove();
+    await handleImageGeneration(prompt);
+    return;
+  }
   const msgEl=wrap.querySelector('.msg-ai');
   const actionsEl=wrap.querySelector('.msg-actions');
   setMessageActionsVisible(actionsEl,false);
@@ -8494,6 +8544,22 @@ function showTyping(kind='text',steps=[]){
   // Режим «Думаю» (включён «Думать»/Max/Extra или вопрос сложный): нотный стан
   // из /js/hm-think-staff.js — ноты бегут по линейкам, цвет зависит от тональности
   // в вопросе, рядом идут реальные секунды ожидания.
+  // «Рисую изображение…» (пока решаем, нужна ли картинка): мини-мозаика той же
+  // анимации, что и в самом холсте генерации, — вместо старого облака частиц.
+  if(kind==='image'&&window.HmGenAnim){
+    const mini=document.createElement('span');
+    mini.className='hga-mini';
+    d.classList.add('think-staff');
+    d.appendChild(mini);
+    const s=document.createElement('span');
+    s.className='hga-mini-label';
+    s.textContent=label||'Рисую изображение…';
+    d.appendChild(s);
+    inner.appendChild(d);
+    d._staff=window.HmGenAnim.image(mini,{mini:true});
+    if(typeof scrollChat==='function')scrollChat();
+    return;
+  }
   if(kind==='text'&&label&&window.HmThinkStaff){
     const staff=window.HmThinkStaff.create(trReadLastUserText());
     window.__hmThinkStartedAt=staff.startedAt;
@@ -9095,7 +9161,8 @@ function renderImageGenPlaceholder(msgEl,prompt,resolution){
   res.textContent=resolution||IG_DEFAULT_RESOLUTION;
   canvas.appendChild(dots);
   canvas.appendChild(glow);
-  canvas.appendChild(res);
+  // Подпись «1024 × 1024» убрана: пока идёт генерация, холст всегда квадратный,
+  // а готовая картинка потом занимает свой настоящий размер.
   // Новая анимация генерации: цветная мозаика «проявляется» волнами + таймер.
   // Цикл гаснет сам, когда плейсхолдер заменяется готовой картинкой.
   if(window.HmGenAnim)try{wrap._hga=window.HmGenAnim.image(canvas);}catch(e){}
@@ -9125,6 +9192,25 @@ function renderImageGenPlaceholder(msgEl,prompt,resolution){
   return wrap;
 }
 
+/* Фото-ответ ведёт себя как обычное сообщение: копировать (ссылку на фото),
+   лайк/дизлайк, «···» → «Повторить» (заново генерирует по тому же описанию). */
+function attachImageMessageActions(shell,prompt){
+  if(!shell||!shell.wrap)return;
+  if(prompt)shell.wrap.dataset.imgPrompt=String(prompt);
+  let actions=shell.actions||shell.wrap.querySelector('.msg-actions');
+  if(!actions){
+    actions=document.createElement('div');
+    actions.className='msg-actions';
+    actions.innerHTML=getMessageActionsMarkup();
+    shell.wrap.appendChild(actions);
+    shell.actions=actions;
+  }
+  try{setMessageActionsVisible(actions,true);}catch(e){actions.classList.remove('is-hidden');}
+}
+function imagePromptFromHistory(m){
+  const mm=/«([\s\S]*)»/.exec(String(m&&m.content||''));
+  return mm?mm[1]:'';
+}
 function appendImageToShell(msgEl,src){
   if(!msgEl)return;
   // data-src хранит URL для просмотрщика; клик по фото на десктопе открывает ��одалку,
@@ -9385,6 +9471,7 @@ async function handleImageGeneration(promptText){
         if(!data?.image)throw new Error('Сервер не вернул изображение');
         hideTyping();
         appendImageToShell(shell.msg,data.image);
+        attachImageMessageActions(shell,promptText);
         recordImageUsage();
         // Промо-уведомление после каждой генерации (~78% для не-Pro, не чаще 1 раза за сессию).
         showNotification('promo_img',1/8);
@@ -10648,6 +10735,15 @@ function closeSettings(){
 }
 
 function getSettings(){return curUser?.settings||{};}
+/* Сохранение одной настройки в профиль. Функция была случайно удалена 14–15.09,
+   из-за чего не работали выбор темы и все переключатели в настройках. */
+async function saveSetting(key,val){
+  if(!curUser)return;
+  if(!curUser.settings)curUser.settings={};
+  curUser.settings[key]=val;
+  try{await sb.from('profiles').upsert({id:curUser.id,settings:curUser.settings},{onConflict:'id'});}
+  catch(e){console.warn('saveSetting failed',e);}
+}
 
 function avatarInitials(){
   const name=(curUser?.nickname||'').trim();
@@ -10740,7 +10836,7 @@ function stpEnsure(active,title,backFn,bodyHtml){
   return pane.querySelector('.stp-body');
 }
 function stpHead(title,backFn){
-  return '<div class="stp-head"><button type="button" class="stp-back" onclick="'+backFn+'"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Настройки</span></button><div class="stp-title">'+title+'</div></div>';
+  return '<div class="stp-head"><button type="button" class="stp-back" onclick="'+backFn+'"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Настройки</span></button><div class="stp-title">'+title+'</div><button type="button" class="stp-close" onclick="closeSettings()" aria-label="Закрыть настройки" title="Закрыть"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button></div>';
 }
 function setHead(title,backFn){return stpHead(title,backFn);}
 /* Возвращает ТЕКСТ обработчика для кнопки «← Настройки» (его подставляют в onclick).
@@ -11562,6 +11658,23 @@ function applyTheme(val){
     try{localStorage.removeItem('hai_theme');}catch(e){}
   }
 }
+/* Выбор темы — карточки с живым мини-превью вместо выпадающего списка:
+   сразу видно, как будет выглядеть чат. «Системная» показывает обе половины. */
+function themePickerHtml(cur){
+  const items=[
+    {id:'system',name:'Системная',hint:'Как на устройстве'},
+    {id:'light',name:'Светлая',hint:'Тёплый белый'},
+    {id:'dark',name:'Тёмная',hint:'Глубокий чёрный'},
+    {id:'messenger',name:'Мессенджер',hint:'Голубые тона'}
+  ];
+  const mock='<span class="thp-side"></span><span class="thp-b thp-b1"></span><span class="thp-b thp-b2"></span><span class="thp-in"></span>';
+  return '<div class="thp" role="radiogroup" aria-label="Тема приложения">'+items.map(t=>
+    '<button type="button" role="radio" aria-checked="'+(t.id===cur)+'" class="thp-card'+(t.id===cur?' on':'')+'" onclick="selectAppearance(\''+t.id+'\');renderSettingsPers()">'
+    +'<span class="thp-prev thp-'+t.id+'">'+(t.id==='system'?'<span class="thp-half thp-light">'+mock+'</span><span class="thp-half thp-dark">'+mock+'</span>':mock)+'</span>'
+    +'<span class="thp-meta"><span class="thp-name">'+t.name+'</span><span class="thp-hint">'+t.hint+'</span></span>'
+    +'<span class="thp-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.2 4.2L19 7" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>'
+    +'</button>').join('')+'</div>';
+}
 function selectAppearance(val){
   applyTheme(val);
   saveSetting('appearance',val);
@@ -11740,11 +11853,11 @@ function renderSettingsPers(){
   const themeNames={system:'Системная',dark:'Тёмная',light:'Светлая',messenger:'Мессенджер'};
   const memRecall=(s.memRecall!==false);
   const qr=(s.quickReplies!==false);
-  const dd=stpDdHtml('ddTheme',themeNames[theme]||'Системная',['system','dark','light','messenger'].map(t=>`<button type="button" class="stp-dd-opt${t===theme?' on':''}" onclick="selectAppearance('${t}');renderSettingsPers()">${themeNames[t]}</button>`).join(''));
+  const dd='';
   stpEnsure('pers','Персонализация',stpBackMain(),`
-      <div class="stp-row">
-        <div class="stp-row-label"><div class="stp-row-title">Тема приложения</div></div>
-        ${dd}
+      <div class="stp-theme-block">
+        <div class="stp-row-title">Тема приложения</div>
+        ${themePickerHtml(theme)}
       </div>
       <div class="stp-row">
         <div class="stp-row-label">
