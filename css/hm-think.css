@@ -79,3 +79,11 @@ html[data-theme="dark"] .hts{--ns:88%;--nl:70%;--nl-lit:82%;}
   .hga-sweep,.hga-doc i,.hga-bar i{animation:none;}
   .hga-doc i{transform:none;}
 }
+
+/* ===== Холст генерации всегда квадратный; готовое фото — в своём размере ===== */
+.igCanvas{aspect-ratio:1/1!important;height:auto!important;}
+.igRes{display:none!important;}
+/* Мини-мозаика «Рисую изображение…» в ленте */
+.hga-mini{position:relative;display:inline-block;width:26px;height:26px;border-radius:7px;overflow:hidden;flex:none;background:color-mix(in srgb,var(--text2,#888) 12%,transparent);}
+.hga-mini .hga-img{inset:0;border-radius:7px;}
+.hga-mini-label{margin-left:10px;font-size:14px;font-weight:500;color:var(--text2,#747482);}
