@@ -30,6 +30,14 @@
       "destination": "/api-docs.html"
     },
     {
+      "source": "/mcp/:key",
+      "destination": "/api/v1?path=mcp&k=:key"
+    },
+    {
+      "source": "/mcp",
+      "destination": "/api/v1?path=mcp"
+    },
+    {
       "source": "/v1/(.*)",
       "destination": "/api/v1?path=$1"
     },
