@@ -117,10 +117,17 @@
 
   /* ---------- звук ---------- */
   var actx=null,analyser=null,freq=null,hasAudio=true;
-  function markNoAudio(){hasAudio=false;root.classList.add('sr-noaudio');}
+  function markNoAudio(){
+    if(!hasAudio)return;
+    // Если ролик уже идёт — продолжаем с того же места по таймеру, без скачка.
+    var at=0;try{at=audio.currentTime||0;}catch(e){}
+    hasAudio=false;root.classList.add('sr-noaudio');
+    if(mode==='playing')clockT0=performance.now()-at*1000;
+    if(mode==='paused')pausedAt=at;
+  }
   audio.addEventListener('error',markNoAudio);
   // Проверяем, лежит ли файл на сайте, до нажатия «Смотреть».
-  try{fetch(audio.getAttribute('src'),{method:'HEAD'}).then(function(r){if(!r.ok)markNoAudio();}).catch(function(){});}catch(e){}
+  try{fetch(audio.getAttribute('src'),{method:'HEAD'}).then(function(r){var n=+(r.headers.get('content-length')||0);if(!r.ok||(n&&n<20000))markNoAudio();}).catch(function(){});}catch(e){}
   function ensureAnalyser(){
     if(actx||!hasAudio)return;
     try{var AC=window.AudioContext||window.webkitAudioContext;actx=new AC();
@@ -158,7 +165,7 @@
     if(hasAudio){
       ensureAnalyser();try{actx&&actx.resume();}catch(e){}
       if(mode==='preview'||mode==='ended')audio.currentTime=0;
-      var pr=audio.play();if(pr&&pr.catch)pr.catch(function(){markNoAudio();clockT0=performance.now();});
+      var pr=audio.play();if(pr&&pr.catch)pr.catch(function(){markNoAudio();});
     }else{
       clockT0=performance.now()-((mode==='paused')?pausedAt*1000:0);
     }
