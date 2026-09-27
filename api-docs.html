@@ -19,6 +19,7 @@
 <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230d0f14'/%3E%3Cpath d='M18 14h8v18h12V14h8v36h-8V39H26v11h-8z' fill='%23ffffff'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="/css/site.css">
+<link rel="stylesheet" href="/css/docs-mobile.css">
 </head>
 <body>
 
@@ -140,9 +141,14 @@
              в дереве доступности остаются только сами вкладки. -->
         <div class="ig-nav" role="tablist" aria-label="Способы подключения">
           <p class="ig-nav-title" role="presentation" aria-hidden="true">Приложения</p>
+          <button class="ig-tab" type="button" role="tab" data-tab="chatgpt"
+                  id="ig-t-chatgpt" aria-controls="ig-p-chatgpt" aria-selected="true">
+            <svg class="ig-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5a4.2 4.2 0 0 1 4 2.9 4.2 4.2 0 0 1 3.6 6.2 4.2 4.2 0 0 1-3.2 6.5A4.2 4.2 0 0 1 9.3 20a4.2 4.2 0 0 1-4.9-3.9 4.2 4.2 0 0 1-.9-7.2A4.2 4.2 0 0 1 8.7 4.2 4.2 0 0 1 12 3.5z"/><path d="M9 9.5l3-1.7 3 1.7v3.4l-3 1.7-3-1.7z"/></svg>
+            <span>ChatGPT</span>
+          </button>
 
           <button class="ig-tab" type="button" role="tab" data-tab="claude-code"
-                  id="ig-t-claude-code" aria-controls="ig-p-claude-code" aria-selected="true">
+                  id="ig-t-claude-code" aria-controls="ig-p-claude-code" aria-selected="false">
             <svg class="ig-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m4 17 5-5-5-5"/><path d="M13 19h7"/></svg>
             <span>Claude Code</span>
           </button>
@@ -194,8 +200,60 @@
 
         <div class="ig-body">
 
+          <!-- ===== ChatGPT (MCP-приложение) ===== -->
+          <section class="ig-panel" role="tabpanel" id="ig-p-chatgpt" aria-labelledby="ig-t-chatgpt" tabindex="0">
+            <div class="ig-head">
+              <h3>ChatGPT</h3>
+              <span class="badge">Приложение</span>
+            </div>
+            <p class="ig-lead">
+              HarmonyAI подключается к ChatGPT как приложение: ChatGPT сам зовёт HarmonyAI,
+              когда вопрос про музыку — сольфеджио, гармонию, аккорды, гаммы. Работает в
+              браузере и на компьютере; на телефоне появится после подключения.
+            </p>
+
+            <div class="gpt-url">
+              <label class="gpt-url-label" for="gptKeyInp">Ваш адрес подключения</label>
+              <input class="input mono" id="gptKeyInp" type="password" placeholder="Вставьте ключ sk-h-…" autocomplete="off" spellcheck="false">
+              <div class="code-block"><pre id="gptUrlOut">https://harmonyai.ru/mcp/sk-h-ваш-ключ</pre></div>
+              <p class="gpt-url-note">Ключ остаётся в этом окне: страница только подставляет его в адрес и никуда не отправляет.</p>
+            </div>
+
+            <ol class="ig-steps">
+              <li>
+                <span class="ig-step-t">Включите режим разработчика</span>
+                <p>ChatGPT → <b>Настройки</b> → <b>Приложения и коннекторы</b> → <b>Расширенные настройки</b> → включите <b>Режим разработчика</b>. Нужен платный тариф ChatGPT (Plus, Pro, Business).</p>
+              </li>
+              <li>
+                <span class="ig-step-t">Создайте приложение</span>
+                <p>В тех же настройках нажмите <b>Создать</b> и заполните поля:</p>
+                <div class="table-wrap">
+                  <table class="tbl tbl-kv">
+                    <tbody>
+                      <tr><td>Название</td><td><code>HarmonyAI</code></td></tr>
+                      <tr><td>URL MCP-сервера</td><td>адрес из поля выше</td></tr>
+                      <tr><td>Аутентификация</td><td>Без аутентификации — ключ уже в адресе</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p>Отметьте, что доверяете приложению, и нажмите <b>Создать</b>.</p>
+              </li>
+              <li>
+                <span class="ig-step-t">Спросите в чате</span>
+                <p>В новом чате нажмите <b>+</b> → <b>Ещё</b> → <b>HarmonyAI</b> и задайте вопрос. Или просто напишите «Спроси HarmonyAI, что такое септаккорд».</p>
+              </li>
+            </ol>
+
+            <div class="notice">
+              <b>Оплата и модели.</b> Каждый ответ списывается с баланса API так же, как запрос к
+              <code>/v1/messages</code>. По умолчанию отвечает <code>adanatos</code>; попросите
+              ChatGPT использовать <code>dynatos</code> для сложных задач (нужна Pro-подписка).
+              Адрес с ключом — это пароль: не публикуйте его. Если он утёк, отзовите ключ в кабинете.
+            </div>
+          </section>
+
           <!-- ===== Claude Code ===== -->
-          <section class="ig-panel" role="tabpanel" id="ig-p-claude-code" aria-labelledby="ig-t-claude-code" tabindex="0">
+          <section class="ig-panel" role="tabpanel" id="ig-p-claude-code" aria-labelledby="ig-t-claude-code" tabindex="0" hidden>
             <div class="ig-head">
               <h3>Claude Code</h3>
               <span class="badge">CLI</span>
@@ -1088,6 +1146,27 @@ event: message_stop</pre>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 <script src="/js/site-auth.js" defer></script>
 <script src="/js/site.js" defer></script>
+<script>
+/* Собирает адрес для ChatGPT из вставленного ключа. Ключ никуда не уходит. */
+(function(){
+  function upd(){
+    var inp=document.getElementById('gptKeyInp'),out=document.getElementById('gptUrlOut');
+    if(!inp||!out)return;
+    var k=String(inp.value||'').trim().replace(/[^A-Za-z0-9_\-]/g,'');
+    out.textContent='https://harmonyai.ru/mcp/'+(k||'sk-h-ваш-ключ');
+  }
+  document.addEventListener('input',function(e){if(e.target&&e.target.id==='gptKeyInp')upd();});
+  /* Подписи колонок для «карточного» вида таблиц на телефоне. */
+  document.addEventListener('DOMContentLoaded',function(){
+    document.querySelectorAll('table.tbl').forEach(function(t){
+      var ths=t.querySelectorAll('thead th');if(!ths.length)return;
+      t.querySelectorAll('tbody tr').forEach(function(tr){
+        Array.prototype.forEach.call(tr.children,function(td,i){if(i>0&&ths[i])td.setAttribute('data-th',ths[i].textContent.trim());});
+      });
+    });
+  });
+})();
+</script>
 <script>
 /* ===== СОЗДАНИЕ КЛЮЧА С ЭТОЙ СТРАНИЦЫ =====
    Требование: неавторизованный жмёт «Создать API-ключ» → уходит на существующий
