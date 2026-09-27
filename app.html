@@ -3013,6 +3013,7 @@ html[data-theme="messenger"] .rec-overlay{background:rgba(23,33,43,.34);}
 .thp-card.on .thp-check{transform:scale(1);}
 @media(prefers-reduced-motion:reduce){.thp-card,.thp-check{transition:none;}}
 </style>
+<link rel="stylesheet" href="/css/mobile-chat.css">
 </head>
 <body>
 <div id="initialLoading" role="status" aria-live="polite"><span class="boot-spinner"></span><span>Загрузка HarmonyAI…</span></div>
@@ -3163,6 +3164,11 @@ html[data-theme="messenger"] .rec-overlay{background:rgba(23,33,43,.34);}
             <div class="greeting-hint"><span class="gh-icon"><svg width="20" height="16" viewBox="0 0 30 22" fill="none"><path d="M2 2h26M2 7h26M2 12h26M2 17h26" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M9 1c-2.6 1.6-3.4 4-2.6 6.4.8 2.3 3.2 3.2 3.2 5.4 0 1.6-1.2 2.6-2.4 2.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6.6" cy="17.4" r="1.6" fill="currentColor"/></svg></span><span>Сгенерировать нотный стан</span></div>
             <div class="greeting-hint"><span class="gh-icon"><svg width="16" height="20" viewBox="0 0 18 24" fill="none"><circle cx="4.2" cy="19.5" r="3.6" fill="currentColor"/><path d="M7.7 19.5V3.5l8.3-2.3v6.4l-8.3 2.3" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></span><span>Разбор сольфеджио</span></div>
           </div>
+          <div class="m-hints" aria-label="Подсказки">
+      <button type="button" class="m-hint" onclick="mHint(this)" data-q="Помоги с сольфеджио: "><svg viewBox="0 0 30 26" fill="none" aria-hidden="true"><rect x="5" y="2" width="20" height="21" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M5 19h20M9 23v2l1.5-1 1.5 1v-2" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M11 8h7v6M11 8v8" stroke="currentColor" stroke-width="1.3"/><circle cx="10" cy="16" r="1.5" fill="currentColor"/><circle cx="17" cy="14" r="1.5" fill="currentColor"/></svg><span>Помочь с сольфеджио</span></button>
+      <button type="button" class="m-hint" onclick="mHint(this)" data-q="Сгенерируй нотный стан: "><svg viewBox="0 0 30 26" fill="none" aria-hidden="true"><path d="M2 7h27M2 11h27M2 15h27M2 19h27" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><path d="M8 3c-2.4 2.3-3.4 5.4-2 8.5 1.1 2.4 3.5 3.4 3.3 5.9-.2 1.6-1.6 2.4-2.8 1.9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="6.4" cy="21.6" r="1.4" fill="currentColor"/></svg><span>Сгенерировать нотный стан</span></button>
+      <button type="button" class="m-hint" onclick="mHint(this)" data-q="Разбери аккорды: "><svg viewBox="0 0 30 26" fill="none" aria-hidden="true"><path d="M2 20h26M2 23h26" stroke="currentColor" stroke-width="1" stroke-linecap="round"/><ellipse cx="6" cy="17" rx="2.6" ry="2" fill="currentColor"/><ellipse cx="13" cy="15" rx="2.6" ry="2" fill="currentColor"/><path d="M8.5 17V7l7-2v10" stroke="currentColor" stroke-width="1.5"/><path d="M8.5 10l7-2" stroke="currentColor" stroke-width="2.2"/><ellipse cx="23" cy="13" rx="2.3" ry="1.8" fill="currentColor"/><path d="M25.2 13V4c1.8.5 2.8 2 2.8 3.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg><span>Разобрать аккорды</span></button>
+    </div>
         </div>
       </div>
     </div>
@@ -4938,8 +4944,19 @@ function greetingPeriod(){
     return 'night';
   }
 }
+/* Подсказка на мобильном экране: подставляет начало запроса в поле ввода. */
+function mHint(btn){
+  const ta=document.getElementById('msgTa');
+  if(!ta)return;
+  ta.value=btn.getAttribute('data-q')||'';
+  try{taResize(ta);}catch(e){}
+  ta.focus();
+  try{ta.setSelectionRange(ta.value.length,ta.value.length);}catch(e){}
+}
 function greetingTitleText(){
   const name=curUser?.nickname;
+  // Телефон: одно спокойное приветствие по макету — «Чем займёмся, имя?».
+  try{if(name&&window.matchMedia('(max-width:768px)').matches)return 'Чем займёмся, '+escapeHtml(name)+'?';}catch(e){}
   if(!name)return 'Привет! Я Harmony Ai';
   const pool=HM_GREETINGS[greetingPeriod()]||HM_GREETINGS.day;
   let phrase=pool[Math.floor(Math.random()*pool.length)];
@@ -6094,6 +6111,11 @@ function newChat(){
     <div class="greeting-hints">
       <div class="greeting-hint"><span class="gh-icon"><svg width="20" height="16" viewBox="0 0 30 22" fill="none"><path d="M2 2h26M2 7h26M2 12h26M2 17h26" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M9 1c-2.6 1.6-3.4 4-2.6 6.4.8 2.3 3.2 3.2 3.2 5.4 0 1.6-1.2 2.6-2.4 2.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6.6" cy="17.4" r="1.6" fill="currentColor"/></svg></span><span>Сгенерировать нотный стан</span></div>
       <div class="greeting-hint"><span class="gh-icon"><svg width="16" height="20" viewBox="0 0 18 24" fill="none"><circle cx="4.2" cy="19.5" r="3.6" fill="currentColor"/><path d="M7.7 19.5V3.5l8.3-2.3v6.4l-8.3 2.3" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></span><span>Разбор сольфеджио</span></div>
+    </div>
+    <div class="m-hints" aria-label="Подсказки">
+      <button type="button" class="m-hint" onclick="mHint(this)" data-q="Помоги с сольфеджио: "><svg viewBox="0 0 30 26" fill="none" aria-hidden="true"><rect x="5" y="2" width="20" height="21" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M5 19h20M9 23v2l1.5-1 1.5 1v-2" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M11 8h7v6M11 8v8" stroke="currentColor" stroke-width="1.3"/><circle cx="10" cy="16" r="1.5" fill="currentColor"/><circle cx="17" cy="14" r="1.5" fill="currentColor"/></svg><span>Помочь с сольфеджио</span></button>
+      <button type="button" class="m-hint" onclick="mHint(this)" data-q="Сгенерируй нотный стан: "><svg viewBox="0 0 30 26" fill="none" aria-hidden="true"><path d="M2 7h27M2 11h27M2 15h27M2 19h27" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><path d="M8 3c-2.4 2.3-3.4 5.4-2 8.5 1.1 2.4 3.5 3.4 3.3 5.9-.2 1.6-1.6 2.4-2.8 1.9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="6.4" cy="21.6" r="1.4" fill="currentColor"/></svg><span>Сгенерировать нотный стан</span></button>
+      <button type="button" class="m-hint" onclick="mHint(this)" data-q="Разбери аккорды: "><svg viewBox="0 0 30 26" fill="none" aria-hidden="true"><path d="M2 20h26M2 23h26" stroke="currentColor" stroke-width="1" stroke-linecap="round"/><ellipse cx="6" cy="17" rx="2.6" ry="2" fill="currentColor"/><ellipse cx="13" cy="15" rx="2.6" ry="2" fill="currentColor"/><path d="M8.5 17V7l7-2v10" stroke="currentColor" stroke-width="1.5"/><path d="M8.5 10l7-2" stroke="currentColor" stroke-width="2.2"/><ellipse cx="23" cy="13" rx="2.3" ry="1.8" fill="currentColor"/><path d="M25.2 13V4c1.8.5 2.8 2 2.8 3.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg><span>Разобрать аккорды</span></button>
     </div>
   </div>`;
   updateTrainingPillUI();
