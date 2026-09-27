@@ -112,55 +112,30 @@
     <div class="wrap">
       <div class="showreel" id="showreel">
         <div class="sr-stage" role="region" aria-label="Видео-презентация HarmonyAI">
-          <div class="sr-bg" aria-hidden="true"><i></i><i></i><i></i></div>
-          <div class="sr-grain" aria-hidden="true"></div>
-          <div class="sr-eq" aria-hidden="true"></div>
+          <canvas class="sr-bgcanvas" aria-hidden="true"></canvas>
+          <div class="sr-vignette" aria-hidden="true"></div>
 
           <div class="sr-scene" data-scene="intro">
             <div class="sr-logo sr-in" aria-hidden="true">H</div>
-            <div class="sr-word sr-in">HarmonyAI</div>
-            <p class="sr-sub sr-in">Музыкальный ИИ для учеников и учителей</p>
+            <div class="sr-name sr-in">HarmonyAI</div>
           </div>
-          <div class="sr-scene" data-scene="tag">
-            <div class="sr-kicker sr-in">Знакомьтесь</div>
-            <h3 class="sr-big sr-in">Твой ИИ-помощник<br><em>в&nbsp;музыке</em></h3>
-            <p class="sr-sub sr-in">Сольфеджио, гармония и теория — простыми словами, в любое время</p>
+          <div class="sr-scene" data-scene="title">
+            <h3 class="sr-big sr-in">Музыкальная теория —<br><em>наконец понятно</em></h3>
+            <p class="sr-sub sr-in">ИИ-помощник для учеников музыкальной школы</p>
           </div>
-          <div class="sr-scene" data-scene="chat">
-            <div class="sr-kicker sr-in">Спросите что угодно</div>
-            <div class="sr-chat sr-in typing">
-              <div class="sr-bub">Что такое септаккорд?</div>
-              <div class="sr-ai"><b>H</b>
-                <div>
-                  <div class="sr-think" aria-hidden="true"><i></i><i></i><i></i><span>Думаю</span></div>
-                  <div class="sr-chat-ans" data-text="Септаккорд — аккорд из четырёх звуков, расположенных по терциям. Крайние звуки образуют септиму — отсюда и название."></div>
-                </div>
-              </div>
+          <div class="sr-scene sr-scene-chat" data-scene="chat">
+            <div class="sr-app sr-in">
+              <div class="sr-app-top"><i></i><i></i><i></i><span>HarmonyAI</span></div>
+              <div class="sr-feed"><div class="sr-msgs"></div></div>
+              <div class="sr-comp"><span class="sr-plus">+</span><span class="sr-comp-text"></span><span class="sr-comp-ph">Спросить HarmonyAI</span><span class="sr-send">→</span></div>
             </div>
           </div>
-          <div class="sr-scene" data-scene="staff">
-            <div class="sr-kicker sr-in">Нотный стан</div>
-            <svg class="sr-staff sr-in" viewBox="0 0 420 120" aria-hidden="true">
-              <line x1="0" x2="420" y1="30" y2="30"/><line x1="0" x2="420" y1="45" y2="45"/><line x1="0" x2="420" y1="60" y2="60"/><line x1="0" x2="420" y1="75" y2="75"/><line x1="0" x2="420" y1="90" y2="90"/>
-              <g class="n"><ellipse cx="70" cy="105" rx="9" ry="6.5" transform="rotate(-20 70 105)"/><line x1="55" x2="85" y1="105" y2="105"/></g>
-              <g class="n"><ellipse cx="140" cy="90" rx="9" ry="6.5" transform="rotate(-20 140 90)"/></g>
-              <g class="n"><ellipse cx="210" cy="75" rx="9" ry="6.5" transform="rotate(-20 210 75)"/></g>
-              <g class="n"><ellipse cx="280" cy="60" rx="9" ry="6.5" transform="rotate(-20 280 60)"/></g>
-              <g class="n chord"><ellipse cx="365" cy="105" rx="9" ry="6.5" transform="rotate(-20 365 105)"/><ellipse cx="365" cy="90" rx="9" ry="6.5" transform="rotate(-20 365 90)"/><ellipse cx="365" cy="75" rx="9" ry="6.5" transform="rotate(-20 365 75)"/><ellipse cx="365" cy="60" rx="9" ry="6.5" transform="rotate(-20 365 60)"/><line x1="350" x2="380" y1="105" y2="105"/></g>
-            </svg>
-            <h3 class="sr-big sr-in">Ноты — <em>за&nbsp;секунды</em></h3>
-          </div>
-          <div class="sr-scene" data-scene="image">
-            <div class="sr-mosaic sr-in" aria-hidden="true"></div>
-            <h3 class="sr-big sr-in">Картинки <em>по&nbsp;описанию</em></h3>
-          </div>
-          <div class="sr-scene" data-scene="topics">
-            <div class="sr-kicker sr-in">Всё для музыкальной школы</div>
-            <div class="sr-chips sr-in"><span>Сольфеджио</span><span>Гармония</span><span>Аккорды</span><span>Интервалы</span><span>Диктант</span><span>Анализ</span></div>
+          <div class="sr-scene" data-scene="words">
+            <div class="sr-word-flip sr-in" aria-label="Объясняет, показывает, рисует"><span>Объясняет.</span><span>Показывает.</span><span>Рисует.</span></div>
           </div>
           <div class="sr-scene" data-scene="cta">
+            <div class="sr-logo sr-logo-s sr-in" aria-hidden="true">H</div>
             <h3 class="sr-big sr-in">Попробуйте <em>бесплатно</em></h3>
-            <p class="sr-sub sr-in">Вход по коду на почту — без пароля</p>
             <a class="sr-cta sr-in" href="/login">Начать →</a>
           </div>
 
@@ -169,13 +144,14 @@
             <div class="sr-credit">Музыка: Tomasz Szmajda — «New Melody XLII»</div>
           </div>
           <div class="sr-ctrl">
-            <button class="sr-toggle" type="button" aria-label="Пауза"><svg class="i-pause" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg><svg class="i-play" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg></button>
+            <button class="sr-toggle" type="button" aria-label="Пауза / продолжить"><svg class="i-pause" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg><svg class="i-play" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg></button>
             <div class="sr-progress" aria-label="Перемотка"><span><i></i></span></div>
             <span class="sr-time">0:00 / 0:43</span>
-            <button class="sr-mute" type="button" aria-label="Выключить звук"><svg class="i-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12"/></svg><svg class="i-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M17 9l5 6M22 9l-5 6"/></svg></button>
+            <button class="sr-mute" type="button" aria-label="Звук"><svg class="i-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12"/></svg><svg class="i-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M17 9l5 6M22 9l-5 6"/></svg></button>
           </div>
           <audio preload="metadata" src="/media/new-melody-xlii.mp3"></audio>
         </div>
+        <p class="sr-audio-note">Звук не найден: загрузите трек в репозиторий как <code>media/new-melody-xlii.mp3</code>.</p>
       </div>
     </div>
   </section>
