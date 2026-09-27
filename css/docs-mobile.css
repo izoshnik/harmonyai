@@ -1,0 +1,69 @@
+/* ===== Документация API: удобное чтение с телефона =====
+   Подключается ПОСЛЕ /css/site.css только на /api. Десктоп не меняется,
+   кроме блока адреса ChatGPT. */
+
+/* Адрес подключения ChatGPT */
+.gpt-url{margin:18px 0 6px;padding:16px;border:1px solid var(--border);border-radius:16px;background:var(--bg-soft);}
+.gpt-url-label{display:block;font-size:13px;font-weight:640;margin-bottom:8px;color:var(--text-2,inherit);}
+.gpt-url .input{width:100%;box-sizing:border-box;margin-bottom:10px;}
+.gpt-url .code-block pre{white-space:pre-wrap;word-break:break-all;}
+.gpt-url-note{margin:8px 0 0;font-size:12.5px;color:var(--text-3);}
+
+@media (max-width: 760px){
+  /* Список клиентов: вместо ленты, где видно две вкладки, — сетка из плиток,
+     все способы подключения видны сразу. */
+  .ig-nav{
+    display:grid!important;grid-template-columns:1fr 1fr;gap:8px!important;
+    overflow:visible!important;padding:10px!important;white-space:normal!important;
+  }
+  .ig-nav-title{grid-column:1/-1;margin:6px 2px 0!important;padding-top:0!important;border-top:0!important;display:block!important;}
+  .ig-nav-title:not(:first-child){margin-top:12px!important;}
+  .ig-tab{
+    width:100%!important;min-height:48px;justify-content:flex-start!important;
+    white-space:normal!important;text-align:left;line-height:1.2;
+    border:1px solid var(--border)!important;border-radius:12px!important;padding:10px 12px!important;
+  }
+  .ig-tab[aria-selected="true"]{border-color:var(--text)!important;}
+  .ig-tab span{overflow-wrap:anywhere;}
+
+  /* Панель инструкции: меньше отступов — больше места под текст и код */
+  .ig-panel{padding:18px 14px!important;}
+  .ig-head h3{font-size:22px;}
+  .ig-lead{font-size:15.5px;line-height:1.55;}
+  .ig-steps{padding-left:0!important;}
+  .ig-steps > li{padding-left:40px!important;}
+  .ig-step-t{font-size:16.5px;line-height:1.35;}
+  .ig-steps p,.section p{font-size:15.5px;line-height:1.6;}
+
+  /* Код: переносим строки, а не обрезаем их за краем экрана;
+     кнопка «Скопировать» всегда видна (на телефоне нет наведения). */
+  .code-block pre{
+    white-space:pre-wrap!important;word-break:break-word;overflow-wrap:anywhere;
+    font-size:12.5px!important;line-height:1.6!important;padding:14px 14px 14px 14px!important;
+    padding-top:42px!important;
+  }
+  .code-block .copy{opacity:1!important;transform:none!important;top:8px!important;right:8px!important;}
+  code{overflow-wrap:anywhere;word-break:break-word;}
+
+  /* Таблицы: каждая строка — карточка «название → значение», без
+     горизонтальной прокрутки. */
+  .table-wrap{overflow:visible!important;border:0!important;}
+  table.tbl{min-width:0!important;border:0;}
+  table.tbl thead{display:none;}
+  table.tbl,table.tbl tbody,table.tbl tr,table.tbl td{display:block;width:100%;box-sizing:border-box;}
+  table.tbl tr{
+    border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:8px;
+    background:var(--bg);
+  }
+  table.tbl td{border:0!important;padding:3px 0!important;font-size:14.5px;}
+  table.tbl td:first-child{font-weight:640;font-size:13px;color:var(--text-3);}
+  table.tbl td.num{text-align:left;}
+  table.tbl td[data-th]::before{content:attr(data-th) ": ";font-weight:640;color:var(--text-3);font-size:12.5px;}
+
+  .notice{padding:14px!important;font-size:14.5px;line-height:1.6;}
+  .hero h1{font-size:34px;}
+}
+@media (max-width: 760px){
+  .ig-body{padding:0!important;}
+  .ig{padding:0!important;gap:12px!important;border:0!important;background:none!important;}
+}
