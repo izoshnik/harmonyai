@@ -82,10 +82,10 @@ function withTimeout(promise, ms, message) {
    механизм доступа, поэтому «*» не ослабляет защиту: cookie мы не читаем. */
 function applyCors(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.setHeader(
     'Access-Control-Allow-Headers',
-    'Content-Type, Authorization, x-api-key, anthropic-version, anthropic-beta, anthropic-dangerous-direct-browser-access'
+    'Content-Type, Authorization, x-api-key, mcp-protocol-version, mcp-session-id, anthropic-version, anthropic-beta, anthropic-dangerous-direct-browser-access'
   );
   res.setHeader('Access-Control-Max-Age', '86400');
 }
@@ -391,6 +391,138 @@ async function callUpstream(body, apiKey) {
 /* ============================================================================
    ТОЧКА ВХОДА
    ============================================================================ */
+/* ============================================================================
+   MCP-СЕРВЕР ДЛЯ CHATGPT (и любого другого MCP-клиента).
+   Адрес: https://harmonyai.ru/mcp/<ваш-ключ-sk-h-...>
+   ChatGPT → Настройки → Приложения и коннекторы → Расширенные настройки →
+   «Режим разработчика» → «Создать» → URL выше, аутентификация «Без
+   аутентификации» (ключ уже в адресе). Ключ можно передать и заголовком
+   Authorization: Bearer.
+
+   Протокол — MCP Streamable HTTP, JSON-RPC 2.0 без потока: на каждый POST —
+   один JSON-ответ. Отдельной функции Vercel не нужно: всё живёт в этом файле.
+   Вызов инструмента идёт через ТОТ ЖЕ handleMessages, что и /v1/messages, —
+   с той же проверкой баланса, списанием и правами Pro для dynatos.
+   ============================================================================ */
+const MCP_PROTOCOL = '2025-06-18';
+const MCP_TOOLS = [
+  {
+    name: 'ask_harmonyai',
+    title: 'Спросить HarmonyAI',
+    description:
+      'Музыкальный ИИ-помощник HarmonyAI: сольфеджио, гармония, аккорды, гаммы, интервалы, ' +
+      'анализ произведений, объяснение теории для учеников музыкальной школы. ' +
+      'Передайте вопрос целиком; ответ приходит на языке вопроса.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        question: { type: 'string', description: 'Вопрос или задание для HarmonyAI' },
+        model: { type: 'string', enum: ['adanatos', 'dynatos'], description: 'adanatos — быстро (по умолчанию), dynatos — сложные задачи (нужна Pro-подписка)' }
+      },
+      required: ['question']
+    },
+    annotations: { readOnlyHint: true, openWorldHint: false }
+  }
+];
+
+function mcpResult(id, result) { return { jsonrpc: '2.0', id, result }; }
+function mcpError(id, code, message) { return { jsonrpc: '2.0', id: id ?? null, error: { code, message } }; }
+
+/* Собирает ответ handleMessages, не отправляя его клиенту. */
+function captureRes() {
+  const out = { status: 200, body: null };
+  const fake = {
+    headersSent: false,
+    setHeader() {},
+    status(code) { out.status = code; return fake; },
+    json(obj) { out.body = obj; return fake; },
+    end() { return fake; },
+    write() { return true; }
+  };
+  return { fake, out };
+}
+
+async function mcpCallTool(auth, name, args) {
+  if (name !== 'ask_harmonyai') throw Object.assign(new Error(`Инструмент ${name} не найден`), { rpc: -32602 });
+  const question = String(args?.question || '').trim();
+  if (!question) return { content: [{ type: 'text', text: 'Пустой вопрос.' }], isError: true };
+  const model = String(args?.model || 'adanatos').toLowerCase() === 'dynatos' ? 'dynatos' : 'adanatos';
+  const { fake, out } = captureRes();
+  await handleMessages({ headers: {} }, fake, {
+    model,
+    max_tokens: 4096,
+    stream: false,
+    messages: [{ role: 'user', content: question.slice(0, 20000) }]
+  }, auth);
+  if (out.status >= 400 || !out.body) {
+    const msg = out.body?.error?.message || 'HarmonyAI не смог ответить, попробуйте ещё раз';
+    return { content: [{ type: 'text', text: msg }], isError: true };
+  }
+  const text = (out.body.content || []).filter(b => b && b.type === 'text').map(b => b.text).join('\n').trim();
+  return { content: [{ type: 'text', text: text || '(пустой ответ)' }] };
+}
+
+async function handleMcp(req, res) {
+  res.setHeader('Cache-Control', 'no-store');
+  if (req.method === 'GET') return res.status(405).json(mcpError(null, -32000, 'Используйте POST'));
+  if (req.method === 'DELETE') return res.status(204).end();
+  if (req.method !== 'POST') return res.status(405).json(mcpError(null, -32000, 'Метод не поддерживается'));
+
+  const body = await readJsonBody(req);
+  if (body === null) return res.status(400).json(mcpError(null, -32700, 'Некорректный JSON'));
+  const batch = Array.isArray(body) ? body : [body];
+
+  let auth = null;
+  let authTried = false;
+  const needAuth = async () => {
+    if (authTried) return auth;
+    authTried = true;
+    const pathKey = String(req.query?.k || '').trim();
+    auth = await authenticateKey(pathKey ? { headers: { 'x-api-key': pathKey } } : req);
+    return auth;
+  };
+
+  const replies = [];
+  for (const msg of batch) {
+    const hasId = msg && Object.prototype.hasOwnProperty.call(msg, 'id');
+    if (!hasId) continue; // уведомления (notifications/initialized) ответа не требуют
+    const id = msg.id;
+    const method = String(msg?.method || '');
+    try {
+      if (method === 'initialize') {
+        replies.push(mcpResult(id, {
+          protocolVersion: String(msg?.params?.protocolVersion || MCP_PROTOCOL),
+          capabilities: { tools: { listChanged: false } },
+          serverInfo: { name: 'harmonyai', title: 'HarmonyAI', version: '1.0.0' },
+          instructions: 'HarmonyAI — ИИ-помощник по музыке и сольфеджио. Для музыкальных вопросов вызывайте ask_harmonyai.'
+        }));
+      } else if (method === 'ping') {
+        replies.push(mcpResult(id, {}));
+      } else if (method === 'tools/list') {
+        replies.push(mcpResult(id, { tools: MCP_TOOLS }));
+      } else if (method === 'resources/list') {
+        replies.push(mcpResult(id, { resources: [] }));
+      } else if (method === 'prompts/list') {
+        replies.push(mcpResult(id, { prompts: [] }));
+      } else if (method === 'tools/call') {
+        if (!(await needAuth())) {
+          replies.push(mcpResult(id, { content: [{ type: 'text', text: 'Неверный или отозванный API-ключ. Проверьте адрес подключения: https://harmonyai.ru/mcp/sk-h-…' }], isError: true }));
+        } else {
+          replies.push(mcpResult(id, await mcpCallTool(auth, msg?.params?.name, msg?.params?.arguments || {})));
+        }
+      } else {
+        replies.push(mcpError(id, -32601, `Метод ${method} не поддерживается`));
+      }
+    } catch (error) {
+      console.error('[mcp] ошибка:', String(error?.message || error).slice(0, 200));
+      replies.push(mcpError(id, error?.rpc || -32603, error?.rpc ? error.message : 'Внутренняя ошибка сервера'));
+    }
+  }
+  res.setHeader('MCP-Protocol-Version', MCP_PROTOCOL);
+  if (!replies.length) return res.status(202).end();
+  return res.status(200).json(Array.isArray(body) ? replies : replies[0]);
+}
+
 export default async function handler(req, res) {
   applyCors(res);
   // Версию протокола отдаём всегда — клиенты Anthropic её проверяют.
@@ -399,6 +531,15 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end();
 
   const route = resolveRoute(req);
+
+  if (route === 'mcp') {
+    if (!readEnv('SUPABASE_URL') || !readEnv('SUPABASE_SERVICE_ROLE_KEY')) return res.status(503).json(mcpError(null, -32000, 'Сервер временно недоступен'));
+    try { return await handleMcp(req, res); }
+    catch (error) {
+      console.error('[mcp] необработанная ошибка:', String(error?.message || error).slice(0, 300));
+      return res.status(500).json(mcpError(null, -32603, 'Внутренняя ошибка сервера'));
+    }
+  }
 
   if (route === 'models' || route.startsWith('models/')) {
     if (req.method !== 'GET') return sendError(res, 405, 'Метод не поддерживается', 'invalid_request_error');
