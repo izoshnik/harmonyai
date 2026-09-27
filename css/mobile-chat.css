@@ -1,0 +1,129 @@
+/* ===== Мобильный экран чата (по макету) — для всех тем =====
+   Подключается последним в <head> app.html. Всё внутри max-width:768px:
+   десктоп этот файл НЕ затрагивает (кроме скрытия мобильных подсказок).
+
+   Макет: сверху «☰» и «•••», по центру крупное «Чем займёмся, имя?»,
+   внизу слева три подсказки с иконками, под ними капсула ввода:
+   «+» слева, «Спросить HarmonyAI», микрофон справа. Кнопка отправки
+   появляется вместо микрофона, когда что-то введено.
+
+   Цвета заданы токенами --mc-*: тёмная/системная — чёрный фон,
+   светлая — тёплый белый, мессенджер — голубые тона. */
+
+.m-hints{display:none;}
+
+@media (max-width: 768px){
+  html{
+    --mc-bg:#000;--mc-text:#fff;--mc-muted:rgba(255,255,255,.62);
+    --mc-pill:#4d4d4f;--mc-pill-text:#fff;--mc-ph:rgba(255,255,255,.62);
+    --mc-accent:#fff;--mc-accent-ink:#000;--mc-icon:#fff;
+  }
+  html[data-theme="light"]{
+    --mc-bg:#fafaf9;--mc-text:#141414;--mc-muted:rgba(20,20,20,.55);
+    --mc-pill:#ebeae6;--mc-pill-text:#141414;--mc-ph:rgba(20,20,20,.45);
+    --mc-accent:#141414;--mc-accent-ink:#fff;--mc-icon:#141414;
+  }
+  html[data-theme="messenger"]{
+    --mc-bg:#eaf3f9;--mc-text:#14324b;--mc-muted:rgba(20,50,75,.6);
+    --mc-pill:#d3e5f1;--mc-pill-text:#14324b;--mc-ph:rgba(20,50,75,.5);
+    --mc-accent:#2f9be0;--mc-accent-ink:#fff;--mc-icon:#14324b;
+  }
+
+  /* Фон и декоративные слои прежнего «стеклянного» оформления убираем:
+     на светлых темах они давали белый текст на белом. */
+  html body,html body .app,html body .main{background:var(--mc-bg)!important;color:var(--mc-text)!important;}
+  html body .chat-area{background:transparent!important;}
+  html body .mobile-glossy{display:none!important;}
+
+  /* Шапка: ☰ слева, ••• справа, без подложек */
+  html body .topbar{z-index:60!important;background:transparent!important;border:0!important;box-shadow:none!important;}
+  html body .topbar .topbar-btn{
+    background:transparent!important;border:0!important;box-shadow:none!important;
+    color:var(--mc-icon)!important;width:44px!important;height:44px!important;
+    -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+  }
+  /* ☰ и ••• рисуются символами в ::before (см. блок SCREENSHOT OVERRIDE v2 в
+     app.html) — там цвет был жёстко белым, поэтому на светлых темах их не было видно. */
+  html body:has(#app.show) .topbar-btn::before{color:var(--mc-icon)!important;}
+
+  /* Приветствие */
+  html body .greeting-wrap{
+    display:flex!important;flex-direction:column!important;align-items:center!important;
+    justify-content:flex-start!important;min-height:100%!important;padding:0 16px!important;box-sizing:border-box;
+  }
+  html body .greeting-mark,html body .greeting-sub,html body .greeting-hints{display:none!important;}
+  html body .greeting-title{
+    margin-top:18vh!important;text-align:center!important;
+    font-family:'Open Sans','Segoe UI',system-ui,-apple-system,sans-serif!important;
+    font-weight:800!important;font-size:clamp(30px,8.6vw,38px)!important;line-height:1.18!important;
+    letter-spacing:-.01em!important;color:var(--mc-text)!important;
+    -webkit-text-fill-color:var(--mc-text)!important;background:none!important;text-shadow:none!important;
+  }
+
+  /* Подсказки внизу слева */
+  html body .m-hints{
+    display:flex!important;flex-direction:column;gap:6px;align-self:stretch;
+    margin-top:auto;padding:0 0 14px;
+  }
+  .m-hint{
+    display:flex;align-items:center;gap:14px;padding:8px 0;border:0;background:none;
+    font:600 clamp(16px,4.7vw,20px)/1.25 'Open Sans','Segoe UI',system-ui,-apple-system,sans-serif;
+    color:var(--mc-text);text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent;
+  }
+  .m-hint span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
+  .m-hint svg{width:30px;height:26px;flex:none;color:var(--mc-text);}
+  .m-hint:active{opacity:.6;}
+
+  /* Капсула ввода: [+] [текст] [микрофон / отправить] */
+  html body .input-wrap{background:transparent!important;padding:6px 14px calc(14px + env(safe-area-inset-bottom))!important;}
+  html body .input-wrap::before,html body .input-wrap::after{display:none!important;}
+  html body .input-box{
+    display:flex!important;flex-direction:row!important;align-items:center!important;flex-wrap:nowrap!important;
+    gap:6px!important;min-height:64px!important;padding:6px 8px 6px 10px!important;
+    border-radius:999px!important;background:var(--mc-pill)!important;border:0!important;box-shadow:none!important;
+    -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+  }
+  html body .input-box::before,html body .input-box::after{display:none!important;}
+  html body .input-box .input-bar-row{display:contents!important;}
+  html body .input-box .bar-left{order:0!important;display:flex!important;align-items:center;flex:none;}
+  html body .input-box #msgTa{
+    order:1!important;flex:1 1 auto!important;min-width:0!important;width:auto!important;
+    margin:0!important;padding:10px 4px!important;align-self:center!important;
+    font:700 clamp(17px,5vw,20px)/1.3 'Open Sans','Segoe UI',system-ui,-apple-system,sans-serif!important;
+    color:var(--mc-pill-text)!important;-webkit-text-fill-color:var(--mc-pill-text)!important;
+    background:transparent!important;max-height:40vh;
+  }
+  html body .input-box #msgTa::placeholder{white-space:nowrap;text-overflow:ellipsis;color:var(--mc-ph)!important;-webkit-text-fill-color:var(--mc-ph)!important;opacity:1!important;}
+  html body .input-box .bar-right{order:2!important;display:flex!important;align-items:center;gap:4px;flex:none;margin:0!important;}
+  html body .input-box .bar-right .model-pill{display:none!important;}
+
+  html body .input-box .bar-icon,html body .input-box .mic-btn{
+    width:44px!important;height:44px!important;border-radius:50%!important;
+    background:transparent!important;border:0!important;box-shadow:none!important;
+    color:var(--mc-pill-text)!important;display:flex!important;align-items:center;justify-content:center;
+  }
+  html body .input-box .bar-icon svg.bar-icon-plus{width:30px!important;height:30px!important;}
+  html body .input-box .bar-icon svg.bar-icon-plus path{stroke-width:2.6;}
+  html body .input-box .mic-btn svg{width:26px!important;height:26px!important;}
+
+  /* Отправка появляется, когда есть текст (или идёт генерация — тогда это «стоп») */
+  html body .input-box #sendBtn,html body .input-box .send-btn{
+    display:none!important;width:44px!important;height:44px!important;border-radius:50%!important;
+    background:var(--mc-accent)!important;color:var(--mc-accent-ink)!important;border:0!important;box-shadow:none!important;
+  }
+  html body .input-box:has(#msgTa:not(:placeholder-shown)) #sendBtn,
+  html body .input-box #sendBtn.is-stop{display:flex!important;align-items:center;justify-content:center;}
+  html body .input-box:has(#msgTa:not(:placeholder-shown)) .mic-btn,
+  html body .input-box:has(.send-btn.is-stop) .mic-btn{display:none!important;}
+
+  /* Ответы и сообщения — цвета темы, чтобы на светлых темах текст был виден */
+  html body .msg-ai{color:var(--mc-text)!important;}
+}
+@media (max-width: 768px){
+  html body .input-box #sendBtn svg,html body .input-box #sendBtn svg *{stroke:var(--mc-accent-ink)!important;color:var(--mc-accent-ink)!important;}
+  html body .input-box #sendBtn svg{width:20px!important;height:20px!important;}
+}
+@media (max-width: 768px){
+  html body .main .topbar-btn::after{display:none!important;}
+  html body .main .topbar-btn{-webkit-backdrop-filter:none!important;backdrop-filter:none!important;}
+}
