@@ -8475,12 +8475,33 @@ function flushReasoning(tr){
   trAutoScroll(tr);
 }
 
+/* Короткий заголовок из текста рассуждений: берём последнее законченное
+   предложение (или заголовок **…** / строку), чистим markdown, режем до 72 символов. */
+function hmReasoningHeadline(text){
+  let t=String(text||'').replace(/```[\s\S]*?(```|$)/g,' ').replace(/`[^`]*`/g,'');
+  const bold=[...t.matchAll(/\*\*([^*\n]{4,90})\*\*/g)].map(m=>m[1]);
+  let pick=bold.length?bold[bold.length-1]:'';
+  if(!pick){
+    const done=t.split(/(?<=[.!?…])\s+|\n+/).map(x=>x.trim()).filter(x=>x.length>=8);
+    // последняя фраза может быть недописанной — берём предпоследнюю, если она есть
+    pick=done.length>1&&!/[.!?…]$/.test(done[done.length-1])?done[done.length-2]:(done[done.length-1]||'');
+  }
+  pick=pick.replace(/^[#>*\-\d.)\s]+/,'').replace(/[*_~#]/g,'').replace(/\s+/g,' ').replace(/[.:;,]+$/,'').trim();
+  if(pick.length>72)pick=pick.slice(0,70).replace(/\s+\S*$/,'')+'…';
+  return pick?pick.charAt(0).toUpperCase()+pick.slice(1):'';
+}
 function appendReasoningChunk(msgEl,text){
   const raw=String(text==null?'':text);
   if(!raw)return;
   const tr=ensureReasoningBlock(msgEl);
   if(!tr||tr._done)return;
   tr._text=(tr._text||'')+raw;
+  // Заголовок размышления: последняя законченная мысль из НАСТОЯЩЕГО текста
+  // рассуждений (как «Сравниваю минорные гаммы» рядом с «Думаю»). Не чаще раза в 1,2 с.
+  if(tr._hts&&tr._hts.setHeadline){
+    const now=Date.now();
+    if(!tr._headAt||now-tr._headAt>1200){tr._headAt=now;try{tr._hts.setHeadline(hmReasoningHeadline(tr._text));}catch(_){}}
+  }
   // Пишем в DOM не чаще одного раза за кадр — иначе стриминг начинает дёргаться.
   if(!tr._raf)tr._raf=requestAnimationFrame(function(){flushReasoning(tr);});
 }
