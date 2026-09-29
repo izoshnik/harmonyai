@@ -35,16 +35,25 @@
   html body .chat-area{background:transparent!important;}
   html body .mobile-glossy{display:none!important;}
 
-  /* Шапка: ☰ слева, ••• справа, без подложек */
-  html body .topbar{z-index:60!important;background:transparent!important;border:0!important;box-shadow:none!important;}
-  html body .topbar .topbar-btn{
+  /* Шапка: ☰ слева, ••• справа — компактные, 40px, без подложек */
+  html body .topbar{
+    display:flex!important;position:fixed!important;left:0;right:0;top:0;z-index:60!important;
+    height:calc(56px + env(safe-area-inset-top))!important;padding:env(safe-area-inset-top) 10px 0!important;
+    align-items:center!important;justify-content:space-between!important;
     background:transparent!important;border:0!important;box-shadow:none!important;
-    color:var(--mc-icon)!important;width:44px!important;height:44px!important;
+  }
+  html body .topbar .topbar-logo,html body .topbar .topbar-model-pill,html body .topbar .topbar-upgrade,html body .topbar .topbar-training-pill{display:none!important;}
+  html body .topbar .topbar-btn{
+    position:static!important;display:flex!important;align-items:center;justify-content:center;
+    background:transparent!important;border:0!important;box-shadow:none!important;border-radius:12px!important;
+    color:var(--mc-icon)!important;width:40px!important;height:40px!important;padding:0!important;
     -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
   }
-  /* ☰ и ••• рисуются символами в ::before (см. блок SCREENSHOT OVERRIDE v2 в
-     app.html) — там цвет был жёстко белым, поэтому на светлых темах их не было видно. */
-  html body:has(#app.show) .topbar-btn::before{color:var(--mc-icon)!important;}
+  html body .topbar .topbar-btn::before,html body .topbar .topbar-btn::after{content:none!important;display:none!important;}
+  html body .topbar .topbar-btn svg{display:block!important;width:24px!important;height:24px!important;}
+  html body .topbar .topbar-btn:active{background:color-mix(in srgb,var(--mc-text) 10%,transparent)!important;}
+  /* ••• показываем только когда у чата есть сообщения — иначе меню пустое */
+  html body .topbar #chatMenuBtn.is-hidden{visibility:hidden!important;pointer-events:none!important;}
 
   /* Приветствие */
   html body .greeting-wrap{
@@ -55,7 +64,7 @@
   html body .greeting-title{
     margin-top:18vh!important;text-align:center!important;
     font-family:'Open Sans','Segoe UI',system-ui,-apple-system,sans-serif!important;
-    font-weight:800!important;font-size:clamp(30px,8.6vw,38px)!important;line-height:1.18!important;
+    font-weight:800!important;font-size:clamp(28px,8vw,34px)!important;line-height:1.18!important;
     letter-spacing:-.01em!important;color:var(--mc-text)!important;
     -webkit-text-fill-color:var(--mc-text)!important;background:none!important;text-shadow:none!important;
   }
@@ -67,19 +76,19 @@
   }
   .m-hint{
     display:flex;align-items:center;gap:14px;padding:8px 0;border:0;background:none;
-    font:600 clamp(16px,4.7vw,20px)/1.25 'Open Sans','Segoe UI',system-ui,-apple-system,sans-serif;
+    font:600 clamp(15px,4.3vw,17px)/1.25 'Open Sans','Segoe UI',system-ui,-apple-system,sans-serif;
     color:var(--mc-text);text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent;
   }
   .m-hint span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
-  .m-hint svg{width:30px;height:26px;flex:none;color:var(--mc-text);}
+  .m-hint svg{width:26px;height:22px;flex:none;color:var(--mc-text);}
   .m-hint:active{opacity:.6;}
 
   /* Капсула ввода: [+] [текст] [микрофон / отправить] */
-  html body .input-wrap{background:transparent!important;padding:6px 14px calc(14px + env(safe-area-inset-bottom))!important;}
+  html body .input-wrap{background:transparent!important;padding:6px 12px calc(10px + env(safe-area-inset-bottom))!important;}
   html body .input-wrap::before,html body .input-wrap::after{display:none!important;}
   html body .input-box{
     display:flex!important;flex-direction:row!important;align-items:center!important;flex-wrap:nowrap!important;
-    gap:6px!important;min-height:64px!important;padding:6px 8px 6px 10px!important;
+    gap:4px!important;min-height:50px!important;padding:3px 5px 3px 6px!important;
     border-radius:999px!important;background:var(--mc-pill)!important;border:0!important;box-shadow:none!important;
     -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
   }
@@ -88,8 +97,8 @@
   html body .input-box .bar-left{order:0!important;display:flex!important;align-items:center;flex:none;}
   html body .input-box #msgTa{
     order:1!important;flex:1 1 auto!important;min-width:0!important;width:auto!important;
-    margin:0!important;padding:10px 4px!important;align-self:center!important;
-    font:700 clamp(17px,5vw,20px)/1.3 'Open Sans','Segoe UI',system-ui,-apple-system,sans-serif!important;
+    margin:0!important;padding:8px 2px!important;min-height:0!important;align-self:center!important;
+    font:600 17px/1.3 'Open Sans','Segoe UI',system-ui,-apple-system,sans-serif!important;
     color:var(--mc-pill-text)!important;-webkit-text-fill-color:var(--mc-pill-text)!important;
     background:transparent!important;max-height:40vh;
   }
@@ -98,17 +107,17 @@
   html body .input-box .bar-right .model-pill{display:none!important;}
 
   html body .input-box .bar-icon,html body .input-box .mic-btn{
-    width:44px!important;height:44px!important;border-radius:50%!important;
+    width:38px!important;height:38px!important;border-radius:50%!important;
     background:transparent!important;border:0!important;box-shadow:none!important;
     color:var(--mc-pill-text)!important;display:flex!important;align-items:center;justify-content:center;
   }
-  html body .input-box .bar-icon svg.bar-icon-plus{width:30px!important;height:30px!important;}
+  html body .input-box .bar-icon svg.bar-icon-plus{width:22px!important;height:22px!important;}
   html body .input-box .bar-icon svg.bar-icon-plus path{stroke-width:2.6;}
-  html body .input-box .mic-btn svg{width:26px!important;height:26px!important;}
+  html body .input-box .mic-btn svg{width:20px!important;height:20px!important;}
 
   /* Отправка появляется, когда есть текст (или идёт генерация — тогда это «стоп») */
   html body .input-box #sendBtn,html body .input-box .send-btn{
-    display:none!important;width:44px!important;height:44px!important;border-radius:50%!important;
+    display:none!important;width:38px!important;height:38px!important;min-width:38px!important;min-height:38px!important;border-radius:50%!important;
     background:var(--mc-accent)!important;color:var(--mc-accent-ink)!important;border:0!important;box-shadow:none!important;
   }
   html body .input-box:has(#msgTa:not(:placeholder-shown)) #sendBtn,
@@ -121,9 +130,18 @@
 }
 @media (max-width: 768px){
   html body .input-box #sendBtn svg,html body .input-box #sendBtn svg *{stroke:var(--mc-accent-ink)!important;color:var(--mc-accent-ink)!important;}
-  html body .input-box #sendBtn svg{width:20px!important;height:20px!important;}
+  html body .input-box #sendBtn svg{width:18px!important;height:18px!important;}
 }
 @media (max-width: 768px){
   html body .main .topbar-btn::after{display:none!important;}
   html body .main .topbar-btn{-webkit-backdrop-filter:none!important;backdrop-filter:none!important;}
+}
+@media (max-width: 768px){
+  /* Выбор модели на телефоне — через «+», строка-чип в капсуле не нужна */
+  html body .input-box .mrow,html body #mRow,html body .input-box .model-pill,html body .ada-panel{display:none!important;}
+  html body .sidebar:not(.open){box-shadow:none!important;}
+}
+@media (max-width: 768px){
+  /* Сообщения не заезжают под ☰ / ••• */
+  html body .chat-inner{padding-top:calc(60px + env(safe-area-inset-top))!important;}
 }
