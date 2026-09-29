@@ -71,7 +71,7 @@
   }
 
   /* ---------- глаголы «Думаю» ----------
-     Подбираются случайно и сменяются, пока модель работает. Это только
+     На каждый запрос выбирается одно случайное слово. Это только
      подпись-индикатор: что именно модель обдумывает, показывает заголовок
      из её настоящих рассуждений (setHeadline), а не эти слова. */
   var VERBS=['Думаю','Размышляю','Рассуждаю','Обдумываю','Осмысливаю','Анализирую','Изучаю','Исследую','Разбираю',
@@ -153,8 +153,7 @@
       if(!running)return;
       if(!root.isConnected){running=false;return;}   // элемент удалён — цикл гаснет сам
       var e=now-t0;
-      // Глагол сменяется каждые ~3,5 с, пока модель работает
-      if(!opts.label&&e-lastVerb>3500){lastVerb=e;if(lastVerb>100)setLabel(pickVerb(label.textContent));}
+      // Одно случайное слово на весь запрос (следующий запрос — новое слово).
       if(!reduced&&isStaff){
         var x=2+((e%LOOP)/LOOP)*32;
         playhead.setAttribute('x1',x);playhead.setAttribute('x2',x);
@@ -177,7 +176,7 @@
       timers.push(setTimeout(function(){label.textContent=str;label.classList.remove('out');},180));
     }
     var api={
-      el:root,key:key,startedAt:t0,
+      el:root,key:key,startedAt:t0,verb:verb,anim:anim,
       start:function(){if(running)return;running=true;raf=requestAnimationFrame(frame);},
       setLabel:setLabel,
       /* Заголовок из НАСТОЯЩИХ рассуждений модели: «Сравниваю гармонический минор с мелодическим». */
