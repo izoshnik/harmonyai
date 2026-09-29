@@ -2766,59 +2766,15 @@ html[data-theme="light"] .stp-ava{background:#6a4dff;color:#fff;}
 .stp-dd-menu{background:rgba(18,18,20,.96);backdrop-filter:blur(16px);}
 @media(min-width:769px){.settings-box{width:min(1080px,94vw);height:min(700px,90vh);border-radius:28px;box-shadow:0 32px 110px rgba(0,0,0,.62);}.stp-title{font-size:27px}.set-side{padding:20px 14px}.set-nav{gap:4px}}
 @media(max-width:768px){
-  body:has(#app.show) .topbar,body:has(#app.show) .sidebar{display:none!important;}
-  .chat-wrap{background:#000!important;}
-  .messages{display:flex!important;align-items:center!important;justify-content:center!important;padding:0 24px 160px!important;}
-  #greeting{display:block!important;text-align:center!important;margin:0!important;width:100%!important;}
-  #greetingTitle,.greet-title{font-size:clamp(42px,12vw,66px)!important;line-height:1.06!important;font-weight:800!important;color:#fff!important;letter-spacing:-.04em!important;}
-  #greetingSub,.greet-sub{display:none!important;}
-  .composer{left:0!important;right:0!important;bottom:0!important;padding:0 30px calc(28px + env(safe-area-inset-bottom))!important;background:transparent!important;}
-  .input-box{min-height:76px!important;border-radius:999px!important;background:#3a3a3a!important;border:0!important;box-shadow:none!important;padding:10px 12px 10px 32px!important;gap:10px!important;flex-wrap:nowrap!important;}
-  .input-box textarea{font-size:29px!important;line-height:1.15!important;color:#f5f5f5!important;min-height:46px!important;max-height:92px!important;padding:8px 0!important;order:0!important;}
-  .input-box textarea::placeholder{color:#a9a9a9!important;opacity:1!important;}
-  .bar-icon,.mic-btn{width:52px!important;height:52px!important;background:transparent!important;border:0!important;color:#fff!important;box-shadow:none!important;}
-  .send-btn{width:66px!important;height:66px!important;min-width:66px!important;min-height:66px!important;border-radius:50%!important;background:#fff!important;color:#000!important;border:0!important;box-shadow:none!important;}
-  .send-btn svg{width:34px!important;height:34px!important;stroke-width:2.6!important;}
-  .mrow,.model-pill,.mobile-model-btn,.ada-panel{display:none!important;}
-  .mobile-menu-btn{display:flex!important;position:fixed!important;left:30px!important;top:32px!important;z-index:120!important;width:36px!important;height:36px!important;background:transparent!important;border:0!important;color:#fff!important;}
-  .mobile-menu-btn svg{display:none!important}.mobile-menu-btn::before{content:'☰';font-size:36px;line-height:1;font-weight:700;}
-  .mobile-more-btn{display:flex!important;position:fixed!important;right:48px!important;top:38px!important;z-index:120!important;width:44px!important;height:28px!important;background:transparent!important;border:0!important;color:#fff!important;}
-  .mobile-more-btn svg{display:none!important}.mobile-more-btn::before{content:'•••';font-size:36px;letter-spacing:2px;line-height:.5;font-weight:800;}
   .settings-overlay{background:#000!important;}
   .settings-box{height:100dvh!important;border-radius:0!important;background:#000!important;}
   .sth{margin:26px 24px 10px}.sth-title{font-size:24px}.stp-root{padding:10px 24px 44px}.stp-root-item{min-height:58px;border-color:rgba(255,255,255,.10);padding:14px 8px;border-radius:16px}.stp-root-hero{padding:12px 4px 28px}.stp-ava{background:#fff;color:#000}.stp-body{padding:10px 24px 50px}.stp-head{margin:0 24px}.stp-row{background:rgba(255,255,255,.04)}
 }
 @media(prefers-reduced-motion:reduce){.settings-overlay,.settings-box,.set-nav-btn,.stp-root-item,.stp-row,.stp-btn,.stp-toggle,.stp-toggle::after{transition:none!important}}
 
-@media(max-width:768px){
-  .mobile-menu,.menu-btn,.hamburger-btn,#mobileMenuBtn{display:flex!important;position:fixed!important;left:30px!important;top:32px!important;z-index:120!important;width:42px!important;height:42px!important;background:transparent!important;border:0!important;color:#fff!important;align-items:center!important;justify-content:center!important;}
-  .mobile-menu svg,.menu-btn svg,.hamburger-btn svg,#mobileMenuBtn svg{display:none!important;}
-  .mobile-menu::before,.menu-btn::before,.hamburger-btn::before,#mobileMenuBtn::before{content:'☰';font-size:36px;line-height:1;font-weight:800;}
-  .more-btn,.top-more,#mobileMoreBtn{display:flex!important;position:fixed!important;right:48px!important;top:38px!important;z-index:120!important;width:48px!important;height:32px!important;background:transparent!important;border:0!important;color:#fff!important;align-items:center!important;justify-content:center!important;}
-  .more-btn svg,.top-more svg,#mobileMoreBtn svg{display:none!important;}
-  .more-btn::before,.top-more::before,#mobileMoreBtn::before{content:'•••';font-size:36px;letter-spacing:2px;line-height:.5;font-weight:900;}
-}
 
-/* ===== CHAT MOBILE SCREENSHOT OVERRIDE v2 ===== */
-@media(max-width:768px){
-  html[data-boot="app"] .mobile-glossy{display:block!important;}
-  body:has(#app.show) .auth-wrap, body:has(#app.show) #initialLoading{display:none!important;}
-  body:has(#app.show) .topbar{display:flex!important;position:fixed!important;left:0!important;right:0!important;top:0!important;height:96px!important;padding:0!important;background:transparent!important;border:0!important;z-index:130!important;}
-  body:has(#app.show) .topbar>div{height:auto!important;}
-  body:has(#app.show) .topbar-btn{display:flex!important;position:fixed!important;z-index:131!important;background:transparent!important;border:0!important;box-shadow:none!important;color:#fff!important;border-radius:0!important;}
-  body:has(#app.show) .topbar>div:first-child .topbar-btn{left:30px!important;top:32px!important;width:42px!important;height:42px!important;}
-  body:has(#app.show) #chatMenuBtn{visibility:visible!important;pointer-events:auto!important;right:46px!important;top:36px!important;width:54px!important;height:34px!important;}
-  body:has(#app.show) .topbar-btn svg{display:none!important;}
-  body:has(#app.show) .topbar>div:first-child .topbar-btn::before{content:'☰';font-size:37px;line-height:1;font-weight:900;color:#fff;}
-  body:has(#app.show) #chatMenuBtn::before{content:'•••';font-size:38px;letter-spacing:3px;line-height:.45;font-weight:900;color:#fff;}
-  body:has(#app.show) .topbar-logo,body:has(#app.show) .topbar-model-pill,body:has(#app.show) .topbar-upgrade,body:has(#app.show) .topbar-training-pill{display:none!important;}
-  .chat-container{background:#000!important;}
-  .greeting-wrap{height:100%!important;justify-content:center!important;padding:0 20px 210px!important;}
-  .greeting-mark,.greeting-hints{display:none!important;}
-  .greeting-title{font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif!important;font-size:clamp(42px,12.6vw,64px)!important;line-height:1.05!important;font-weight:900!important;letter-spacing:-.035em!important;margin:0!important;color:#fff!important;}
-  .composer{position:fixed!important;left:0!important;right:0!important;bottom:0!important;padding:0 30px calc(28px + env(safe-area-inset-bottom))!important;background:transparent!important;z-index:110!important;}
-  .composer-inner{max-width:none!important;width:100%!important;}
-}
+/* Мобильный экран чата теперь целиком в /css/mobile-chat.css (прежние «скриншотные»
+   переопределения прятали боковое меню и раздували кнопки — удалены). */
 </style>
 
 <style id="system-theme-desktop-fix">
@@ -3014,6 +2970,70 @@ html[data-theme="messenger"] .rec-overlay{background:rgba(23,33,43,.34);}
 @media(prefers-reduced-motion:reduce){.thp-card,.thp-check{transition:none;}}
 </style>
 <link rel="stylesheet" href="/css/mobile-chat.css">
+<style id="settings-extra-v3">
+.stp-clean-row{display:flex!important;align-items:center!important;gap:12px;cursor:pointer;}
+.stp-clean-val{font-size:13px;opacity:.65;white-space:nowrap;}
+.stp-check{width:22px;height:22px;flex:none;accent-color:var(--set-accent,#1f5cff);cursor:pointer;}
+.stp-btn-danger{background:#ef4444!important;color:#fff!important;}
+.stp-btn:disabled{opacity:.6;cursor:default;}
+</style>
+<style id="settings-v3-ui">
+/* Выпадающие списки настроек видимы во всех темах и на любой ширине */
+.stp-dd-menu{background:var(--set-side,var(--bg2))!important;color:var(--set-text,var(--text))!important;border:1px solid color-mix(in srgb,var(--set-text,var(--text)) 14%,transparent)!important;flex-direction:column;gap:2px;max-width:calc(100vw - 32px);}
+.stp-dd.open .stp-dd-menu{display:flex;}
+.stp-dd-opt{width:100%;border:0!important;background:transparent!important;color:var(--set-text,var(--text))!important;font:inherit!important;font-size:14.5px!important;text-align:left;box-shadow:none!important;-webkit-appearance:none;appearance:none;}
+.stp-dd-opt:hover,.stp-dd-opt:focus-visible{background:color-mix(in srgb,var(--set-text,var(--text)) 10%,transparent)!important;outline:none;}
+.stp-dd-opt.on{font-weight:700!important;}
+.stp-dd-opt.on::after{content:"✓";color:var(--set-accent,#1f5cff);}
+/* Сегменты, образцы цвета, сравнение тарифов */
+.stp-seg{display:inline-flex;padding:3px;border-radius:12px;background:color-mix(in srgb,var(--set-text,var(--text)) 9%,transparent);flex:none;}
+.stp-seg-btn{border:0;background:transparent;color:var(--set-text,var(--text));font:inherit;font-size:13.5px;padding:7px 12px;border-radius:9px;cursor:pointer;}
+.stp-seg-btn.on{background:var(--set-text,var(--text));color:var(--set-panel,var(--bg));font-weight:600;}
+.stp-swatches{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;}
+.stp-swatch{width:26px;height:26px;border-radius:50%;border:2px solid transparent;background:var(--c);cursor:pointer;box-shadow:inset 0 0 0 1px rgba(127,127,127,.35);padding:0;}
+.stp-swatch.on{border-color:var(--set-accent,#1f5cff);box-shadow:0 0 0 2px var(--set-panel,#000) inset;}
+.stp-sub-title{font-size:15px;font-weight:650;margin:14px 2px 8px;}
+.stp-cmp{border:1px solid color-mix(in srgb,var(--set-text,var(--text)) 12%,transparent);border-radius:14px;overflow:hidden;font-size:13.5px;}
+.stp-cmp-row{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:8px;padding:10px 14px;}
+.stp-cmp-row+.stp-cmp-row{border-top:1px solid color-mix(in srgb,var(--set-text,var(--text)) 8%,transparent);}
+.stp-cmp-row span:nth-child(3){font-weight:600;}
+.stp-cmp-head{font-weight:700;background:color-mix(in srgb,var(--set-text,var(--text)) 5%,transparent);}
+@media(max-width:768px){.stp-cmp-row{grid-template-columns:1.3fr .9fr 1fr;padding:9px 10px;font-size:12.5px;}.stp-seg-btn{padding:7px 9px;font-size:12.5px;}}
+/* Размер текста в чате */
+html[data-fs="s"] .msg-ai,html[data-fs="s"] .msg-user{font-size:14px!important;}
+html[data-fs="l"] .msg-ai,html[data-fs="l"] .msg-user{font-size:18px!important;line-height:1.6!important;}
+html.hm-no-hints .greeting-hints,html.hm-no-hints .m-hints{display:none!important;}
+html.hm-blur-chats .sb-chat-item .sb-chat-title,html.hm-blur-chats .sb-chat-item span{filter:blur(5px);transition:filter .15s;}
+html.hm-blur-chats .sb-chat-item:hover .sb-chat-title,html.hm-blur-chats .sb-chat-item:hover span{filter:none;}
+
+/* Мини-меню профиля */
+.hm-pm{position:fixed;z-index:900;width:236px;border-radius:18px;padding:6px;overflow:hidden;
+  background:var(--drop-bg,var(--bg2));color:var(--text);border:1px solid var(--border);
+  box-shadow:0 18px 50px rgba(0,0,0,.28);opacity:0;transform:translateY(6px) scale(.98);transform-origin:bottom left;
+  transition:opacity .16s ease,transform .18s cubic-bezier(.2,.8,.2,1);}
+.hm-pm.open{opacity:1;transform:none;}
+.hm-pm-main,.hm-pm-lang{display:flex;flex-direction:column;gap:1px;}
+.hm-pm-lang{display:none;}
+.hm-pm.lang .hm-pm-main{display:none;}
+.hm-pm.lang .hm-pm-lang{display:flex;animation:hmPmIn .18s ease;}
+@keyframes hmPmIn{from{opacity:0;transform:translateX(8px)}}
+.hm-pm button{display:flex;align-items:center;gap:12px;width:100%;padding:10px 12px;border:0;border-radius:11px;background:transparent;color:inherit;font:inherit;font-size:14.5px;text-align:left;cursor:pointer;}
+.hm-pm button:hover,.hm-pm button:focus-visible{background:color-mix(in srgb,var(--text) 8%,transparent);outline:none;}
+.hm-pm button>svg{width:20px;height:20px;flex:none;opacity:.85;}
+.hm-pm button span{flex:1;}
+.hm-pm em{font-style:normal;font-size:13px;opacity:.55;}
+.hm-pm .hm-pm-chev{width:16px;height:16px;opacity:.5;}
+.hm-pm-sep{height:1px;margin:4px 8px;background:var(--border);}
+.hm-pm-danger{color:#ef4444!important;}
+.hm-pm-back{font-weight:650;opacity:.9;margin-bottom:2px;}
+.hm-pm-back svg{width:18px!important;height:18px!important;}
+.hm-pm-lang .hm-pm-ok{width:18px;height:18px;color:var(--accent,#1f5cff);opacity:0;}
+.hm-pm-lang button.on{font-weight:650;}
+.hm-pm-lang button.on .hm-pm-ok{opacity:1;}
+html[data-theme="dark"] .hm-pm,html:not([data-theme]) .hm-pm{--pm-dark:1;}
+@media(max-width:768px){.hm-pm{width:min(260px,calc(100vw - 16px));}.hm-pm button{padding:12px;}}
+@media(prefers-reduced-motion:reduce){.hm-pm{transition:none;}}
+</style>
 </head>
 <body>
 <div id="initialLoading" role="status" aria-live="polite"><span class="boot-spinner"></span><span>Загрузка HarmonyAI…</span></div>
@@ -3200,7 +3220,7 @@ html[data-theme="messenger"] .rec-overlay{background:rgba(23,33,43,.34);}
       <div class="input-box" id="inputBox">
         <textarea id="msgTa" placeholder="Спросить HarmonyAI" rows="1"
           oninput="taResize(this)"
-          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg();}"></textarea>
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing&&hmEnterSends()){event.preventDefault();sendMsg();}"></textarea>
         <div class="input-bar-row">
           <div class="bar-left">
             <!-- Кнопка «+»: открывает меню (файл/фото + поиск в интернете) -->
@@ -4795,7 +4815,7 @@ function bindPrimaryUiActions(){
   const settingsBtn=document.getElementById('settingsBtn');
   if(settingsBtn&&!settingsBtn.dataset.hmBound){
     settingsBtn.dataset.hmBound='1';
-    settingsBtn.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();openSettings();});
+    settingsBtn.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();toggleProfileMenu(settingsBtn);});
   }
   const micBtn=document.getElementById('micBtn');
   if(micBtn&&!micBtn.dataset.hmBound){
@@ -5000,6 +5020,7 @@ function updateUserUI(){
      кнопку «Обновить» в шапке (п.7) и Pro-замки в меню моделей. */
   try{refreshTopbarUpgradeUI();}catch(e){}
   try{refreshModelUI();}catch(e){}
+  try{hmApplyPrefs();}catch(e){}
 }
 function kbUserKey(){return KB_USER_PREFIX+(curUser?.id||'guest');}
 function readKb(key){
@@ -6972,6 +6993,7 @@ const IC_STOP='<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect
 const IC_MEM='<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 5a2 2 0 012-2h5v16H6a2 2 0 01-2-2V5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M20 5a2 2 0 00-2-2h-5v16h5a2 2 0 002-2V5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>';
 
 function setGeneratingState(active){
+  if(isGenerating&&!active){try{hmPlayDoneSound();}catch(e){}}
   isGenerating=active;
   // HM-REASONING-V2: стоп/ошибка/обрыв не должны оставлять вечное «Думаю».
   if(!active){try{hmFinalizeLiveReasoning();}catch(e){}}
@@ -11080,7 +11102,18 @@ function renderSettingsSubscription(){
       <div class="stp-card-label">Тарифный план <strong>Free</strong></div>
       <button type="button" class="stp-btn stp-btn-accent stp-upgrade-btn" onclick="goToDynatos()">${upgradeIcon}<span>Обновить</span></button>
     </div>`;
-  stpEnsure('subscription','Подписка',stpBackMain(),planCard);
+  const cmp=[['Сообщения с ИИ','С лимитом','Без ограничений'],['Модели','Adanatos','Все модели'],['Приоритетная генерация','—','Да'],['История чатов','С лимитом','Без ограничений'],['Хранилище','Базовое','Увеличенное']];
+  const cmpHtml=`<div class="stp-cmp"><div class="stp-cmp-row stp-cmp-head"><span></span><span>Free</span><span>Pro</span></div>${cmp.map(r=>`<div class="stp-cmp-row"><span>${r[0]}</span><span>${r[1]}</span><span>${r[2]}</span></div>`).join('')}</div>`;
+  const manage=isPro?`
+    <div class="stp-row"><div class="stp-row-label"><div class="stp-row-title">Продлить подписку</div><div class="stp-row-desc">Оплатить следующий период заранее.</div></div><button type="button" class="stp-btn" onclick="goToDynatos()">Продлить</button></div>
+    <div class="stp-row"><div class="stp-row-label"><div class="stp-row-title">Отменить подписку</div><div class="stp-row-desc">Доступ сохранится до конца оплаченного периода.</div></div><button type="button" class="stp-btn stp-btn-danger" onclick="cancelSubscription()">Отменить</button></div>`
+    :`<div class="stp-sub-title">Free или Pro</div>${cmpHtml}`;
+  stpEnsure('subscription','Подписка',stpBackMain(),planCard+`
+    <div class="stp-hr"></div>
+    ${manage}
+    <div class="stp-row" onclick="window.open('/subscribe','_blank','noopener')" role="link" tabindex="0"><div class="stp-row-label"><div class="stp-row-title">Тарифы и цены</div></div><span class="stp-link">›</span></div>
+    <div class="stp-row" onclick="location.href='mailto:help@harmonyai.ru?subject='+encodeURIComponent('Вопрос об оплате')" role="button" tabindex="0"><div class="stp-row-label"><div class="stp-row-title">Вопрос об оплате</div><div class="stp-row-desc">Напишите нам — ответим на почту.</div></div><span class="stp-link">›</span></div>
+  </div>`);
 }
 
 function cancelSubscription(){
@@ -11212,7 +11245,7 @@ function renderSettingsGeneral(){
   const autoSwitch=(s.autoSwitch!==false);
   const webSearch=(s.webSearch===true);
   const curLang=(window.i18n&&window.i18n.get&&window.i18n.get())||localStorage.getItem('hai_lang')||'ru';
-  const names=(window.i18n&&window.i18n.names)||{ru:'Русский',en:'English',fr:'Français',de:'Deutsch',es:'Españол'};
+  const names=(window.i18n&&window.i18n.names)||{ru:'Русский',en:'English',fr:'Français',de:'Deutsch',es:'Español'};
   const dd=stpDdHtml('ddLang',names[curLang]||'Русский',((window.i18n&&window.i18n.supported)||['ru','en','fr','de','es']).map(l=>`<button type="button" class="stp-dd-opt${l===curLang?' on':''}" onclick="pickLang('${l}')">${names[l]||l}</button>`).join(''));
   stpEnsure('general','Общие',stpBackMain(),`
       <div class="stp-row">
@@ -11232,6 +11265,23 @@ function renderSettingsGeneral(){
           <div class="stp-row-desc">Автоматически переключать модели для решения разных задач по сложности и времени.</div>
         </div>
         ${stpToggleCtrl('autoSwitch',autoSwitch)}
+      </div>
+      <div class="stp-hr"></div>
+      <div class="stp-row">
+        <div class="stp-row-label"><div class="stp-row-title">Размер текста в чате</div><div class="stp-row-desc">Как крупно показывать сообщения.</div></div>
+        <div class="stp-seg" role="radiogroup" aria-label="Размер текста">${[['s','Мелкий'],['m','Обычный'],['l','Крупный']].map(([v,l])=>`<button type="button" role="radio" aria-checked="${(s.fontSize||'m')===v}" class="stp-seg-btn${(s.fontSize||'m')===v?' on':''}" onclick="hmSetPref('fontSize','${v}');renderSettingsGeneral()">${l}</button>`).join('')}</div>
+      </div>
+      <div class="stp-row">
+        <div class="stp-row-label"><div class="stp-row-title">Отправка по Enter</div><div class="stp-row-desc">Выключите, чтобы Enter переносил строку, а отправка была только кнопкой.</div></div>
+        ${stpToggleCtrl('enterToSend',s.enterToSend!==false,'hmApplyPrefs()')}
+      </div>
+      <div class="stp-row">
+        <div class="stp-row-label"><div class="stp-row-title">Подсказки на главном экране</div><div class="stp-row-desc">«Сгенерировать нотный стан», «Разбор сольфеджио» и другие.</div></div>
+        ${stpToggleCtrl('showHints',s.showHints!==false,'hmApplyPrefs()')}
+      </div>
+      <div class="stp-row">
+        <div class="stp-row-label"><div class="stp-row-title">Звук, когда ответ готов</div><div class="stp-row-desc">Короткий мягкий сигнал — удобно, если вы переключились на другую вкладку.</div></div>
+        ${stpToggleCtrl('doneSound',s.doneSound===true,'hmApplyPrefs()')}
       </div>
     </div>`);
 }
@@ -11278,6 +11328,23 @@ function renderSettingsSecurity(){
           <div class="stp-row-desc">Просмотрите все устройства, которые входили в ваш аккаунт. Здесь можно проверить активные сеансы, удалить доверенные устройства или выбрать «Выйти со всех устройств», чтобы завершить все сеансы.</div>
         </div>
         <span class="stp-link">${devCount!=null?devCount:''} ${chev}</span>
+      </div>
+      <div class="stp-hr"></div>
+      <div class="stp-row">
+        <div class="stp-row-label"><div class="stp-row-title">Скрывать названия чатов</div><div class="stp-row-desc">Названия в боковой панели размыты, пока не наведёте на них. Удобно, если экран видят другие.</div></div>
+        ${stpToggleCtrl('blurChats',s.blurChats===true,'hmApplyPrefs()')}
+      </div>
+      <div class="stp-row">
+        <div class="stp-row-label"><div class="stp-row-title">Скачать мои чаты</div><div class="stp-row-desc">Все ваши разговоры одним файлом JSON.</div></div>
+        <button type="button" class="stp-btn" onclick="hmExportChats(this)">Скачать</button>
+      </div>
+      <div class="stp-row">
+        <div class="stp-row-label"><div class="stp-row-title">Выйти на всех устройствах</div><div class="stp-row-desc">Завершит все сеансы, включая этот. Войти снова можно по коду на почту.</div></div>
+        <button type="button" class="stp-btn stp-btn-danger" onclick="hmSignOutEverywhere()">Выйти везде</button>
+      </div>
+      <div class="stp-row" onclick="window.open('/legal/privacy','_blank','noopener')" role="link" tabindex="0">
+        <div class="stp-row-label"><div class="stp-row-title">Политика конфиденциальности</div></div>
+        <span class="stp-link">${chev}</span>
       </div>
     </div>`);
 }
@@ -11925,6 +11992,22 @@ function renderSettingsAccount(){
         <div class="stp-row-label"><div class="stp-row-title">Электронная почта</div></div>
         <span class="stp-link">${escapeHtml(curUser?.email||'')}</span>
       </div>
+      <div class="stp-row">
+        <div class="stp-row-label"><div class="stp-row-title">Способ входа</div></div>
+        <span class="stp-link">${hmProviderName()}</span>
+      </div>
+      <div class="stp-row">
+        <div class="stp-row-label"><div class="stp-row-title">Цвет аватара</div></div>
+        <div class="stp-swatches">${HM_AVATAR_COLORS.map(c=>`<button type="button" class="stp-swatch${(getSettings().avatarColor||'')===c?' on':''}" style="--c:${c||'var(--set-text)'}" aria-label="Цвет ${c||'по умолчанию'}" onclick="hmSetPref('avatarColor','${c}');renderSettingsAccount()"></button>`).join('')}</div>
+      </div>
+      <div class="stp-row">
+        <div class="stp-row-label"><div class="stp-row-title">ID аккаунта</div><div class="stp-row-desc">Пригодится, если пишете в поддержку.</div></div>
+        <button type="button" class="stp-btn" onclick="navigator.clipboard.writeText('${escapeHtml(curUser?.id||'')}').then(()=>showSettingsToast('ID скопирован'))">Скопировать</button>
+      </div>
+      <div class="stp-row">
+        <div class="stp-row-label"><div class="stp-row-title">Выйти из аккаунта</div></div>
+        <button type="button" class="stp-btn" onclick="logOut()">Выйти</button>
+      </div>
       <div class="stp-hr"></div>
       <div class="stp-row">
         <div class="stp-row-label"><div class="stp-row-title">Удалить учетную запись</div></div>
@@ -12247,19 +12330,87 @@ async function renderStorageUsage(){
     ?'Данные из вашего хранилища на сервере и локального кэша.'
     :'Точно посчитать удалось только локальный кэш — файлы на сервере недоступны для списка.';
 }
-async function openStorageCleanup(){
-  if(!window.confirm('Очистить локальный кэш приложения? Вход, настройки и чаты на сервере сохранятся. Несохранённые черновики могут пропасть.'))return;
-  try{
-    const keep=k=>k.indexOf('sb-')===0||k==='hai_theme'||k==='hai_lang'||k.indexOf('nickname')!==-1;
-    const kill=[];
-    for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&!keep(k))kill.push(k);}
-    kill.forEach(k=>{try{localStorage.removeItem(k);}catch(e){}});
-    try{sessionStorage.clear();}catch(e){}
-    showSettingsToast('Локальный кэш очищен');
-  }catch(e){
-    showSettingsToast('Не удалось очистить кэш');
+/* ===== ОЧИСТКА ХРАНИЛИЩА =====
+   Раньше «Очистить» стирал только локальный кэш браузера (несколько КБ), а
+   цифра «28 МБ из 128» складывается в основном из файлов на сервере —
+   поэтому после очистки ничего не менялось. Теперь это отдельный экран:
+   можно выбрать, что именно удалить, и файлы реально удаляются с сервера. */
+async function storageListAll(bucket,prefix,out,depth){
+  out=out||[];depth=depth||0;
+  if(depth>3)return out;
+  let offset=0;
+  for(;;){
+    const r=await sb.storage.from(bucket).list(prefix,{limit:1000,offset});
+    if(r.error)throw r.error;
+    const items=r.data||[];
+    for(const o of items){
+      const path=prefix+'/'+o.name;
+      if(!o.id&&!o.metadata)await storageListAll(bucket,path,out,depth+1); // папка
+      else out.push({path,size:Number(o.metadata&&o.metadata.size)||0});
+    }
+    if(items.length<1000)break;
+    offset+=1000;
   }
-  renderStorageUsage();
+  return out;
+}
+async function storageUserPrefix(bucket){
+  const uid=curUser&&curUser.id;if(!uid)return null;
+  for(const seg of new Set([uid,String(uid).replace(/[^a-zA-Z0-9_-]/g,'-')])){
+    try{const r=await sb.storage.from(bucket).list(seg,{limit:1});if(r.data&&r.data.length)return seg;}catch(e){}
+  }
+  return null;
+}
+function openStorageCleanup(){
+  const c=window.__stpStoreCache||{files:{},imgs:{},localBytes:0};
+  const row=(id,title,desc,val,on)=>`
+      <label class="stp-row stp-clean-row" for="${id}">
+        <div class="stp-row-label"><div class="stp-row-title">${title}</div><div class="stp-row-desc">${desc}</div></div>
+        <span class="stp-clean-val">${val}</span>
+        <input type="checkbox" id="${id}" class="stp-check" ${on?'checked':''}>
+      </label>`;
+  stpEnsure('storage-clean','Очистить хранилище','renderSettingsStorage()',`
+      ${row('clnFiles','Загруженные файлы','Фото, PDF и документы, которые вы прикрепляли к сообщениям. В старых чатах вместо них будет пометка «файл удалён».',c.files&&c.files.count?setFmtBytes(c.files.size):'—',true)}
+      ${row('clnImgs','Сгенерированные изображения','Картинки, которые нарисовал HarmonyAI. В старых чатах они перестанут открываться.',c.imgs&&c.imgs.count?setFmtBytes(c.imgs.size):'—',false)}
+      ${row('clnLocal','Кэш на этом устройстве','Временные данные браузера. Вход, настройки и чаты сохранятся.',setFmtBytes(c.localBytes||0),true)}
+      <div class="stp-hr"></div>
+      <div class="stp-row" style="justify-content:flex-end;gap:10px">
+        <button type="button" class="stp-btn" onclick="renderSettingsStorage()">Отмена</button>
+        <button type="button" class="stp-btn stp-btn-danger" id="clnGo" onclick="runStorageCleanup()">Удалить выбранное</button>
+      </div>
+      <div class="stp-row-desc" id="clnStatus" style="padding:4px 2px"></div>
+    </div>`);
+}
+async function runStorageCleanup(){
+  const want={files:document.getElementById('clnFiles')?.checked,imgs:document.getElementById('clnImgs')?.checked,local:document.getElementById('clnLocal')?.checked};
+  if(!want.files&&!want.imgs&&!want.local){showSettingsToast('Ничего не выбрано');return;}
+  if((want.files||want.imgs)&&!window.confirm('Удалить выбранные файлы с сервера? Это нельзя отменить.'))return;
+  const btn=document.getElementById('clnGo'),st=document.getElementById('clnStatus');
+  if(btn){btn.disabled=true;btn.textContent='Удаляем…';}
+  let freed=0,failed=0;
+  const jobs=[];if(want.files)jobs.push('chat-attachments');if(want.imgs)jobs.push('generated-images');
+  for(const bucket of jobs){
+    try{
+      const seg=await storageUserPrefix(bucket);if(!seg)continue;
+      const all=await storageListAll(bucket,seg);
+      for(let i=0;i<all.length;i+=100){
+        const part=all.slice(i,i+100);
+        if(st)st.textContent='Удаляем… '+Math.min(i+100,all.length)+' из '+all.length;
+        const r=await sb.storage.from(bucket).remove(part.map(x=>x.path));
+        if(r.error){failed+=part.length;console.warn('storage remove',bucket,r.error);}
+        else{const ok=new Set((r.data||[]).map(x=>x.name));part.forEach(x=>{if(ok.has(x.path)||!r.data)freed+=x.size;else failed++;});}
+      }
+    }catch(e){console.warn('storage cleanup',bucket,e);failed++;}
+  }
+  if(want.local){
+    try{
+      const keep=k=>k.indexOf('sb-')===0||k==='hai_theme'||k==='hai_lang'||k.indexOf('nickname')!==-1;
+      const kill=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&!keep(k))kill.push(k);}
+      kill.forEach(k=>{try{localStorage.removeItem(k);}catch(e){}});
+      try{sessionStorage.clear();}catch(e){}
+    }catch(e){}
+  }
+  showSettingsToast(failed?('Удалено частично: '+setFmtBytes(freed)+'. Часть файлов сервер не дал удалить.'):('Освобождено '+setFmtBytes(freed)));
+  renderSettingsStorage();
 }
 /* Экран статистики рендерит собственную шапку — даём ей работать
    внутри новой двухпанельной раскладки и не ломаем мобильную. */
@@ -12350,6 +12501,123 @@ function openStorageCleanupLegacy(){
     }catch(e){return orig.apply(this,arguments);}
   };
 })();
+</script>
+<script>
+/* ===== Настройки v3: пользовательские предпочтения, профиль-меню, язык ===== */
+const HM_AVATAR_COLORS=['','#1f5cff','#7c3aed','#db2777','#ea580c','#16a34a','#0891b2'];
+function hmPref(k,d){const s=getSettings();return s[k]===undefined?d:s[k];}
+function hmSetPref(k,v){try{saveSetting(k,v);}catch(e){}hmApplyPrefs();}
+function hmEnterSends(){
+  // На телефоне Enter всегда переносит строку — отправка кнопкой, как в мессенджерах.
+  try{if(window.matchMedia('(max-width:768px) and (pointer:coarse)').matches)return false;}catch(e){}
+  return hmPref('enterToSend',true)!==false;
+}
+function hmApplyPrefs(){
+  const h=document.documentElement;
+  h.setAttribute('data-fs',hmPref('fontSize','m'));
+  h.classList.toggle('hm-no-hints',hmPref('showHints',true)===false);
+  h.classList.toggle('hm-blur-chats',hmPref('blurChats',false)===true);
+  const av=document.getElementById('sbAvatar');
+  const c=hmPref('avatarColor','');
+  if(av){av.style.background=c||'';av.style.color=c?'#fff':'';}
+}
+let hmAudioCtx=null;
+function hmPlayDoneSound(){
+  if(hmPref('doneSound',false)!==true)return;
+  try{
+    hmAudioCtx=hmAudioCtx||new (window.AudioContext||window.webkitAudioContext)();
+    const t=hmAudioCtx.currentTime;
+    [[659.25,0],[987.77,.11]].forEach(([f,d])=>{   // ми – си: мягкая кварта вверх
+      const o=hmAudioCtx.createOscillator(),g=hmAudioCtx.createGain();
+      o.type='sine';o.frequency.value=f;o.connect(g);g.connect(hmAudioCtx.destination);
+      g.gain.setValueAtTime(0,t+d);g.gain.linearRampToValueAtTime(.12,t+d+.02);g.gain.exponentialRampToValueAtTime(.0001,t+d+.45);
+      o.start(t+d);o.stop(t+d+.5);
+    });
+  }catch(e){}
+}
+function hmProviderName(){
+  const p=String(curUser?.app_metadata?.provider||curUser?.provider||'email').toLowerCase();
+  return {google:'Google',github:'GitHub',discord:'Discord',email:'Код на почту'}[p]||p;
+}
+async function hmExportChats(btn){
+  if(!curUser||!window.sb)return;
+  const orig=btn?btn.textContent:'';
+  if(btn){btn.disabled=true;btn.textContent='Собираем…';}
+  try{
+    const out=[];let from=0;
+    for(;;){
+      const {data,error}=await sb.from('chats').select('id,title,history,updated_at').eq('user_id',curUser.id).order('updated_at',{ascending:false}).range(from,from+49);
+      if(error)throw error;
+      (data||[]).forEach(c=>out.push({id:c.id,title:c.title,updated_at:c.updated_at,messages:(c.history||[]).map(m=>({role:m.role,content:m.content,image:m.image||undefined,createdAt:m.createdAt||undefined}))}));
+      if(!data||data.length<50)break;from+=50;
+    }
+    const blob=new Blob([JSON.stringify({exported_at:new Date().toISOString(),email:curUser.email,chats:out},null,2)],{type:'application/json'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='harmonyai-chats-'+new Date().toISOString().slice(0,10)+'.json';
+    document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000);
+    showSettingsToast('Скачано чатов: '+out.length);
+  }catch(e){showSettingsToast('Не удалось собрать чаты');}
+  if(btn){btn.disabled=false;btn.textContent=orig;}
+}
+async function hmSignOutEverywhere(){
+  if(!confirm('Выйти из аккаунта на всех устройствах, включая это?'))return;
+  try{await sb.auth.signOut({scope:'global'});}catch(e){}
+  try{logOut();}catch(e){location.href='/login';}
+}
+
+/* ---------- Мини-меню профиля: Лимиты · Настройки · Язык · Выйти ---------- */
+const HM_LANGS=()=>{
+  const names=(window.i18n&&window.i18n.names)||{ru:'Русский',en:'English',fr:'Français',de:'Deutsch',es:'Español'};
+  const list=(window.i18n&&window.i18n.supported)||['ru','en','fr','de','es'];
+  return list.map(l=>({id:l,name:String(names[l]||l).replace('Españол','Español')}));
+};
+function hmCurLang(){return (window.i18n&&window.i18n.get&&window.i18n.get())||localStorage.getItem('hai_lang')||'ru';}
+function closeProfileMenu(){
+  const m=document.getElementById('hmProfileMenu');
+  if(m){m.classList.remove('open');setTimeout(()=>{if(!m.classList.contains('open'))m.remove();},180);}
+  document.getElementById('settingsBtn')?.setAttribute('aria-expanded','false');
+}
+function toggleProfileMenu(anchor){
+  if(document.getElementById('hmProfileMenu')?.classList.contains('open')){closeProfileMenu();return;}
+  const ic={
+    lim:'<svg viewBox="0 0 24 24" fill="none"><path d="M4 16a8 8 0 1116 0" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><path d="M12 16l4-5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><circle cx="12" cy="16" r="1.6" fill="currentColor"/></svg>',
+    set:'<svg viewBox="0 0 24 24" fill="none"><path d="M12 15.2a3.2 3.2 0 100-6.4 3.2 3.2 0 000 6.4z" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 13.5l1.6 1.2-1.8 3.1-1.9-.7a7.4 7.4 0 01-2 1.2L15 20.5h-3.6l-.3-2.2a7.4 7.4 0 01-2-1.2l-1.9.7-1.8-3.1 1.6-1.2a7.6 7.6 0 010-2.4L5.4 9.9l1.8-3.1 1.9.7a7.4 7.4 0 012-1.2L11.4 4H15l.3 2.3a7.4 7.4 0 012 1.2l1.9-.7 1.8 3.1-1.6 1.2a7.6 7.6 0 010 2.4z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>',
+    lang:'<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"/><path d="M3.5 12h17M12 3.5c2.4 2.4 3.4 5.3 3.4 8.5s-1 6.1-3.4 8.5c-2.4-2.4-3.4-5.3-3.4-8.5s1-6.1 3.4-8.5z" stroke="currentColor" stroke-width="1.6"/></svg>',
+    out:'<svg viewBox="0 0 24 24" fill="none"><path d="M14 4H6.5A1.5 1.5 0 005 5.5v13A1.5 1.5 0 006.5 20H14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M11 12h9m0 0l-3-3m3 3l-3 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    chev:'<svg class="hm-pm-chev" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+  };
+  const cur=HM_LANGS().find(l=>l.id===hmCurLang());
+  const m=document.createElement('div');
+  m.id='hmProfileMenu';m.className='hm-pm';m.setAttribute('role','menu');
+  m.innerHTML=`
+    <div class="hm-pm-main">
+      <button type="button" role="menuitem" onclick="closeProfileMenu();openSettings();setTimeout(()=>openSettingsSection('usage'),60)">${ic.lim}<span>Лимиты</span></button>
+      <button type="button" role="menuitem" onclick="closeProfileMenu();openSettings()">${ic.set}<span>Настройки</span></button>
+      <button type="button" role="menuitem" aria-haspopup="true" onclick="event.stopPropagation();this.closest('.hm-pm').classList.add('lang')">${ic.lang}<span>Язык</span><em>${cur?cur.name:''}</em>${ic.chev}</button>
+      <div class="hm-pm-sep"></div>
+      <button type="button" role="menuitem" class="hm-pm-danger" onclick="closeProfileMenu();logOut()">${ic.out}<span>Выйти</span></button>
+    </div>
+    <div class="hm-pm-lang" role="menu" aria-label="Язык интерфейса">
+      <button type="button" class="hm-pm-back" onclick="event.stopPropagation();this.closest('.hm-pm').classList.remove('lang')"><svg viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Язык</span></button>
+      ${HM_LANGS().map(l=>`<button type="button" role="menuitemradio" aria-checked="${l.id===hmCurLang()}" class="${l.id===hmCurLang()?'on':''}" onclick="hmPickLangFromMenu('${l.id}')"><span>${l.name}</span><svg class="hm-pm-ok" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.2 4.2L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`).join('')}
+    </div>`;
+  document.body.appendChild(m);
+  const r=anchor.getBoundingClientRect();
+  m.style.left=Math.max(8,r.left)+'px';
+  m.style.bottom=(window.innerHeight-r.top+8)+'px';
+  anchor.setAttribute('aria-expanded','true');
+  requestAnimationFrame(()=>m.classList.add('open'));
+  m.addEventListener('click',e=>e.stopPropagation());
+}
+function hmPickLangFromMenu(lang){
+  closeProfileMenu();
+  if(window.i18n&&window.i18n.set)window.i18n.set(lang);else localStorage.setItem('hai_lang',lang);
+  try{window.persistLangToProfile&&window.persistLangToProfile(lang);}catch(e){}
+  try{window.i18n&&window.i18n.apply&&window.i18n.apply(document.body);}catch(e){}
+  try{updateLangSensitiveUI();}catch(e){}
+}
+document.addEventListener('click',()=>{if(document.getElementById('hmProfileMenu'))closeProfileMenu();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.getElementById('hmProfileMenu'))closeProfileMenu();});
+window.addEventListener('resize',()=>{if(document.getElementById('hmProfileMenu'))closeProfileMenu();});
 </script>
 </body>
 </html>
