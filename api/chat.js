@@ -794,10 +794,29 @@ function looksLikeBadRequest(status, text) {
   return status === 400 || status === 422 || low.includes('invalid_request') || low.includes('unsupported parameter') || isUnsupportedReasoning(low);
 }
 /* Варианты тела запроса от полного к минимальному. */
+/* У рассуждающих моделей (gpt-5*, o-серия) лимит max_completion_tokens включает
+   и скрытые рассуждения. С лимитом 800–2048 модель тратила всё на «подумать» и
+   отвечала одной фразой («Я подготовлю картинку…») или не отвечала вовсе.
+   Поэтому им даём запас сверху по уровню усилий и сразу правильный параметр. */
+function isReasoningModel(name) { return /^(gpt-5|o\d)/i.test(String(name || '')); }
+function reasoningReserve(effort) {
+  const e = String(effort || '').toLowerCase();
+  if (e === 'high' || e === 'xhigh') return 24000;
+  if (e === 'medium') return 12000;
+  return 6000;
+}
 function providerBodyVariants(modelName, messages, maxTokens, reasoningEffort, stream) {
   const base = { model: modelName, messages: sanitizeMessagesForProvider(messages) };
   if (stream) base.stream = true;
   const variants = [];
+  if (isReasoningModel(modelName) && maxTokens > 0) {
+    const v = { ...base, max_completion_tokens: maxTokens + reasoningReserve(reasoningEffort) };
+    if (reasoningEffort) v.reasoning_effort = reasoningEffort;
+    variants.push(v);
+    if (reasoningEffort) variants.push({ ...base, max_completion_tokens: maxTokens + reasoningReserve(reasoningEffort) });
+    variants.push({ ...base });
+    return variants;
+  }
   const full = { ...base };
   if (maxTokens > 0) full.max_tokens = maxTokens;
   if (reasoningEffort) full.reasoning_effort = reasoningEffort;
@@ -1700,7 +1719,12 @@ export default async function handler(req, res) {
     // Ограничиваем длину ответа, чтобы простые вопросы отвечались быстро и не «висели».
     // Сложные режимы (думать/max/extra/нотация/большой контекст) получают большой потолок.
     let maxTokens;
-    if (think || isDeepEffort(effort) || isLargeContext || wantsStaff || isNotationHeavy) {
+    // Код и файлы (HTML-страница, картинка на SVG, скрипт, документ) — всегда без
+    // короткого потолка: иначе ответ обрывался после вступления, без самого кода.
+    const wantsCodeOrFile = /\b(html|css|svg|javascript|js|python|pdf|docx|pptx|md|markdown)\b/i.test(query || '')
+      || /(^|[^а-яё])(код|скрипт|сайт|страниц|вёрстк|верстк|файл|презентаци|документ)/i.test(query || '')
+      || /(напиши|создай|сделай|сгенерируй)[^.?!]{0,40}(код|html|страниц|файл|документ|презентаци|скрипт|программ)/i.test(query || '');
+    if (think || isDeepEffort(effort) || isLargeContext || wantsStaff || isNotationHeavy || wantsCodeOrFile) {
       maxTokens = 0; // без ограничения — нужна полная глубина
     } else if (effort === 'medium') {
       maxTokens = 4096; // средний уровень: запас на развёрнутый структурированный ответ
