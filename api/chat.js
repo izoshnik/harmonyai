@@ -67,7 +67,10 @@ function isUnsupportedReasoning(message) {
 /* Обе цепочки идут через envModel(): даже если в переменных окружения осталось
    старое значение (например gpt-5.4), оно будет отброшено, а не отправлено. */
 const MODEL_CHAINS = {
+  // Точное имя у провайдера — claude-haiku-4-5-20251001. Ставим его первым, чтобы
+  // устаревшая/опечатанная переменная ADANATOS_MODEL в Vercel не ломала Adanatos.
   adanatos: [
+    FREE_TEXT_MODEL,
     envModel('ADANATOS_MODEL', FREE_TEXT_MODEL),
     envModel('ADANATOS_FALLBACK', FREE_TEXT_MODEL)
   ],
@@ -1522,19 +1525,35 @@ async function checkUsageAllowance(userId, profile, requestedModel) {
       return { ok: true };
     }
     const cfg = ABUSE.adanatos;
+    const windowStart = new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString();
     const [windowUsage, month] = await Promise.all([
-      sumUsageSince(userId, 'adanatos', new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString()),
+      sumUsageSince(userId, 'adanatos', windowStart),
       sumUsageSince(userId, 'adanatos', startOfMonthIso())
     ]);
+    // Когда освободится окно: самое старое событие в окне + 5 часов.
+    const windowResetAt = async () => {
+      try {
+        const rows = await supabaseRequest(`/rest/v1/usage_events?select=created_at&user_id=eq.${encodeURIComponent(userId)}&model=eq.adanatos&created_at=gte.${encodeURIComponent(windowStart)}&order=created_at.asc&limit=1`);
+        const first = rows && rows[0] && Date.parse(rows[0].created_at);
+        return new Date((first || Date.now()) + 5 * 60 * 60 * 1000).toISOString();
+      } catch (e) { return new Date(Date.now() + 5 * 60 * 60 * 1000).toISOString(); }
+    };
     if (windowUsage.tokens >= cfg.windowTokens || windowUsage.messages >= cfg.windowMessages) {
-      return { ok: false, status: 429, scope: 'window_limit',
-        message: 'Лимит Adanatos в текущем 5-часовом окне исчерпан. Подождите обновления окна или перейдите на Dynatos для работы без ограничений.' };
+      return { ok: false, status: 429, scope: 'window_limit', resetAt: await windowResetAt(),
+        message: 'Лимиты закончились. Подождите обновления окна или перейдите на Pro.' };
     }
     if (month.tokens >= cfg.monthTokens || month.messages >= cfg.monthMessages) {
-      return { ok: false, status: 429, scope: 'month_limit',
-        message: 'Ежемесячный лимит Adanatos исчерпан. Он обновится в начале следующего месяца, либо перейдите на Dynatos для работы без ограничений.' };
+      const d = new Date(); d.setMonth(d.getMonth() + 1, 1); d.setHours(0, 0, 0, 0);
+      return { ok: false, status: 429, scope: 'month_limit', resetAt: d.toISOString(),
+        message: 'Месячный лимит закончился. Он обновится в начале месяца, либо перейдите на Pro.' };
     }
-    return { ok: true };
+    // Остаток отдаём дальше: модель узнает, что лимит почти исчерпан.
+    const remaining = {
+      tokens: Math.max(0, cfg.windowTokens - windowUsage.tokens),
+      messages: Math.max(0, cfg.windowMessages - windowUsage.messages)
+    };
+    const low = remaining.messages <= 2 || remaining.tokens <= 5000;
+    return { ok: true, remaining, low, resetAt: low ? await windowResetAt() : null };
   } catch (e) {
     // Если учётная таблица недоступна — не блокируем пользователя, но логируем.
     console.warn('[harmonyai] usage check failed (allowing request):', compactErrorValue(e?.message, 200));
@@ -1601,8 +1620,12 @@ export default async function handler(req, res) {
     const allowance = await checkUsageAllowance(userId, profile, model);
     if (!allowance.ok) {
       return res.status(allowance.status || 429).json({
-        error: { message: allowance.message, status: allowance.status || 429, scope: allowance.scope }
+        error: { message: allowance.message, status: allowance.status || 429, scope: allowance.scope, code: 'limit_reached', resetAt: allowance.resetAt || null }
       });
+    }
+    // Лимит почти исчерпан: сообщаем клиенту (заголовок) и модели (системная заметка).
+    if (allowance.low) {
+      try { res.setHeader('X-HM-Limit-Low', '1'); if (allowance.resetAt) res.setHeader('X-HM-Limit-Reset', allowance.resetAt); } catch (e) {}
     }
 
     let documents = [];
@@ -1737,7 +1760,14 @@ export default async function handler(req, res) {
     const promptTokens = estimateTokensFromMessages(mapMessagesForOpenAI(messages, mergedSystem));
 
     if (route.provider === 'openai') {
-      const openAiMessages = mapMessagesForOpenAI(messages, mergedSystem);
+      const limitNote = allowance.low ? `
+
+[ЛИМИТ ПОЛЬЗОВАТЕЛЯ ПОЧТИ ИСЧЕРПАН]
+У пользователя осталось примерно ${allowance.remaining?.messages ?? 0} сообщ. и ~${allowance.remaining?.tokens ?? 0} токенов в текущем окне.
+Если задача большая (много изменений, длинный код, несколько файлов) и её не получится завершить целиком в этом ответе:
+кратко сделай план и первый законченный шаг, затем ОСТАНОВИСЬ и в самом конце ответа отдельной строкой напиши маркер [[HM_LIMIT_PAUSE]].
+Если задача небольшая — отвечай как обычно, без маркера.` : '';
+      const openAiMessages = mapMessagesForOpenAI(messages, mergedSystem + limitNote);
       /* reasoning_effort отправляем ВСЕГДА, когда уровень его подразумевает —
          в том числе в режиме «Думать». Раньше в этом режиме параметр гасился,
          и «Размышление» было чистым оформлением: модель работала ровно с тем же
