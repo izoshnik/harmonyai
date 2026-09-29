@@ -35,6 +35,7 @@ import {
   setLike,
   getAccountStatus,
   YandexError,
+  ensureUgcPlaylist, getUgcUploadTarget, uploadUgcBytes, UGC_PLAYLIST_TITLE,
 } from '../lib/yandex.js';
 
 import {
@@ -402,6 +403,32 @@ export default async function handler(req, res) {
         const limit = Math.min(Math.max(Number(body.limit) || 100, 1), 300);
         const lib = await getLikedLibrary(uid, { token, limit });
         return res.status(200).json({ items: lib.items, total: lib.total, personal: true });
+      }
+
+      /* Загрузка своего трека с устройства в плейлист «HarmonyAI» (или выбранный).
+         Шаг 1 — ugc_target: сервер получает у Яндекса адрес загрузки (нужен токен,
+         поэтому только на сервере). Шаг 2 — браузер отправляет файл прямо туда;
+         если браузеру это запрещено, маленький файл (до ~2,5 МБ) можно передать через
+         ugc_upload — сервер перешлёт его сам (у Vercel лимит тела запроса 4,5 МБ). */
+      case 'ugc_target':
+      case 'ugc_upload': {
+        if (resolved.source !== 'user') {
+          return needAuth(res, 'Чтобы добавить трек в вашу Яндекс Музыку, подключите свой аккаунт Яндекса.');
+        }
+        const uid = await ensureUid(resolved);
+        if (!uid) return needAuth(res, 'Не удалось определить ваш аккаунт Яндекса. Подключите его заново.');
+        const filename = String(body.filename || 'track.mp3').slice(0, 200);
+        const kind = await ensureUgcPlaylist(uid, { token, kind: body.kind ? String(body.kind) : '' });
+        const target = await getUgcUploadTarget(uid, kind, filename, { token });
+        if (action === 'ugc_target') {
+          return res.status(200).json({ ...target, kind, playlistTitle: body.kind ? null : UGC_PLAYLIST_TITLE });
+        }
+        const b64 = String(body.data || '');
+        if (!b64) return fail(res, 400, 'bad_request', 'Нет данных файла');
+        const bytes = Buffer.from(b64, 'base64');
+        if (bytes.length > 2.5 * 1024 * 1024) return fail(res, 413, 'too_large', 'Файл слишком большой для загрузки через сервер');
+        await uploadUgcBytes(target.postTarget, filename, bytes, String(body.mime || 'audio/mpeg'));
+        return res.status(200).json({ ok: true, kind, playlistTitle: body.kind ? null : UGC_PLAYLIST_TITLE });
       }
 
       case 'like': {
