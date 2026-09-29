@@ -70,15 +70,55 @@
     return {svg:svg,playhead:ph,notes:notes};
   }
 
+  /* ---------- глаголы «Думаю» ----------
+     Подбираются случайно и сменяются, пока модель работает. Это только
+     подпись-индикатор: что именно модель обдумывает, показывает заголовок
+     из её настоящих рассуждений (setHeadline), а не эти слова. */
+  var VERBS=['Думаю','Размышляю','Рассуждаю','Обдумываю','Осмысливаю','Анализирую','Изучаю','Исследую','Разбираю',
+    'Рассматриваю','Продумываю','Прорабатываю','Сопоставляю','Сравниваю','Проверяю','Перепроверяю','Уточняю','Выясняю',
+    'Прикидываю','Вникаю','Углубляюсь','Интерпретирую','Разбираюсь','Обозреваю','Рассчитываю','Принимаю решение',
+    'Обосновываю','Систематизирую','Структурирую','Синтезирую'];
+  function pickVerb(prev){var v;do{v=VERBS[Math.floor(Math.random()*VERBS.length)];}while(v===prev&&VERBS.length>1);return v;}
+
+  /* ---------- другие анимации рядом с подписью ----------
+     staff — нотный стан (JS), остальные — чистый CSS в том же поле 36×22. */
+  var ANIMS=['staff','eq','metro','wave','keys','orbit'];
+  function buildAlt(kind){
+    var svg=sv('svg',{'class':'hts-staff hts-alt hts-'+kind,viewBox:'0 0 36 22','aria-hidden':'true',focusable:'false'});
+    var i;
+    if(kind==='eq'){            // эквалайзер: 6 полос прыгают вразнобой
+      for(i=0;i<6;i++){var r=sv('rect',{x:3+i*5.4,y:3,width:3.2,height:16,rx:1.4});r.style.animationDelay=(-i*.17)+'s';svg.appendChild(r);}
+    }else if(kind==='metro'){   // метроном: маятник качается, грузик скользит
+      svg.appendChild(sv('path',{'class':'mb',d:'M12 21h12l-3-17h-6z'}));
+      var arm=sv('g',{'class':'ma'});arm.appendChild(sv('line',{x1:18,y1:19,x2:18,y2:3}));arm.appendChild(sv('rect',{'class':'mw',x:16,y:7,width:4,height:3,rx:1}));svg.appendChild(arm);
+    }else if(kind==='wave'){    // звуковая волна бежит по линии
+      svg.appendChild(sv('path',{'class':'w1',d:'M-36 11q4.5-8 9 0t9 0 9 0 9 0 9 0 9 0 9 0 9 0 9 0'}));
+      svg.appendChild(sv('path',{'class':'w2',d:'M-36 11q4.5-5 9 0t9 0 9 0 9 0 9 0 9 0 9 0 9 0 9 0'}));
+    }else if(kind==='keys'){    // клавиши: белые нажимаются по очереди
+      for(i=0;i<5;i++){var k=sv('rect',{'class':'kw',x:1+i*7,y:2,width:6.4,height:18,rx:1.2});k.style.animationDelay=(i*.18)+'s';svg.appendChild(k);}
+      [5.5,12.5,26.5].forEach(function(x){svg.appendChild(sv('rect',{'class':'kb',x:x,y:2,width:4,height:10.5,rx:.8}));});
+    }else{                       // orbit: три ноты кружат вокруг центра
+      svg.appendChild(sv('circle',{'class':'oc',cx:18,cy:11,r:7.5}));
+      for(i=0;i<3;i++){var g=sv('g',{'class':'on'});g.style.animationDelay=(-i*.6)+'s';g.appendChild(sv('ellipse',{cx:18,cy:3.5,rx:2.3,ry:1.7}));svg.appendChild(g);}
+    }
+    return svg;
+  }
+
   /* ---------- индикатор «Думаю» ---------- */
   function create(question,opts){
     opts=opts||{};
     var root=el('span','hts');root.setAttribute('data-state','thinking');
     var st=buildStaffSvg();
-    var label=el('span','hts-label',opts.label||'Думаю');
+    var anim=opts.anim&&ANIMS.indexOf(opts.anim)>=0?opts.anim:ANIMS[Math.floor(Math.random()*ANIMS.length)];
+    var isStaff=anim==='staff';
+    root.setAttribute('data-anim',anim);
+    var verb=opts.label||pickVerb();
+    var label=el('span','hts-label',verb);
+    var head=el('span','hts-head','');head.hidden=true;
     var chip=el('span','hts-key');chip.hidden=true;
     var time=el('span','hts-time','');
-    root.appendChild(st.svg);root.appendChild(label);root.appendChild(chip);root.appendChild(time);
+    root.appendChild(isStaff?st.svg:buildAlt(anim));root.appendChild(label);root.appendChild(head);root.appendChild(chip);root.appendChild(time);
+    var lastVerb=0;
 
     var notes=st.notes,ells=notes.map(function(n){return n.firstChild;}),playhead=st.playhead;
     var X=[6,12,18,24,30],Y=[3,5,7,9,11,13,15,17,19],LET=['F','E','D','C','B','A','G','F','E'];
@@ -113,7 +153,9 @@
       if(!running)return;
       if(!root.isConnected){running=false;return;}   // элемент удалён — цикл гаснет сам
       var e=now-t0;
-      if(!reduced){
+      // Глагол сменяется каждые ~3,5 с, пока модель работает
+      if(!opts.label&&e-lastVerb>3500){lastVerb=e;if(lastVerb>100)setLabel(pickVerb(label.textContent));}
+      if(!reduced&&isStaff){
         var x=2+((e%LOOP)/LOOP)*32;
         playhead.setAttribute('x1',x);playhead.setAttribute('x2',x);
         for(var i=0;i<5;i++){
@@ -123,7 +165,7 @@
           ells[i].style.setProperty('--h',(baseHue+38*Math.sin(e/700-nx/7)+(9-pitch[i])*3).toFixed(1));
         }
         if(e-lastSwap>SWAP_EVERY){lastSwap=e;swap();}
-      }else ells.forEach(function(x){x.style.setProperty('--h',baseHue);});
+      }else if(isStaff)ells.forEach(function(x){x.style.setProperty('--h',baseHue);});
       var s=Math.floor(e/1000);
       if(s!==lastSec){lastSec=s;time.textContent=s>0?s+' с':'';}
       raf=requestAnimationFrame(frame);
@@ -138,11 +180,22 @@
       el:root,key:key,startedAt:t0,
       start:function(){if(running)return;running=true;raf=requestAnimationFrame(frame);},
       setLabel:setLabel,
+      /* Заголовок из НАСТОЯЩИХ рассуждений модели: «Сравниваю гармонический минор с мелодическим». */
+      setHeadline:function(t){
+        t=String(t||'').trim();
+        if(!t){head.hidden=true;return;}
+        if(head.textContent===t)return;
+        head.hidden=false;
+        if(reduced){head.textContent=t;return;}
+        head.classList.add('out');
+        timers.push(setTimeout(function(){head.textContent=t;head.classList.remove('out');},160));
+      },
       stop:function(){running=false;cancelAnimationFrame(raf);timers.forEach(clearTimeout);timers=[];},
       finish:function(durationMs,text){
         api.stop();
         var ms=durationMs!=null&&isFinite(durationMs)?durationMs:(performance.now()-t0);
         root.setAttribute('data-state','done');
+        if(!isStaff){time.textContent='';setLabel(text||('Думал '+fmtSecs(ms)));return ms;}
         var chord=[];for(var p=0;p<9;p++)if(chordSet[LET[p]])chord.push(p);
         chord.sort(function(a,b){return b-a;});chord=chord.slice(0,4);
         notes.forEach(function(n,i){
@@ -232,6 +285,6 @@
     }};
   }
 
-  window.HmThinkStaff={create:create,detectKey:detectKey,fmtSecs:fmtSecs};
+  window.HmThinkStaff={create:create,detectKey:detectKey,fmtSecs:fmtSecs,verbs:VERBS,anims:ANIMS};
   window.HmGenAnim={image:image,file:file};
 })();
