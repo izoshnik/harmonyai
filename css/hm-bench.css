@@ -1,0 +1,48 @@
+/* ===== «Мини-компьютер» справа от чата: 3/8 ширины экрана ===== */
+.hmb{display:none;}
+@media (min-width:1000px){
+  body.hm-bench-open #main{margin-right:37.5vw;transition:margin-right .28s cubic-bezier(.2,.8,.2,1);}
+  .hmb{display:flex;position:fixed;top:0;right:0;bottom:0;width:37.5vw;z-index:45;padding:12px 12px 12px 0;box-sizing:border-box;
+    transform:translateX(102%);transition:transform .3s cubic-bezier(.2,.8,.2,1);pointer-events:none;}
+  body.hm-bench-open .hmb{transform:none;pointer-events:auto;}
+  /* ••• уезжает влево, чтобы не прятаться под окном */
+  body.hm-bench-open .main>.topbar{right:calc(14px);} 
+}
+.hmb-win{flex:1;min-width:0;display:flex;flex-direction:column;border-radius:20px;overflow:hidden;
+  background:#16171b;color:#e8e8ec;border:1px solid rgba(255,255,255,.08);box-shadow:0 20px 60px rgba(0,0,0,.28);}
+.hmb-bar{display:flex;align-items:center;gap:10px;padding:10px 10px 0 14px;min-height:40px;}
+.hmb-dots{display:flex;gap:6px;flex:none;}
+.hmb-dots i{width:11px;height:11px;border-radius:50%;background:#ff5f57;}
+.hmb-dots i:nth-child(2){background:#febc2e}.hmb-dots i:nth-child(3){background:#28c840}
+.hmb-tabs{flex:1;display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;min-width:0;}
+.hmb-tabs::-webkit-scrollbar{display:none;}
+.hmb-tabs button{flex:none;border:0;background:transparent;color:#9a9aa6;font:500 13px/1 Inter,system-ui,sans-serif;padding:8px 12px;border-radius:10px 10px 0 0;cursor:pointer;white-space:nowrap;max-width:180px;overflow:hidden;text-overflow:ellipsis;}
+.hmb-tabs button.on{background:#1f2026;color:#fff;}
+.hmb-tools{display:flex;align-items:center;gap:6px;padding:8px 10px;background:#1f2026;border-bottom:1px solid rgba(255,255,255,.06);}
+.hmb-seg{display:inline-flex;padding:3px;border-radius:10px;background:rgba(255,255,255,.06);}
+.hmb-seg button{border:0;background:transparent;color:#b5b5c0;font:500 12.5px/1 Inter,system-ui,sans-serif;padding:7px 12px;border-radius:8px;cursor:pointer;}
+.hmb-seg button.on{background:#fff;color:#111;}
+.hmb-meta{flex:1;font-size:12px;color:#8a8a96;padding-left:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hmb-ic{width:32px;height:32px;border:0;border-radius:9px;background:transparent;color:#c5c5cd;display:grid;place-items:center;cursor:pointer;flex:none;transition:background .14s,color .14s;}
+.hmb-ic:hover{background:rgba(255,255,255,.09);color:#fff;}
+.hmb-ic svg{width:17px;height:17px;}
+.hmb-ic.ok{color:#34d399;}.hmb-ic.err{color:#f87171;}
+.hmb-body{flex:1;min-height:0;overflow:auto;background:#1f2026;}
+.hmb-frame{width:100%;height:100%;border:0;background:#fff;display:block;}
+.hmb-code{display:flex;min-height:100%;font:13px/1.6 'JetBrains Mono','SFMono-Regular',Menlo,Consolas,monospace;}
+.hmb-ln{margin:0;padding:14px 10px 14px 14px;text-align:right;color:#5d5d68;user-select:none;border-right:1px solid rgba(255,255,255,.06);background:#1b1c21;}
+.hmb-src{margin:0;padding:14px 16px;flex:1;min-width:0;overflow:visible;white-space:pre;color:#e8e8ec;}
+.hmb-src code{background:none!important;padding:0!important;font:inherit;}
+.hmb-doc{padding:22px 26px;font:15px/1.65 Inter,system-ui,sans-serif;color:#e8e8ec;max-width:760px;}
+.hmb-doc h1,.hmb-doc h2,.hmb-doc h3{color:#fff;line-height:1.25;margin:1.1em 0 .5em;}
+.hmb-doc pre{background:#16171b;padding:12px;border-radius:10px;overflow:auto;}
+.hmb-doc table{border-collapse:collapse;}.hmb-doc td,.hmb-doc th{border:1px solid rgba(255,255,255,.12);padding:6px 10px;}
+/* PDF/DOCX/PPTX — «лист бумаги» */
+.hmb-paper{background:#fff;color:#1a1a1a;margin:18px auto;border-radius:6px;box-shadow:0 10px 30px rgba(0,0,0,.35);min-height:70%;}
+.hmb-paper h1,.hmb-paper h2,.hmb-paper h3{color:#111;}
+/* Кнопки «Открыть» в чате */
+.code-bench svg{width:16px;height:16px;}
+.file-card-open{border:1px solid var(--border,rgba(127,127,127,.3));background:transparent;color:var(--text);border-radius:10px;padding:8px 12px;font:600 13px/1 inherit;cursor:pointer;margin-right:6px;}
+@media (max-width:999px){.code-bench,.file-card-open{display:none!important;}}
+@media (prefers-reduced-motion:reduce){.hmb,body.hm-bench-open #main{transition:none;}}
+.code-head .code-bench{margin-left:auto;margin-right:4px;}
