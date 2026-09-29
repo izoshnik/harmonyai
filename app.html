@@ -95,6 +95,8 @@ setTimeout(function(){
 <script defer src="/js/thinking-loader.js"></script>
 <link rel="stylesheet" href="/css/hm-think.css">
 <script defer src="/js/hm-think-staff.js"></script>
+<link rel="stylesheet" href="/css/hm-bench.css">
+<script defer src="/js/hm-bench.js"></script>
 <style id="restored-core">
 /* Стили, случайно удалённые 14.09 вместе с «неиспользуемыми» классами.
    Стоят ПЕРЕД основным блоком: при любом конфликте побеждает новый дизайн. */
@@ -3034,6 +3036,80 @@ html[data-theme="dark"] .hm-pm,html:not([data-theme]) .hm-pm{--pm-dark:1;}
 @media(max-width:768px){.hm-pm{width:min(260px,calc(100vw - 16px));}.hm-pm button{padding:12px;}}
 @media(prefers-reduced-motion:reduce){.hm-pm{transition:none;}}
 </style>
+<style id="hm-accent-and-extras">
+/* ===== Акцентный цвет (Настройки → Общие) =====
+   Белый акцент в светлой теме и чёрный в тёмной получают контурную обводку,
+   чтобы кнопка не растворялась в фоне. */
+html[data-accent] #sendBtn{background:var(--hm-accent)!important;color:var(--hm-accent-ink)!important;border:0!important;}
+html[data-accent] #sendBtn svg,html[data-accent] #sendBtn svg *{stroke:var(--hm-accent-ink)!important;}
+html[data-accent] #sendBtn.is-continue svg path,html[data-accent] #sendBtn.is-stop svg rect{fill:var(--hm-accent-ink)!important;}
+html[data-accent="white"]:not([data-theme="dark"]) #sendBtn,html[data-accent="black"][data-theme="dark"] #sendBtn,
+html[data-accent="black"]:not([data-theme]) #sendBtn{box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--text) 35%,transparent)!important;}
+html[data-accent] .stp-toggle.on{background:var(--hm-accent)!important;}
+html[data-accent] .stp-toggle.on::after{background:var(--hm-accent-ink)!important;}
+html[data-accent] .model-pill .pill-name,html[data-accent] .model-pill b,html[data-accent] #modelPill b,html[data-accent] .topbar-model-pill .pill-name{color:var(--hm-accent)!important;}
+html[data-accent="white"]:not([data-theme="dark"]) .model-pill b,html[data-accent="black"][data-theme="dark"] .model-pill b{color:var(--text)!important;}
+@media(max-width:768px){html[data-accent] body .input-box #sendBtn{background:var(--hm-accent)!important;}html[data-accent] body .input-box #sendBtn svg,html[data-accent] body .input-box #sendBtn svg *{stroke:var(--hm-accent-ink)!important;}}
+
+/* ===== Плашки лимитов ===== */
+.hm-limit{max-width:560px;margin:10px 0 6px;padding:14px 16px;border-radius:18px;background:color-mix(in srgb,#ef4444 9%,var(--bg2,transparent));border:1px solid color-mix(in srgb,#ef4444 28%,transparent);color:var(--text);}
+.hm-limit-soon{background:color-mix(in srgb,#f59e0b 10%,var(--bg2,transparent));border-color:color-mix(in srgb,#f59e0b 32%,transparent);}
+.hm-limit-head{display:flex;align-items:center;gap:8px;font-size:15.5px;}
+.hm-limit-head svg{width:19px;height:19px;color:#ef4444;flex:none;}
+.hm-limit-soon .hm-limit-head svg{color:#f59e0b;}
+.hm-limit-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:8px;font-size:14px;color:var(--text2);flex-wrap:wrap;}
+.hm-limit-row b{color:var(--text);}
+.hm-limit-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;border:0;cursor:pointer;background:var(--hm-accent,#2563eb);color:var(--hm-accent-ink,#fff);font:600 14px/1 inherit;text-decoration:none;white-space:nowrap;}
+.hm-limit-btn svg{width:15px;height:15px;}
+
+/* ===== Мини-меню профиля — скругление 40 ===== */
+.hm-pm{border-radius:40px!important;padding:14px!important;}
+.hm-pm button{border-radius:22px!important;padding:11px 14px!important;}
+</style>
+<style id="hm-topbar-v3">
+/* Десктоп: вертикальные ••• справа сверху (то же меню, что на телефоне) */
+@media(min-width:769px){
+  .main{position:relative;}
+  .main>.topbar{display:flex!important;position:absolute!important;top:12px;right:14px;left:auto;padding:0!important;background:none!important;z-index:40!important;pointer-events:none;}
+  .main>.topbar>*{display:none!important;}
+  .main>.topbar>div:last-child{display:flex!important;pointer-events:auto;}
+  .main>.topbar #chatMenuBtn{width:36px;height:36px;border-radius:10px;color:var(--text2);background:transparent;border:0;display:flex;align-items:center;justify-content:center;}
+  .main>.topbar #chatMenuBtn:hover{background:var(--bg3,rgba(127,127,127,.12));color:var(--text);}
+  .main>.topbar #chatMenuBtn svg{transform:rotate(90deg);}
+  .main>.topbar #chatMenuBtn.is-hidden{visibility:hidden;}
+  .m-model-btn{display:none!important;}
+}
+/* Телефон: пилюля модели по центру шапки */
+.m-model-btn{display:none;}
+@media(max-width:768px){
+  html body .topbar .m-model-btn{
+    display:inline-flex!important;align-items:center;gap:6px;position:static!important;transform:none!important;margin:0 auto!important;
+    height:36px;padding:0 12px 0 14px;border-radius:999px;border:0;cursor:pointer;
+    background:color-mix(in srgb,var(--mc-text,#fff) 9%,transparent);color:var(--mc-text,#fff);font:500 14px/1 inherit;max-width:58vw;
+  }
+  .m-model-btn .m-model-txt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .m-model-btn b{font-weight:700;color:var(--hm-accent,inherit);}
+  html[data-accent="white"]:not([data-theme="light"]):not([data-theme="messenger"]) .m-model-btn b{color:#fff;}
+  html[data-accent="black"]:not([data-theme="light"]):not([data-theme="messenger"]) .m-model-btn b{color:#fff;}
+  .m-model-btn i{font-style:normal;opacity:.6;font-size:13px;}
+  .m-model-btn svg{opacity:.6;flex:none;}
+}
+</style>
+<style id="hm-ytrack-css">
+.hm-ytrack{display:flex;align-items:center;gap:12px;max-width:520px;margin:10px 0 10px auto;padding:12px 14px;border-radius:18px;background:var(--bg2);border:1px solid var(--border);}
+.hm-ytrack-ic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex:none;background:#ffdb4d;color:#111;}
+.hm-ytrack-ic svg{width:22px;height:22px;}
+.hm-ytrack-info{flex:1;min-width:0;}
+.hm-ytrack-name{font-weight:600;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hm-ytrack-sub{font-size:13px;color:var(--text2);margin-top:2px;line-height:1.4;}
+.hm-ytrack[data-state="ok"] .hm-ytrack-sub{color:#16a34a;}
+.hm-ytrack[data-state="err"] .hm-ytrack-sub{color:#ef4444;}
+.hm-ytrack-bar{height:3px;border-radius:3px;background:color-mix(in srgb,var(--text2) 18%,transparent);overflow:hidden;margin-top:8px;position:relative;display:none;}
+.hm-ytrack[data-state="busy"] .hm-ytrack-bar{display:block;}
+.hm-ytrack-bar i{position:absolute;top:0;bottom:0;width:35%;background:var(--hm-accent,#2563eb);animation:hmYt 1.1s ease-in-out infinite;}
+@keyframes hmYt{from{left:-35%}to{left:100%}}
+.hm-ytrack-btn{flex:none;border:0;border-radius:999px;padding:8px 14px;background:var(--hm-accent,#2563eb);color:var(--hm-accent-ink,#fff);font:600 13px/1 inherit;cursor:pointer;}
+</style>
 </head>
 <body>
 <div id="initialLoading" role="status" aria-live="polite"><span class="boot-spinner"></span><span>Загрузка HarmonyAI…</span></div>
@@ -3156,6 +3232,8 @@ html[data-theme="dark"] .hm-pm,html:not([data-theme]) .hm-pm{--pm-dark:1;}
            На его месте — «Обновить» → страница оплаты Pro. У Pro-пользователя
            кнопки нет вообще, остаётся пустое место (геометрия топбара та же:
            элемент абсолютно центрирован и не участвует во flex-раскладке). -->
+      <!-- Телефон: выбор модели и режима усилий прямо над чатом (открывает нижний лист). -->
+      <button type="button" class="m-model-btn" id="mModelBtn" onclick="event.stopPropagation();openMobileModelSheet()" aria-label="Модель и режим усилий"><span class="m-model-txt" id="mModelTxt">Adanatos</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
       <button class="topbar-upgrade" id="topbarUpgradeBtn" onclick="goToDynatos()" title="Оформить Pro" aria-label="Обновить до Pro">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l2.6 5.6 6.1.8-4.5 4.2 1.1 6-5.3-3-5.3 3 1.1-6L3.3 9.4l6.1-.8L12 3z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
         <span>Обновить</span>
@@ -3219,7 +3297,7 @@ html[data-theme="dark"] .hm-pm,html:not([data-theme]) .hm-pm{--pm-dark:1;}
       <div class="notif-host" id="notifHost" aria-live="polite"></div>
       <div class="input-box" id="inputBox">
         <textarea id="msgTa" placeholder="Спросить HarmonyAI" rows="1"
-          oninput="taResize(this)"
+          oninput="taResize(this);hmSyncContinue(this)"
           onkeydown="if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing&&hmEnterSends()){event.preventDefault();sendMsg();}"></textarea>
         <div class="input-bar-row">
           <div class="bar-left">
@@ -3230,7 +3308,7 @@ html[data-theme="dark"] .hm-pm,html:not([data-theme]) .hm-pm{--pm-dark:1;}
                 <svg class="bar-icon-plus mobile-only" width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></svg>
               </button>
             </div>
-            <input type="file" id="fileInp" accept="image/*,.pdf,.md,.markdown,.txt,.docx" multiple style="display:none" onchange="handleFile(this)" aria-label="Выбрать файл или фотографию">
+            <input type="file" id="fileInp" accept="image/*,.pdf,.md,.markdown,.txt,.docx,audio/*,.mp3,.m4a,.aac,.flac,.wav,.ogg" multiple style="display:none" onchange="handleFile(this)" aria-label="Выбрать файл или фотографию">
           </div>
           <div class="bar-right">
             <!-- Training pill (shown instead of model pill while in Обучение) -->
@@ -4095,7 +4173,7 @@ function buildMarkedRenderer(){
     // ABC-блоки обрабатываются отдельно в renderMd — сюда не попадают.
     const highlighted=highlightCode(code,lang);
     const raw=escapeHtml(code);
-    return '<div class="code-block" data-code="'+encodeURIComponent(code)+'">'
+    return '<div class="code-block" data-lang="'+escapeHtml(lang||'')+'" data-code="'+encodeURIComponent(code)+'">'
       +'<div class="code-head">'
       +'<span class="code-lang">'+escapeHtml(codeLangLabel(lang))+'</span>'
       +'<button class="code-copy" type="button" disabled onclick="copyCodeBlock(this)" aria-label="Копировать" title="Копировать">'
@@ -6834,6 +6912,7 @@ function buildFileCard(spec,fmt){
     <button class="file-card-btn">Скачать</button>`;
   const btn=card.querySelector('.file-card-btn');
   btn.onclick=()=>downloadGeneratedFile(spec,fmt,btn);
+  card._hmSpec={name:name+'.'+meta.ext,fmt,content:spec.content||'',spec};
   return card;
 }
 async function downloadGeneratedFile(spec,fmt,btn){
@@ -6902,8 +6981,11 @@ async function uploadAttachmentFileSafe(file){
   }
 }
 async function handleFile(inp){
-  const files=Array.from(inp.files||[]);
+  let files=Array.from(inp.files||[]);
   if(!files.length){inp.value='';return;}
+  // Аудиофайлы — не вложение для ИИ, а трек для Яндекс Музыки: отправляем отдельно.
+  const tracks=files.filter(hmIsAudioFile);
+  if(tracks.length){tracks.forEach(f=>hmSendTrackToYandex(f));files=files.filter(f=>!hmIsAudioFile(f));if(!files.length){inp.value='';return;}}
   // Лимит: не больше MAX_ATTACHMENTS_PER_SEND (20) файлов/фото за один раз.
   if(pendingAttachments.length+files.length>MAX_ATTACHMENTS_PER_SEND){
     inp.value='';
@@ -7004,6 +7086,7 @@ function setGeneratingState(active){
     btn.title=active?'Остановить':'Отправить';
     btn.setAttribute('aria-label',active?'Остановить':'Отправить');
   }
+  if(!active){try{hmSetContinueMode(hmContinueMode);}catch(e){}}
 }
 function stopGeneration(){
   if(activeAbortController)activeAbortController.abort();
@@ -7012,6 +7095,7 @@ function stopGeneration(){
   activeAbortController=null;
   activeStreamStop=null;
   setGeneratingState(false);
+  hmSetContinueMode(true);
 }
 
 function getChatInner(){
@@ -8980,6 +9064,7 @@ async function requestChatReplyLive(msgEl,actionsEl,extraMessages=[],prefixText=
         if(res.status===429&&data?.error?.scope){
           const le=new Error(data.error.message||'Достигнут лимит');
           le.limitScope=data.error.scope;
+          le.limitReset=data.error.resetAt||null;
           throw le;
         }
         throw new Error(tChatErr(data?.error?.message||`Ошибка сервера (${res.status})`));
@@ -9141,32 +9226,58 @@ async function requestChatReplyLive(msgEl,actionsEl,extraMessages=[],prefixText=
 }
 
 /* ===== SEND ===== */
+/* Плашка «Лимиты закончились»: сколько ждать + кнопка на /subscribe. */
+function hmFmtWait(resetAt,fallback){
+  let ms=resetAt?Date.parse(resetAt)-Date.now():NaN;
+  if(!isFinite(ms)&&fallback)ms=fallback-Date.now();
+  if(!isFinite(ms)||ms<=0)return 'немного';
+  const m=Math.ceil(ms/60000),d=Math.floor(m/1440),h=Math.floor((m%1440)/60),mm=m%60;
+  if(d)return d+'д '+h+'ч';
+  return (h?h+'ч ':'')+mm+'мин';
+}
+const HM_IC_WARN='<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9.2" stroke="currentColor" stroke-width="2"/><path d="M12 7.2v6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="16.6" r="1.25" fill="currentColor"/></svg>';
+const HM_IC_UP='<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l1.9 5.6L19.5 10l-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.4z" fill="currentColor"/></svg>';
 function limitMessageHtml(check){
-  let title,text;
   if(check.scope==='burst'){
-    title='Слишком часто';
-    text=check.reason||'Слишком много сообщений подряд. Подождите пару минут.';
-  }else if(check.scope==='month'){
-    const reset=fmtResetHuman(nextMonthlyReset());
-    title='Месячный лимит исчерпан';
-    text=check.reason||`Вы использовали общий месячный лимит модели <b>Adanatos</b>. Обновление — <b>${reset}</b>. Перейдите на <b>Dynatos</b>, чтобы продолжить без ограничений.`;
-  }else if(check.scope==='window'){
-    const reset=fmtResetHuman(nextFiveHourReset());
-    title='5-часовой лимит исчерпан';
-    text=check.reason||`Вы использовали общий лимит модели <b>Adanatos</b> в текущем 5-часовом окне. Обновление — <b>${reset}</b>. Перейдите на <b>Dynatos</b>, чтобы продолжить без ограничений.`;
-  }else{
-    const reset=fmtResetHuman(nextDailyReset());
-    title='Дневной лимит исчерпан';
-    text=check.reason||`Вы использовали дневной лимит генерации. Обновление — <b>${reset}</b>.`;
+    return `<div class="hm-limit"><div class="hm-limit-head"><b>Слишком часто</b>${HM_IC_WARN}</div><div class="hm-limit-row"><span>${escapeHtml(check.reason||'Подождите пару минут и попробуйте снова.')}</span></div></div>`;
   }
-  return `<div class="limit-reached">
-    <div class="limit-reached-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 7v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="16.5" r="1.1" fill="currentColor"/></svg></div>
-    <div class="limit-reached-body">
-      <div class="limit-reached-title">${title}</div>
-      <div class="limit-reached-text">${text}</div>
-    </div>
+  const fb=check.scope==='month'?nextMonthlyReset():(check.scope==='window'?nextFiveHourReset():nextDailyReset());
+  const wait=hmFmtWait(check.resetAt,fb&&fb.getTime?fb.getTime():fb);
+  return `<div class="hm-limit" role="alert">
+    <div class="hm-limit-head"><b>Лимиты закончились</b>${HM_IC_WARN}</div>
+    <div class="hm-limit-row"><span>Подождите <b>${wait}</b> или перейдите на Pro</span>
+      <a class="hm-limit-btn" href="/subscribe">Обновить ${HM_IC_UP}</a></div>
   </div>`;
 }
+/* Плашка «Лимиты скоро кончатся» в конце ответа, где модель остановилась на плане. */
+const HM_LIMIT_MARK=/\n?\s*\[\[HM_LIMIT_PAUSE\]\]\s*$/;
+function hmLimitPauseHtml(){
+  return `<div class="hm-limit hm-limit-soon">
+    <div class="hm-limit-head"><b>Лимиты скоро кончатся</b>${HM_IC_WARN}</div>
+    <div class="hm-limit-row"><span>Подождите сброса или перейдите на Pro</span>
+      <button type="button" class="hm-limit-btn" onclick="hmContinueAfterPause(this)">Продолжить <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg></button></div>
+  </div>`;
+}
+function hmContinueAfterPause(btn){
+  btn.closest('.hm-limit')?.remove();
+  const ta=document.getElementById('msgTa');if(!ta)return;
+  ta.value='Продолжай: выполни оставшиеся шаги плана.';
+  sendMsg();
+}
+/* ▶ Продолжить после остановки */
+let hmContinueMode=false;
+const IC_PLAY='<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg>';
+function hmSetContinueMode(on){
+  hmContinueMode=!!on;
+  const btn=document.getElementById('sendBtn');if(!btn||isGenerating)return;
+  const ta=document.getElementById('msgTa');
+  const show=hmContinueMode&&!(ta&&ta.value.trim());
+  btn.innerHTML=show?IC_PLAY:IC_SEND;
+  btn.classList.toggle('is-continue',show);
+  btn.title=show?'Продолжить':'Отправить';
+  btn.setAttribute('aria-label',btn.title);
+}
+function hmSyncContinue(){if(hmContinueMode)hmSetContinueMode(true);}
 function showLimitReached(check){
   const inner=document.getElementById('chatInner');
   const g=document.getElementById('greetingWrap');if(g)g.style.display='none';
@@ -9503,7 +9614,7 @@ async function handleImageGeneration(promptText){
           if(res.status===429&&data?.error?.scope){
             hideTyping();
             const scopeMap={burst:'burst',day:'day',window_limit:'window',day_limit:'window',week_limit:'month',month_limit:'month',month:'month'};
-            const check={scope:scopeMap[data.error.scope]||'day',reason:data.error.message};
+            const check={scope:scopeMap[data.error.scope]||'day',reason:data.error.message,resetAt:data.error.resetAt};
             const holder=document.createElement('div');
             holder.innerHTML=limitMessageHtml(check);
             shell.wrap.replaceWith(holder.firstElementChild);
@@ -9994,6 +10105,12 @@ function restoreComposerText(text){
 
 async function sendMsg(){
   if(isGenerating){stopGeneration();return;}
+  // Кнопка «▶ Продолжить»: поле пустое, прошлый ответ был остановлен — просим дописать.
+  if(hmContinueMode){
+    const ta0=document.getElementById('msgTa');
+    if(ta0&&!ta0.value.trim()&&!pendingAttachments.length){ta0.value='Продолжи с того места, где остановился.';}
+  }
+  hmSetContinueMode(false);
   /* Музыкальный сценарий длится секунды (классификатор + поиск в Яндексе),
      а флаг isGenerating он поднимает не всегда. Без этой защиты второй
      Enter во время поиска рисовал второй пузырь пользователя и вторую карточку —
@@ -10657,8 +10774,15 @@ async function runAssistantReply(displayText){
   const aiShell=createAiBubbleShell({showActions:true,hiddenActions:true});
   try{
     const result=await requestChatReplyLive(aiShell.msg,aiShell.actions);
+    let hmPaused=false;
+    if(result?.text&&HM_LIMIT_MARK.test(result.text)){
+      hmPaused=true;result.text=result.text.replace(HM_LIMIT_MARK,'').trimEnd();
+      try{renderMd(aiShell.msg,result.text);}catch(_){}
+    }
     if(result?.text){chatHistory.push({role:'assistant',content:result.text,createdAt:messageNow()});recordUsage(displayText,result.text);}
+    if(hmPaused){const h=document.createElement('div');h.innerHTML=hmLimitPauseHtml();aiShell.wrap.appendChild(h.firstElementChild);scrollChat();}
     if(result?.text)await maybeHandleFileDirective(result.text,aiShell.msg,chatHistory.length-1);
+    try{window.HmBench&&HmBench.scan(aiShell.msg,true);}catch(_){}
     await saveChat();
     await autoContinueIfNeeded(result,aiShell.wrap,aiShell.msg,aiShell.actions);
   }catch(e){
@@ -10666,7 +10790,8 @@ async function runAssistantReply(displayText){
     if(e.limitScope){
       // Серверный лимит/защита — показываем плашку вместо текста ошибки.
       const scopeMap={burst:'burst',day:'burst',window_limit:'window',day_limit:'window',week_limit:'month',month_limit:'month'};
-      const check={scope:scopeMap[e.limitScope]||'day',reason:e.message};
+      const check={scope:scopeMap[e.limitScope]||'day',reason:e.message,resetAt:e.limitReset};
+      try{hmFinalizeLiveReasoning();}catch(_){}
       const holder=document.createElement('div');
       holder.innerHTML=limitMessageHtml(check);
       aiShell.wrap.replaceWith(holder.firstElementChild);
@@ -11105,8 +11230,7 @@ function renderSettingsSubscription(){
   const cmp=[['Сообщения с ИИ','С лимитом','Без ограничений'],['Модели','Adanatos','Все модели'],['Приоритетная генерация','—','Да'],['История чатов','С лимитом','Без ограничений'],['Хранилище','Базовое','Увеличенное']];
   const cmpHtml=`<div class="stp-cmp"><div class="stp-cmp-row stp-cmp-head"><span></span><span>Free</span><span>Pro</span></div>${cmp.map(r=>`<div class="stp-cmp-row"><span>${r[0]}</span><span>${r[1]}</span><span>${r[2]}</span></div>`).join('')}</div>`;
   const manage=isPro?`
-    <div class="stp-row"><div class="stp-row-label"><div class="stp-row-title">Продлить подписку</div><div class="stp-row-desc">Оплатить следующий период заранее.</div></div><button type="button" class="stp-btn" onclick="goToDynatos()">Продлить</button></div>
-    <div class="stp-row"><div class="stp-row-label"><div class="stp-row-title">Отменить подписку</div><div class="stp-row-desc">Доступ сохранится до конца оплаченного периода.</div></div><button type="button" class="stp-btn stp-btn-danger" onclick="cancelSubscription()">Отменить</button></div>`
+    <div class="stp-row"><div class="stp-row-label"><div class="stp-row-title">Продлить подписку</div><div class="stp-row-desc">Оплатить следующий период заранее.</div></div><button type="button" class="stp-btn" onclick="goToDynatos()">Продлить</button></div>`
     :`<div class="stp-sub-title">Free или Pro</div>${cmpHtml}`;
   stpEnsure('subscription','Подписка',stpBackMain(),planCard+`
     <div class="stp-hr"></div>
@@ -11270,6 +11394,10 @@ function renderSettingsGeneral(){
       <div class="stp-row">
         <div class="stp-row-label"><div class="stp-row-title">Размер текста в чате</div><div class="stp-row-desc">Как крупно показывать сообщения.</div></div>
         <div class="stp-seg" role="radiogroup" aria-label="Размер текста">${[['s','Мелкий'],['m','Обычный'],['l','Крупный']].map(([v,l])=>`<button type="button" role="radio" aria-checked="${(s.fontSize||'m')===v}" class="stp-seg-btn${(s.fontSize||'m')===v?' on':''}" onclick="hmSetPref('fontSize','${v}');renderSettingsGeneral()">${l}</button>`).join('')}</div>
+      </div>
+      <div class="stp-row">
+        <div class="stp-row-label"><div class="stp-row-title">Акцентный цвет</div><div class="stp-row-desc">Кнопка «Отправить», включённые переключатели и название модели в чате.</div></div>
+        <div class="stp-swatches" role="radiogroup" aria-label="Акцентный цвет">${HM_ACCENTS.map(a=>`<button type="button" role="radio" aria-checked="${(s.accent||'blue')===a.id}" title="${a.name}" aria-label="${a.name}" class="stp-swatch${(s.accent||'blue')===a.id?' on':''}" style="--c:${a.c}" onclick="hmSetPref('accent','${a.id}');renderSettingsGeneral()"></button>`).join('')}</div>
       </div>
       <div class="stp-row">
         <div class="stp-row-label"><div class="stp-row-title">Отправка по Enter</div><div class="stp-row-desc">Выключите, чтобы Enter переносил строку, а отправка была только кнопкой.</div></div>
@@ -12505,6 +12633,16 @@ function openStorageCleanupLegacy(){
 <script>
 /* ===== Настройки v3: пользовательские предпочтения, профиль-меню, язык ===== */
 const HM_AVATAR_COLORS=['','#1f5cff','#7c3aed','#db2777','#ea580c','#16a34a','#0891b2'];
+/* Акцентный цвет: [id, название, цвет, цвет значка поверх] */
+const HM_ACCENTS=[
+  {id:'blue',name:'Синий',c:'#2563eb',ink:'#fff'},
+  {id:'green',name:'Зелёный',c:'#16a34a',ink:'#fff'},
+  {id:'yellow',name:'Жёлтый',c:'#facc15',ink:'#1a1a1a'},
+  {id:'red',name:'Красный',c:'#ef4444',ink:'#fff'},
+  {id:'purple',name:'Фиолетовый',c:'#8b5cf6',ink:'#fff'},
+  {id:'white',name:'Белый',c:'#ffffff',ink:'#111'},
+  {id:'black',name:'Чёрный',c:'#111111',ink:'#fff'}
+];
 function hmPref(k,d){const s=getSettings();return s[k]===undefined?d:s[k];}
 function hmSetPref(k,v){try{saveSetting(k,v);}catch(e){}hmApplyPrefs();}
 function hmEnterSends(){
@@ -12517,6 +12655,9 @@ function hmApplyPrefs(){
   h.setAttribute('data-fs',hmPref('fontSize','m'));
   h.classList.toggle('hm-no-hints',hmPref('showHints',true)===false);
   h.classList.toggle('hm-blur-chats',hmPref('blurChats',false)===true);
+  const ac=HM_ACCENTS.find(a=>a.id===hmPref('accent','blue'))||HM_ACCENTS[0];
+  h.style.setProperty('--hm-accent',ac.c);h.style.setProperty('--hm-accent-ink',ac.ink);
+  h.setAttribute('data-accent',ac.id);
   const av=document.getElementById('sbAvatar');
   const c=hmPref('avatarColor','');
   if(av){av.style.background=c||'';av.style.color=c?'#fff':'';}
@@ -12618,6 +12759,75 @@ function hmPickLangFromMenu(lang){
 document.addEventListener('click',()=>{if(document.getElementById('hmProfileMenu'))closeProfileMenu();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.getElementById('hmProfileMenu'))closeProfileMenu();});
 window.addEventListener('resize',()=>{if(document.getElementById('hmProfileMenu'))closeProfileMenu();});
+</script>
+<script>
+/* Кнопка модели в мобильной шапке повторяет подпись из композера
+   («Adanatos lite · Low») — источник правды один, #modelPill. */
+(function(){
+  function sync(){
+    const n=document.getElementById('pillNameDesktop'),m=document.getElementById('pillMode'),dst=document.getElementById('mModelTxt');
+    if(!n||!dst)return;
+    const mode=(m&&m.textContent||'').trim();
+    dst.innerHTML='<b>'+escapeHtml(n.textContent.trim()||'Adanatos')+'</b>'+(mode?' <i>'+escapeHtml(mode)+'</i>':'');
+  }
+  function init(){
+    const src=document.getElementById('modelPill');if(!src){setTimeout(init,500);return;}
+    sync();new MutationObserver(sync).observe(src,{subtree:true,childList:true,characterData:true});
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script>
+<script>
+/* ===== Свой трек → плейлист Яндекс Музыки =====
+   Прикрепите mp3/m4a/flac/wav/ogg в чат — трек загрузится в ваш личный
+   плейлист «HarmonyAI» в Яндекс Музыке (как «Загрузить с устройства» в
+   приложении Яндекса), даже если такого трека нет в каталоге. */
+const HM_AUDIO_RE=/\.(mp3|m4a|aac|flac|wav|ogg|opus)$/i;
+function hmIsAudioFile(f){return !!f&&((f.type||'').indexOf('audio/')===0||HM_AUDIO_RE.test(f.name||''));}
+function hmFmtMb(n){return (n/1048576).toFixed(n<10485760?1:0).replace('.',',')+' МБ';}
+async function hmMusicCall(action,payload){
+  if(window.MusicClient&&typeof window.MusicClient.call==='function')return window.MusicClient.call(action,payload,{timeout:30000});
+  const res=await fetch('/api/music',{method:'POST',headers:await hmAuthHeaders(),body:JSON.stringify(Object.assign({action},payload||{}))});
+  const data=await res.json().catch(()=>({}));
+  if(!res.ok){const e=new Error(data?.error?.message||('HTTP '+res.status));e.status=res.status;e.type=data.type||data?.error?.type;throw e;}
+  return data;
+}
+async function hmSendTrackToYandex(file){
+  const inner=document.getElementById('chatInner');if(!inner)return;
+  const g=document.getElementById('greetingWrap');if(g)g.style.display='none';
+  const card=document.createElement('div');
+  card.className='hm-ytrack';
+  card.innerHTML=`<div class="hm-ytrack-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M9 18V6l11-2v12" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="6.5" cy="18" r="2.5" stroke="currentColor" stroke-width="1.8"/><circle cx="17.5" cy="16" r="2.5" stroke="currentColor" stroke-width="1.8"/></svg></div>
+    <div class="hm-ytrack-info"><div class="hm-ytrack-name">${escapeHtml(file.name)}</div><div class="hm-ytrack-sub">${hmFmtMb(file.size)} · Яндекс Музыка</div><div class="hm-ytrack-bar"><i></i></div></div>`;
+  inner.appendChild(card);scrollChat();
+  const sub=card.querySelector('.hm-ytrack-sub'),bar=card.querySelector('.hm-ytrack-bar');
+  const set=(t,state)=>{sub.textContent=t;card.dataset.state=state||'';};
+  set(hmFmtMb(file.size)+' · готовим загрузку…','busy');
+  try{
+    if(file.size>200*1024*1024)throw new Error('Файл больше 200 МБ — Яндекс такие не принимает');
+    const t=await hmMusicCall('ugc_target',{filename:file.name});
+    set('Загружаем в плейлист «'+(t.playlistTitle||'HarmonyAI')+'»…','busy');
+    let sent=false;
+    try{
+      // Ответ сервера загрузки Яндекса браузеру не показывают (CORS), поэтому
+      // отправляем «вслепую»: сам файл при этом уходит и принимается.
+      const fd=new FormData();fd.append('file',file,file.name);
+      await fetch(t.postTarget,{method:'POST',body:fd,mode:'no-cors'});
+      sent=true;
+    }catch(e){sent=false;}
+    if(!sent){
+      if(file.size>2.5*1024*1024)throw new Error('Браузер не дал загрузить файл напрямую, а через сервер можно только до 2,5 МБ');
+      const b64=await new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(String(r.result).split(',')[1]||'');r.onerror=()=>no(new Error('Не удалось прочитать файл'));r.readAsDataURL(file);});
+      await hmMusicCall('ugc_upload',{filename:file.name,mime:file.type||'audio/mpeg',data:b64});
+    }
+    set('Готово — трек появится в плейлисте «'+(t.playlistTitle||'HarmonyAI')+'» через 1–3 минуты, пока Яндекс его обрабатывает.','ok');
+  }catch(e){
+    const needAuth=e.status===401||e.type==='need_auth'||/подключите/i.test(e.message||'');
+    set(needAuth?'Подключите Яндекс Музыку: Настройки → Плейлисты.':('Не получилось: '+(e.message||'ошибка')),'err');
+    if(needAuth){const b=document.createElement('button');b.type='button';b.className='hm-ytrack-btn';b.textContent='Подключить';b.onclick=()=>{openSettings();setTimeout(()=>openSettingsSection('music'),80);};card.appendChild(b);}
+  }
+  scrollChat();
+}
 </script>
 </body>
 </html>
