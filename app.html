@@ -3110,6 +3110,21 @@ html[data-accent="white"]:not([data-theme="dark"]) .model-pill b,html[data-accen
 @keyframes hmYt{from{left:-35%}to{left:100%}}
 .hm-ytrack-btn{flex:none;border:0;border-radius:999px;padding:8px 14px;background:var(--hm-accent,#2563eb);color:var(--hm-accent-ink,#fff);font:600 13px/1 inherit;cursor:pointer;}
 </style>
+<style id="hm-model-menu-calm">
+/* Меню выбора модели и режима усилий: без подпрыгиваний и «тряски».
+   Только плавное появление (прозрачность + небольшой сдвиг), строки при
+   нажатии больше не сжимаются, лист на телефоне выезжает без пружины. */
+@keyframes hmMenuFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.desktop-model-wrap.open,.desktop-sub-drop.open,.model-drop.open,.mode-sub.open,.mobile-model-drop.open{animation:hmMenuFade .18s ease-out both!important;}
+.desktop-model-wrap .desktop-model-drop,.desktop-sub-drop{transition:none!important;}
+.desktop-row,.desktop-option,.md-option,.md-mode-row,.ms-option,.mm-opt,.mmp-opt,.mm-row,.model-pill,.mchip-model,.m-model-btn,
+.desktop-row:active,.desktop-option:active,.md-option:active,.md-mode-row:active,.ms-option:active,.mm-opt:active,.mmp-opt:active,.mm-row:active,.model-pill:active,.m-model-btn:active{transform:none!important;}
+.desktop-row,.desktop-option,.md-option,.md-mode-row,.ms-option,.mm-opt,.mmp-opt{transition:background-color .15s ease,color .15s ease!important;}
+.mm-sheet{transition:transform .28s cubic-bezier(.2,.8,.2,1),opacity .2s ease!important;}
+.mm-overlay:not(.open) .mm-sheet{opacity:0;}
+.mm-screen.active{animation:hmMenuFade .18s ease-out both;}
+@media(prefers-reduced-motion:reduce){.desktop-model-wrap.open,.desktop-sub-drop.open,.mm-screen.active{animation:none!important;}.mm-sheet{transition:opacity .15s!important;}}
+</style>
 </head>
 <body>
 <div id="initialLoading" role="status" aria-live="polite"><span class="boot-spinner"></span><span>Загрузка HarmonyAI…</span></div>
@@ -8355,7 +8370,7 @@ function ensureReasoningBlock(msgEl){
     try{
       const t0=window.__hmThinkStartedAt;
       const fresh=t0&&(performance.now()-t0)<10*60*1000;
-      const hts=window.HmThinkStaff.create(trReadLastUserText(),fresh?{startedAt:t0}:{});
+      const hts=window.HmThinkStaff.create(trReadLastUserText(),fresh?{startedAt:t0,label:window.__hmThinkVerb,anim:window.__hmThinkAnim}:{});
       glyph.classList.add('hts-host');
       glyph.innerHTML='';
       header.insertBefore(hts.el,glyph);
@@ -8517,6 +8532,10 @@ function finalizeReasoningBlock(tr){
   tr._durationMs=(tr._serverDurationMs!=null)
     ?tr._serverDurationMs
     :(Date.now()-(tr._startedAt||Date.now()));
+  // Сервер меряет только видимую часть рассуждений; скрытое «обдумывание» до
+  // неё шло раньше — поэтому было «Думал 1с». Берём реальное время ожидания
+  // с момента, когда появился индикатор «Думаю».
+  if(tr._hts&&tr._hts.startedAt){const loc=performance.now()-tr._hts.startedAt;if(loc>(tr._durationMs||0))tr._durationMs=loc;}
   tr.classList.remove('is-live');
 
   // Пустое размышление не должно оставлять висящую плашку. Исключение — когда
@@ -8712,6 +8731,7 @@ function showTyping(kind='text',steps=[]){
   if(kind==='text'&&label&&window.HmThinkStaff){
     const staff=window.HmThinkStaff.create(trReadLastUserText());
     window.__hmThinkStartedAt=staff.startedAt;
+    window.__hmThinkVerb=staff.verb;window.__hmThinkAnim=staff.anim;
     d.classList.add('think-staff');
     d.appendChild(staff.el);
     d._staff=staff;
