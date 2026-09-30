@@ -3,7 +3,7 @@ export const config = {
   maxDuration: 60
 };
 
-import { PRO_IMAGE_MODEL, FREE_IMAGE_MODEL, UTILITY_MODEL, envModel } from '../lib/models.js';
+import { PRO_IMAGE_MODEL, FREE_IMAGE_MODEL, UTILITY_MODEL, envModel, utilityEndpoint, utilityModel } from '../lib/models.js';
 
 function readEnv(name) {
   return String(process.env[name] || '').trim();
@@ -198,8 +198,8 @@ function isForbiddenPrompt(prompt = '') {
 }
 
 async function isPromptAllowedByAI(prompt) {
-  const apiKey = readEnv('OPENAI_API_KEY');
-  const baseUrl = String(readEnv('OPENAI_BASE_URL') || 'https://api.codex-api.online/v1').replace(/\/+$/, '');
+  const apiKey = utilityEndpoint().apiKey;
+  const baseUrl = utilityEndpoint().baseUrl;
   if (!apiKey || isPlaceholderValue(apiKey) || isPlaceholderValue(baseUrl)) return true;
   const messages = [
     { role: 'system', content: 'Ты модератор. Ответь ровно одним словом: ALLOW или DENY. Запрещай: 18+, насилие, наркотики, оружие. Разрешай: природа, объекты, архитектура, люди в одежде.' },
@@ -210,7 +210,7 @@ async function isPromptAllowedByAI(prompt) {
       fetch(`${baseUrl}/chat/completions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-        body: JSON.stringify({ model: envModel('IMAGE_MODERATOR_MODEL', UTILITY_MODEL), messages, max_tokens: 5, temperature: 0 })
+        body: JSON.stringify({ model: utilityModel('IMAGE_MODERATOR_MODEL'), messages, max_tokens: 5, temperature: 0 })
       }),
       20000, 'AI moderator timed out'
     );
