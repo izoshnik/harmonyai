@@ -34,7 +34,9 @@
     var raw = String(str == null ? '' : str);
     var key = norm(raw);
     if (!key) return str;
-    var entry = DICT[key];
+    // Словарь i18_dict.js кладётся в window.__I18N_DICT и раньше никуда не
+    // подключался — поэтому смена языка «не работала». Берём его напрямую.
+    var entry = DICT[key] || (window.__I18N_DICT && window.__I18N_DICT[key]);
     if (!entry) return str;                 // нет перевода — оставляем русский
     var val = entry[current];
     if (!val) return str;
