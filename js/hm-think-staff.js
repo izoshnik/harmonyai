@@ -53,7 +53,7 @@
   function fmtSecs(ms){
     var s=Math.max(1,Math.round((Number(ms)||0)/1000));
     if(s<60)return s+' с';
-    var m=Math.floor(s/60),r=s%60;return m+' мин '+(r<10?'0':'')+r+' с';
+    var m=Math.floor(s/60),r=s%60;return m+' мин'+(r?' '+r+' с':'');
   }
 
   function el(tag,cls,text){var e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e;}
@@ -166,7 +166,7 @@
         if(e-lastSwap>SWAP_EVERY){lastSwap=e;swap();}
       }else if(isStaff)ells.forEach(function(x){x.style.setProperty('--h',baseHue);});
       var s=Math.floor(e/1000);
-      if(s!==lastSec){lastSec=s;time.textContent=s>0?s+' с':'';}
+      if(s!==lastSec){lastSec=s;time.textContent=s>0?fmtSecs(s*1000):'';}
       raf=requestAnimationFrame(frame);
     }
     function setLabel(str){
