@@ -3174,6 +3174,29 @@ html body .greeting-wrap[style*="display: none"],html body .greeting-wrap[style*
 .hm2fa-go{width:100%;margin-top:12px;padding:13px;border:0;border-radius:14px;background:var(--hm-accent,#2563eb);color:var(--hm-accent-ink,#fff);font:600 15px/1 inherit;cursor:pointer;}
 .hm2fa-out{margin-top:14px;border:0;background:none;color:var(--text2);font:inherit;font-size:13.5px;cursor:pointer;text-decoration:underline;}
 </style>
+<style id="hm-thought-css">
+.hm-thought{display:inline-flex;align-items:center;gap:6px;margin:8px 0 2px;font-size:12.5px;color:var(--text2);opacity:.8;}
+.hm-thought svg{width:14px;height:14px;}
+.hm-file-building{opacity:.95}
+</style>
+<style id="hm-steps-css">
+/* Журнал шагов в раскрытом «Думал…» */
+.tr:has(.hm-steps){width:min(620px,100%)!important;max-width:100%;}
+.tr:has(.hm-steps) .trViewport{max-height:min(60vh,520px)!important;}
+.tr.is-open:has(.hm-steps) .trCollapsible{max-height:none!important;}
+.hm-steps{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-top:6px;}
+.hm-step+.hm-step{border-top:1px solid var(--border);}
+.hm-step-head{display:flex;align-items:center;gap:8px;width:100%;padding:10px 14px;border:0;background:transparent;color:var(--text2);font:inherit;font-size:14px;text-align:left;cursor:pointer;}
+.hm-step-head:hover{color:var(--text);background:color-mix(in srgb,var(--text) 4%,transparent);}
+.hm-step-title{flex:0 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hm-step-chev{width:14px;height:14px;flex:none;opacity:.6;transition:transform .18s ease;}
+.hm-step.open .hm-step-chev{transform:rotate(90deg);}
+.hm-step-body{display:none;padding:0 14px 12px;font-size:13.5px;line-height:1.55;color:var(--text2);}
+.hm-step.open .hm-step-body{display:block;}
+.hm-step-empty .hm-step-chev{visibility:hidden;}
+.hm-step-live .hm-step-title{background:linear-gradient(90deg,var(--text2) 0%,var(--text2) 38%,var(--text) 50%,var(--text2) 62%,var(--text2) 100%);background-size:260% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:htsShimmer 2.2s linear infinite;}
+@media(prefers-reduced-motion:reduce){.hm-step-live .hm-step-title{animation:none;color:var(--text2);background:none;}}
+</style>
 </head>
 <body>
 <div id="initialLoading" role="status" aria-live="polite"><span class="boot-spinner"></span><span>Загрузка HarmonyAI…</span></div>
@@ -7008,7 +7031,7 @@ const FILE_GEN_SYSTEM=`
 - format только один из: md, txt, pdf, docx.
 - content — это ТО, что должно попасть в файл (Markdown допустим). Не более 20000 символов.
 - Если материал явно превышает ~20000 символов, НЕ создавай файл: вежливо объясни, что на бесплатном тарифе файл слишком большой, и предложи сократить объём или разбить на части.
-- Перед блоком дай короткий человеческий ответ (1–2 предложения), что файл готов. Сам JSON пользователю показывать не нужно — интерфейс покажет кнопку скачивания.
+- Перед блоком дай ТОЛЬКО короткий ответ (1–2 предложения), что файл готов. НЕ пиши содержимое файла текстом в ответе и не дублируй его — весь текст документа кладётся только в поле content. Сам JSON пользователю не виден — интерфейс покажет карточку со скачиванием.
 - Не создавай файл, если пользователь об этом не просил.`;
 
 const FILE_DIR_RE=/```harmony-file\s*([\s\S]*?)```/i;
@@ -7555,6 +7578,11 @@ function getAbcRenderOptions(hostEl,abcText=''){
 }
 function renderMd(el,text){
   el.dataset.raw=text;
+  // Блок файла (```harmony-file …) пользователю не показываем никогда: пока он
+  // пишется — вместо JSON карточка «Собираю файл…», в конце — кнопка скачивания.
+  const hmFileAt=String(text||'').search(/```\s*harmony-file/i);
+  const hmBuilding=hmFileAt>=0;
+  if(hmBuilding)text=String(text).slice(0,hmFileAt).trimEnd();
   const parts=text.split(/(```\s*abc[\r\n]+[\s\S]*?```)/gi);
   el.innerHTML='';
   parts.forEach(part=>{
@@ -7593,6 +7621,12 @@ function renderMd(el,text){
       el.appendChild(div);
     }
   });
+  if(hmBuilding){
+    const ph=document.createElement('div');
+    ph.className='file-card hm-file-building';
+    ph.innerHTML='<div class="file-card-ic"><span class="hga-doc" aria-hidden="true"><i style="--i:0"></i><i style="--i:1"></i><i style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i></span></div><div class="file-card-info"><div class="file-card-name">Собираю файл…</div><div class="file-card-sub">Сейчас появится кнопка «Скачать»</div></div><span class="hga-bar" aria-hidden="true"><i></i></span>';
+    el.appendChild(ph);
+  }
   // Кнопки копирования активны только у завершённого ответа (не во время стрима).
   if(!el.classList.contains('is-streaming'))enableCodeCopy(el);
 }
@@ -7620,6 +7654,8 @@ function splitMdSegments(text){
 }
 function hashSeg(seg){return seg.type+':'+seg.raw.length+':'+seg.raw.slice(0,40);}
 function renderStreamingSegments(el,text){
+  // Начался блок файла — дальше рисует renderMd (с карточкой «Собираю файл…»).
+  if(/```\s*harmony-file/i.test(String(text||''))){el._segCache=null;renderMd(el,text);return;}
   const segs=splitMdSegments(text);
   if(!el._segCache)el._segCache=[];
   const cache=el._segCache;
@@ -8369,15 +8405,53 @@ const TR_CHEVRON='<svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="t
 function fmtThinkDuration(ms){
   const total=Number(ms);
   const s=Math.max(1,Math.round((isFinite(total)?total:0)/1000));
-  if(s<60)return s+'с';
+  if(s<60)return s+' с';
   const m=Math.floor(s/60),rem=s%60;
-  return m+' мин '+(rem<10?'0':'')+rem+'с';
+  return m+' мин'+(rem?' '+rem+' с':'');
 }
 
 // Приводим текст размышления к читаемому виду: убираем служебный маркер ответа,
 // markdown-мусор, рваные переносы и лишние пробелы, чтобы в мини-окне был связный текст.
 // Модели любят вставлять в поток мыслей «**» и склеивать слова через них
 // («summary****Finalizing»), поэтому на месте снятой разметки оставляем пробел.
+/* ===== Журнал шагов размышления (как раскрытое рассуждение у Claude) =====
+   Строка шага: заголовок (название действия) + стрелка; по клику раскрывается
+   пояснение. Последний шаг, пока модель ещё думает, мерцает. Верхняя строка —
+   сводка: последний завершённый шаг. Всё — из настоящего текста модели. */
+function hmParseSteps(clean){
+  return String(clean).split('▸').slice(1).map(chunk=>{
+    const t=chunk.replace(/\s+/g,' ').trim();
+    const i=t.indexOf(':');
+    const title=(i>0&&i<90?t.slice(0,i):t.split(/[.!?]/)[0]).trim();
+    const body=(i>0&&i<90?t.slice(i+1):t.slice(title.length)).trim();
+    return {title,body};
+  }).filter(x=>x.title);
+}
+function hmRenderReasoningSteps(tr,clean){
+  const stream=tr._stream;
+  const steps=hmParseSteps(clean);
+  if(!stream._hmSteps){stream.innerHTML='';stream.classList.add('hm-steps');stream._hmSteps=[];}
+  const rows=stream._hmSteps;
+  steps.forEach((st,i)=>{
+    let row=rows[i];
+    if(!row){
+      row=document.createElement('div');row.className='hm-step';
+      row.innerHTML='<button type="button" class="hm-step-head" aria-expanded="false"><span class="hm-step-title"></span><svg class="hm-step-chev" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button><div class="hm-step-body"></div>';
+      row.querySelector('.hm-step-head').onclick=e=>{e.stopPropagation();const open=row.classList.toggle('open');e.currentTarget.setAttribute('aria-expanded',String(open));};
+      stream.appendChild(row);rows[i]=row;
+    }
+    const t=row.querySelector('.hm-step-title'),b=row.querySelector('.hm-step-body');
+    if(t.textContent!==st.title)t.textContent=st.title;
+    if(b.textContent!==st.body)b.textContent=st.body;
+    row.classList.toggle('hm-step-live',!tr._done&&i===steps.length-1);
+    row.classList.toggle('hm-step-empty',!st.body);
+  });
+  // Сводка в шапке — последний законченный шаг
+  const doneSteps=tr._done?steps:steps.slice(0,-1);
+  const last=doneSteps[doneSteps.length-1]||steps[steps.length-1];
+  if(last&&tr._hts&&tr._hts.setHeadline)tr._hts.setHeadline(last.title);
+  tr._hmStepHead=true;
+}
 function formatReasoningText(text){
   return stripAnswerMarkers(String(text==null?'':text))
     .replace(/\r/g,'')
@@ -8574,6 +8648,8 @@ function flushReasoning(tr){
   if(!stream)return;
 
   const clean=formatReasoningText(tr._text||'');
+  // Новый формат: модель пишет шаги «▸ Название: пояснение» — показываем журнал шагов.
+  if(clean.indexOf('▸')>=0){hmRenderReasoningSteps(tr,clean);return;}
   const parts=trSplitSentences(clean);
   const complete=tr._done?parts.length:Math.max(0,parts.length-1);
 
@@ -8633,7 +8709,7 @@ function appendReasoningChunk(msgEl,text){
   tr._text=(tr._text||'')+raw;
   // Заголовок размышления: последняя законченная мысль из НАСТОЯЩЕГО текста
   // рассуждений (как «Сравниваю минорные гаммы» рядом с «Думаю»). Не чаще раза в 1,2 с.
-  if(tr._hts&&tr._hts.setHeadline){
+  if(tr._hts&&tr._hts.setHeadline&&!tr._hmStepHead){
     const now=Date.now();
     if(!tr._headAt||now-tr._headAt>1200){tr._headAt=now;try{tr._hts.setHeadline(hmReasoningHeadline(tr._text));}catch(_){}}
   }
@@ -8936,6 +9012,30 @@ let _titleInFlight=false;
 function chatHasAiTitle(id){
   return !!(getChatMetaFor(id)||{}).aiTitle;
 }
+/* «Думал 1 мин 40 с» в конце ответа, когда «Думать» выключен, но модель
+   работала долго (сложный запрос) или стоит High/Extra. Если у ответа уже есть
+   блок размышлений — там своё время, второй раз не пишем. */
+function hmThoughtFooter(shell){
+  if(!shell||!shell.wrap||thinkOn)return;
+  if(shell.wrap.querySelector('.tr,.hm-thought'))return;
+  const t0=window.__hmReqT0;if(!t0)return;
+  const ms=performance.now()-t0;
+  const deep=['max','extra'].includes(curMode);
+  if(!deep&&ms<12000)return;
+  const f=document.createElement('div');
+  f.className='hm-thought';
+  f.innerHTML='<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.7"/><path d="M12 7.5V12l3 2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span>Думал '+fmtThinkDuration(ms)+'</span>';
+  const actions=shell.wrap.querySelector('.msg-actions');
+  if(actions)shell.wrap.insertBefore(f,actions);else shell.wrap.appendChild(f);
+}
+function hmLocalTitle(text){
+  let t=String(text||'').replace(/\[[^\]]*\]/g,' ').replace(/[`*_#>]/g,'').replace(/\s+/g,' ').trim();
+  t=t.replace(/^(привет|здравствуй(те)?|пожалуйста|слушай|hi|hello)[,!.\s]+/i,'');
+  if(!t)return '';
+  const w=t.split(' ').slice(0,6).join(' ');
+  const out=w.length>42?w.slice(0,40).replace(/\s+\S*$/,'')+'…':w;
+  return out.charAt(0).toUpperCase()+out.slice(1).replace(/[.,!?:;]+$/,'');
+}
 async function maybeGenerateChatTitle(){
   // Условия: есть чат, ровно один обмен (user+assistant), тема ещё не определена.
   const id=curChatId;
@@ -8968,7 +9068,12 @@ async function maybeGenerateChatTitle(){
       // распознавание музыки — ставим локальный фолбэк вместо «Новый чат».
       if(/\[голосовое сообщение/i.test(userText)){
         title='Распознавание музыки';
-      }else return;
+      }else{
+        // Сервер не ответил — делаем заголовок из первых слов запроса,
+        // чтобы в списке не копились «Новый чат».
+        title=hmLocalTitle(userText);
+        if(!title)return;
+      }
     }
     // Сохраняем: локальная мета (приоритетна в списке) + строка chats + Supabase.
     updateChatMetaFor(id,{title,aiTitle:true});
@@ -10266,6 +10371,7 @@ function restoreComposerText(text){
 
 async function sendMsg(){
   if(isGenerating){stopGeneration();return;}
+  window.__hmReqT0=performance.now();
   // Кнопка «▶ Продолжить»: поле пустое, прошлый ответ был остановлен — просим дописать.
   if(hmContinueMode){
     const ta0=document.getElementById('msgTa');
@@ -10942,6 +11048,7 @@ async function runAssistantReply(displayText){
     }
     if(result?.text){chatHistory.push({role:'assistant',content:result.text,createdAt:messageNow()});recordUsage(displayText,result.text);}
     if(hmPaused){const h=document.createElement('div');h.innerHTML=hmLimitPauseHtml();aiShell.wrap.appendChild(h.firstElementChild);scrollChat();}
+    try{hmThoughtFooter(aiShell);}catch(_){}
     if(result?.text)await maybeHandleFileDirective(result.text,aiShell.msg,chatHistory.length-1);
     try{window.HmBench&&HmBench.scan(aiShell.msg,true);}catch(_){}
     await saveChat();
