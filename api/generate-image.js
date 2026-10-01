@@ -178,23 +178,52 @@ async function checkImageAllowance(userId, profile, isPro) {
 
 /* ---------- Модерация ---------- */
 
-const FORBIDDEN_KEYWORDS = [
-  'porn','porno','pornography','hentai','nsfw','nude','nudes','naked','sex','sexual','erotic','erotica',
-  'genital','penis','vagina','breast','boob','ass','fetish','masturbat','orgasm','xxx','bikini',
-  'порно','хентай','нюд','нюдс','голая','голый','голые','обнажённ','секс','сексуальн','эрот',
-  'генитал','пенис','вагин','грудь','сосок','попка','попу','фетиш','мастурб','оргазм',
-  'loli','lolicon','shotacon','underage','minor','child','kid','teen','preteen','pedophil','baby',
-  'лоли','шотакон','несовершеннолет','малолет','ребёнок','ребенка','дети','подросток','педофил','малыш',
-  'gore','bloodbath','decapitat','dismember','torture','mutilat','self-harm','suicide','massacre','snuff',
-  'гор','кровав','обезглав','расчлен','пытк','увеч','самоповрежд','самоубийств','убить себя','резня','снафф',
-  'cocaine','heroin','meth','lsd','ecstasy','drug deal','weapons','firearm','bomb','explosive','terrorist',
-  'кокаин','героин','метамфетамин','наркотик','оружие','огнестрел','бомба','взрывчат','террорист',
-  'deepfake nude','revenge porn','дипфейк','интим'
+/* Сравнение идёт ПО НАЧАЛУ СЛОВА, а не по подстроке. Раньше 'гор' ловил «горы»,
+   «горн», «Игорь», 'minor' — «A minor», 'попу' — «популярный», 'пытк' — «попытка»,
+   'meth' — «Something», и безобидные музыкальные запросы отклонялись.
+   Короткие английские корни (sex, ass, meth…) сверяются со словом целиком.
+   Слова о детях сами по себе не запрещены («детский хор», «малыш за пианино»),
+   запрещено только их сочетание с сексуальным контекстом. */
+const SEXUAL_KEYWORDS = [
+  'porn','hentai','nsfw','nude','naked','sexual','sexy','erotic','genital','penis','vagina','breast','boob',
+  'fetish','masturbat','orgasm','bikini','lingerie','topless',
+  'порн','хентай','нюд','голая','голый','голые','голых','обнажён','обнажен','секс','эрот',
+  'генитал','пенис','вагин','грудь','груди','сосок','соски','попк','фетиш','мастурб','оргазм','интим','бельё','белье'
 ];
+const SEXUAL_EXACT = ['sex','ass','xxx','tits'];
+const MINOR_KEYWORDS = [
+  'child','children','kid','kids','teen','teenager','preteen','baby','toddler','schoolgirl','schoolboy',
+  'ребён','ребен','дет','малыш','подрост','школьни','девочк','мальчик'
+];
+const ALWAYS_FORBIDDEN = [
+  'loli','shotacon','underage','pedophil','несовершеннолет','малолет','шотакон','педофил',
+  'bloodbath','decapitat','dismember','mutilat','self-harm','suicide','massacre','snuff','torture',
+  'кровав','обезглав','расчлен','пытк','пытать','изувеч','самоповрежд','самоубийств','резня','резню','снафф',
+  'cocaine','heroin','methamphetamine','ecstasy','firearm','explosive','terrorist',
+  'кокаин','героин','метамфетамин','наркотик','огнестрел','взрывчат','террорист','дипфейк','deepfake',
+  ...SEXUAL_KEYWORDS
+];
+const ALWAYS_FORBIDDEN_EXACT = ['gore','meth','lsd','bomb','bombs','weapon','weapons','gun','guns','бомба','бомбу','оружие','оружия','убить','убей'];
+const ALWAYS_FORBIDDEN_PHRASES = ['убить себя','drug deal','revenge porn'];
+
+function promptWords(text = '') {
+  return String(text || '').toLowerCase().replace(/ё/g, 'е').split(/[^\p{L}\p{N}-]+/u).filter(Boolean);
+}
+function hasStem(words, stems) {
+  return stems.some((st) => { const s = st.replace(/ё/g, 'е'); return words.some((w) => w.startsWith(s)); });
+}
+function hasExact(words, list) {
+  return list.some((x) => words.includes(x.replace(/ё/g, 'е')));
+}
 
 function isForbiddenPrompt(prompt = '') {
-  const low = String(prompt || '').toLowerCase();
-  return FORBIDDEN_KEYWORDS.some((kw) => low.includes(kw));
+  const low = String(prompt || '').toLowerCase().replace(/ё/g, 'е');
+  const words = promptWords(low);
+  if (ALWAYS_FORBIDDEN_PHRASES.some((p) => low.includes(p))) return true;
+  if (hasStem(words, ALWAYS_FORBIDDEN) || hasExact(words, ALWAYS_FORBIDDEN_EXACT) || hasExact(words, SEXUAL_EXACT)) return true;
+  // Дети + любой намёк на сексуальный контекст — всегда отказ (дубль защиты к ИИ-модератору).
+  if (hasStem(words, MINOR_KEYWORDS) && (hasStem(words, SEXUAL_KEYWORDS) || hasExact(words, SEXUAL_EXACT))) return true;
+  return false;
 }
 
 async function isPromptAllowedByAI(prompt) {
