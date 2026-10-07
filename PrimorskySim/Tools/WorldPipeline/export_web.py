@@ -27,9 +27,9 @@ OUT = ROOT / "Apps" / "Web" / "data" / "district.json"
 ROAD_KEEP = {
     "motorway": 4, "trunk": 4, "primary": 3, "secondary": 2, "tertiary": 2, "motorway_link": 1, "trunk_link": 1,
     "primary_link": 1, "secondary_link": 1, "tertiary_link": 1, "unclassified": 1, "residential": 1,
-    "living_street": 1, "service": 0, "pedestrian": 0,
+    "living_street": 1, "service": 0, "pedestrian": 5, "footway": 5, "path": 5, "steps": 5, "cycleway": 5,
 }
-DEFAULT_WIDTH = {4: 20.0, 3: 16.0, 2: 12.0, 1: 7.0, 0: 4.5}
+DEFAULT_WIDTH = {4: 20.0, 3: 16.0, 2: 12.0, 1: 7.0, 0: 4.5, 5: 2.5}
 BTYPE = {"apartments": 1, "residential": 1, "house": 2, "detached": 2, "commercial": 3, "retail": 3, "office": 3,
          "school": 4, "kindergarten": 4, "university": 4, "hospital": 5, "industrial": 6, "warehouse": 6,
          "garages": 7, "garage": 7, "service": 7, "church": 8, "train_station": 9}
@@ -78,14 +78,37 @@ class Metro(osmium.SimpleHandler):
         super().__init__()
         self.bbox = bbox
         self.routes, self.stations, self.water = [], [], []
+        self.green, self.trees, self.lamps = [], [], []
         self.ways = {}
 
     def _in(self, lon, lat):
         x0, y0, x1, y1 = self.bbox
         return x0 <= lon <= x1 and y0 <= lat <= y1
 
+    def area(self, a):
+        t = a.tags
+        kind = None
+        if t.get("natural") == "water" or t.get("waterway") == "riverbank":
+            kind = "water"
+        elif t.get("leisure") == "park" or t.get("landuse") in ("forest", "grass", "meadow", "recreation_ground") or t.get("natural") in ("wood", "scrub"):
+            kind = "forest" if t.get("landuse") == "forest" or t.get("natural") == "wood" else "green"
+        if not kind:
+            return
+        try:
+            for outer in a.outer_rings():
+                ring = [(n.lon, n.lat) for n in outer]
+                if len(ring) < 4 or not any(self._in(x, y) for x, y in ring[::5] or ring):
+                    continue
+                (self.water if kind == "water" else self.green).append(ring if kind == "water" else (kind, ring))
+        except osmium.InvalidLocationError:
+            pass
+
     def node(self, n):
         t = n.tags
+        if t.get("natural") == "tree" and self._in(n.location.lon, n.location.lat):
+            self.trees.append((n.location.lon, n.location.lat))
+        if t.get("highway") == "street_lamp" and self._in(n.location.lon, n.location.lat):
+            self.lamps.append((n.location.lon, n.location.lat))
         if t.get("railway") == "station" and t.get("station") == "subway" and self._in(n.location.lon, n.location.lat):
             self.stations.append({"name": t.get("name"), "lon": n.location.lon, "lat": n.location.lat})
 
@@ -97,9 +120,6 @@ class Metro(osmium.SimpleHandler):
             return
         if t.get("railway") == "subway":
             self.ways[w.id] = coords
-        elif (t.get("natural") == "water" or t.get("waterway") == "riverbank") and w.is_closed() and len(coords) >= 4:
-            if any(self._in(x, y) for x, y in coords):
-                self.water.append(coords)
 
     def relation(self, r):
         t = r.tags
@@ -192,6 +212,9 @@ def main():
         "buildings": buildings,
         "roads": roads,
         "water": [[v for pt in (tm(x, y) for x, y in ring[:-1]) for v in pt] for ring in mh.water],
+        "green": [[k, [v for pt in (tm(x, y) for x, y in ring[:-1]) for v in pt]] for k, ring in mh.green],
+        "trees": [tm(x, y) for x, y in mh.trees],
+        "lamps": [tm(x, y) for x, y in mh.lamps],
         "stations": [{"name": s["name"], "p": tm(s["lon"], s["lat"])} for s in mh.stations if s["name"]],
         "lines": list(lines.values()),
         "stops": [{"name": f["properties"].get("name") or "", "p": tm(*f["geometry"]["coordinates"])}
@@ -200,7 +223,7 @@ def main():
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(out, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     print(f"{OUT}: {OUT.stat().st_size / 1e6:.1f} MB, buildings={len(buildings)} (без высоты: {sum(1 for b in buildings if not b[1])}), "
-          f"roads={len(roads)}, water={len(out['water'])}, stations={len(out['stations'])}, lines={[(l['ref'], l['name']) for l in out['lines']]}")
+          f"roads={len(roads)}, water={len(out['water'])}, green={len(out['green'])}, trees={len(out['trees'])}, lamps={len(out['lamps'])}, stations={len(out['stations'])}, lines={[(l['ref'], l['name']) for l in out['lines']]}")
 
 
 if __name__ == "__main__":
