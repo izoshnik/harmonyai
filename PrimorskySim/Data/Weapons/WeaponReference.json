@@ -1,0 +1,106 @@
+{
+  "_comment": "Справочные значения из материалов заказчика. Это НЕ игровой баланс: геймплейные параметры живут в DA_Weapon_* и выводятся из этих значений балансировщиком. Брендинг/названия в игре — по display_name_policy.",
+  "display_name_policy": "undecided",
+  "weapons": [
+    {
+      "weapon_id": "WPN-PISTOL-G17",
+      "reference_name": "Glock 17",
+      "class": "pistol",
+      "reference_rate_rpm": {
+        "min": 40,
+        "max": 40,
+        "kind": "practical"
+      },
+      "reference_fire_mode": "semi",
+      "reference_weight_kg": {
+        "empty": 0.63
+      },
+      "source": "Скриншоты заказчика (Telegram, 2026-10)",
+      "verification_status": "NEEDS_VERIFICATION",
+      "notes": "Значение ~40 выстр./мин в источнике — практический темп, не технический."
+    },
+    {
+      "weapon_id": "WPN-RIFLE-AK47",
+      "reference_name": "AK-47",
+      "class": "assault_rifle",
+      "reference_rate_rpm": {
+        "min": 600,
+        "max": 660,
+        "kind": "cyclic"
+      },
+      "reference_fire_mode": "select",
+      "reference_weight_kg": {
+        "empty": 3.8,
+        "loaded": 4.3
+      },
+      "source": "Скриншоты заказчика (Telegram, 2026-10)",
+      "verification_status": "NEEDS_VERIFICATION",
+      "notes": ""
+    },
+    {
+      "weapon_id": "WPN-RIFLE-M16",
+      "reference_name": "M16",
+      "class": "assault_rifle",
+      "reference_rate_rpm": {
+        "min": 700,
+        "max": 950,
+        "kind": "cyclic"
+      },
+      "reference_fire_mode": "select",
+      "reference_weight_kg": {
+        "empty": 3.3
+      },
+      "source": "Скриншоты заказчика (Telegram, 2026-10)",
+      "verification_status": "NEEDS_VERIFICATION",
+      "notes": "Разброс зависит от модификации; модификацию уточнить."
+    },
+    {
+      "weapon_id": "WPN-RIFLE-HK416",
+      "reference_name": "HK416",
+      "class": "assault_rifle",
+      "reference_rate_rpm": {
+        "min": 700,
+        "max": 900,
+        "kind": "cyclic"
+      },
+      "reference_fire_mode": "select",
+      "reference_weight_kg": {
+        "min": 3.02,
+        "max": 3.86
+      },
+      "source": "Скриншоты заказчика (Telegram, 2026-10)",
+      "verification_status": "NEEDS_VERIFICATION",
+      "notes": "Вес зависит от длины ствола; калибр в источнике 5,56×45."
+    },
+    {
+      "weapon_id": "WPN-PISTOL-DEAGLE",
+      "reference_name": "Desert Eagle",
+      "class": "pistol",
+      "reference_rate_rpm": null,
+      "reference_fire_mode": "semi",
+      "reference_weight_kg": {
+        "empty": 2.0
+      },
+      "source": "Скриншоты заказчика (Telegram, 2026-10)",
+      "verification_status": "NEEDS_VERIFICATION",
+      "notes": "Источник: «медленный темп» без числа — темп UNKNOWN."
+    },
+    {
+      "weapon_id": "WPN-PISTOL-M1911",
+      "reference_name": "Colt M1911",
+      "class": "pistol",
+      "reference_rate_rpm": {
+        "min": 25,
+        "max": 30,
+        "kind": "practical"
+      },
+      "reference_fire_mode": "semi",
+      "reference_weight_kg": {
+        "empty": 1.1
+      },
+      "source": "Скриншоты заказчика (Telegram, 2026-10)",
+      "verification_status": "NEEDS_VERIFICATION",
+      "notes": ""
+    }
+  ]
+}

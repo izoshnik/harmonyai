@@ -1,0 +1,35 @@
+{
+  "summary": {
+    "generated_at": "2026-10-07T16:50:00+00:00",
+    "object_count": 24033,
+    "by_status": {
+      "PARTIALLY_VERIFIED": 24029,
+      "NEEDS_VERIFICATION": 4
+    },
+    "by_category": {
+      "boundary": 1,
+      "metro_line": 3,
+      "metro_station": 5,
+      "rolling_stock": 1,
+      "building": 12968,
+      "road": 365,
+      "transit_stop": 651,
+      "poi": 10023,
+      "metro_entrance": 16
+    },
+    "errors": 0,
+    "warnings": 0,
+    "checks": {
+      "schema": "PASS",
+      "unique_ids": "PASS",
+      "verification_rules": "PASS",
+      "sources": "PASS",
+      "coordinates_sanity": "PASS",
+      "inside_boundary": "PASS",
+      "references": "PASS",
+      "metro_topology": "PASS"
+    },
+    "world_validated": false
+  },
+  "issues": []
+}

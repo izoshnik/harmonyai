@@ -1,0 +1,52 @@
+{
+  "sources": [
+    {
+      "source_id": "SRC-OSM",
+      "name": "OpenStreetMap",
+      "url": "https://www.openstreetmap.org",
+      "license": "ODbL 1.0",
+      "allowed_use": "Геометрия, атрибуты; производная БД под ODbL, атрибуция в титрах",
+      "access_in_ci": "BLOCKED (403 в облачной среде)"
+    },
+    {
+      "source_id": "SRC-SPB-LAW-TERRITORY",
+      "name": "Закон Санкт-Петербурга «О территориальном устройстве Санкт-Петербурга»",
+      "url": null,
+      "license": "Официальный документ",
+      "allowed_use": "Сверка границы",
+      "access_in_ci": "NEEDS_LINK"
+    },
+    {
+      "source_id": "SRC-METRO-OFFICIAL",
+      "name": "ГУП «Петербургский метрополитен» — официальные публикации",
+      "url": null,
+      "license": "Справочно",
+      "allowed_use": "Факты (станции, линии, подвижной состав); графику не копировать",
+      "access_in_ci": "NEEDS_LINK"
+    },
+    {
+      "source_id": "SRC-TRANSIT-GTFS",
+      "name": "GTFS наземного транспорта СПб (Организатор перевозок)",
+      "url": null,
+      "license": "Проверить условия",
+      "allowed_use": "Маршруты, остановки, расписания",
+      "access_in_ci": "NEEDS_LINK"
+    },
+    {
+      "source_id": "SRC-YANDEX-REF",
+      "name": "Яндекс Карты / Панорамы",
+      "url": "https://yandex.ru/maps",
+      "license": "Условия Яндекса — копирование/трассировка запрещены",
+      "allowed_use": "ТОЛЬКО визуальная сверка человеком; данные в манифест не переносятся автоматически, источником факта не являются",
+      "access_in_ci": "n/a"
+    },
+    {
+      "source_id": "SRC-USER-PHOTO",
+      "name": "Материалы, предоставленные заказчиком",
+      "url": null,
+      "license": "Собственность заказчика",
+      "allowed_use": "Референс для моделирования и верификации",
+      "access_in_ci": "n/a"
+    }
+  ]
+}
