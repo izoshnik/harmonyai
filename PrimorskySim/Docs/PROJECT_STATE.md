@@ -14,6 +14,18 @@
 - `Art/Tools/` — процедурное моделирование в Blender (bpy 5.2, headless): `blender_common.py` + `build_pistol_pm17.py`.
   Первая модель: пистолет «ПМ-17» (референс — Glock 17), 14 деталей, ~15.9k треугольников, `Art/Export/Weapons/*.glb`, рендеры в `Art/Renders/Weapons/`. Качество — PARTIALLY IMPLEMENTED: нет UV-развёртки и запечённых текстур, остались артефакты шейдинга на затворе.
 
+- **Этап 1 — UE-проект (UNVERIFIED BUILD: движок здесь недоступен, C++ модулей UE не собирался):**
+  - `PrimorskySim.uproject`, targets Game/Editor/Server/Client, `Config/Default{Engine,Game,GameplayTags,Input}.ini`.
+  - `PrimSimCore` — чистый C++17 (без UE): `GeoTransform` (tmerc WGS84), `Ledger` (двойная запись, идемпотентность, защита от переполнения), `MetroSim` (кинематика, остановки, двери, оборот, интервал). **Собирается g++/clang -Werror, тесты проходят** (`Tests/SimCore`).
+  - `PrimCore` — `FPrimGeoReference`, `FPrimWorldTime`, нативные Gameplay Tags.
+  - `PrimWorld` — `UPrimWorldManifestSubsystem`: загрузка WorldManifest.json в рантайме.
+  - `PrimInteraction` — `UPrimInteractableComponent`, `UPrimInteractionAction`, `UPrimInteractorComponent` (Server RPC, дистанция, LOS, rate limit).
+  - `PrimEconomy` — `UPrimLedgerSubsystem` (только сервер), `UPrimWalletComponent` (реплика баланса только владельцу).
+  - `PrimMetro` — `UPrimTrainTypeAsset`, `UPrimMetroLineAsset`, `APrimMetroLine` (сплайн трассы, серверная симуляция, квантованная репликация, клиентские вагоны с интерполяцией).
+  - `PrimorskySim` — `APrimGameMode` (время, стартовые деньги через Ledger), `APrimGameState` (время мира), `APrimPlayerController`, `APrimCharacter` (Enhanced Input, спринт).
+- `Tools/run_checks.sh` — все проверки без движка.
+- `Art/AssetRegistry.json` — сторонние модели и статус их лицензий (USP-S Cyrex отклонён: IP Valve).
+
 ## Решения заказчика (2026-10-07)
 - 3D-модели: делаем сами (процедурно в Blender) или берём бесплатные ассеты только с лицензией, разрешающей использование в коммерческой игре (CC0/CC-BY, бесплатные ассеты Fab со Standard License). Модели с лицензией «editorial only» не используем.
 - Бренды: нейтральные названия и логотипы, форма узнаваемая (`display_name_policy = fictionalized`).
@@ -24,8 +36,10 @@
 - **BLOCKED**: граница района — нет доступа к OSM из облачной среды (403 на overpass/geofabrik/nominatim).
 - **BLOCKED**: перенос в отдельный репозиторий — ждёт, пока заказчик его создаст и даст доступ. Сборка UE в облачной среде невозможна (нет движка и Windows).
 
-## Сломано
-- Нет.
+## Сломано / известные долги
+- Спринт меняет MaxWalkSpeed через RPC — при лаге будут коррекции; перенести в FSavedMove (этап 5).
+- `APrimMetroLine` грузит классы вагонов синхронно (LoadSynchronous) — заменить на async preload.
+- Нет Blueprint-ассетов (BP_PrimCharacter, Input Actions, карта) — создаются в редакторе при первой сборке.
 
 ## Архитектурные решения
 - Отдельные UE-модули на домен; `PrimSimCore` без UObject (выносимость far-симуляции).

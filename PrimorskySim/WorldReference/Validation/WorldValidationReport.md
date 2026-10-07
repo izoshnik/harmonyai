@@ -1,6 +1,6 @@
 # WorldValidationReport
 
-Сгенерировано: 2026-10-07T15:12:31+00:00 — `Tools/WorldPipeline/validate_world.py`
+Сгенерировано: 2026-10-07T15:49:51+00:00 — `Tools/WorldPipeline/validate_world.py`
 
 Объектов: **10** · ошибок: **0** · предупреждений: **2**
 Мир прошёл валидацию полностью: **нет**

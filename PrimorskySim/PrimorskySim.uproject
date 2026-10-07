@@ -1,0 +1,25 @@
+{
+	"FileVersion": 3,
+	"EngineAssociation": "",
+	"Category": "",
+	"Description": "PrimorskySim — multiplayer life simulator, Primorsky district of St. Petersburg (2026)",
+	"Modules": [
+		{ "Name": "PrimorskySim", "Type": "Runtime", "LoadingPhase": "Default" },
+		{ "Name": "PrimSimCore", "Type": "Runtime", "LoadingPhase": "PreDefault" },
+		{ "Name": "PrimCore", "Type": "Runtime", "LoadingPhase": "PreDefault" },
+		{ "Name": "PrimWorld", "Type": "Runtime", "LoadingPhase": "Default" },
+		{ "Name": "PrimInteraction", "Type": "Runtime", "LoadingPhase": "Default" },
+		{ "Name": "PrimEconomy", "Type": "Runtime", "LoadingPhase": "Default" },
+		{ "Name": "PrimMetro", "Type": "Runtime", "LoadingPhase": "Default" }
+	],
+	"Plugins": [
+		{ "Name": "EnhancedInput", "Enabled": true },
+		{ "Name": "MassGameplay", "Enabled": true },
+		{ "Name": "MassAI", "Enabled": true },
+		{ "Name": "StateTree", "Enabled": true },
+		{ "Name": "GameplayStateTree", "Enabled": true },
+		{ "Name": "ChaosVehiclesPlugin", "Enabled": true },
+		{ "Name": "ReplicationGraph", "Enabled": true },
+		{ "Name": "CommonUI", "Enabled": true }
+	]
+}

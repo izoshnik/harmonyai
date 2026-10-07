@@ -1,0 +1,10 @@
+{
+  "_comment": "Каждый сторонний ассет обязан иметь подтверждённую лицензию, разрешающую коммерческую игру, ДО попадания в Content/. license_status: CONFIRMED | NEEDS_CHECK | REJECTED.",
+  "assets": [
+    {"asset_id": "TP-WPN-M16", "file": "Art/ThirdParty/M16_Assault_Rifle.usdz", "use_for": "WPN-RIFLE-M16", "source": "Прислано заказчиком (вероятно Sketchfab)", "license": null, "author": null, "license_status": "NEEDS_CHECK", "notes": "PBR-текстуры есть (M16A3). Нужны ссылка на страницу модели и лицензия."},
+    {"asset_id": "TP-WPN-DEAGLE", "file": "Art/ThirdParty/Desert_Eagle.usdz", "use_for": "WPN-PISTOL-DEAGLE", "source": "Прислано заказчиком", "license": null, "author": null, "license_status": "NEEDS_CHECK", "notes": "PBR-текстуры есть."},
+    {"asset_id": "TP-WPN-G17", "file": "Art/ThirdParty/glock-17.zip", "use_for": "WPN-PISTOL-G17", "source": "Прислано заказчиком", "license": null, "author": null, "license_status": "NEEDS_CHECK", "notes": "Внутри вложенный архив source/глок 2.zip."},
+    {"asset_id": "TP-WPN-USPS-CYREX", "file": null, "use_for": null, "source": "Прислано заказчиком", "license": "Скин CS:GO (Valve)", "author": null, "license_status": "REJECTED", "notes": "Интеллектуальная собственность Valve — в игру не берём, в репозиторий не кладём."},
+    {"asset_id": "TP-METRO-BALTIETS", "file": null, "use_for": "PRM-ROLLINGSTOCK-BALTIETS", "source": "https://skfb.ly/oPUIA", "license": null, "author": null, "license_status": "NEEDS_CHECK", "notes": "Скачать (нужен аккаунт Sketchfab), проверить лицензию: подходят CC0/CC-BY/Standard; не подходят NC и Editorial."}
+  ]
+}
