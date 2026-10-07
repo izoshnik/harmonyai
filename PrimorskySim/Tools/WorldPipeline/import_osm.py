@@ -101,8 +101,11 @@ class Extractor(osmium.SimpleHandler):
             return
         props = {"osm_id": f"way/{w.id}", **tags}
         if tags.get("highway") in ROAD_CLASSES:
-            if any(self._inside(x, y) for x, y in coords):
+            inside = next(((x, y) for x, y in coords if self._inside(x, y)), None)
+            if inside:
                 self._ts(w)
+                props["_rep"] = list(inside)  # опорная точка — гарантированно внутри района
+                props["_crosses"] = not all(self._inside(x, y) for x, y in coords)
                 self.roads.append({"type": "Feature", "geometry": {"type": "LineString", "coordinates": coords}, "properties": props})
         elif "building" in tags and w.is_closed() and len(coords) >= 4:
             cx = sum(x for x, _ in coords[:-1]) / (len(coords) - 1)
@@ -185,12 +188,13 @@ def build_manifest_entries(ex: Extractor, year: int, today: str) -> list[dict]:
         while oid in used:
             oid, n = f"PRM-ROAD-{slug(name)}-{n}", n + 1
         used.add(oid)
-        mid = feats[0]["geometry"]["coordinates"][len(feats[0]["geometry"]["coordinates"]) // 2]
+        mid = feats[0]["properties"]["_rep"]
         cls = feats[0]["properties"].get("highway")
         out.append(osm_entry(
             oid, "road", name, cls, mid[0], mid[1], feats[0]["properties"]["osm_id"], year, today,
             geometry_ref="Roads/osm_roads.geojson", importance="high" if cls in ("primary", "trunk", "secondary") else "medium",
-            gameplay=True, attributes={"osm_way_ids": [x["properties"]["osm_id"] for x in feats]}))
+            gameplay=True, attributes={"osm_way_ids": [x["properties"]["osm_id"] for x in feats],
+                                       "crosses_boundary": any(x["properties"]["_crosses"] for x in feats)}))
 
     for f in ex.stops:
         p = f["properties"]
@@ -241,7 +245,8 @@ def merge_metro_stations(manifest: dict, ex: Extractor, year: int, today: str) -
 def write_layer(path: Path, features: list[dict]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     for f in features:
-        f["properties"].pop("_centroid", None)
+        for k in ("_centroid", "_rep", "_crosses"):
+            f["properties"].pop(k, None)
     path.write_text(json.dumps({"type": "FeatureCollection", "features": features}, ensure_ascii=False), encoding="utf-8")
 
 
@@ -268,7 +273,7 @@ def run(osm_path: Path, boundary_path: Path, manifest_path: Path, ref_root: Path
     write_layer(ref_root / "Metro" / "osm_metro.geojson", ex.metro)
     write_layer(ref_root / "POI" / "osm_poi.geojson", ex.poi)
     return {"roads": len(ex.roads), "buildings": len(ex.buildings), "stops": len(ex.stops), "metro": len(ex.metro),
-            "poi": len(ex.poi), "stations_updated": stations_updated, "skipped_multipolygons": ex.skipped_multipolygons,
+            "poi": len(ex.poi), "stations_updated": stations_updated, "building_multipolygons_in_file_not_imported": ex.skipped_multipolygons,
             "data_year": year, "objects_total": len(manifest["objects"])}
 
 

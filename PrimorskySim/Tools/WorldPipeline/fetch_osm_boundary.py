@@ -93,10 +93,37 @@ def to_geojson(osm: dict) -> tuple[dict, dict]:
     return {"type": "FeatureCollection", "features": [feature]}, meta
 
 
+NOMINATIM = ("https://nominatim.openstreetmap.org/search?format=jsonv2&polygon_geojson=1&limit=1&q="
+             + urllib.parse.quote("Приморский район, Санкт-Петербург"))
+
+
+def fetch_nominatim() -> tuple[dict, dict]:
+    """Запасной путь, когда Overpass недоступен: Nominatim отдаёт готовый полигон relation."""
+    req = urllib.request.Request(NOMINATIM, headers={"User-Agent": "PrimorskySim-WorldPipeline/0.1"})
+    with urllib.request.urlopen(req, timeout=60) as resp:
+        r = json.load(resp)[0]
+    if r.get("osm_type") != "relation" or r.get("type") != "administrative":
+        raise ValueError(f"Nominatim вернул не административную границу: {r.get('osm_type')} {r.get('type')}")
+    feature = {"type": "Feature", "properties": {"object_id": "PRM-BOUNDARY-DISTRICT", "osm_relation_id": int(r["osm_id"])},
+               "geometry": r["geojson"]}
+    meta = {"osm_relation_id": int(r["osm_id"]), "fetched_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
+            "source": "https://nominatim.openstreetmap.org (polygon_geojson)", "license": "ODbL 1.0 © OpenStreetMap contributors",
+            "verification_status": "PARTIALLY_VERIFIED"}
+    return {"type": "FeatureCollection", "features": [feature]}, meta
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--from-file", type=Path, help="Готовый ответ Overpass (JSON) вместо сетевого запроса")
+    ap.add_argument("--nominatim", action="store_true", help="Взять полигон через Nominatim вместо Overpass")
     args = ap.parse_args()
+    if args.nominatim:
+        geojson, meta = fetch_nominatim()
+        OUT_DIR.mkdir(parents=True, exist_ok=True)
+        (OUT_DIR / "PrimorskyDistrictBoundary.geojson").write_text(json.dumps(geojson, ensure_ascii=False), encoding="utf-8")
+        (OUT_DIR / "PrimorskyDistrictBoundary.meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
+        print(f"OK (Nominatim): relation {meta['osm_relation_id']}")
+        return 0
     if args.from_file:
         osm = json.loads(args.from_file.read_text(encoding="utf-8"))
     else:

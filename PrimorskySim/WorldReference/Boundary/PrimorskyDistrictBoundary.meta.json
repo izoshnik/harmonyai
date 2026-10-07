@@ -1,0 +1,8 @@
+{
+  "osm_relation_id": 1115367,
+  "fetched_at": "2026-10-07T16:38:30+00:00",
+  "source": "https://nominatim.openstreetmap.org (polygon_geojson)",
+  "license": "ODbL 1.0 © OpenStreetMap contributors",
+  "verification_status": "PARTIALLY_VERIFIED",
+  "note": "Сверка с законом СПб о территориальном устройстве не проводилась"
+}

@@ -1,5 +1,4 @@
 import json
-import shutil
 import sys
 import tempfile
 import unittest
@@ -49,7 +48,15 @@ class ImportOsmTests(unittest.TestCase):
             root = Path(d)
             (root / "map.osm").write_text(OSM, encoding="utf-8")
             (root / "b.geojson").write_text(json.dumps(BOUNDARY))
-            shutil.copy(vw.DEFAULT_MANIFEST, root / "WorldManifest.json")
+            # Изолированный манифест: только ручные seed-записи без реальных координат
+            seed = json.loads(vw.DEFAULT_MANIFEST.read_text(encoding="utf-8"))
+            seed["crs"]["engine_origin"] = None
+            seed["objects"] = [
+                {**o, "coordinates": None, "verification_status": "NEEDS_VERIFICATION", "confidence": 0.5,
+                 "verification_needs": o.get("verification_needs") or ["test"]}
+                for o in seed["objects"] if o.get("source") != "OpenStreetMap"
+            ]
+            (root / "WorldManifest.json").write_text(json.dumps(seed, ensure_ascii=False), encoding="utf-8")
             stats = import_osm.run(root / "map.osm", root / "b.geojson", root / "WorldManifest.json", root)
 
             self.assertEqual(stats["buildings"], 1)  # здание вне границы отброшено
