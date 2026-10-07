@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "primorsky-sim/WorldManifest.schema.json",
+  "title": "PrimorskySim WorldManifest",
+  "description": "Реестр всех реальных объектов мира. Объект без записи здесь не может считаться реальным.",
+  "type": "object",
+  "required": ["manifest_version", "world_state_year", "crs", "objects"],
+  "additionalProperties": false,
+  "properties": {
+    "manifest_version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "world_state_year": { "type": "integer", "const": 2026 },
+    "crs": {
+      "type": "object",
+      "required": ["geographic", "engine_projection"],
+      "additionalProperties": false,
+      "properties": {
+        "geographic": { "type": "string", "const": "EPSG:4326" },
+        "engine_projection": { "type": "string", "description": "PROJ-строка локальной поперечной Меркатора; origin фиксируется после получения границы." },
+        "engine_origin": {
+          "type": ["object", "null"],
+          "required": ["lat", "lon"],
+          "properties": { "lat": { "type": "number" }, "lon": { "type": "number" } }
+        }
+      }
+    },
+    "objects": { "type": "array", "items": { "$ref": "#/$defs/WorldObject" } }
+  },
+  "$defs": {
+    "Coordinates": {
+      "type": "object",
+      "required": ["lat", "lon"],
+      "additionalProperties": false,
+      "properties": {
+        "lat": { "type": "number", "minimum": -90, "maximum": 90 },
+        "lon": { "type": "number", "minimum": -180, "maximum": 180 },
+        "alt_m": { "type": ["number", "null"], "description": "Высота над уровнем моря (Балтийская система), если известна." },
+        "kind": { "enum": ["point", "centroid", "entrance", "representative"] }
+      }
+    },
+    "VerificationStatus": { "enum": ["VERIFIED", "PARTIALLY_VERIFIED", "NEEDS_VERIFICATION", "UNKNOWN"] },
+    "WorldObject": {
+      "type": "object",
+      "required": [
+        "object_id", "category", "real_name", "type", "coordinates", "source", "source_url",
+        "verification_status", "confidence", "year", "notes", "importance",
+        "interior_required", "gameplay_required"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "object_id": { "type": "string", "pattern": "^PRM-[A-Z0-9]+(-[A-Z0-9]+)+$" },
+        "category": {
+          "enum": [
+            "boundary", "road", "intersection", "building", "courtyard", "parking",
+            "metro_line", "metro_station", "metro_entrance", "metro_depot", "rolling_stock",
+            "transit_route", "transit_stop", "tram_line",
+            "poi", "landmark", "nature", "water", "bridge", "interchange",
+            "industrial", "infrastructure", "traffic_signal", "traffic_sign", "other"
+          ]
+        },
+        "real_name": { "type": "string", "minLength": 1 },
+        "type": { "type": "string", "minLength": 1, "description": "Подтип. Для зданий — значения из Docs/World.md §Типы зданий." },
+        "coordinates": { "oneOf": [{ "$ref": "#/$defs/Coordinates" }, { "type": "null" }] },
+        "geometry_ref": { "type": ["string", "null"], "description": "Путь к GeoJSON/GPKG внутри WorldReference/ для линейных/полигональных объектов." },
+        "address": { "type": ["string", "null"] },
+        "source": { "type": "string", "minLength": 1 },
+        "source_url": { "type": ["string", "null"] },
+        "source_ids": { "type": "array", "items": { "type": "string" }, "description": "Ссылки на WorldReference/Sources/SourceRegistry.json" },
+        "verification_status": { "$ref": "#/$defs/VerificationStatus" },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "year": { "type": ["integer", "null"], "minimum": 1700, "maximum": 2030, "description": "Год актуальности данных источника." },
+        "last_checked": { "type": ["string", "null"], "format": "date" },
+        "notes": { "type": "string" },
+        "verification_needs": { "type": "array", "items": { "type": "string" }, "description": "Какие именно данные нужны для повышения статуса." },
+        "importance": { "enum": ["critical", "high", "medium", "low"] },
+        "interior_required": { "type": "boolean" },
+        "gameplay_required": { "type": "boolean" },
+        "district_scope": {
+          "enum": ["inside", "adjacent_context", "outside_context", "not_spatial"],
+          "description": "inside — должен лежать в границе района; adjacent/outside — допустимо снаружи (горизонт, транзит)."
+        },
+        "display_name_policy": { "enum": ["real", "fictionalized", "generic", "undecided"] },
+        "related_ids": { "type": "array", "items": { "type": "string" } },
+        "attributes": { "type": "object", "description": "Типоспецифичные поля (этажность, полосы, линия метро и т.п.); их проверяют профильные валидаторы." }
+      }
+    }
+  }
+}

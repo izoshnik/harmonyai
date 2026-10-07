@@ -1,0 +1,381 @@
+{
+  "manifest_version": "0.1.0",
+  "world_state_year": 2026,
+  "crs": {
+    "geographic": "EPSG:4326",
+    "engine_projection": "+proj=tmerc +lat_0={ORIGIN_LAT} +lon_0={ORIGIN_LON} +k=1 +x_0=0 +y_0=0 +ellps=WGS84 +units=m",
+    "engine_origin": null
+  },
+  "objects": [
+    {
+      "object_id": "PRM-BOUNDARY-DISTRICT",
+      "category": "boundary",
+      "real_name": "Приморский район Санкт-Петербурга",
+      "type": "administrative_boundary",
+      "coordinates": null,
+      "geometry_ref": "Boundary/PrimorskyDistrictBoundary.geojson",
+      "address": null,
+      "source": "OSM boundary=administrative (сверка с Законом СПб «О территориальном устройстве Санкт-Петербурга»)",
+      "source_url": null,
+      "source_ids": [
+        "SRC-OSM",
+        "SRC-SPB-LAW-TERRITORY"
+      ],
+      "verification_status": "UNKNOWN",
+      "confidence": 0.0,
+      "year": null,
+      "last_checked": null,
+      "notes": "BLOCKED: в облачной среде нет доступа к Overpass/Geofabrik/Nominatim (403). Граница загружается Tools/WorldPipeline/fetch_osm_boundary.py локально либо из предоставленного файла.",
+      "verification_needs": [
+        "GeoJSON границы из OSM (дата выгрузки 2026)",
+        "Текст/приложение закона о территориальном устройстве для сверки спорных участков (акватория, Лахта, Лисий Нос, Ольгино)"
+      ],
+      "importance": "critical",
+      "interior_required": false,
+      "gameplay_required": true,
+      "district_scope": "not_spatial",
+      "display_name_policy": "real",
+      "related_ids": [],
+      "attributes": {}
+    },
+    {
+      "object_id": "PRM-METRO-LINE-2",
+      "category": "metro_line",
+      "real_name": "Московско-Петроградская линия",
+      "type": "metro_line",
+      "coordinates": null,
+      "geometry_ref": null,
+      "address": null,
+      "source": "Общие сведения; требуется официальная схема метрополитена 2026",
+      "source_url": null,
+      "source_ids": [
+        "SRC-METRO-OFFICIAL"
+      ],
+      "verification_status": "NEEDS_VERIFICATION",
+      "confidence": 0.6,
+      "year": null,
+      "last_checked": null,
+      "notes": "В мир входит участок линии, необходимый для станций района и выхода за границу. station_ids — только станции района в порядке следования, не полный список линии.",
+      "verification_needs": [
+        "Официальная схема 2026",
+        "Геометрия трассы тоннелей (не публикуется — приближение по OSM, помечается как approximated)",
+        "Расположение оборотных тупиков и депо"
+      ],
+      "importance": "critical",
+      "interior_required": true,
+      "gameplay_required": true,
+      "district_scope": "adjacent_context",
+      "display_name_policy": "real",
+      "related_ids": [],
+      "attributes": {
+        "line_number": 2,
+        "station_ids": [
+          "PRM-METRO-STN-CHYORNAYA-RECHKA",
+          "PRM-METRO-STN-PIONERSKAYA"
+        ],
+        "station_list_complete": false
+      }
+    },
+    {
+      "object_id": "PRM-METRO-LINE-3",
+      "category": "metro_line",
+      "real_name": "Невско-Василеостровская линия",
+      "type": "metro_line",
+      "coordinates": null,
+      "geometry_ref": null,
+      "address": null,
+      "source": "Общие сведения; требуется официальная схема метрополитена 2026",
+      "source_url": null,
+      "source_ids": [
+        "SRC-METRO-OFFICIAL"
+      ],
+      "verification_status": "NEEDS_VERIFICATION",
+      "confidence": 0.6,
+      "year": null,
+      "last_checked": null,
+      "notes": "В мир входит участок линии, необходимый для станций района и выхода за границу. station_ids — только станции района в порядке следования, не полный список линии.",
+      "verification_needs": [
+        "Официальная схема 2026",
+        "Геометрия трассы тоннелей (не публикуется — приближение по OSM, помечается как approximated)",
+        "Расположение оборотных тупиков и депо"
+      ],
+      "importance": "critical",
+      "interior_required": true,
+      "gameplay_required": true,
+      "district_scope": "adjacent_context",
+      "display_name_policy": "real",
+      "related_ids": [],
+      "attributes": {
+        "line_number": 3,
+        "station_ids": [
+          "PRM-METRO-STN-BEGOVAYA"
+        ],
+        "station_list_complete": false
+      }
+    },
+    {
+      "object_id": "PRM-METRO-LINE-5",
+      "category": "metro_line",
+      "real_name": "Фрунзенско-Приморская линия",
+      "type": "metro_line",
+      "coordinates": null,
+      "geometry_ref": null,
+      "address": null,
+      "source": "Общие сведения; требуется официальная схема метрополитена 2026",
+      "source_url": null,
+      "source_ids": [
+        "SRC-METRO-OFFICIAL"
+      ],
+      "verification_status": "NEEDS_VERIFICATION",
+      "confidence": 0.6,
+      "year": null,
+      "last_checked": null,
+      "notes": "В мир входит участок линии, необходимый для станций района и выхода за границу. station_ids — только станции района в порядке следования, не полный список линии.",
+      "verification_needs": [
+        "Официальная схема 2026",
+        "Геометрия трассы тоннелей (не публикуется — приближение по OSM, помечается как approximated)",
+        "Расположение оборотных тупиков и депо"
+      ],
+      "importance": "critical",
+      "interior_required": true,
+      "gameplay_required": true,
+      "district_scope": "adjacent_context",
+      "display_name_policy": "real",
+      "related_ids": [],
+      "attributes": {
+        "line_number": 5,
+        "station_ids": [
+          "PRM-METRO-STN-STARAYA-DEREVNYA",
+          "PRM-METRO-STN-KOMENDANTSKY"
+        ],
+        "station_list_complete": false
+      }
+    },
+    {
+      "object_id": "PRM-METRO-STN-PIONERSKAYA",
+      "category": "metro_station",
+      "real_name": "Пионерская",
+      "type": "underground_station",
+      "coordinates": null,
+      "geometry_ref": null,
+      "address": null,
+      "source": "Общие сведения; требуется официальный источник ГУП «Петербургский метрополитен» + OSM",
+      "source_url": null,
+      "source_ids": [
+        "SRC-METRO-OFFICIAL",
+        "SRC-OSM"
+      ],
+      "verification_status": "NEEDS_VERIFICATION",
+      "confidence": 0.5,
+      "year": null,
+      "last_checked": null,
+      "notes": "Принадлежность к линии 2 — общеизвестно; всё остальное требует проверки.",
+      "verification_needs": [
+        "Координаты центра платформы и каждого вестибюля (OSM railway=station/subway_entrance, сверка с официальной схемой)",
+        "Состояние на 2026: открыт/закрыт на ремонт, действующие выходы",
+        "Глубина заложения, тип станции (колонная/пилонная/односводчатая/закрытого типа)",
+        "Фото вестибюля, эскалаторов, платформы (см. Docs/DataRequirements.md)",
+        "Подтверждение, что объект в границе Приморского района"
+      ],
+      "importance": "critical",
+      "interior_required": true,
+      "gameplay_required": true,
+      "district_scope": "inside",
+      "display_name_policy": "real",
+      "related_ids": [
+        "PRM-METRO-LINE-2"
+      ],
+      "attributes": {
+        "line_id": "PRM-METRO-LINE-2"
+      }
+    },
+    {
+      "object_id": "PRM-METRO-STN-CHYORNAYA-RECHKA",
+      "category": "metro_station",
+      "real_name": "Чёрная речка",
+      "type": "underground_station",
+      "coordinates": null,
+      "geometry_ref": null,
+      "address": null,
+      "source": "Общие сведения; требуется официальный источник ГУП «Петербургский метрополитен» + OSM",
+      "source_url": null,
+      "source_ids": [
+        "SRC-METRO-OFFICIAL",
+        "SRC-OSM"
+      ],
+      "verification_status": "NEEDS_VERIFICATION",
+      "confidence": 0.5,
+      "year": null,
+      "last_checked": null,
+      "notes": "Проверить, что станция и все выходы находятся в границе района (участок у границы с Выборгским/Петроградским районами).",
+      "verification_needs": [
+        "Координаты центра платформы и каждого вестибюля (OSM railway=station/subway_entrance, сверка с официальной схемой)",
+        "Состояние на 2026: открыт/закрыт на ремонт, действующие выходы",
+        "Глубина заложения, тип станции (колонная/пилонная/односводчатая/закрытого типа)",
+        "Фото вестибюля, эскалаторов, платформы (см. Docs/DataRequirements.md)",
+        "Подтверждение, что объект в границе Приморского района"
+      ],
+      "importance": "critical",
+      "interior_required": true,
+      "gameplay_required": true,
+      "district_scope": "inside",
+      "display_name_policy": "real",
+      "related_ids": [
+        "PRM-METRO-LINE-2"
+      ],
+      "attributes": {
+        "line_id": "PRM-METRO-LINE-2"
+      }
+    },
+    {
+      "object_id": "PRM-METRO-STN-STARAYA-DEREVNYA",
+      "category": "metro_station",
+      "real_name": "Старая Деревня",
+      "type": "underground_station",
+      "coordinates": null,
+      "geometry_ref": null,
+      "address": null,
+      "source": "Общие сведения; требуется официальный источник ГУП «Петербургский метрополитен» + OSM",
+      "source_url": null,
+      "source_ids": [
+        "SRC-METRO-OFFICIAL",
+        "SRC-OSM"
+      ],
+      "verification_status": "NEEDS_VERIFICATION",
+      "confidence": 0.5,
+      "year": null,
+      "last_checked": null,
+      "notes": "",
+      "verification_needs": [
+        "Координаты центра платформы и каждого вестибюля (OSM railway=station/subway_entrance, сверка с официальной схемой)",
+        "Состояние на 2026: открыт/закрыт на ремонт, действующие выходы",
+        "Глубина заложения, тип станции (колонная/пилонная/односводчатая/закрытого типа)",
+        "Фото вестибюля, эскалаторов, платформы (см. Docs/DataRequirements.md)",
+        "Подтверждение, что объект в границе Приморского района"
+      ],
+      "importance": "critical",
+      "interior_required": true,
+      "gameplay_required": true,
+      "district_scope": "inside",
+      "display_name_policy": "real",
+      "related_ids": [
+        "PRM-METRO-LINE-5"
+      ],
+      "attributes": {
+        "line_id": "PRM-METRO-LINE-5"
+      }
+    },
+    {
+      "object_id": "PRM-METRO-STN-KOMENDANTSKY",
+      "category": "metro_station",
+      "real_name": "Комендантский проспект",
+      "type": "underground_station",
+      "coordinates": null,
+      "geometry_ref": null,
+      "address": null,
+      "source": "Общие сведения; требуется официальный источник ГУП «Петербургский метрополитен» + OSM",
+      "source_url": null,
+      "source_ids": [
+        "SRC-METRO-OFFICIAL",
+        "SRC-OSM"
+      ],
+      "verification_status": "NEEDS_VERIFICATION",
+      "confidence": 0.5,
+      "year": null,
+      "last_checked": null,
+      "notes": "",
+      "verification_needs": [
+        "Координаты центра платформы и каждого вестибюля (OSM railway=station/subway_entrance, сверка с официальной схемой)",
+        "Состояние на 2026: открыт/закрыт на ремонт, действующие выходы",
+        "Глубина заложения, тип станции (колонная/пилонная/односводчатая/закрытого типа)",
+        "Фото вестибюля, эскалаторов, платформы (см. Docs/DataRequirements.md)",
+        "Подтверждение, что объект в границе Приморского района"
+      ],
+      "importance": "critical",
+      "interior_required": true,
+      "gameplay_required": true,
+      "district_scope": "inside",
+      "display_name_policy": "real",
+      "related_ids": [
+        "PRM-METRO-LINE-5"
+      ],
+      "attributes": {
+        "line_id": "PRM-METRO-LINE-5"
+      }
+    },
+    {
+      "object_id": "PRM-METRO-STN-BEGOVAYA",
+      "category": "metro_station",
+      "real_name": "Беговая",
+      "type": "underground_station",
+      "coordinates": null,
+      "geometry_ref": null,
+      "address": null,
+      "source": "Общие сведения; требуется официальный источник ГУП «Петербургский метрополитен» + OSM",
+      "source_url": null,
+      "source_ids": [
+        "SRC-METRO-OFFICIAL",
+        "SRC-OSM"
+      ],
+      "verification_status": "NEEDS_VERIFICATION",
+      "confidence": 0.5,
+      "year": null,
+      "last_checked": null,
+      "notes": "Проверить актуальное состояние продления линии 3 на 2026 и наличие новых станций в районе.",
+      "verification_needs": [
+        "Координаты центра платформы и каждого вестибюля (OSM railway=station/subway_entrance, сверка с официальной схемой)",
+        "Состояние на 2026: открыт/закрыт на ремонт, действующие выходы",
+        "Глубина заложения, тип станции (колонная/пилонная/односводчатая/закрытого типа)",
+        "Фото вестибюля, эскалаторов, платформы (см. Docs/DataRequirements.md)",
+        "Подтверждение, что объект в границе Приморского района"
+      ],
+      "importance": "critical",
+      "interior_required": true,
+      "gameplay_required": true,
+      "district_scope": "inside",
+      "display_name_policy": "real",
+      "related_ids": [
+        "PRM-METRO-LINE-3"
+      ],
+      "attributes": {
+        "line_id": "PRM-METRO-LINE-3"
+      }
+    },
+    {
+      "object_id": "PRM-ROLLINGSTOCK-BALTIETS",
+      "category": "rolling_stock",
+      "real_name": "Балтиец",
+      "type": "metro_emu",
+      "coordinates": null,
+      "geometry_ref": null,
+      "address": null,
+      "source": "Общие сведения; требуются официальные данные метрополитена/производителя и собственные фото",
+      "source_url": null,
+      "source_ids": [
+        "SRC-METRO-OFFICIAL",
+        "SRC-USER-PHOTO"
+      ],
+      "verification_status": "NEEDS_VERIFICATION",
+      "confidence": 0.4,
+      "year": null,
+      "last_checked": null,
+      "notes": "Индексы модификаций, составность (кол-во вагонов) и линии эксплуатации в 2026 намеренно не заполнены до проверки. Брендинг — по display_name_policy.",
+      "verification_needs": [
+        "Индексы серии и модификаций",
+        "На каких линиях эксплуатируется в 2026 и сколько вагонов в составе",
+        "Габариты вагона, кол-во и ширина дверей",
+        "Фото: снаружи (бок/торец), салон, сиденья, поручни, межвагонные переходы, экраны, кабина (если доступна)",
+        "Аудио-референсы: двери, сигнал, разгон/торможение (только как референс, финальный звук записывается/синтезируется заново)"
+      ],
+      "importance": "critical",
+      "interior_required": true,
+      "gameplay_required": true,
+      "district_scope": "not_spatial",
+      "display_name_policy": "undecided",
+      "related_ids": [
+        "PRM-METRO-LINE-2"
+      ],
+      "attributes": {}
+    }
+  ]
+}

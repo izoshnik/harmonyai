@@ -1,0 +1,43 @@
+{
+  "summary": {
+    "generated_at": "2026-10-07T15:12:31+00:00",
+    "object_count": 10,
+    "by_status": {
+      "UNKNOWN": 1,
+      "NEEDS_VERIFICATION": 9
+    },
+    "by_category": {
+      "boundary": 1,
+      "metro_line": 3,
+      "metro_station": 5,
+      "rolling_stock": 1
+    },
+    "errors": 0,
+    "warnings": 2,
+    "checks": {
+      "schema": "PASS",
+      "unique_ids": "PASS",
+      "verification_rules": "PASS",
+      "sources": "PASS",
+      "coordinates_sanity": "PASS",
+      "inside_boundary": "BLOCKED",
+      "references": "WARN",
+      "metro_topology": "PASS"
+    },
+    "world_validated": false
+  },
+  "issues": [
+    {
+      "severity": "WARN",
+      "check": "inside_boundary",
+      "object_id": "PRM-BOUNDARY-DISTRICT",
+      "message": "Граница района не загружена — 0 объект(ов) с координатами не проверены на принадлежность району"
+    },
+    {
+      "severity": "WARN",
+      "check": "references",
+      "object_id": "PRM-BOUNDARY-DISTRICT",
+      "message": "geometry_ref Boundary/PrimorskyDistrictBoundary.geojson отсутствует"
+    }
+  ]
+}
