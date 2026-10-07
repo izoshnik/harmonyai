@@ -90,8 +90,8 @@ func _make_materials() -> void:
 	_mat["roof"] = _ground_mat("Concrete034", 6.0, Color(0.5, 0.5, 0.52), 0.85)
 	_mat["asphalt"] = _ground_mat("Asphalt026C", 5.0, Color(0.85, 0.85, 0.85))
 	_mat["paving"] = _ground_mat("PavingStones130", 2.5, Color(0.9, 0.88, 0.85))
-	_mat["grass"] = _ground_mat("Grass004", 3.0, Color(0.62, 0.66, 0.55))
-	_mat["forest"] = _ground_mat("Ground054", 4.0, Color(0.8, 0.8, 0.75))
+	_mat["grass"] = _ground_mat("Grass004", 3.0, Color(0.62, 0.66, 0.55), 0.85)
+	_mat["forest"] = _ground_mat("Grass004", 2.2, Color(0.36, 0.40, 0.28), 0.9)
 
 	var water := ShaderMaterial.new()
 	water.shader = load("res://shaders/water.gdshader")
@@ -197,6 +197,16 @@ func _build_ground() -> void:
 func _add_polygon(store: Dictionary, pts: PackedVector2Array, mat: String, y: float) -> void:
 	var idx := Geometry2D.triangulate_polygon(pts)
 	if idx.is_empty():
+		return
+	# Защита от самопересекающихся контуров: сумма площадей треугольников должна совпадать с площадью полигона
+	var poly_area := 0.0
+	for i in pts.size():
+		poly_area += pts[i].cross(pts[(i + 1) % pts.size()])
+	poly_area = abs(poly_area) * 0.5
+	var tri_area := 0.0
+	for i in range(0, idx.size(), 3):
+		tri_area += abs((pts[idx[i + 1]] - pts[idx[i]]).cross(pts[idx[i + 2]] - pts[idx[i]])) * 0.5
+	if poly_area <= 0.0 or abs(tri_area - poly_area) > poly_area * 0.02:
 		return
 	var key := _chunk_key(pts[0].x, pts[0].y)
 	var b := _buf(store, key, mat)
