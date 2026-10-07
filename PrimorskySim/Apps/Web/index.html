@@ -1,0 +1,530 @@
+<title>Приморский 2026</title>
+<style>
+/* Layout: полноэкранная 3D-сцена, поверх — тонкие панели приборов по углам, как в навигаторе. Единый тёмный вид. */
+:root {
+  --bg: #0e1116;
+  --panel: rgba(14, 17, 22, 0.78);
+  --line: rgba(160, 180, 205, 0.18);
+  --fg: #e6ebf2;
+  --muted: #8d99aa;
+  --accent: #e2483d;       /* красная «М» петербургского метро */
+  --go: #5ccf8a;
+  --display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --body: "Golos Text", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; background: var(--bg); color: var(--fg); overflow: hidden; font-family: var(--body); }
+#view { position: fixed; inset: 0; touch-action: none; }
+#view canvas { display: block; }
+.panel { position: fixed; z-index: 3; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+#hud { top: calc(env(safe-area-inset-top, 0px) + 12px); left: 12px; padding: 10px 14px; display: grid; gap: 4px; min-width: 0; max-width: min(420px, calc(100vw - 24px)); }
+#place { font-family: var(--display); font-size: 15px; font-weight: 600; letter-spacing: 0.01em; text-wrap: balance; }
+#sub { font-size: 12px; color: var(--muted); display: flex; gap: 12px; flex-wrap: wrap; font-variant-numeric: tabular-nums; }
+#clock { font-family: var(--mono); }
+#metro { font-size: 12px; color: var(--fg); }
+#metro b { color: var(--accent); font-family: var(--display); font-weight: 700; margin-right: 4px; }
+#controls { top: calc(env(safe-area-inset-top, 0px) + 12px); right: 12px; padding: 6px; display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; max-width: 50vw; }
+button { font: 600 12px var(--body); color: var(--fg); background: rgba(255,255,255,0.06); border: 1px solid var(--line); border-radius: 7px; padding: 7px 10px; cursor: pointer; }
+button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+button:focus-visible { outline: 2px solid var(--go); outline-offset: 2px; }
+#map { right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); width: 220px; height: 160px; padding: 0; overflow: hidden; }
+#map.big { width: min(92vw, 900px); height: min(70vh, 620px); }
+#map canvas { width: 100%; height: 100%; display: block; cursor: crosshair; }
+#legend { left: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); padding: 8px 12px; font-size: 11px; color: var(--muted); display: grid; gap: 3px; max-width: calc(100vw - 260px); }
+#legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+#start { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(8,10,14,0.72); z-index: 5; padding-inline: 16px; }
+#start .card { max-width: 520px; display: grid; gap: 14px; text-align: left; }
+#start h1 { font-family: var(--display); font-size: clamp(28px, 6vw, 44px); line-height: 1.05; margin: 0; letter-spacing: -0.01em; }
+#start h1 span { color: var(--accent); }
+#start p { margin: 0; color: var(--muted); line-height: 1.5; font-size: 14px; }
+#start kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; color: var(--fg); }
+#go { font-family: var(--display); font-size: 15px; padding: 12px 18px; background: var(--accent); border: 0; color: #fff; justify-self: start; }
+#status { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+#joy { position: fixed; left: 0; top: 0; width: 50vw; height: 100%; z-index: 1; display: none; }
+#knob { position: fixed; width: 56px; height: 56px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.4); background: rgba(255,255,255,0.08); pointer-events: none; display: none; z-index: 2; transform: translate(-50%,-50%); }
+@media (max-width: 640px) {
+  #hud { right: 12px; max-width: none; }
+  #controls { top: auto; right: auto; left: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); max-width: calc(100vw - 176px); justify-content: flex-start; }
+}
+@media (pointer: coarse) { #joy { display: block; } #legend { display: none; } #map { width: 140px; height: 110px; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;700&family=Golos+Text:wght@400;600&family=JetBrains+Mono:wght@400&display=swap">
+
+<div id="view"></div>
+<div id="joy"></div><div id="knob"></div>
+
+<div id="hud" class="panel" aria-live="polite">
+  <div id="place">Приморский район</div>
+  <div id="sub"><span id="clock">--:--</span><span id="mode">Пешком</span><span id="speed">0 км/ч</span></div>
+  <div id="metro"></div>
+</div>
+
+<div id="controls" class="panel">
+  <button id="bRun" aria-pressed="false">Бег</button>
+  <button id="bFly" aria-pressed="false">Полёт</button>
+  <button id="bTime">Время ×60</button>
+  <button id="bMetro" aria-pressed="true">Метро</button>
+  <button id="bMap">Карта</button>
+</div>
+
+<div id="map" class="panel"><canvas id="mapc"></canvas></div>
+
+<div id="legend" class="panel">
+  <span><i style="background:#c9c3b8"></i>Здание, высота из данных OSM</span>
+  <span><i style="background:#6f7d8f"></i>Здание, этажность не подтверждена (условно 9 м)</span>
+  <span><i style="background:#e2483d"></i>Станции метро · линии — трасса тоннелей по OSM (схематично)</span>
+  <span>© участники OpenStreetMap, данные на 07.10.2026</span>
+</div>
+
+<div id="start">
+  <div class="card">
+    <h1>Приморский <span>2026</span></h1>
+    <p>Реальный Приморский район: 12 968 зданий, улицы, вода и пять станций метро с поездами по расписанию. Данные — OpenStreetMap на 7 октября 2026 года.</p>
+    <p><kbd>W A S D</kbd> идти · мышь — смотреть · <kbd>Shift</kbd> бег · <kbd>F</kbd> полёт (<kbd>E</kbd>/<kbd>Q</kbd> вверх/вниз) · <kbd>M</kbd> карта · клик по карте — переместиться. На телефоне: левая половина экрана — джойстик, правая — обзор.</p>
+    <button id="go" disabled>Загрузка…</button>
+    <div id="status">Загружаю данные района…</div>
+  </div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from "three";
+
+const $ = (id) => document.getElementById(id);
+const status = (t) => { $("status").textContent = t; };
+
+// ------------------------------------------------------------------ сцена
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+$("view").appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0x9fb4c8, 300, 2600);
+const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.3, 6000);
+camera.rotation.order = "YXZ";
+const hemi = new THREE.HemisphereLight(0xdbe8ff, 0x3a3f36, 0.9);
+const sun = new THREE.DirectionalLight(0xfff1dc, 1.6);
+scene.add(hemi, sun, sun.target);
+addEventListener("resize", () => { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); });
+
+// Данные: x — восток, y — север (метры). В three: X = x, Z = -y.
+const V = (x, y, h = 0) => new THREE.Vector3(x, h, -y);
+
+let D;
+try {
+  const res = await fetch("data/district.json");
+  if (!res.ok) throw new Error(res.status);
+  D = await res.json();
+} catch (e) {
+  status("Не удалось загрузить данные района (" + e.message + "). Обновите страницу.");
+  throw e;
+}
+status("Строю город…");
+await new Promise((r) => setTimeout(r, 30));
+
+// ------------------------------------------------------------------ земля и вода
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(60000, 60000), new THREE.MeshLambertMaterial({ color: 0x5d6a52 }));
+ground.rotation.x = -Math.PI / 2; ground.position.y = -0.05; scene.add(ground);
+
+function flatShape(flat) {
+  const s = new THREE.Shape();
+  for (let i = 0; i < flat.length; i += 2) (i ? s.lineTo(flat[i], flat[i + 1]) : s.moveTo(flat[i], flat[i + 1]));
+  return s;
+}
+function addFlat(flats, color, y) {
+  const g = new THREE.ShapeGeometry(flats.map(flatShape));
+  g.rotateX(-Math.PI / 2);
+  const m = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ color, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1 - y * 40, polygonOffsetUnits: -1 - y * 40 }));
+  m.position.y = y; scene.add(m); return m;
+}
+addFlat(D.boundary, 0x6b7560, 0.0);
+addFlat(D.water, 0x3f6f93, 0.04);
+// Граница района — светящаяся линия
+for (const ring of D.boundary) {
+  const pts = []; for (let i = 0; i < ring.length; i += 2) pts.push(V(ring[i], ring[i + 1], 1.5));
+  scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: 0x4aa3ff })));
+}
+
+// ------------------------------------------------------------------ дороги (ленты)
+const ROAD_COLORS = [0x6a6d70, 0x55585c, 0x4b4e52, 0x46494d, 0x3f4246];
+{
+  const pos = [], col = [];
+  const c = new THREE.Color();
+  for (const [flat, width, cls] of D.roads) {
+    c.setHex(ROAD_COLORS[cls]);
+    const y = 0.25 + cls * 0.03, w = width / 2;
+    for (let i = 0; i + 3 < flat.length; i += 2) {
+      const ax = flat[i], ay = flat[i + 1], bx = flat[i + 2], by = flat[i + 3];
+      const dx = bx - ax, dy = by - ay, L = Math.hypot(dx, dy) || 1, nx = -dy / L * w, ny = dx / L * w;
+      const q = [[ax + nx, ay + ny], [ax - nx, ay - ny], [bx - nx, by - ny], [bx + nx, by + ny]];
+      for (const k of [0, 1, 2, 0, 2, 3]) { pos.push(q[k][0], y, -q[k][1]); col.push(c.r, c.g, c.b); }
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
+  g.computeVertexNormals();
+  scene.add(new THREE.Mesh(g, new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 })));
+}
+
+// ------------------------------------------------------------------ здания
+const TYPE_COLORS = [0xc9c3b8, 0xd8cfc0, 0xcdb79e, 0xa9b8c4, 0xd6c28f, 0xdcdcd6, 0x9a948a, 0x8d8a84, 0xe0d2a8, 0xcfa49a];
+const UNKNOWN_H = 9;
+const grid = new Map(); // пространственная сетка 50 м -> индексы зданий (для столкновений)
+const CELL = 50;
+const key = (gx, gy) => gx * 100000 + gy;
+{
+  const pos = [], col = [];
+  const c = new THREE.Color(), roofC = new THREE.Color();
+  D.buildings.forEach(([flat, h, type], bi) => {
+    const n = flat.length / 2;
+    if (n < 3) return;
+    const known = h > 0, H = known ? h : UNKNOWN_H;
+    c.setHex(known ? TYPE_COLORS[type] || TYPE_COLORS[0] : 0x6f7d8f);
+    roofC.copy(c).multiplyScalar(0.78);
+    for (let i = 0; i < n; i++) {
+      const j = (i + 1) % n;
+      const ax = flat[2 * i], ay = flat[2 * i + 1], bx = flat[2 * j], by = flat[2 * j + 1];
+      const shade = 0.82 + 0.18 * Math.abs(Math.cos(Math.atan2(by - ay, bx - ax)));
+      const q = [[ax, 0, ay], [bx, 0, by], [bx, H, by], [ax, H, ay]];
+      for (const k of [0, 1, 2, 0, 2, 3]) { pos.push(q[k][0], q[k][1], -q[k][2]); col.push(c.r * shade, c.g * shade, c.b * shade); }
+    }
+    const contour = []; for (let i = 0; i < n; i++) contour.push(new THREE.Vector2(flat[2 * i], flat[2 * i + 1]));
+    for (const tri of THREE.ShapeUtils.triangulateShape(contour, [])) for (const k of tri) { pos.push(contour[k].x, H, -contour[k].y); col.push(roofC.r, roofC.g, roofC.b); }
+    // в сетку столкновений
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (let i = 0; i < n; i++) { x0 = Math.min(x0, flat[2 * i]); x1 = Math.max(x1, flat[2 * i]); y0 = Math.min(y0, flat[2 * i + 1]); y1 = Math.max(y1, flat[2 * i + 1]); }
+    for (let gx = Math.floor(x0 / CELL); gx <= Math.floor(x1 / CELL); gx++)
+      for (let gy = Math.floor(y0 / CELL); gy <= Math.floor(y1 / CELL); gy++) {
+        const k = key(gx, gy); (grid.get(k) || grid.set(k, []).get(k)).push(bi);
+      }
+  });
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
+  g.computeVertexNormals();
+  scene.add(new THREE.Mesh(g, new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide })));
+}
+function pointInFlat(x, y, f) {
+  let inside = false;
+  for (let i = 0, j = f.length - 2; i < f.length; j = i, i += 2) {
+    const xi = f[i], yi = f[i + 1], xj = f[j], yj = f[j + 1];
+    if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+function buildingAt(x, y) {
+  for (const bi of grid.get(key(Math.floor(x / CELL), Math.floor(y / CELL))) || []) if (pointInFlat(x, y, D.buildings[bi][0])) return bi;
+  return -1;
+}
+
+// ------------------------------------------------------------------ подписи
+function label(text, color = "#ffffff", bg = "rgba(14,17,22,0.8)", scale = 1) {
+  const cv = document.createElement("canvas"), ctx = cv.getContext("2d");
+  ctx.font = "600 40px 'Golos Text', system-ui, sans-serif";
+  const w = Math.ceil(ctx.measureText(text).width) + 48; cv.width = w; cv.height = 64;
+  ctx.font = "600 40px 'Golos Text', system-ui, sans-serif";
+  ctx.fillStyle = bg; ctx.beginPath(); ctx.roundRect(0, 0, w, 64, 14); ctx.fill();
+  ctx.fillStyle = color; ctx.textBaseline = "middle"; ctx.fillText(text, 24, 34);
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), depthTest: false }));
+  s.scale.set(w / 64 * 6 * scale, 6 * scale, 1); s.renderOrder = 10; return s;
+}
+
+// Станции: красный пилон «М» и подпись
+const stationMeshes = [];
+for (const st of D.stations) {
+  const [x, y] = st.p;
+  const pylon = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 14, 16), new THREE.MeshLambertMaterial({ color: 0xe2483d, emissive: 0x401010 }));
+  pylon.position.copy(V(x, y, 7)); scene.add(pylon);
+  const m = label("М  " + st.name, "#ffffff", "rgba(226,72,61,0.92)"); m.position.copy(V(x, y, 20)); scene.add(m);
+  stationMeshes.push(m);
+}
+// Остановки — зелёные столбики
+{
+  const geo = new THREE.CylinderGeometry(0.15, 0.15, 3, 6), mat = new THREE.MeshLambertMaterial({ color: 0x5ccf8a });
+  const inst = new THREE.InstancedMesh(geo, mat, D.stops.length), m4 = new THREE.Matrix4();
+  D.stops.forEach((s, i) => { m4.makeTranslation(s.p[0], 1.5, -s.p[1]); inst.setMatrixAt(i, m4); });
+  scene.add(inst);
+}
+
+// ------------------------------------------------------------------ метро: трасса и поезда (порт SimCore::MetroLineSim)
+const metroGroup = new THREE.Group(); scene.add(metroGroup);
+const TRAIN = { vmax: 22.2, acc: 1.0, dec: 1.0, len: 8 * 19.6, doorOpen: 3, doorClose: 3.5, dwell: 25, turn: 120, gap: 60 };
+const lines = [];
+for (const ln of D.lines) {
+  const pts = []; for (let i = 0; i < ln.track.length; i += 2) pts.push([ln.track[i], ln.track[i + 1]]);
+  const cum = [0]; for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+  const total = cum[cum.length - 1];
+  const at = (s) => { // точка и направление на пикетаже s
+    s = Math.max(0, Math.min(total, s));
+    let lo = 0, hi = cum.length - 1; while (hi - lo > 1) { const mid = (lo + hi) >> 1; (cum[mid] <= s ? lo = mid : hi = mid); }
+    const t = (s - cum[lo]) / ((cum[hi] - cum[lo]) || 1), a = pts[lo], b = pts[hi];
+    return { x: a[0] + (b[0] - a[0]) * t, y: a[1] + (b[1] - a[1]) * t, ang: Math.atan2(b[1] - a[1], b[0] - a[0]) };
+  };
+  // станции линии: проекция точки станции на трассу (в пределах 250 м)
+  const stops = [];
+  for (const st of D.stations) {
+    let best = { d: Infinity, s: 0 };
+    for (let i = 1; i < pts.length; i++) {
+      const [ax, ay] = pts[i - 1], [bx, by] = pts[i], dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy || 1;
+      const t = Math.max(0, Math.min(1, ((st.p[0] - ax) * dx + (st.p[1] - ay) * dy) / L2));
+      const d = Math.hypot(ax + dx * t - st.p[0], ay + dy * t - st.p[1]);
+      if (d < best.d) best = { d, s: cum[i - 1] + t * Math.sqrt(L2) };
+    }
+    if (best.d < 250 && !stops.some((s) => s.name === st.name)) stops.push({ name: st.name, s: best.s });
+  }
+  stops.sort((a, b) => a.s - b.s);
+  if (stops.length < 2 || total < 500) continue;
+  const color = new THREE.Color(ln.colour || "#888");
+  // трасса: две нитки, слегка приподнятые (схематичное «рентгеновское» отображение подземки)
+  for (const side of [-1, 1]) {
+    const linePts = [];
+    for (let s = 0; s <= total; s += 15) { const p = at(s); linePts.push(V(p.x - Math.sin(p.ang) * 2.5 * side, p.y + Math.cos(p.ang) * 2.5 * side, 0.35)); }
+    metroGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(linePts), new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.85 })));
+  }
+  const trains = [];
+  const perDir = Math.max(1, Math.round(total / 3500));
+  for (const dir of [1, -1]) for (let k = 0; k < perDir; k++) {
+    const idx = dir > 0 ? Math.floor(k * stops.length / perDir) : stops.length - 1 - Math.floor(k * stops.length / perDir);
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(TRAIN.len, 3.6, 2.9), new THREE.MeshLambertMaterial({ color, emissive: color.clone().multiplyScalar(0.35), transparent: true, opacity: 0.9 }));
+    metroGroup.add(mesh);
+    trains.push({ dir, s: stops[idx].s, v: 0, target: idx, phase: "open", t: TRAIN.dwell, mesh });
+  }
+  lines.push({ name: ln.name, ref: ln.ref, color: ln.colour, at, total, stops, trains });
+}
+function stepLine(L, dt) {
+  for (const T of L.trains) {
+    if (T.phase === "run") {
+      // ближайший впереди идущий поезд того же направления
+      let limit = T.dir > 0 ? Infinity : -Infinity;
+      for (const O of L.trains) if (O !== T && O.dir === T.dir && O.phase !== "turn") {
+        const tail = O.s - O.dir * TRAIN.len;
+        if (T.dir > 0 && O.s > T.s) limit = Math.min(limit, tail - TRAIN.gap);
+        if (T.dir < 0 && O.s < T.s) limit = Math.max(limit, tail + TRAIN.gap);
+      }
+      const stopAt = L.stops[T.target].s, isStation = T.dir > 0 ? stopAt <= limit : stopAt >= limit;
+      const goal = isStation ? stopAt : limit, dist = Math.max(0, (goal - T.s) * T.dir);
+      if (dist <= T.v * T.v / (2 * TRAIN.dec) + T.v * dt) T.v = Math.max(0, T.v - Math.min(dist > 1e-3 ? T.v * T.v / (2 * dist) : TRAIN.dec * 1.5, TRAIN.dec * 1.5) * dt);
+      else T.v = Math.min(TRAIN.vmax, T.v + TRAIN.acc * dt);
+      T.s += Math.min(T.v * dt, dist) * T.dir;
+      if (isStation && Math.abs(stopAt - T.s) < 0.05 && T.v < 0.3) { T.s = stopAt; T.v = 0; T.phase = "opening"; T.t = TRAIN.doorOpen; }
+    } else {
+      T.t -= dt;
+      if (T.t > 0) continue;
+      if (T.phase === "opening") { T.phase = "open"; T.t = TRAIN.dwell; }
+      else if (T.phase === "open") { T.phase = "closing"; T.t = TRAIN.doorClose; }
+      else if (T.phase === "turn") { T.phase = "opening"; T.t = TRAIN.doorOpen; }
+      else if (T.phase === "closing") {
+        const last = L.stops.length - 1;
+        if ((T.dir > 0 && T.target === last) || (T.dir < 0 && T.target === 0)) { T.dir = -T.dir; T.phase = "turn"; T.t = TRAIN.turn; }
+        else { T.target += T.dir; T.phase = "run"; }
+      }
+    }
+  }
+}
+function placeTrains(L) {
+  for (const T of L.trains) {
+    const c = L.at(T.s - T.dir * TRAIN.len / 2), side = T.dir > 0 ? 1 : -1;
+    T.mesh.position.copy(V(c.x - Math.sin(c.ang) * 2.5 * side, c.y + Math.cos(c.ang) * 2.5 * side, 2.2));
+    T.mesh.rotation.y = c.ang;
+  }
+}
+
+// ------------------------------------------------------------------ игрок
+const player = { x: 0, y: 0, h: 1.7, yaw: 0, pitch: 0, fly: false, run: false, speed: 0 };
+{
+  const st = D.stations.find((s) => s.name === "Комендантский проспект") || D.stations[0];
+  player.x = st.p[0] + 25; player.y = st.p[1] - 25; player.yaw = Math.PI * 0.75;
+}
+const keys = new Set();
+addEventListener("keydown", (e) => {
+  keys.add(e.code);
+  if (e.code === "KeyF") toggleFly();
+  if (e.code === "KeyM") toggleMap();
+  if (e.code === "ShiftLeft") setRun(true);
+});
+addEventListener("keyup", (e) => { keys.delete(e.code); if (e.code === "ShiftLeft") setRun(false); });
+renderer.domElement.addEventListener("click", () => { if (matchMedia("(pointer: fine)").matches) renderer.domElement.requestPointerLock?.()?.catch?.(() => {}); });
+addEventListener("mousemove", (e) => {
+  if (document.pointerLockElement !== renderer.domElement) return;
+  player.yaw -= e.movementX * 0.0022; player.pitch = Math.max(-1.5, Math.min(1.5, player.pitch - e.movementY * 0.0022));
+});
+// Сенсорное управление: левая половина — джойстик, правая — обзор
+const joy = { id: null, ox: 0, oy: 0, x: 0, y: 0 }, look = { id: null, x: 0, y: 0 };
+$("joy").addEventListener("touchstart", (e) => { const t = e.changedTouches[0]; Object.assign(joy, { id: t.identifier, ox: t.clientX, oy: t.clientY, x: 0, y: 0 }); const k = $("knob"); k.style.display = "block"; k.style.left = t.clientX + "px"; k.style.top = t.clientY + "px"; e.preventDefault(); }, { passive: false });
+addEventListener("touchmove", (e) => {
+  for (const t of e.changedTouches) {
+    if (t.identifier === joy.id) { const dx = t.clientX - joy.ox, dy = t.clientY - joy.oy, L = Math.min(60, Math.hypot(dx, dy)) / (Math.hypot(dx, dy) || 1); joy.x = dx * L / 60; joy.y = dy * L / 60; const k = $("knob"); k.style.left = joy.ox + dx * L + "px"; k.style.top = joy.oy + dy * L + "px"; }
+    else if (t.identifier === look.id) { player.yaw -= (t.clientX - look.x) * 0.005; player.pitch = Math.max(-1.5, Math.min(1.5, player.pitch - (t.clientY - look.y) * 0.005)); look.x = t.clientX; look.y = t.clientY; }
+  }
+}, { passive: true });
+renderer.domElement.addEventListener("touchstart", (e) => { const t = e.changedTouches[0]; Object.assign(look, { id: t.identifier, x: t.clientX, y: t.clientY }); }, { passive: true });
+addEventListener("touchend", (e) => { for (const t of e.changedTouches) { if (t.identifier === joy.id) { joy.id = null; joy.x = joy.y = 0; $("knob").style.display = "none"; } if (t.identifier === look.id) look.id = null; } });
+
+function setRun(v) { player.run = v; $("bRun").setAttribute("aria-pressed", v); }
+function toggleFly() { player.fly = !player.fly; if (!player.fly) player.h = 1.7; else player.h = Math.max(player.h, 60); $("bFly").setAttribute("aria-pressed", player.fly); }
+$("bRun").onclick = () => setRun(!player.run);
+$("bFly").onclick = toggleFly;
+$("bMetro").onclick = () => { metroGroup.visible = !metroGroup.visible; $("bMetro").setAttribute("aria-pressed", metroGroup.visible); };
+
+// ------------------------------------------------------------------ время мира (МСК)
+const SCALES = [1, 60, 600];
+let timeScale = 60;
+let worldSec = 12 * 3600; // старт в полдень по Москве; дальше время идёт с выбранной скоростью
+$("bTime").onclick = () => { timeScale = SCALES[(SCALES.indexOf(timeScale) + 1) % SCALES.length]; $("bTime").textContent = "Время ×" + timeScale; };
+const skyDay = new THREE.Color(0x9fc0de), skyNight = new THREE.Color(0x18243a), skyDusk = new THREE.Color(0xd99a6c), sky = new THREE.Color();
+function updateSky() {
+  const hour = (worldSec / 3600) % 24;
+  // Солнце Петербурга в октябре: восход ~7:40, закат ~18:10 — упрощённая дуга
+  const t = (hour - 7.7) / (18.2 - 7.7), elev = Math.sin(Math.PI * Math.max(0, Math.min(1, t)));
+  const day = t > 0 && t < 1 ? Math.min(1, elev * 3) : 0;
+  const az = Math.PI * (0.5 + t);
+  sun.position.set(player.x + Math.cos(az) * 1000, Math.max(50, elev * 900), -player.y - Math.sin(az) * 1000);
+  sun.target.position.set(player.x, 0, -player.y);
+  sun.intensity = 0.25 + 1.45 * day; hemi.intensity = 0.55 + 0.45 * day;
+  const dusk = day > 0 && day < 0.5 ? 1 - day * 2 : 0;
+  sky.copy(skyNight).lerp(skyDay, day).lerp(skyDusk, dusk * 0.5);
+  scene.background = sky; scene.fog.color.copy(sky);
+  const hh = Math.floor(hour), mm = Math.floor((worldSec / 60) % 60);
+  $("clock").textContent = String(hh).padStart(2, "0") + ":" + String(mm).padStart(2, "0") + " МСК";
+}
+
+// ------------------------------------------------------------------ навигация: улица и ближайшая станция
+const roadGrid = new Map();
+D.roads.forEach(([flat, , , name], ri) => {
+  if (!name) return;
+  for (let i = 0; i < flat.length; i += 2) { const k = key(Math.floor(flat[i] / CELL), Math.floor(flat[i + 1] / CELL)); (roadGrid.get(k) || roadGrid.set(k, new Set()).get(k)).add(ri); }
+});
+function nearestStreet(x, y) {
+  let best = { d: 45, name: "" };
+  const gx = Math.floor(x / CELL), gy = Math.floor(y / CELL);
+  for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) for (const ri of roadGrid.get(key(gx + dx, gy + dy)) || []) {
+    const [f, , , name] = D.roads[ri];
+    for (let i = 0; i + 3 < f.length; i += 2) {
+      const ax = f[i], ay = f[i + 1], bx = f[i + 2], by = f[i + 3], ddx = bx - ax, ddy = by - ay, L2 = ddx * ddx + ddy * ddy || 1;
+      const t = Math.max(0, Math.min(1, ((x - ax) * ddx + (y - ay) * ddy) / L2)), d = Math.hypot(ax + ddx * t - x, ay + ddy * t - y);
+      if (d < best.d) best = { d, name };
+    }
+  }
+  return best.name;
+}
+function metroInfo(x, y) {
+  let best = null;
+  for (const st of D.stations) { const d = Math.hypot(st.p[0] - x, st.p[1] - y); if (!best || d < best.d) best = { d, st }; }
+  if (!best) return "";
+  // ближайший поезд, подходящий к этой станции
+  let eta = null;
+  for (const L of lines) {
+    const stop = L.stops.find((s) => s.name === best.st.name); if (!stop) continue;
+    for (const T of L.trains) {
+      if (T.phase === "turn") continue;
+      const ahead = (stop.s - T.s) * T.dir; if (ahead < 0) continue;
+      if (Math.abs(ahead) < 1 && (T.phase === "open" || T.phase === "opening")) { eta = 0; break; }
+      const sec = ahead / 15 + 30 * Math.max(0, Math.round(ahead / 1500));
+      if (eta === null || sec < eta) eta = sec;
+    }
+  }
+  const dist = best.d < 1000 ? Math.round(best.d) + " м" : (best.d / 1000).toFixed(1) + " км";
+  const train = eta === null ? "" : eta === 0 ? " · поезд на платформе" : " · поезд через ~" + Math.max(1, Math.round(eta / 60)) + " мин";
+  return `<b>М</b>${best.st.name} — ${dist}${train}`;
+}
+
+// ------------------------------------------------------------------ мини-карта
+const mapc = $("mapc"), mctx = mapc.getContext("2d");
+let bx0 = Infinity, by0 = Infinity, bx1 = -Infinity, by1 = -Infinity;
+for (const r of D.boundary) for (let i = 0; i < r.length; i += 2) { bx0 = Math.min(bx0, r[i]); bx1 = Math.max(bx1, r[i]); by0 = Math.min(by0, r[i + 1]); by1 = Math.max(by1, r[i + 1]); }
+const mapBase = document.createElement("canvas");
+function drawMapBase() {
+  const W = mapc.clientWidth * devicePixelRatio, H = mapc.clientHeight * devicePixelRatio;
+  mapc.width = mapBase.width = W; mapc.height = mapBase.height = H;
+  const s = Math.min(W / (bx1 - bx0), H / (by1 - by0)) * 0.94, ox = (W - (bx1 - bx0) * s) / 2, oy = (H - (by1 - by0) * s) / 2;
+  mapBase.tf = { s, ox, oy };
+  const c = mapBase.getContext("2d"), P = (x, y) => [ox + (x - bx0) * s, H - oy - (y - by0) * s];
+  c.fillStyle = "#11151b"; c.fillRect(0, 0, W, H);
+  c.fillStyle = "#1d242c"; for (const r of D.boundary) { c.beginPath(); for (let i = 0; i < r.length; i += 2) c.lineTo(...P(r[i], r[i + 1])); c.fill(); }
+  c.fillStyle = "#2b4c66"; for (const r of D.water) { c.beginPath(); for (let i = 0; i < r.length; i += 2) c.lineTo(...P(r[i], r[i + 1])); c.fill(); }
+  c.strokeStyle = "#59616b"; c.lineWidth = Math.max(0.5, devicePixelRatio * 0.6);
+  for (const [f, , cls] of D.roads) { if (cls < 1) continue; c.beginPath(); for (let i = 0; i < f.length; i += 2) c.lineTo(...P(f[i], f[i + 1])); c.stroke(); }
+  for (const L of lines) { c.strokeStyle = L.color; c.lineWidth = 2 * devicePixelRatio; c.beginPath(); for (let s2 = 0; s2 <= L.total; s2 += 50) { const p = L.at(s2); c.lineTo(...P(p.x, p.y)); } c.stroke(); }
+  c.fillStyle = "#e2483d"; for (const st of D.stations) { const [x, y] = P(...st.p); c.beginPath(); c.arc(x, y, 3 * devicePixelRatio, 0, 7); c.fill(); }
+  c.strokeStyle = "#4aa3ff"; c.lineWidth = 1.5 * devicePixelRatio; for (const r of D.boundary) { c.beginPath(); for (let i = 0; i < r.length; i += 2) c.lineTo(...P(r[i], r[i + 1])); c.stroke(); }
+}
+function drawMap() {
+  const { s, ox, oy } = mapBase.tf, H = mapc.height;
+  mctx.drawImage(mapBase, 0, 0);
+  const x = ox + (player.x - bx0) * s, y = H - oy - (player.y - by0) * s;
+  mctx.save(); mctx.translate(x, y); mctx.rotate(-player.yaw);
+  mctx.fillStyle = "#ffffff"; mctx.beginPath(); const r = 6 * devicePixelRatio; mctx.moveTo(0, -r * 1.4); mctx.lineTo(r, r); mctx.lineTo(-r, r); mctx.fill(); mctx.restore();
+}
+function toggleMap() { $("map").classList.toggle("big"); requestAnimationFrame(drawMapBase); }
+$("bMap").onclick = toggleMap;
+mapc.addEventListener("click", (e) => {
+  const rect = mapc.getBoundingClientRect(), { s, ox, oy } = mapBase.tf;
+  const px = (e.clientX - rect.left) * devicePixelRatio, py = (e.clientY - rect.top) * devicePixelRatio;
+  const x = (px - ox) / s + bx0, y = (mapc.height - py - oy) / s + by0;
+  if (buildingAt(x, y) < 0 || player.fly) { player.x = x; player.y = y; }
+});
+addEventListener("resize", drawMapBase);
+drawMapBase();
+
+// ------------------------------------------------------------------ цикл
+let last = performance.now(), simAcc = 0, hudT = 0;
+function frame(now) {
+  const dt = Math.min(0.1, (now - last) / 1000); last = now;
+  worldSec = (worldSec + dt * timeScale) % 86400;
+
+  // движение
+  let fx = 0, fz = 0;
+  if (keys.has("KeyW") || keys.has("ArrowUp")) fz += 1;
+  if (keys.has("KeyS") || keys.has("ArrowDown")) fz -= 1;
+  if (keys.has("KeyA") || keys.has("ArrowLeft")) fx -= 1;
+  if (keys.has("KeyD") || keys.has("ArrowRight")) fx += 1;
+  fx += joy.x; fz -= joy.y;
+  const len = Math.hypot(fx, fz);
+  const spd = player.fly ? (player.run ? 120 : 40) : (player.run ? 6 : 1.5);
+  if (len > 0.05) {
+    const k = Math.min(1, len) * spd * dt / len;
+    const sin = Math.sin(player.yaw), cos = Math.cos(player.yaw);
+    const mx = (fx * cos - fz * sin) * k, my = (fx * sin + fz * cos) * k; // восток, север
+    if (player.fly || buildingAt(player.x + mx, player.y + my) < 0) { player.x += mx; player.y += my; }
+    else if (buildingAt(player.x + mx, player.y) < 0) player.x += mx;
+    else if (buildingAt(player.x, player.y + my) < 0) player.y += my;
+    player.speed = Math.min(1, len) * spd;
+  } else player.speed = 0;
+  if (player.fly) { if (keys.has("KeyE") || keys.has("Space")) player.h += 30 * dt; if (keys.has("KeyQ")) player.h = Math.max(2, player.h - 30 * dt); }
+  const near = player.h > 20 ? 2 : 0.3;
+  if (camera.near !== near) { camera.near = near; camera.updateProjectionMatrix(); }
+  camera.position.set(player.x, player.h, -player.y);
+  camera.rotation.set(player.pitch, player.yaw, 0);
+
+  // метро: фиксированный шаг 0.1 с игрового времени метро (реальное время × 1, чтобы поезда шли с реальной скоростью)
+  simAcc += dt;
+  while (simAcc >= 0.1) { for (const L of lines) stepLine(L, 0.1); simAcc -= 0.1; }
+  for (const L of lines) placeTrains(L);
+
+  hudT -= dt;
+  if (hudT <= 0) {
+    hudT = 0.25;
+    updateSky();
+    const street = nearestStreet(player.x, player.y);
+    $("place").textContent = street || "Приморский район";
+    $("mode").textContent = player.fly ? "Полёт · " + Math.round(player.h) + " м" : player.run ? "Бег" : "Пешком";
+    $("speed").textContent = Math.round(player.speed * 3.6) + " км/ч";
+    $("metro").innerHTML = metroInfo(player.x, player.y);
+    drawMap();
+  }
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+
+status(`Готово: ${D.buildings.length.toLocaleString("ru")} зданий, ${lines.length} линий метро, ${lines.reduce((a, L) => a + L.trains.length, 0)} поездов.`);
+$("go").disabled = false; $("go").textContent = "Войти в район";
+$("go").onclick = () => { $("start").hidden = true; renderer.domElement.click(); };
+updateSky();
+requestAnimationFrame(frame);
+</script>
