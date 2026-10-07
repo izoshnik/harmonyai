@@ -24,6 +24,7 @@ var road_segments_by_cell := {}  # для поиска названия улиц
 var stations: Array = []
 
 var _mat := {}
+var _ranged := {"building": [], "road": [], "detail": [], "tree": [], "lamp": []}
 
 
 func build(d: Dictionary, progress: Callable) -> void:
@@ -82,7 +83,6 @@ func _make_materials() -> void:
 	office.set_shader_parameter("albedo_tex", _tex("Facade006_Color"))
 	office.set_shader_parameter("normal_tex", _tex("Facade006_NormalGL"))
 	office.set_shader_parameter("rough_tex", _tex("Facade006_Roughness"))
-	office.set_shader_parameter("emission_tex", _tex("Facade006_Emission"))
 	office.set_shader_parameter("tile_m", Vector2(20.0, 22.0))
 	office.set_shader_parameter("metallic", 0.3)
 	_mat["office"] = office
@@ -121,10 +121,16 @@ class MeshBuf:
 		n.append(normal); n.append(normal); n.append(normal)
 		c.append(col); c.append(col); c.append(col)
 
-	func to_mesh(mat: Material) -> ArrayMesh:
+	func to_mesh(mat: Material, offset := Vector3.ZERO) -> ArrayMesh:
 		var arr := []
 		arr.resize(Mesh.ARRAY_MAX)
-		arr[Mesh.ARRAY_VERTEX] = v
+		var vv := v
+		if offset != Vector3.ZERO:
+			vv = PackedVector3Array()
+			vv.resize(v.size())
+			for i in v.size():
+				vv[i] = v[i] - offset
+		arr[Mesh.ARRAY_VERTEX] = vv
 		arr[Mesh.ARRAY_NORMAL] = n
 		arr[Mesh.ARRAY_TEX_UV] = uv
 		arr[Mesh.ARRAY_COLOR] = c
@@ -144,24 +150,28 @@ func _buf(store: Dictionary, key: Vector2i, mat: String) -> MeshBuf:
 
 func _emit_chunks(store: Dictionary, collide: Array, cast_shadows := true) -> void:
 	for key in store:
+		# начало координат куска — в его центре: от него считается дальность видимости
+		var origin := Vector3((key.x + 0.5) * CHUNK, 0, -(key.y + 0.5) * CHUNK)
 		var holder := Node3D.new()
 		holder.name = "chunk_%d_%d" % [key.x, key.y]
+		holder.position = origin
 		add_child(holder)
 		for mat_name in store[key]:
 			var b: MeshBuf = store[key][mat_name]
 			if b.v.is_empty():
 				continue
 			var mi := MeshInstance3D.new()
-			mi.mesh = b.to_mesh(_mat[mat_name])
+			mi.mesh = b.to_mesh(_mat[mat_name], origin)
 			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if cast_shadows else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			mi.visibility_range_end = 3500.0
+			_ranged["detail" if mat_name in ["marking", "paving"] else ("road" if mat_name in ["asphalt", "water", "forest"] else "building")].append(mi)
 			holder.add_child(mi)
 			if mat_name in collide:
 				var body := StaticBody3D.new()
 				var shape := CollisionShape3D.new()
 				var conc := ConcavePolygonShape3D.new()
 				conc.backface_collision = true
-				conc.set_faces(b.v)
+				conc.set_faces((mi.mesh as ArrayMesh).surface_get_arrays(0)[Mesh.ARRAY_VERTEX])
 				shape.shape = conc
 				body.add_child(shape)
 				holder.add_child(body)
@@ -187,9 +197,13 @@ func _build_ground() -> void:
 	mi.position.y = -0.02
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(mi)
+	# Jolt ограничивает WorldBoundaryShape3D ~2 км от начала координат — используем плоский бокс на весь район
 	var body := StaticBody3D.new()
 	var shape := CollisionShape3D.new()
-	shape.shape = WorldBoundaryShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(40000, 2, 40000)
+	shape.shape = box
+	shape.position.y = -1.0
 	body.add_child(shape)
 	add_child(body)
 
@@ -372,6 +386,19 @@ func _build_roads() -> void:
 	_emit_chunks(store, [], false)
 
 
+func set_view_distance(vd: float) -> void:
+	for mi in _ranged["building"]:
+		mi.visibility_range_end = vd
+	for mi in _ranged["road"]:
+		mi.visibility_range_end = min(vd, 1600.0)
+	for mi in _ranged["detail"]:
+		mi.visibility_range_end = min(vd * 0.4, 600.0)
+	for mi in _ranged["tree"]:
+		mi.visibility_range_end = min(vd * 0.7, 1400.0)
+	for mi in _ranged["lamp"]:
+		mi.visibility_range_end = min(vd * 0.3, 450.0)
+
+
 func street_at(x: float, y: float) -> String:
 	var best := 40.0
 	var name := ""
@@ -424,6 +451,7 @@ func _build_vegetation() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7
 	var points: Array[Vector2] = []
+	var density: float = Settings.get_v("vegetation")
 	for t in data.get("trees", []):
 		points.append(Vector2(t[0], t[1]))
 	# Насаждения в парках и лесах: реальные контуры зон из OSM, расположение отдельных деревьев — случайное.
@@ -445,7 +473,7 @@ func _build_vegetation() -> void:
 			continue
 		rect = rect.intersection(district)
 		var per := 110.0 if g[0] == "forest" else 350.0
-		var n := mini(int(rect.get_area() / per), 6000)
+		var n := mini(int(rect.get_area() / per * density), 6000)
 		for i in n:
 			var q := Vector2(rng.randf_range(rect.position.x, rect.end.x), rng.randf_range(rect.position.y, rect.end.y))
 			if Geometry2D.is_point_in_polygon(q, pts):
@@ -476,8 +504,9 @@ func _build_vegetation() -> void:
 		var mmi := MultiMeshInstance3D.new()
 		mmi.multimesh = mm
 		mmi.position = origin
-		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
-		mmi.visibility_range_end = 2200.0
+		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mmi.visibility_range_end = 1200.0
+		_ranged["tree"].append(mmi)
 		add_child(mmi)
 
 
@@ -533,6 +562,8 @@ func _instance_parts(parts: Array, transforms: Array, range_end := 900.0) -> voi
 			mmi.multimesh = mm
 			mmi.position = origin
 			mmi.visibility_range_end = range_end
+			mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			_ranged["lamp"].append(mmi)
 			add_child(mmi)
 
 

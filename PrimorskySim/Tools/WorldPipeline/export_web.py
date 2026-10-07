@@ -35,6 +35,10 @@ BTYPE = {"apartments": 1, "residential": 1, "house": 2, "detached": 2, "commerci
          "garages": 7, "garage": 7, "service": 7, "church": 8, "train_station": 9}
 
 
+POI_KINDS = {"supermarket": "food", "convenience": "food", "bakery": "food", "cafe": "cafe", "fast_food": "cafe",
+             "restaurant": "cafe", "pharmacy": "pharmacy", "atm": "atm", "bank": "atm", "fuel": "fuel"}
+
+
 class TM:
     """Порт SimCore::GeoTransform::Forward (Snyder, WGS84, k0=1)."""
     A = 6378137.0
@@ -217,13 +221,16 @@ def main():
         "lamps": [tm(x, y) for x, y in mh.lamps],
         "stations": [{"name": s["name"], "p": tm(s["lon"], s["lat"])} for s in mh.stations if s["name"]],
         "lines": list(lines.values()),
+        "poi": [[*tm(*f["geometry"]["coordinates"]), POI_KINDS[k], f["properties"].get("name") or ""]
+                for f in json.loads((REF / "POI/osm_poi.geojson").read_text(encoding="utf-8"))["features"]
+                for k in [f["properties"].get("shop") or f["properties"].get("amenity")] if k in POI_KINDS],
         "stops": [{"name": f["properties"].get("name") or "", "p": tm(*f["geometry"]["coordinates"])}
                   for f in json.loads((REF / "Transport/osm_stops.geojson").read_text(encoding="utf-8"))["features"]],
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(out, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     print(f"{OUT}: {OUT.stat().st_size / 1e6:.1f} MB, buildings={len(buildings)} (без высоты: {sum(1 for b in buildings if not b[1])}), "
-          f"roads={len(roads)}, water={len(out['water'])}, green={len(out['green'])}, trees={len(out['trees'])}, lamps={len(out['lamps'])}, stations={len(out['stations'])}, lines={[(l['ref'], l['name']) for l in out['lines']]}")
+          f"poi={len(out['poi'])}, roads={len(roads)}, water={len(out['water'])}, green={len(out['green'])}, trees={len(out['trees'])}, lamps={len(out['lamps'])}, stations={len(out['stations'])}, lines={[(l['ref'], l['name']) for l in out['lines']]}")
 
 
 if __name__ == "__main__":
