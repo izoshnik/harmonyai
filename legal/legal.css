@@ -78,3 +78,9 @@ body{
   .legal-wrap{padding:48px 20px 80px;}
   .legal-h1{font-size:30px;}
 }
+.legal-topbar-lang{margin-left:auto;display:flex;}
+.legal-i18n-note{
+  margin:0 0 16px;padding:10px 14px;border-radius:12px;
+  font-size:13px;line-height:1.45;
+  background:var(--bg2);border:1px solid var(--border);
+}
