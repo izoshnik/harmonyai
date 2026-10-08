@@ -92,6 +92,7 @@ setTimeout(function(){
 <script defer src="/js/music-playlists.js"></script>
 <script defer src="/js/hm-memory.js"></script>
 <script defer src="/js/audio-analyzer.js"></script>
+<script defer src="/js/hm-docgen.js"></script>
 <script defer src="/js/thinking-loader.js"></script>
 <link rel="stylesheet" href="/css/hm-think.css">
 <script defer src="/js/hm-think-staff.js"></script>
@@ -3178,6 +3179,12 @@ html body .greeting-wrap[style*="display: none"],html body .greeting-wrap[style*
 .hm-thought{display:inline-flex;align-items:center;gap:6px;margin:8px 0 2px;font-size:12.5px;color:var(--text2);opacity:.8;}
 .hm-thought svg{width:14px;height:14px;}
 .hm-file-building{opacity:.95}
+body.hm-dragging #inputBox{outline:2px dashed var(--accent,#2563eb);outline-offset:4px;}
+body.hm-dragging #chatInner::after{content:'Отпустите файлы, чтобы прикрепить';position:fixed;left:50%;top:40%;transform:translate(-50%,-50%);padding:14px 22px;border-radius:14px;background:rgba(37,99,235,.92);color:#fff;font-weight:600;z-index:50;pointer-events:none;}
+.hm-file-error .file-card-ic{color:#d33}
+.hm-file-error .file-card-sub{white-space:normal}
+@keyframes hmShake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-3px)}40%,80%{transform:translateX(3px)}}
+.send-btn.hm-shake{animation:hmShake .35s ease}
 </style>
 <style id="hm-steps-css">
 /* Журнал шагов в раскрытом «Думал…» */
@@ -3385,7 +3392,7 @@ html body .greeting-wrap[style*="display: none"],html body .greeting-wrap[style*
       <div class="input-box" id="inputBox">
         <textarea id="msgTa" placeholder="Спросить HarmonyAI" rows="1"
           oninput="taResize(this);hmSyncContinue(this)"
-          onkeydown="if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing&&hmEnterSends()){event.preventDefault();sendMsg();}"></textarea>
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing&&hmEnterSends()){event.preventDefault();sendMsg({fromEnter:true});}"></textarea>
         <div class="input-bar-row">
           <div class="bar-left">
             <!-- Кнопка «+»: открывает меню (файл/фото + поиск в интернете) -->
@@ -3395,7 +3402,7 @@ html body .greeting-wrap[style*="display: none"],html body .greeting-wrap[style*
                 <svg class="bar-icon-plus mobile-only" width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></svg>
               </button>
             </div>
-            <input type="file" id="fileInp" accept="image/*,.pdf,.md,.markdown,.txt,.docx,.pptx,.zip,.json,.html,.htm,.css,.js,.jsx,.ts,.tsx,.py,.csv,.xml,.svg,.yml,.yaml,.abc,.musicxml,.sql,.java,.c,.cpp,.cs,.go,.rs,.php,.rb,audio/*,.mp3,.m4a,.aac,.flac,.wav,.ogg" multiple style="display:none" onchange="handleFile(this)" aria-label="Выбрать файл или фотографию">
+            <input type="file" id="fileInp" accept="image/*,.pdf,.md,.markdown,.txt,.docx,.pptx,.xlsx,.xlsm,.zip,.rtf,.tsv,.log,.json,.html,.htm,.css,.js,.jsx,.ts,.tsx,.py,.csv,.xml,.svg,.yml,.yaml,.abc,.musicxml,.sql,.java,.c,.cpp,.cs,.go,.rs,.php,.rb,audio/*,.mp3,.m4a,.aac,.flac,.wav,.ogg" multiple style="display:none" onchange="handleFile(this)" aria-label="Выбрать файл или фотографию">
           </div>
           <div class="bar-right">
             <!-- Training pill (shown instead of model pill while in Обучение) -->
@@ -4013,7 +4020,11 @@ const IMAGE_QUALITY=0.82;
 // документ «без ограничений» — это раздувало токены и замедляло ответ, а при больших файлах
 // переполняло лимит тела запроса. Теперь даём начало текста с пометкой об обрезке, остальное
 // модель при необходимости уточняет у пользователя (см. инструкцию про «ДОКУМЕНТ ОБРЕЗАН»).
-const INLINE_DOC_CHAR_LIMIT=60000;
+const INLINE_DOC_CHAR_LIMIT_PRO=60000;
+// Adan: 30 000 символов ≈ 7 500 токенов — остаётся запас на уточняющие вопросы
+// в рамках бесплатного окна (20 000 токенов за 5 часов).
+const INLINE_DOC_CHAR_LIMIT_FREE=30000;
+function inlineDocCharLimit(){return curModel==='pro'?INLINE_DOC_CHAR_LIMIT_PRO:INLINE_DOC_CHAR_LIMIT_FREE;}
 /* ===== НИК ПОЛЬЗОВАТЕЛЯ: валидация, проверка занятости, сохранение в БД =====
    Разрешаем латиницу, кириллицу, французские/испанские акценты (À-ÿ),
    цифры, пробел, точку, дефис и подчёркивание — ник не ограничен английскими
@@ -4137,6 +4148,14 @@ function recordUsage(promptText,replyText){
 // Возвращает {blocked, scope, reason} — можно ли отправлять сообщение.
 function checkLimit(){
   if(hasTrainingAccess())return {blocked:false}; // разработчики/админы без ограничений
+  // Сервер уже ответил «лимит» — до сброса окна не отправляем запросы зря.
+  try{
+    const sbk=readUsage().serverBlock;
+    if(sbk&&sbk.until>Date.now()&&(sbk.model==='pro')===(curModel==='pro')){
+      const map={burst:'burst',day:'burst',window_limit:'window',day_limit:'window',week_limit:'month',month_limit:'month'};
+      return {blocked:true,scope:map[sbk.scope]||'window',resetAt:sbk.resetAt||new Date(sbk.until).toISOString()};
+    }
+  }catch(e){}
   if(curModel==='pro'){
     const u=getUsage();
     const recent=u.burst.filter(t=>Date.now()-t<LIMITS.dynatos.burst.windowMs);
@@ -5083,7 +5102,14 @@ async function loadProfile(uid,email){
     const nickname=localNick||remoteNick||email.split('@')[0];
     if(curUser?.id!==uid)return;
     curUser={id:uid,email,nickname,role:String(data?.role||'user').trim().toLowerCase(),plan:data?.plan,plan_expires_at:data?.plan_expires_at,created_at:data?.created_at||null,settings:data?.settings||{},needsNickname:!remoteNick,profileReady:true};
-    if(!isProUser()){curModel='lite';if(['max','extra'].includes(curMode))curMode='low';thinkOn=false;}
+    if(!isProUser()){curModel='lite';if(['max','extra'].includes(curMode))curMode='low';}
+    else{
+      // Выбор модели переживает перезагрузку. Раньше curModel всегда начинался с 'lite',
+      // и Pro-пользователь после F5 молча оказывался на Adan с его бесплатными лимитами.
+      let saved='';try{saved=localStorage.getItem(MODEL_KEY)||'';}catch(e){}
+      curModel=saved==='lite'?'lite':'pro';
+    }
+    try{refreshModelUI();}catch(e){}
   }catch(e){
     throw e;
   }
@@ -5149,7 +5175,7 @@ function mHint(btn){
 function greetingTitleText(){
   const name=curUser?.nickname;
   // Телефон: одно спокойное приветствие по макету — «Чем займёмся, имя?».
-  try{if(name&&window.matchMedia('(max-width:768px)').matches)return 'Чем займёмся, '+escapeHtml(name)+'?';}catch(e){}
+  try{if(name&&window.matchMedia('(max-width:768px)').matches){let tpl='Чем займёмся, {name}?';if(window.i18n&&window.i18n.get&&window.i18n.get()!=='ru'&&window.i18n.t)tpl=window.i18n.t(tpl)||tpl;return tpl.replace('{name}',escapeHtml(name));}}catch(e){}
   if(!name)return 'Привет! Я Harmony Ai';
   const pool=HM_GREETINGS[greetingPeriod()]||HM_GREETINGS.day;
   let phrase=pool[Math.floor(Math.random()*pool.length)];
@@ -5395,8 +5421,15 @@ function buildPendingDocContext(query){
 }
 function buildRecentAttachmentContext(query){
   if(!recentAttachmentDocs.length)return '';
+  // Документы, приложенные к ТЕКУЩЕМУ сообщению, уже лежат в нём целиком — второй раз
+  // их не добавляем. Раньше файл уходил дважды (в сообщении и здесь), и у Free-тарифа
+  // первый же вопрос по документу съедал весь лимит окна.
+  const lastUser=[...chatHistory].reverse().find(m=>m.role==='user');
+  const inlineIds=new Set((lastUser?.attachments||[]).filter(a=>a.kind==='document').map(a=>a.doc?.id||a.name));
+  const docs=recentAttachmentDocs.filter(d=>!inlineIds.has(d.id)&&!inlineIds.has(d.name));
+  if(!docs.length)return '';
   // Ищем контент конкретно по теме запроса — дополняет inline-контент для follow-up вопросов
-  const selected=topChunksFromDocs(query,recentAttachmentDocs,12,60000,true);
+  const selected=topChunksFromDocs(query,docs,12,curModel==='pro'?60000:12000,true);
   if(!selected.length)return '';
   return '\nФОКУСНЫЙ КОНТЕКСТ ИЗ ФАЙЛОВ (по теме запроса):\n'+selected.map(item=>`[${item.name}]\n${item.chunk}`).join('\n\n');
 }
@@ -5530,6 +5563,8 @@ function renderComposerAttachments(){
   if(!host)return;
   host.innerHTML='';
   host.classList.toggle('has-items',pendingAttachments.length>0);
+  // Мобильный композер прячет «Отправить» при пустом поле; с вложениями кнопка нужна всегда.
+  document.getElementById('inputBox')?.classList.toggle('has-attachments',pendingAttachments.length>0);
   pendingAttachments.forEach((item,index)=>{
     const card=document.createElement('div');
     card.className='composer-attachment '+(item.kind==='image'?'image':'document');
@@ -5574,8 +5609,18 @@ async function parseDocxFile(file){
   const result=await mammothLib.extractRawText({arrayBuffer:arr});
   return result.value||'';
 }
+/* Текст: сначала строгий UTF-8, при ошибке — Windows-1251 (частый случай для
+   русских .txt из Блокнота/старого Word). Раньше такие файлы приходили «кракозябрами». */
+async function hmDecodeText(file){
+  const buf=await file.arrayBuffer();
+  const bytes=new Uint8Array(buf);
+  if(bytes[0]===0xFF&&bytes[1]===0xFE)return new TextDecoder('utf-16le').decode(bytes);
+  if(bytes[0]===0xFE&&bytes[1]===0xFF)return new TextDecoder('utf-16be').decode(bytes);
+  try{return new TextDecoder('utf-8',{fatal:true}).decode(bytes).replace(/^\uFEFF/,'');}
+  catch(e){try{return new TextDecoder('windows-1251').decode(bytes);}catch(_){return new TextDecoder('utf-8').decode(bytes);}}
+}
 async function parseTextFile(file){
-  return await file.text();
+  return await hmDecodeText(file);
 }
 // Сжимает изображение через canvas: длинная сторона <= MAX_IMAGE_DIM, JPEG качества IMAGE_QUALITY.
 // Возвращает data URL (image/jpeg) гораздо меньшего размера, чем оригинал.
@@ -5606,7 +5651,14 @@ async function compressImageFile(file){
     const out=canvas.toDataURL('image/jpeg',IMAGE_QUALITY);
     return {dataUrl:out,mime:'image/jpeg'};
   }catch(e){
-    // Если canvas по какой-то причине не сработал — отдаём оригинал (лучше медленно, чем никак).
+    // Картинка не декодируется — это битый файл или формат, который браузер не умеет
+    // (HEIC на компьютере). Раньше такой файл уходил модели как есть и ломал ответ.
+    if(e&&/декодировать/.test(e.message||'')){
+      throw new Error(/hei[cf]/i.test((file.type||'')+(file.name||''))
+        ?'формат HEIC не открывается в этом браузере — сохраните фото как JPG или PNG'
+        :'изображение повреждено или формат не поддерживается');
+    }
+    // canvas не сработал по другой причине — отдаём оригинал (лучше медленно, чем никак).
     return {dataUrl,mime:file.type||'image/jpeg'};
   }
 }
@@ -5619,6 +5671,9 @@ async function parseGenericFile(file){
   if(HM_TEXT_EXT.test(name))return {kind:'document',text:await hmReadCodeFile(file)};
   if(name.endsWith('.pptx'))return {kind:'document',text:await hmParsePptx(file)};
   if(name.endsWith('.zip'))return {kind:'document',text:await hmParseZip(file)};
+  if(name.endsWith('.xlsx')||name.endsWith('.xlsm'))return {kind:'document',text:await hmParseXlsx(file)};
+  if(/\.(doc|xls|ppt)$/.test(name))throw new Error('старый формат .'+name.split('.').pop()+' не читается — сохраните файл как .'+name.split('.').pop()+'x и прикрепите снова');
+  if(/\.(heic|heif)$/.test(name))throw new Error('формат HEIC не открывается в этом браузере — сохраните фото как JPG или PNG');
   throw new Error('Этот формат пока не читается. Подходят: фото, PDF, DOCX, PPTX, ZIP, TXT, MD, JSON, HTML, CSS, JS и другие текстовые файлы');
 }
 /* ===== Чтение кода, PPTX и ZIP прямо в браузере =====
@@ -5626,7 +5681,7 @@ async function parseGenericFile(file){
    (встроен в браузер) — без внешних библиотек. */
 const HM_TEXT_EXT=/\.(json|html?|css|js|mjs|cjs|jsx|ts|tsx|py|csv|tsv|xml|svg|ya?ml|toml|ini|log|sh|bat|sql|java|kt|c|cc|cpp|h|hpp|cs|go|rs|php|rb|swift|abc|musicxml|lrc|srt|vtt|rtf|tex)$/i;
 async function hmReadCodeFile(file){
-  const t=await file.text();
+  const t=await hmDecodeText(file);
   const ext=(file.name.split('.').pop()||'').toLowerCase();
   // Код оборачиваем в блок, чтобы ИИ видел границы и язык файла.
   return /^(md|txt|csv|log|srt|vtt|lrc)$/.test(ext)?t:('Файл '+file.name+':\n```'+ext+'\n'+t+'\n```');
@@ -5669,6 +5724,36 @@ async function hmParsePptx(file){
   const txt=x=>(x.match(/<a:t>([^<]*)<\/a:t>/g)||[]).map(t=>t.replace(/<\/?a:t>/g,'')).join(' ').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').trim();
   if(!slides.length)throw new Error('в презентации не найден текст');
   return 'Презентация '+file.name+' ('+slides.length+' слайд.):\n\n'+slides.map((s,i)=>{const n=num(s.name);const nt=notes[n]?txt(notes[n]):'';return '— Слайд '+(i+1)+': '+(txt(s.text)||'(без текста)')+(nt?'\n  Заметки: '+nt:'');}).join('\n');
+}
+/* XLSX: общие строки + листы → таблица текстом (как CSV, по листам). */
+async function hmParseXlsx(file){
+  const entries=await hmUnzip(file,{wantText:n=>/^xl\/(sharedStrings|workbook)\.xml$|^xl\/worksheets\/sheet\d+\.xml$/.test(n)});
+  const get=n=>(entries.find(e=>e.name===n)||{}).text||'';
+  const unx=x=>String(x).replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&amp;/g,'&');
+  const shared=[];
+  (get('xl/sharedStrings.xml').match(/<si>[\s\S]*?<\/si>/g)||[]).forEach(si=>{shared.push(unx((si.match(/<t[^>]*>([\s\S]*?)<\/t>/g)||[]).map(t=>t.replace(/<[^>]+>/g,'')).join('')));});
+  const sheetNames=(get('xl/workbook.xml').match(/<sheet [^>]*name="([^"]*)"/g)||[]).map(x=>unx(/name="([^"]*)"/.exec(x)[1]));
+  const sheets=entries.filter(e=>/^xl\/worksheets\/sheet\d+\.xml$/.test(e.name)&&e.text).sort((a,b)=>+a.name.match(/(\d+)\.xml/)[1]-+b.name.match(/(\d+)\.xml/)[1]);
+  if(!sheets.length)throw new Error('в таблице не найдены листы');
+  const colIdx=ref=>{const m=/^([A-Z]+)/.exec(ref||'');if(!m)return 0;let n=0;for(const ch of m[1])n=n*26+(ch.charCodeAt(0)-64);return n-1;};
+  let out='Таблица '+file.name+':';let budget=150000;
+  sheets.forEach((sh,si)=>{
+    if(budget<=0)return;
+    const rows=[];
+    (sh.text.match(/<row[\s\S]*?<\/row>/g)||[]).forEach(r=>{
+      const cells=[];
+      (r.match(/<c [^>]*?(?:\/>|>[\s\S]*?<\/c>)/g)||[]).forEach(c=>{
+        const ref=(/ r="([A-Z]+\d+)"/.exec(c)||[])[1];const t=(/ t="(\w+)"/.exec(c)||[])[1];
+        let v=(/<v>([\s\S]*?)<\/v>/.exec(c)||[])[1];
+        if(t==='s')v=shared[+v]??'';else if(t==='inlineStr')v=((c.match(/<t[^>]*>([\s\S]*?)<\/t>/)||[])[1]||'');
+        cells[colIdx(ref)]=unx(v==null?'':v);
+      });
+      if(cells.some(x=>x!==undefined&&x!==''))rows.push(Array.from(cells,x=>x==null?'':String(x).replace(/[\t\n]+/g,' ')).join('\t'));
+    });
+    const block='\n\n=== Лист «'+(sheetNames[si]||('Лист '+(si+1)))+'» ('+rows.length+' строк) ===\n'+rows.join('\n');
+    out+=block.slice(0,budget);budget-=block.length;
+  });
+  return out;
 }
 async function hmParseZip(file){
   let budget=180000;
@@ -6356,11 +6441,15 @@ function exitTraining(){
 }
 function newChat(){
   trainingMode=false;
+  try{hmSetContinueMode(false);}catch(e){}
+  try{window.HmBench&&HmBench.close&&HmBench.close();}catch(e){}
   exitSharedView();
+  const hadChat=Boolean(curChatId);
   curChatId=null;chatHistory=[];
   recentAttachmentDocs=[];
-  // Адрес возвращаем к /chat: /chat/<id> прошлого чата в строке остаться не должен.
-  setChatRoute(null,false);
+  // Адрес возвращаем к /chat. Из открытого чата — НОВОЙ записью истории (push):
+  // раньше replaceState затирал /chat/<id>, и «Назад» не возвращал в прошлый чат.
+  setChatRoute(null,hadChat&&!routeNavigating);
   const inner=document.getElementById('chatInner');
   inner.innerHTML=`<div class="greeting-wrap" id="greetingWrap">
     <div class="greeting-mark mobile-only" aria-hidden="true"><svg width="22" height="26" viewBox="0 0 22 26" fill="none"><ellipse cx="5.5" cy="21" rx="5" ry="3.6" fill="currentColor"/><path d="M10 21V2.5C10 2.5 10 1.5 11.2 1.5C15 1.5 16.5 5.5 16.5 8.5C16.5 9.5 16 10 15.5 9.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div>
@@ -6424,8 +6513,9 @@ async function saveChat(title){
     if(!error){
       chats.unshift({id:curChatId,title:t});renderChatList();
       // Адрес становится постоянной ссылкой на этот чат — но только после того,
-      // как запись действительно создана в базе.
-      setChatRoute(curChatId,true);
+      // как запись действительно создана в базе. Запись /chat заменяем (а не
+      // добавляем новую), чтобы «Назад» вёл в предыдущий чат, а не на пустой экран.
+      setChatRoute(curChatId,false);
     }else{
       // Вставка не удалась — не оставляем призрачный ID в переменной, иначе
       // следующий save попытался бы обновить несуществующую строку.
@@ -6494,6 +6584,7 @@ function backToMobileModelScreen(){
   document.getElementById('mmScreenMode')?.classList.remove('active');
   document.getElementById('mmScreenModel')?.classList.add('active');
 }
+const MODEL_KEY='hm_model_v1';
 function selectModel(m){
   // Dynatos — платная модель: без Pro сразу открываем окно подписки.
   if(m==='pro'&&!isProUser()){
@@ -6501,6 +6592,7 @@ function selectModel(m){
     return;
   }
   curModel=m;
+  try{localStorage.setItem(MODEL_KEY,m==='pro'?'pro':'lite');}catch(e){}
   refreshModelUI();
   closeModelMenus();
 }
@@ -6553,7 +6645,8 @@ function fitDesktopSubs(){
 }
 function selectMode(m){
   const next=normEffort(m);
-  if(['max','extra'].includes(next)&&!isProUser())return;
+  // High/Extra — только в Pro: вместо молчаливого игнора показываем, как их получить.
+  if(['max','extra'].includes(next)&&!isProUser()){if(typeof goToDynatos==='function')goToDynatos();return;}
   curMode=next;
   try{localStorage.setItem(EFFORT_KEY,curMode);}catch(e){}
   refreshModelUI();
@@ -6565,7 +6658,6 @@ function toggleThink(e){
   if(e&&e.stopPropagation)e.stopPropagation();
   /* Режим «Думать» доступен всем тарифам: сервер (api/chat.js) никогда его не
      ограничивал, а клиентский Pro-гейт молча уводил User на /subscribe. */
-  if(!isProUser())return;
   thinkOn=!thinkOn;
   refreshModelUI();
 }
@@ -7023,88 +7115,145 @@ function buildSystem(){
 /* Инструкция по генерации файлов (md/txt/pdf/docx). ИИ кладёт директиву отдельным
    блоком, клиент её распознаёт, генерирует файл на сервере и показывает кнопку скачивания. */
 const FILE_GEN_SYSTEM=`
-СОЗДАНИЕ ФАЙЛОВ: если пользователь явно просит сделать/скачать файл (например «сделай pdf», «сохрани в docx», «оформи в файл», «скачать txt/markdown»), сформируй содержимое и в САМОМ КОНЦЕ ответа добавь ровно один блок такого вида:
+СОЗДАНИЕ ФАЙЛОВ: если пользователь явно просит сделать/скачать файл или презентацию (например «сделай pdf», «сохрани в docx», «сделай презентацию», «оформи в файл», «скачать txt/markdown»), сформируй содержимое и в САМОМ КОНЦЕ ответа добавь ровно один блок такого вида:
 \`\`\`harmony-file
-{"format":"pdf","filename":"Короткое имя без расширения","content":"Полный текст файла в Markdown"}
+{"format":"pdf","filename":"Короткое имя без расширения","title":"Заголовок документа","content":"Полный текст файла в Markdown"}
 \`\`\`
 Правила:
-- format только один из: md, txt, pdf, docx.
-- content — это ТО, что должно попасть в файл (Markdown допустим). Не более 20000 символов.
-- Если материал явно превышает ~20000 символов, НЕ создавай файл: вежливо объясни, что на бесплатном тарифе файл слишком большой, и предложи сократить объём или разбить на части.
-- Перед блоком дай ТОЛЬКО короткий ответ (1–2 предложения), что файл готов. НЕ пиши содержимое файла текстом в ответе и не дублируй его — весь текст документа кладётся только в поле content. Сам JSON пользователю не виден — интерфейс покажет карточку со скачиванием.
+- format только один из: md, txt, pdf, docx, pptx (pptx — презентация PowerPoint).
+- Блок — строго валидный JSON в одну строку: переводы строк внутри content пиши как \\n, кавычки — как \\".
+- content — это ТО, что должно попасть в файл, в Markdown: # и ## заголовки, **жирный**, списки, таблицы | a | b |, картинки ![подпись](https://адрес). Не более 20000 символов.
+- Для pptx каждый слайд начинается с заголовка «## Название слайда», под ним 3–6 коротких пунктов списка. Картинку на слайд добавляй строкой ![подпись](адрес).
+- Картинки вставляй ТОЛЬКО по реальным адресам: адреса изображений, сгенерированных в этом чате, указаны в истории в пометке «Адрес картинки для вставки…». Адреса не выдумывай.
+- Если материал явно превышает ~20000 символов, НЕ создавай файл: вежливо объясни, что файл слишком большой, и предложи сократить объём или разбить на части.
+- Перед блоком дай ТОЛЬКО короткий ответ (1–2 предложения), что файл готов. НЕ пиши содержимое файла текстом в ответе и не дублируй его. Сам JSON пользователю не виден — интерфейс покажет карточку со скачиванием.
 - Не создавай файл, если пользователь об этом не просил.`;
 
-const FILE_DIR_RE=/```harmony-file\s*([\s\S]*?)```/i;
-const FILE_FMT_META={md:{label:'Markdown',ext:'md'},txt:{label:'Текст',ext:'txt'},pdf:{label:'PDF',ext:'pdf'},docx:{label:'Word',ext:'docx'}};
-// Ищем в ответе директиву harmony-file, убираем её из текста/истории и рендерим кнопку скачивания.
-async function maybeHandleFileDirective(fullText,msgEl,historyIdx){
-  const m=FILE_DIR_RE.exec(fullText||'');
-  if(!m)return;
-  let spec=null;
-  try{spec=JSON.parse(m[1].trim());}catch(e){return;}
-  if(!spec||!spec.format||!spec.content)return;
-  const fmt=String(spec.format).toLowerCase();
-  if(!FILE_FMT_META[fmt])return;
-  // Текст без служебного блока — обновляем и бабл, и историю.
-  const cleaned=String(fullText).replace(FILE_DIR_RE,'').trim();
-  if(msgEl){renderMd(msgEl,cleaned);if(!msgEl.classList.contains('is-streaming'))enableCodeCopy(msgEl);}
-  if(typeof historyIdx==='number'&&chatHistory[historyIdx]){
-    chatHistory[historyIdx].content=cleaned;
-    chatHistory[historyIdx].generatedFile={format:fmt,filename:String(spec.filename||'document').slice(0,80),content:String(spec.content||'').slice(0,20000)};
+const FILE_DIR_RE=/```\s*harmony-file\s*([\s\S]*?)```/i;
+const FILE_FMT_META={
+  md:{label:'Markdown',ext:'md',mime:'text/markdown;charset=utf-8',text:true},
+  txt:{label:'Текст',ext:'txt',mime:'text/plain;charset=utf-8',text:true},
+  html:{label:'HTML',ext:'html',mime:'text/html;charset=utf-8',text:true},
+  csv:{label:'CSV',ext:'csv',mime:'text/csv;charset=utf-8',text:true},
+  json:{label:'JSON',ext:'json',mime:'application/json;charset=utf-8',text:true},
+  pdf:{label:'PDF',ext:'pdf'},
+  docx:{label:'Word',ext:'docx'},
+  pptx:{label:'PowerPoint',ext:'pptx'}
+};
+const FILE_FMT_ALIAS={markdown:'md',text:'txt',plain:'txt',word:'docx',doc:'docx',ppt:'pptx',powerpoint:'pptx',presentation:'pptx',slides:'pptx',htm:'html'};
+function normFileFmt(f){const x=String(f||'').toLowerCase().trim().replace(/^\./,'');return FILE_FMT_META[x]?x:(FILE_FMT_ALIAS[x]||'');}
+/* Модели часто ломают JSON директивы: настоящие переводы строк и неэкранированные
+   кавычки внутри content. Раньше JSON.parse падал и карточка «Собираю файл…»
+   висела вечно. Теперь: строгий разбор → починка переводов строк → извлечение
+   полей регуляркой (content — всё между "content":" и последней кавычкой). */
+function parseFileSpec(raw){
+  const src=String(raw||'').trim();
+  try{return JSON.parse(src);}catch(e){}
+  let fixed='',inStr=false,esc=false;
+  for(const ch of src){
+    if(inStr){
+      if(esc){esc=false;fixed+=ch;continue;}
+      if(ch==='\\'){esc=true;fixed+=ch;continue;}
+      if(ch==='"'){inStr=false;fixed+=ch;continue;}
+      if(ch==='\n'){fixed+='\\n';continue;}
+      if(ch==='\r')continue;
+      if(ch==='\t'){fixed+='\\t';continue;}
+      fixed+=ch;
+    }else{if(ch==='"')inStr=true;fixed+=ch;}
   }
-  // Кнопка скачивания под баблом.
+  try{return JSON.parse(fixed);}catch(e){}
+  const field=k=>{const m=new RegExp('"'+k+'"\\s*:\\s*"([^"\\n]*)"').exec(src);return m?m[1]:'';};
+  const cm=/"content"\s*:\s*"([\s\S]*)"\s*\}\s*$/.exec(src);
+  if(!cm)return null;
+  const unesc=cm[1].replace(/\\n/g,'\n').replace(/\\t/g,'\t').replace(/\\"/g,'"').replace(/\\\\/g,'\\');
+  return {format:field('format'),filename:field('filename'),title:field('title'),content:unesc};
+}
+function buildFileErrorCard(message){
+  const card=document.createElement('div');
+  card.className='file-card hm-file-error';
+  card.innerHTML='<div class="file-card-ic" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.5v5.5M12 16.2v.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>'
+    +'<div class="file-card-info"><div class="file-card-name">Файл не получилось собрать</div><div class="file-card-sub"></div></div>';
+  card.querySelector('.file-card-sub').textContent=message||'Попробуйте попросить ещё раз.';
+  return card;
+}
+/* Заменяет «Собираю файл…» на ошибку: стоп во время генерации, обрыв, кривой блок. */
+function hmFailBuildingCards(root,message){
+  (root||document).querySelectorAll('.hm-file-building').forEach(ph=>ph.replaceWith(buildFileErrorCard(message)));
+}
+// Ищем в ответе директиву harmony-file, убираем её из текста/истории и рендерим кнопку скачивания.
+async function maybeHandleFileDirective(fullText,msgEl,historyIdx,hist){
+  hist=hist||chatHistory;
+  const raw=String(fullText||'');
+  const hasDirective=/```\s*harmony-file/i.test(raw);
+  if(!hasDirective)return;
+  const m=FILE_DIR_RE.exec(raw);
+  const spec=m?parseFileSpec(m[1]):null;
+  const fmt=spec?normFileFmt(spec.format||'md'):'';
+  // Текст без служебного блока (и без незакрытого блока, если ответ оборвался).
+  const cleaned=(m?raw.replace(FILE_DIR_RE,''):raw.slice(0,raw.search(/```\s*harmony-file/i))).trim();
+  if(msgEl){renderMd(msgEl,cleaned);if(!msgEl.classList.contains('is-streaming'))enableCodeCopy(msgEl);}
+  const ok=Boolean(spec&&fmt&&String(spec.content||'').trim());
+  if(typeof historyIdx==='number'&&hist[historyIdx]){
+    hist[historyIdx].content=cleaned;
+    if(ok)hist[historyIdx].generatedFile={format:fmt,filename:String(spec.filename||'document').slice(0,80),title:String(spec.title||'').slice(0,200),content:String(spec.content||'').slice(0,20000)};
+  }
   if(msgEl){
-    const card=buildFileCard(spec,fmt);
-    msgEl.appendChild(card);
+    if(ok){
+      msgEl.appendChild(buildFileCard(Object.assign({},spec,{format:fmt}),fmt));
+    }else{
+      const why=!m?'Ответ оборвался, пока файл собирался. Попросите сделать файл ещё раз.'
+        :(!spec?'ИИ прислал повреждённые данные файла. Попросите сделать файл ещё раз.'
+        :(!fmt?('Формат «'+String(spec.format||'').slice(0,20)+'» не поддерживается. Доступны: PDF, DOCX, PPTX, MD, TXT.')
+        :'Файл получился пустым. Попросите сделать его ещё раз.'));
+      msgEl.appendChild(buildFileErrorCard(why));
+    }
     scrollChat();
   }
 }
 function buildFileCard(spec,fmt){
-  const meta=FILE_FMT_META[fmt];
-  const name=(spec.filename||'document').replace(/[<>]/g,'');
+  const meta=FILE_FMT_META[fmt]||FILE_FMT_META.txt;
+  const name=String(spec.filename||'document').replace(/[<>:"|?*\/\\]/g,'').trim().slice(0,80)||'document';
   const card=document.createElement('div');
   card.className='file-card';
   card.innerHTML=`
     <div class="file-card-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8l-5-5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 3v5h5" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></div>
-    <div class="file-card-info"><div class="file-card-name">${name}.${meta.ext}</div><div class="file-card-sub">${meta.label} · нажмите, чтобы скачать</div></div>
+    <div class="file-card-info"><div class="file-card-name"></div><div class="file-card-sub">${meta.label} · нажмите, чтобы скачать</div></div>
     <button class="file-card-btn">Скачать</button>`;
+  card.querySelector('.file-card-name').textContent=name+'.'+meta.ext;
   const btn=card.querySelector('.file-card-btn');
   btn.onclick=()=>downloadGeneratedFile(spec,fmt,btn);
   card._hmSpec={name:name+'.'+meta.ext,fmt,content:spec.content||'',spec};
   return card;
 }
 async function downloadGeneratedFile(spec,fmt,btn){
+  const meta=FILE_FMT_META[fmt]||FILE_FMT_META.txt;
   const orig=btn.textContent;
   btn.disabled=true;btn.textContent='Создаю…';
   const card=btn.closest('.file-card');
   const anim=(window.HmGenAnim&&card)?window.HmGenAnim.file(card):{stop(){}};
   try{
-    const res=await fetch('/api/generate-file',{
-      method:'POST',
-      headers:await hmAuthHeaders(),
-      body:JSON.stringify({format:fmt,filename:spec.filename||'document',content:spec.content,userId:curUser?.id||null})
-    });
-    if(!res.ok){
-      let msg='Не удалось создать файл.';
-      try{const j=await res.json();if(j?.message)msg=j.message;}catch(e){}
-      anim.stop(false);
-      btn.textContent='Ошибка';setTimeout(()=>{btn.textContent=orig;btn.disabled=false;},2200);
-      showFileError(msg);
-      return;
+    let blob;
+    if(meta.text){
+      blob=new Blob([String(spec.content||'')],{type:meta.mime});
+    }else{
+      if(!window.HmDocGen)throw new Error('Модуль сборки файлов не загрузился. Обновите страницу и попробуйте ещё раз.');
+      blob=await window.HmDocGen.build({filename:spec.filename,title:spec.title||'',content:String(spec.content||'')},fmt);
     }
-    const blob=await res.blob();
-    const name=(spec.filename||'document').replace(/[<>:"|?*\/\\]/g,'').slice(0,60)||'document';
+    if(!blob||!blob.size)throw new Error('Файл получился пустым.');
+    const name=String(spec.filename||'document').replace(/[<>:"|?*\/\\]/g,'').trim().slice(0,60)||'document';
     const url=URL.createObjectURL(blob);
     const a=document.createElement('a');
-    a.href=url;a.download=name+'.'+FILE_FMT_META[fmt].ext;
+    a.href=url;a.download=name+'.'+meta.ext;
     document.body.appendChild(a);a.click();a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url),4000);
+    setTimeout(()=>URL.revokeObjectURL(url),30000);
+    try{window.HmStats?.file?.();}catch(e){}
     anim.stop(true);
     btn.textContent='Готово';setTimeout(()=>{btn.textContent=orig;btn.disabled=false;},1600);
   }catch(e){
+    console.warn('[file] build failed',e);
     anim.stop(false);
     btn.textContent='Ошибка';setTimeout(()=>{btn.textContent=orig;btn.disabled=false;},2200);
-    showFileError('Не удалось создать файл. Проверьте соединение.');
+    showFileError(e&&e.message&&/[а-яё]/i.test(e.message)?e.message:'Не удалось создать файл. Проверьте соединение и попробуйте ещё раз.');
   }
 }
 function showFileError(msg){
@@ -7139,17 +7288,39 @@ async function uploadAttachmentFileSafe(file){
   }
 }
 async function handleFile(inp){
-  let files=Array.from(inp.files||[]);
-  if(!files.length){inp.value='';return;}
-  // Аудиофайлы — не вложение для ИИ, а трек для Яндекс Музыки: отправляем отдельно.
+  const files=Array.from(inp.files||[]);
+  inp.value='';
+  await handleFiles(files);
+}
+/* Общий вход для файлов: кнопка «+», перетаскивание в чат и вставка из буфера. */
+async function handleFiles(fileList){
+  let files=Array.from(fileList||[]).filter(Boolean);
+  if(!files.length)return;
+  // Аудио — в анализатор (BPM, тональность, структура → «Анализировать с помощью ИИ»).
+  // Раньше любой MP3/WAV молча уходил в загрузку в Яндекс Музыку и до ИИ не доходил.
   const tracks=files.filter(hmIsAudioFile);
-  if(tracks.length){tracks.forEach(f=>hmSendTrackToYandex(f));files=files.filter(f=>!hmIsAudioFile(f));if(!files.length){inp.value='';return;}}
+  if(tracks.length){
+    files=files.filter(f=>!hmIsAudioFile(f));
+    try{
+      if(window.AudioAnalyzer&&typeof window.AudioAnalyzer.openWithFile==='function'){
+        window.AudioAnalyzer.openWithFile(tracks[0]);
+        if(tracks.length>1)toast('Аудио анализируется по одному файлу — открыт «'+tracks[0].name+'»');
+      }else toast('Анализ аудио сейчас недоступен — обновите страницу');
+    }catch(e){console.warn(e);}
+    if(!files.length)return;
+  }
+  // Тот же файл повторно не прикрепляем.
+  const sameKey=f=>(f.name||'')+'|'+(f.size||0);
+  const have=new Set(pendingAttachments.map(a=>(a.name||'')+'|'+(a.size||0)));
+  const dupes=files.filter(f=>have.has(sameKey(f)));
+  files=files.filter((f,i,arr)=>!have.has(sameKey(f))&&arr.findIndex(x=>sameKey(x)===sameKey(f))===i);
+  if(dupes.length&&!files.length){toast('Этот файл уже прикреплён');return;}
   // Лимит: не больше MAX_ATTACHMENTS_PER_SEND (20) файлов/фото за один раз.
   if(pendingAttachments.length+files.length>MAX_ATTACHMENTS_PER_SEND){
-    inp.value='';
     alert(`Можно прикрепить не больше ${MAX_ATTACHMENTS_PER_SEND} файлов или фото за один раз`);
     return;
   }
+  const inp={value:''};
   const ta=document.getElementById('msgTa');
   const prevPlaceholder=ta?ta.placeholder:'';
   if(ta&&files.length)ta.placeholder=files.length>1?`Обрабатываю файлы (0/${files.length})…`:'Читаю файл…';
@@ -7159,6 +7330,7 @@ async function handleFile(inp){
   // «сносить» весь пакет из 20 файлов — остальные всё равно прикрепятся.
   for(const f of files){
     try{
+      if(!f.size)throw new Error('файл пустой');
       const parsed=await parseGenericFile(f);
       const stored=await uploadAttachmentFileSafe(f);
       if(parsed.kind==='image'){
@@ -7193,7 +7365,9 @@ async function handleFile(inp){
         throw new Error('не удалось прочитать файл');
       }
     }catch(e){
-      failed.push((f.name||'файл')+': '+(e&&e.message?e.message:e));
+      let why=String(e&&e.message?e.message:e);
+      if(/invalid pdf|corrupted zip|central directory|end of data|unexpected|password/i.test(why))why=/password/i.test(why)?'файл защищён паролем':'файл повреждён или сохранён не до конца';
+      failed.push((f.name||'файл')+': '+why);
     }finally{
       done++;
       if(ta&&files.length>1)ta.placeholder=`Обрабатываю файлы (${done}/${files.length})…`;
@@ -7202,11 +7376,39 @@ async function handleFile(inp){
   if(ta)ta.placeholder=prevPlaceholder;
   renderComposerAttachments();
   updateComposerPlaceholder();
-  inp.value='';
   if(failed.length){
     alert('Не удалось загрузить часть файлов:\n'+failed.join('\n'));
   }
 }
+
+/* ===== ПЕРЕТАСКИВАНИЕ И ВСТАВКА ФАЙЛОВ =====
+   Раньше файл можно было добавить только кнопкой «+». Теперь: перетащить в окно
+   чата и вставить из буфера (Ctrl+V скриншота) — всё идёт через handleFiles. */
+(function(){
+  function hasFiles(e){const t=e.dataTransfer&&e.dataTransfer.types;return !!t&&Array.from(t).indexOf('Files')>=0;}
+  function chatReady(){const a=document.getElementById('app');return !!a&&a.classList.contains('show')&&!(window.AudioAnalyzer&&window.AudioAnalyzer.isOpen&&window.AudioAnalyzer.isOpen());}
+  let depth=0;
+  document.addEventListener('dragenter',e=>{if(!hasFiles(e)||!chatReady())return;depth++;document.body.classList.add('hm-dragging');});
+  document.addEventListener('dragleave',e=>{if(!hasFiles(e))return;depth=Math.max(0,depth-1);if(!depth)document.body.classList.remove('hm-dragging');});
+  document.addEventListener('dragover',e=>{if(!hasFiles(e)||!chatReady())return;e.preventDefault();try{e.dataTransfer.dropEffect='copy';}catch(_){}});
+  document.addEventListener('drop',e=>{
+    depth=0;document.body.classList.remove('hm-dragging');
+    if(!hasFiles(e)||!chatReady())return;
+    e.preventDefault();
+    const files=Array.from(e.dataTransfer.files||[]);
+    if(files.length)handleFiles(files);
+  });
+  document.addEventListener('paste',e=>{
+    if(!chatReady())return;
+    const t=e.target;if(!t||t.id!=='msgTa')return;
+    const files=Array.from((e.clipboardData&&e.clipboardData.files)||[]);
+    if(!files.length)return;
+    e.preventDefault();
+    // У скриншотов из буфера имя «image.png» у всех — делаем уникальным, чтобы не считались дублями.
+    const named=files.map((f,i)=>(/^image\.(png|jpe?g|gif|webp)$/i.test(f.name||'')||!f.name)?new File([f],'Скриншот '+new Date().toLocaleTimeString('ru-RU').replace(/:/g,'-')+(files.length>1?' ('+(i+1)+')':'')+'.'+((f.type.split('/')[1]||'png').replace('jpeg','jpg')),{type:f.type}):f);
+    handleFiles(named);
+  });
+})();
 
 /* ===== TEXTAREA ===== */
 function taResize(el){
@@ -7246,6 +7448,15 @@ function setGeneratingState(active){
   }
   if(!active){try{hmSetContinueMode(hmContinueMode);}catch(e){}}
 }
+/* Технические ошибки браузера/сервера → понятный текст. */
+function hmHumanError(msg){
+  const m=String(msg||'');
+  if(/failed to fetch|load failed|networkerror|network request failed|err_internet|err_network/i.test(m))return 'Нет соединения с сервером. Проверьте интернет и попробуйте ещё раз.';
+  if(/\(413\)|payload too large|entity too large/i.test(m))return 'Слишком большой запрос: уберите часть вложений или сократите текст и попробуйте снова.';
+  if(/\(50[234]\)/.test(m))return 'Сервер временно недоступен. Попробуйте ещё раз через минуту.';
+  if(/\(500\)/.test(m))return 'Ошибка на сервере. Попробуйте ещё раз.';
+  return m||'Что-то пошло не так. Попробуйте ещё раз.';
+}
 function stopGeneration(){
   if(activeAbortController)activeAbortController.abort();
   if(typeof activeStreamStop==='function')activeStreamStop();
@@ -7254,6 +7465,7 @@ function stopGeneration(){
   activeStreamStop=null;
   setGeneratingState(false);
   hmSetContinueMode(true);
+  hmFailBuildingCards(document.getElementById('chatInner'),'Генерация файла остановлена. Попросите сделать файл ещё раз.');
 }
 
 function getChatInner(){
@@ -7621,7 +7833,9 @@ function renderMd(el,text){
       el.appendChild(div);
     }
   });
-  if(hmBuilding){
+  if(hmBuilding&&!isGenerating&&!el.classList.contains('is-streaming')){
+    el.appendChild(buildFileErrorCard('Файл не был собран. Попросите сделать его ещё раз.'));
+  }else if(hmBuilding){
     const ph=document.createElement('div');
     ph.className='file-card hm-file-building';
     ph.innerHTML='<div class="file-card-ic"><span class="hga-doc" aria-hidden="true"><i style="--i:0"></i><i style="--i:1"></i><i style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i></span></div><div class="file-card-info"><div class="file-card-name">Собираю файл…</div><div class="file-card-sub">Сейчас появится кнопка «Скачать»</div></div><span class="hga-bar" aria-hidden="true"><i></i></span>';
@@ -8999,7 +9213,10 @@ function buildEndpointCandidates(path){
     endpoints.push(path);
   }
   endpoints.push(`${liveBase}${path}`);
-  return [...new Set(endpoints)];
+  // На harmonyai.ru оба варианта — один и тот же сервер: второй раз тот же запрос
+  // не шлём (раньше ошибка 413/500 приходила дважды и дважды тратила время).
+  const seen=new Set();
+  return endpoints.filter(u=>{let k=u;try{k=new URL(u,window.location.href).href;}catch(e){}if(seen.has(k))return false;seen.add(k);return true;});
 }
 function buildApiCandidates(){return buildEndpointCandidates('/api/chat');}
 function buildImageApiCandidates(){return buildEndpointCandidates('/api/generate-image');}
@@ -9112,6 +9329,14 @@ async function classifyImageIntent(text,forceImage){
         const msg=String(data?.error?.message||'').toLowerCase();
         if(i<endpoints.length-1&&(msg.includes('failed to fetch')||msg.includes('load failed')||msg.includes('network')))continue;
         // Нестрого: классификатор не должен рвать отправку — откатываемся к эвристике.
+        return forceImage
+          ?{need_image:true,clarify:false,image_prompt:text.slice(0,1000),clarify_question:''}
+          :{need_image:false,clarify:false,image_prompt:'',clarify_question:''};
+      }
+      // Ответ без поля need_image — не ответ классификатора картинок (например,
+      // на /api/intent по ошибке оказался другой обработчик). В режиме
+      // «Изображение» пользователь уже явно попросил картинку — генерируем.
+      if(typeof data?.need_image!=='boolean'){
         return forceImage
           ?{need_image:true,clarify:false,image_prompt:text.slice(0,1000),clarify_question:''}
           :{need_image:false,clarify:false,image_prompt:'',clarify_question:''};
@@ -9289,6 +9514,49 @@ async function requestChatReply(){
   }
   throw lastError||new Error('Не удалось получить ответ от сервера');
 }
+/* ===== РАЗМЕР ЗАПРОСА =====
+   У функций Vercel потолок тела запроса 4,5 МБ. 20 фото (разрешённый максимум)
+   давали ~9 МБ и ошибку 413 «Ошибка сервера (413)». Теперь перед отправкой
+   считаем размер и при необходимости пережимаем фото текущего сообщения
+   (меньше сторона, ниже качество). Если и это не помогает — понятная ошибка. */
+const HM_MAX_BODY_BYTES=4*1024*1024;
+function hmReencodeDataUrl(dataUrl,maxDim,quality){
+  return new Promise(resolve=>{
+    const im=new Image();
+    im.onload=()=>{
+      try{
+        const k=Math.min(1,maxDim/Math.max(im.naturalWidth||1,im.naturalHeight||1));
+        const c=document.createElement('canvas');
+        c.width=Math.max(1,Math.round(im.naturalWidth*k));c.height=Math.max(1,Math.round(im.naturalHeight*k));
+        const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(im,0,0,c.width,c.height);
+        resolve(c.toDataURL('image/jpeg',quality));
+      }catch(e){resolve(dataUrl);}
+    };
+    im.onerror=()=>resolve(dataUrl);
+    im.src=dataUrl;
+  });
+}
+async function hmFitPayload(payload){
+  const size=()=>new Blob([JSON.stringify(payload)]).size;
+  if(size()<=HM_MAX_BODY_BYTES)return;
+  // Копии сообщений: chatHistory не трогаем, сжатие только для этой отправки.
+  payload.messages=payload.messages.map(m=>Array.isArray(m.content)?Object.assign({},m,{content:m.content.map(p=>p&&p.type==='image_url'?{type:'image_url',image_url:Object.assign({},p.image_url)}:p)}):m);
+  const imgs=[];
+  payload.messages.forEach(m=>{if(Array.isArray(m.content))m.content.forEach(p=>{if(p&&p.type==='image_url'&&/^data:image\//.test(p.image_url?.url||''))imgs.push(p);});});
+  const steps=[[1024,0.72],[800,0.66],[640,0.6],[512,0.55]];
+  for(const [dim,q] of steps){
+    if(!imgs.length)break;
+    for(const p of imgs)p.image_url.url=await hmReencodeDataUrl(p.image_url.url,dim,q);
+    if(size()<=HM_MAX_BODY_BYTES)return;
+  }
+  if(size()>HM_MAX_BODY_BYTES){
+    const e=new Error(imgs.length
+      ?'Слишком много фото в одном сообщении. Отправьте их частями (например, по 8–10 штук).'
+      :'Сообщение слишком большое. Сократите текст или разбейте его на несколько сообщений.');
+    e.hmTooLarge=true;
+    throw e;
+  }
+}
 async function requestChatReplyLive(msgEl,actionsEl,extraMessages=[],prefixText='',opts={}){
   activeAbortController=new AbortController();
   const payload={
@@ -9305,6 +9573,7 @@ async function requestChatReplyLive(msgEl,actionsEl,extraMessages=[],prefixText=
     userId:curUser?.id||null,
     userEmail:curUser?.email||null
   };
+  await hmFitPayload(payload);
   const endpoints=buildApiCandidates();
   const authHeaders=await hmAuthHeaders();
   let lastError=null;
@@ -9328,6 +9597,10 @@ async function requestChatReplyLive(msgEl,actionsEl,extraMessages=[],prefixText=
         // Серверный лимит/защита от злоупотребления — отдаём как специальную ошибку,
         // чтобы показать красивую плашку, а не обычный текст ошибки.
         if(res.status===429&&data?.error?.scope){
+          try{
+            const until=Date.parse(data.error.resetAt||'')||(Date.now()+(data.error.scope==='burst'?120000:3600000));
+            const u=readUsage();u.serverBlock={until,scope:data.error.scope,model:curModel,resetAt:data.error.resetAt||null};writeUsage(u);
+          }catch(_){}
           const le=new Error(data.error.message||'Достигнут лимит');
           le.limitScope=data.error.scope;
           le.limitReset=data.error.resetAt||null;
@@ -9549,7 +9822,9 @@ function showLimitReached(check){
   const g=document.getElementById('greetingWrap');if(g)g.style.display='none';
   const d=document.createElement('div');
   d.innerHTML=limitMessageHtml(check);
-  inner.appendChild(d.firstElementChild);
+  const lastEl=inner.lastElementChild;
+  if(lastEl&&lastEl.classList.contains('hm-limit'))lastEl.replaceWith(d.firstElementChild);
+  else inner.appendChild(d.firstElementChild);
   scrollChat();
 }
 /* ===== ГЕНЕРАЦИЯ ИЗОБРАЖЕНИЯ (Cloudflare Workers AI, отдельный путь) ===== */
@@ -9627,6 +9902,33 @@ function attachImageMessageActions(shell,prompt){
     shell.actions=actions;
   }
   try{setMessageActionsVisible(actions,true);}catch(e){actions.classList.remove('is-hidden');}
+  // Кнопка «Скачать» для сгенерированной картинки (раньше её не было — только долгий тап).
+  if(!actions.querySelector('.mac-dl')){
+    const img=shell.wrap.querySelector('.msg-ai-img');
+    if(img){
+      const b=document.createElement('button');
+      b.className='mac-btn mac-dl';b.type='button';b.title='Скачать';b.setAttribute('aria-label','Скачать изображение');
+      b.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 19.5h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      b.onclick=()=>hmDownloadImage(img.dataset.src||img.src,shell.wrap.dataset.imgPrompt||'');
+      actions.insertBefore(b,actions.firstChild);
+    }
+  }
+}
+async function hmDownloadImage(src,prompt){
+  const base=(String(prompt||'harmonyai-image').replace(/[<>:"|?*\/\\\n\r]/g,'').trim().slice(0,50)||'harmonyai-image');
+  try{
+    const r=await fetch(src,{mode:'cors'});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const blob=await r.blob();
+    const ext=(blob.type.split('/')[1]||'png').replace('jpeg','jpg');
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download=base+'.'+ext;
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),30000);
+  }catch(e){
+    // Не дали скачать напрямую — открываем картинку в новой вкладке.
+    window.open(src,'_blank','noopener');
+  }
 }
 function imagePromptFromHistory(m){
   const mm=/«([\s\S]*)»/.exec(String(m&&m.content||''));
@@ -9896,7 +10198,7 @@ async function handleImageGeneration(promptText){
         recordImageUsage();
         // Промо-уведомление после каждой генерации (~78% для не-Pro, не чаще 1 раза за сессию).
         showNotification('promo_img',1/8);
-        chatHistory.push({role:'assistant',content:'[Сгенерировано изображение по запросу: «'+promptText+'»]',image:data.image,createdAt:messageNow()});
+        chatHistory.push({role:'assistant',content:'[Сгенерировано изображение по запросу: «'+promptText+'». Адрес картинки для вставки в документ или презентацию: '+data.image+']',image:data.image,createdAt:messageNow()});
         await saveChat();
         return;
       }catch(e){
@@ -10369,7 +10671,29 @@ function restoreComposerText(text){
   updateComposerPlaceholder();
 }
 
-async function sendMsg(){
+/* Защита от двойной отправки и от «Enter = Стоп».
+   Раньше Enter во время ответа вызывал sendMsg → stopGeneration: ответ обрывался
+   и терялся, а новое сообщение не уходило. Двойной Enter обрывал ответ сразу.
+   Теперь останавливает только кнопка ■, а Enter во время ответа ничего не ломает. */
+let hmSendBusy=false,hmSendBusySince=0;
+function hmNotifyBusy(){
+  try{toast('Дождитесь окончания ответа или нажмите ■, чтобы остановить его');}catch(e){}
+  const b=document.getElementById('sendBtn');
+  if(b){b.classList.remove('hm-shake');void b.offsetWidth;b.classList.add('hm-shake');}
+}
+async function sendMsg(opts){
+  const fromEnter=Boolean(opts&&opts.fromEnter);
+  if(isGenerating){
+    if(fromEnter){hmNotifyBusy();return;}
+    stopGeneration();return;
+  }
+  // Идёт подготовка отправки (классификатор, загрузка) — второй запуск не нужен.
+  if(hmSendBusy&&Date.now()-hmSendBusySince<120000){if(fromEnter)hmNotifyBusy();return;}
+  hmSendBusy=true;hmSendBusySince=Date.now();
+  try{await sendMsgInner();}
+  finally{hmSendBusy=false;}
+}
+async function sendMsgInner(){
   if(isGenerating){stopGeneration();return;}
   window.__hmReqT0=performance.now();
   // Кнопка «▶ Продолжить»: поле пустое, прошлый ответ был остановлен — просим дописать.
@@ -11032,7 +11356,36 @@ async function runMusicMessage(text){
   return true;
 }
 
+/* Сохраняет историю конкретного чата, не трогая открытый сейчас.
+   Нужна, когда пользователь ушёл в другой чат, пока писался ответ. */
+async function hmSaveHistoryTo(chatId,hist){
+  if(!curUser||!chatId||!Array.isArray(hist))return;
+  try{
+    await sb.from('chats').update({history:toWireHistory(hist,{keepImage:true,forStorage:true}),updated_at:new Date().toISOString()}).eq('id',chatId).eq('user_id',curUser.id);
+  }catch(e){console.warn('background chat save failed',e);}
+}
+/* Страница уходит в фон или закрывается посреди ответа (на телефоне — при каждом
+   сворачивании браузера). Раньше после возврата/перезагрузки в чате оставался
+   только вопрос. Теперь в базу пишется снимок с уже полученной частью ответа;
+   если ответ дойдёт до конца, обычное сохранение перезапишет снимок полным текстом. */
+function hmSnapshotPartialReply(){
+  try{
+    if(!isGenerating||!curUser||!curChatId)return;
+    const el=[...document.querySelectorAll('#chatInner .msg-ai-wrap .msg-ai')].pop();
+    const partial=String(el?.dataset.raw||'').replace(/```\s*harmony-file[\s\S]*$/i,'').trim();
+    if(!partial)return;
+    const last=chatHistory[chatHistory.length-1];
+    if(!last||last.role!=='user')return;
+    hmSaveHistoryTo(curChatId,chatHistory.concat([{role:'assistant',content:partial,stopped:true,createdAt:messageNow()}]));
+  }catch(e){}
+}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')hmSnapshotPartialReply();});
+window.addEventListener('pagehide',hmSnapshotPartialReply);
 async function runAssistantReply(displayText){
+  // Чат, к которому относится этот ответ. Если пользователь переключится на другой
+  // чат, chatHistory станет другим массивом — ответ уйдёт в свой чат, а не в открытый.
+  const ctxHistory=chatHistory,ctxChatId=curChatId;
+  const switchedAway=()=>chatHistory!==ctxHistory;
   const hasImg=chatHistory.length>1&&Array.isArray(chatHistory[chatHistory.length-1]?.attachments)&&chatHistory[chatHistory.length-1].attachments.some(a=>a.kind==='image');
   const hasDoc=chatHistory.length>1&&Array.isArray(chatHistory[chatHistory.length-1]?.attachments)&&chatHistory[chatHistory.length-1].attachments.some(a=>a.kind==='document');
   const typKind=hasImg&&hasDoc?'photo':hasImg?'photo':hasDoc?'file':'text';
@@ -11041,6 +11394,15 @@ async function runAssistantReply(displayText){
   const aiShell=createAiBubbleShell({showActions:true,hiddenActions:true});
   try{
     const result=await requestChatReplyLive(aiShell.msg,aiShell.actions);
+    if(switchedAway()){
+      if(result?.text){
+        ctxHistory.push({role:'assistant',content:result.text.replace(HM_LIMIT_MARK,'').trimEnd(),createdAt:messageNow()});
+        recordUsage(displayText,result.text);
+        await maybeHandleFileDirective(result.text,null,ctxHistory.length-1,ctxHistory);
+        await hmSaveHistoryTo(ctxChatId,ctxHistory);
+      }
+      return;
+    }
     let hmPaused=false;
     if(result?.text&&HM_LIMIT_MARK.test(result.text)){
       hmPaused=true;result.text=result.text.replace(HM_LIMIT_MARK,'').trimEnd();
@@ -11064,9 +11426,24 @@ async function runAssistantReply(displayText){
       holder.innerHTML=limitMessageHtml(check);
       aiShell.wrap.replaceWith(holder.firstElementChild);
       scrollChat();
-    }else if(e.message!=='Генерация остановлена'){
-      renderMd(aiShell.msg,'Ошибка: '+e.message);
+    }else if(e.message==='Генерация остановлена'){
+      // Частичный ответ остаётся в истории: виден после перезагрузки, а «▶ Продолжить»
+      // даёт модели то, что уже написано, — она продолжает, а не начинает заново.
+      const partial=String(aiShell.msg.dataset.raw||'').trim();
+      if(partial){
+        const target=switchedAway()?ctxHistory:chatHistory;
+        const cleanPartial=partial.replace(/```\s*harmony-file[\s\S]*$/i,'').trim();
+        if(cleanPartial){
+          target.push({role:'assistant',content:cleanPartial,stopped:true,createdAt:messageNow()});
+          if(switchedAway())await hmSaveHistoryTo(ctxChatId,ctxHistory);else await saveChat();
+        }
+        setMessageActionsVisible(aiShell.actions,true);
+      }
+      hmFailBuildingCards(aiShell.msg,'Генерация файла остановлена. Попросите сделать файл ещё раз.');
+    }else{
+      renderMd(aiShell.msg,'Ошибка: '+hmHumanError(e.message));
       setMessageActionsVisible(aiShell.actions,false);
+      hmFailBuildingCards(aiShell.msg,'Ответ прервался, пока собирался файл.');
     }
   }finally{
     activeAbortController=null;
@@ -11106,9 +11483,10 @@ async function handleTextReply(pendingText){
     // Ограничиваем объём вкладываемого текста, иначе большие документы раздували токены,
     // замедляли ответ и переполняли лимит тела запроса. Даём начало документа с пометкой об обрезке.
     const full=chunks.join('\n\n');
-    if(full.length<=INLINE_DOC_CHAR_LIMIT)return `[ФАЙЛ ${idx+1}: ${att.name}]\n${full}`;
-    const head=full.slice(0,INLINE_DOC_CHAR_LIMIT);
-    return `[ФАЙЛ ${idx+1}: ${att.name}]\n${head}\n\n⚠️ ДОКУМЕНТ ОБРЕЗАН — показана только первая часть (${INLINE_DOC_CHAR_LIMIT} символов из ${full.length}). Для разделов вне этого фрагмента попроси пользователя уточнить раздел.`;
+    const limit=inlineDocCharLimit();
+    if(full.length<=limit)return `[ФАЙЛ ${idx+1}: ${att.name}]\n${full}`;
+    const head=full.slice(0,limit);
+    return `[ФАЙЛ ${idx+1}: ${att.name}]\n${head}\n\n⚠️ ДОКУМЕНТ ОБРЕЗАН — показана только первая часть (${limit} символов из ${full.length}). Для разделов вне этого фрагмента попроси пользователя уточнить раздел.`;
   }
   let userContent;
   if(imageAttachments.length){
@@ -13123,6 +13501,10 @@ function toggleDesktopPlus(anchor){
     <button type="button" role="menuitem" data-k="files"><svg viewBox="0 0 24 24" fill="none"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l8.57-8.57A4 4 0 1118 8.84l-8.59 8.57a2 2 0 01-2.83-2.83l8.49-8.48" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Добавить файлы</span></button>
     <div class="hm-plus-sep"></div>
     <button type="button" role="menuitemcheckbox" aria-checked="${on}" data-k="search"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M3 12h18M12 3c2.5 2.6 3.7 5.6 3.7 9s-1.2 6.4-3.7 9c-2.5-2.6-3.7-5.6-3.7-9S9.5 5.6 12 3z" stroke="currentColor" stroke-width="1.5"/></svg><span>Веб-поиск</span><i class="hm-plus-sw${on?' on':''}"></i></button>
+    <button type="button" role="menuitemcheckbox" aria-checked="${thinkOn}" data-k="think"><svg viewBox="0 0 24 24" fill="none"><path d="M9 18h6M10 21h4M12 3a6 6 0 00-3.6 10.8c.6.5 1 1.2 1 2V16h5.2v-.2c0-.8.4-1.5 1-2A6 6 0 0012 3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg><span>Размышление</span><i class="hm-plus-sw${thinkOn?' on':''}"></i></button>
+    <div class="hm-plus-sep"></div>
+    <button type="button" role="menuitem" data-k="image"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="16" rx="2.5" stroke="currentColor" stroke-width="1.6"/><circle cx="9" cy="10" r="1.8" stroke="currentColor" stroke-width="1.5"/><path d="M4 17l5-4.5 4 3.5 3-2.5 4 3.5" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg><span>Сгенерировать изображение</span></button>
+    <button type="button" role="menuitem" data-k="audio"><svg viewBox="0 0 24 24" fill="none"><path d="M3 12h2M7 8v8M11 5v14M15 9v6M19 7v10M21 12h0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span>Анализ аудио</span></button>
     <div class="hm-plus-sep"></div>
     <button type="button" role="menuitem" data-k="music"><svg viewBox="0 0 24 24" fill="none"><path d="M9 18V5.5l10-2v12" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="6.5" cy="18" r="2.5" stroke="currentColor" stroke-width="1.7"/><circle cx="16.5" cy="15.5" r="2.5" stroke="currentColor" stroke-width="1.7"/><path d="M19.5 2.5l.5 1.3 1.3.5-1.3.5-.5 1.3-.5-1.3-1.3-.5 1.3-.5z" fill="currentColor"/></svg><span>Определить музыку</span></button>`;
   document.body.appendChild(m);
@@ -13136,6 +13518,12 @@ function toggleDesktopPlus(anchor){
     const k=b.dataset.k;
     if(k==='files'){closeDesktopPlus();triggerFileInput();}
     else if(k==='music'){closeDesktopPlus();openRecognizeModal();}
+    else if(k==='image'){closeDesktopPlus();setImageMode(true);document.getElementById('msgTa')?.focus();}
+    else if(k==='audio'){closeDesktopPlus();triggerAudioAnalyzer();}
+    else if(k==='think'){
+      toggleThink({stopPropagation:()=>{}});
+      b.setAttribute('aria-checked',String(thinkOn));b.querySelector('.hm-plus-sw').classList.toggle('on',thinkOn);
+    }
     else if(k==='search'){
       toggleWebSearch(webSearchMode==='on'?'auto':'on');
       const now=webSearchMode==='on';
