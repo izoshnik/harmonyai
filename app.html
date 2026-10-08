@@ -5175,7 +5175,7 @@ function mHint(btn){
 function greetingTitleText(){
   const name=curUser?.nickname;
   // Телефон: одно спокойное приветствие по макету — «Чем займёмся, имя?».
-  try{if(name&&window.matchMedia('(max-width:768px)').matches)return 'Чем займёмся, '+escapeHtml(name)+'?';}catch(e){}
+  try{if(name&&window.matchMedia('(max-width:768px)').matches){let tpl='Чем займёмся, {name}?';if(window.i18n&&window.i18n.get&&window.i18n.get()!=='ru'&&window.i18n.t)tpl=window.i18n.t(tpl)||tpl;return tpl.replace('{name}',escapeHtml(name));}}catch(e){}
   if(!name)return 'Привет! Я Harmony Ai';
   const pool=HM_GREETINGS[greetingPeriod()]||HM_GREETINGS.day;
   let phrase=pool[Math.floor(Math.random()*pool.length)];

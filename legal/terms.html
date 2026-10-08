@@ -11,6 +11,7 @@ try{
   if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);
 }catch(e){}
 </script>
+<script src="/i18n.js"></script><script defer src="/js/i18n/common.js"></script><script defer src="/js/i18n/legal-terms.js"></script>
 </head>
 <body>
 <div class="legal-topbar">
@@ -18,10 +19,12 @@ try{
     <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
   </button>
   <div class="legal-topbar-title">HarmonyAI</div>
+  <div class="legal-topbar-lang" data-i18n-switcher></div>
 </div>
 <div class="legal-wrap">
   <h1 class="legal-h1">Условия использования веб-приложения HarmonyAI</h1>
   <div class="legal-updated">Дата вступления в силу: 21 июня 2026 г.</div>
+  <p class="legal-i18n-note" data-i18n-legal-note hidden></p>
   <div class="legal-card">
 
     <h2>1. Общие положения</h2>

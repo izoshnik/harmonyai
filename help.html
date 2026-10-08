@@ -270,6 +270,7 @@
   .a a{color:var(--accent-strong);}
   @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;}}
 </style>
+<script src="/i18n.js"></script><script defer src="/js/i18n/common.js"></script><script defer src="/js/i18n/help.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -281,13 +282,7 @@
   </div>
   <div class="top">
     <div class="logo">Harmony<span>AI</span></div>
-    <div class="lang-wrap">
-      <button class="lang-btn" id="langBtn" aria-haspopup="true" aria-expanded="false">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 2.5 15.3 0 18M12 3c-2.5 2.7-2.5 15.3 0 18"/></svg>
-        <span id="langLabel">Русский</span>
-      </button>
-      <div class="lang-menu" id="langMenu" role="menu"></div>
-    </div>
+    <div class="lang-wrap" data-i18n-switcher></div>
   </div>
 
   <div class="search">
@@ -312,17 +307,9 @@
 </div>
 
 <script>
-/* ---- UI chrome translations (FAQ Q&A stay in Russian; FAQ translations can be added later) ---- */
-var I18N = {
-  ru:{name:"Русский", search:"Поиск статей...", site:"Сайт", sub:"Частые вопросы о сайте HarmonyAi", empty:"Ничего не найдено", back:"Назад"},
-  en:{name:"English", search:"Search articles...", site:"Site", sub:"Frequently asked questions about HarmonyAi", empty:"Nothing found", back:"Back"},
-  fr:{name:"Français", search:"Rechercher des articles...", site:"Site", sub:"Questions fréquentes sur HarmonyAi", empty:"Aucun résultat", back:"Retour"},
-  de:{name:"Deutsch", search:"Artikel suchen...", site:"Seite", sub:"Häufige Fragen zu HarmonyAi", empty:"Nichts gefunden", back:"Zurück"},
-  es:{name:"Español", search:"Buscar artículos...", site:"Sitio", sub:"Preguntas frecuentes sobre HarmonyAi", empty:"No se encontró nada", back:"Atrás"}
-};
-var LANG_ORDER = ["ru","en","fr","de","es"];
+/* Интерфейс и FAQ переводятся общим i18n.js по словарю js/i18n/help.js. */
 
-/* ---- FAQ data (Russian only) ---- */
+/* ---- FAQ data (исходник на русском, переводы — в словаре) ---- */
 var FAQ = [
   ["Что такое HarmonyAI?","HarmonyAI - это искусственный интеллект, разработанный специально для учеников музыкальных школ. В отличие от обычных универсальных помощников, он обучен не только на общедоступных данных, но и на нескольких сотнях учебников, методических пособий и практических заданий по сольфеджио, музыкальной грамоте, теории музыки, гармонии и музыкальной литературе. Благодаря этому сервис лучше понимает музыкальные термины, умеет объяснять темы простым языком и помогает готовиться к урокам, контрольным работам, экзаменам и вступительным испытаниям. При этом HarmonyAI сохраняет все привычные возможности современного искусственного интеллекта: отвечает на вопросы, пишет тексты, анализирует информацию, помогает с учебой и выполняет множество других задач."],
   ["Чем HarmonyAI отличается от других искусственных интеллектов?","Большинство сервисов искусственного интеллекта являются универсальными помощниками и не имеют глубоких знаний в области музыкального образования. HarmonyAI был создан именно для учеников музыкальных школ. Он понимает программу обучения, музыкальные термины, особенности нотной записи и способен объяснять сложные темы значительно понятнее. Кроме того, сервис умеет распознавать музыкальные произведения, работать с нотными диктантами и постепенно получает новые специализированные функции, которых нет у большинства аналогов."],
@@ -331,7 +318,7 @@ var FAQ = [
   ["Для кого предназначен HarmonyAI?","HarmonyAI разработан в первую очередь для учеников музыкальных школ, однако пользоваться сервисом могут также преподаватели, родители и все, кто изучает музыку самостоятельно. Он подходит как начинающим музыкантам, так и учащимся старших классов, помогая быстрее понимать сложные темы и экономить время при подготовке к занятиям."],
   ["Можно ли пользоваться бесплатно?","Да. HarmonyAI имеет полностью бесплатный тариф, позволяющий познакомиться с основными возможностями сервиса. Однако бесплатная версия имеет ежедневные лимиты и некоторые ограничения функций. Если лимитов недостаточно или требуется доступ ко всем возможностям платформы, можно оформить Pro-подписку и пользоваться сервисом без ограничений."],
   ["Нужна ли регистрация?","Да. Для использования HarmonyAI необходимо зарегистрироваться при помощи электронной почты. Вместо обычного пароля используется безопасный вход по одноразовому коду подтверждения, который приходит на электронную почту. Это упрощает авторизацию и снижает риск потери пароля."],
-  ["Какие языки поддерживаются?","На данный момент HarmonyAI поддерживает русский, английский, немецкий, испанский и французский языки. Список поддерживаемых языков будет постепенно расширяться по мере развития проекта."],
+  ["Какие языки поддерживаются?","HarmonyAI поддерживает семь языков интерфейса: русский, английский, немецкий, французский, испанский, итальянский и китайский. Язык определяется автоматически по вашему региону и переключается кнопкой выбора языка вверху страницы. Задавать вопросы ИИ можно на любом языке — он ответит на языке вопроса."],
   ["Какие модели использует HarmonyAI?","Бесплатный тариф использует модель Adanatos. Она подходит для большинства повседневных задач, но некоторые функции сервиса недоступны. Подписка Pro открывает доступ к модели Dynatos — самой мощной модели HarmonyAI. Она обеспечивает более качественные ответы, лучшие рассуждения, улучшенную генерацию изображений, доступ к распознаванию музыки и всем новым возможностям сервиса сразу после их появления."],
   ["Может ли HarmonyAI искать информацию в интернете?","Да. При необходимости HarmonyAI может искать актуальную информацию в интернете и использовать ее при подготовке ответа. Это особенно полезно для поиска свежих новостей, изменений в законодательстве, расписаний, цен и другой информации, которая регулярно обновляется. Если поиск не требуется, искусственный интеллект отвечает на основе собственных знаний."],
   ["Может ли HarmonyAI анализировать документы?","Да. HarmonyAI умеет работать с документами различных форматов. Вы можете загрузить файл, после чего искусственный интеллект сможет прочитать его содержимое, объяснить непонятные моменты, сделать краткое содержание, ответить на вопросы по тексту или помочь найти нужную информацию."],
@@ -377,7 +364,7 @@ var FAQ = [
   ["Можно ли полностью доверять ответам HarmonyAI?","HarmonyAI является искусственным интеллектом и, как любой современный искусственный интеллект, иногда может допускать ошибки. Несмотря на специализированное обучение и большую базу знаний, мы рекомендуем перепроверять особенно важную информацию по официальным источникам, учебникам или консультироваться с преподавателем."],
   ["Есть ли возрастные ограничения для использования сервиса?","Самостоятельно использовать HarmonyAI рекомендуется с 18 лет. Пользователи младше 18 лет могут пользоваться сервисом только с разрешения родителей или законных представителей. Используя HarmonyAI, вы подтверждаете, что соблюдаете требования Пользовательского соглашения."],
   ["Можно ли использовать HarmonyAI в коммерческих целях?","На данный момент HarmonyAI разработан исключительно как образовательный сервис для учеников музыкальных школ. Использование платформы в коммерческих целях или для предоставления платных образовательных услуг без согласования с администрацией сервиса не предусмотрено."],
-  ["Есть ли API для разработчиков?","Пока нет. В настоящее время HarmonyAI предназначен для использования через официальный сайт. Возможность предоставления API рассматривается, однако конкретные сроки его появления пока отсутствуют."],
+  ["Есть ли API для разработчиков?","Да. У HarmonyAI есть публичный API, совместимый с Anthropic Messages API: модели dynatos и adanatos, оплата по фактическому числу токенов с отдельного баланса API. Ключи, баланс и инструкции для Claude Code, Cursor, OpenCode и других клиентов — на странице harmonyai.ru/api."],
   ["Как связаться со службой поддержки?","Связаться со службой поддержки можно по специальной ссылке, которая будет размещена в приложении и на официальном сайте HarmonyAI. При обращении рекомендуется подробно описать проблему и, при необходимости, приложить скриншоты или другие материалы, которые помогут быстрее разобраться в ситуации."],
   ["Где можно ознакомиться с Политикой конфиденциальности?","Политика конфиденциальности всегда доступна в настройках HarmonyAI. В ней подробно описано, какие данные собираются сервисом, каким образом они используются, как обеспечивается их защита и какие права имеют пользователи при работе с платформой."],
   ["Почему HarmonyAI может отвечать дольше обычного?","Время генерации ответа зависит от сложности запроса, выбранной модели, текущей нагрузки на серверы и используемых функций. Простые вопросы обычно обрабатываются за несколько секунд, а сложные запросы, анализ документов, генерация изображений или распознавание музыки могут потребовать немного больше времени."],
@@ -391,7 +378,6 @@ var faqList = document.getElementById("faqList");
 FAQ.forEach(function(pair){
   var item = document.createElement("div");
   item.className = "item";
-  item.setAttribute("data-q", pair[0].toLowerCase());
   var btn = document.createElement("button");
   btn.className = "q";
   btn.innerHTML = '<span>'+pair[0]+'</span>'+CHEV;
@@ -411,63 +397,14 @@ searchInput.addEventListener("input", function(){
   var term = this.value.trim().toLowerCase();
   var shown = 0;
   document.querySelectorAll(".item").forEach(function(it){
-    var match = it.getAttribute("data-q").indexOf(term) !== -1;
+    // Ищем по видимому (уже переведённому) тексту вопроса.
+    var q = it.querySelector(".q");
+    var match = (q ? q.textContent : "").toLowerCase().indexOf(term) !== -1;
     it.classList.toggle("hidden", !match);
     if(match) shown++;
   });
   emptyMsg.classList.toggle("show", shown === 0);
 });
-
-/* ---- Language selector ---- */
-var langBtn = document.getElementById("langBtn");
-var langMenu = document.getElementById("langMenu");
-var langLabel = document.getElementById("langLabel");
-var siteTitle = document.getElementById("siteTitle");
-var siteSub = document.getElementById("siteSub");
-
-function applyLang(code){
-  var t = I18N[code] || I18N.ru;
-  langLabel.textContent = t.name;
-  searchInput.placeholder = t.search;
-  siteTitle.textContent = t.site;
-  siteSub.textContent = t.sub;
-  emptyMsg.textContent = t.empty;
-  var backLabel = document.getElementById("backLabel");
-  if(backLabel && t.back) backLabel.textContent = t.back;
-  document.documentElement.lang = code;
-  langMenu.querySelectorAll("button").forEach(function(b){
-    b.setAttribute("aria-selected", b.getAttribute("data-code") === code ? "true" : "false");
-  });
-}
-
-LANG_ORDER.forEach(function(code){
-  var b = document.createElement("button");
-  b.setAttribute("data-code", code);
-  b.setAttribute("role", "menuitem");
-  b.textContent = I18N[code].name;
-  b.addEventListener("click", function(){
-    applyLang(code);
-    try{ localStorage.setItem("hai_lang", code); }catch(e){}
-    closeMenu();
-  });
-  langMenu.appendChild(b);
-});
-
-function openMenu(){ langMenu.classList.add("open"); langBtn.setAttribute("aria-expanded","true"); }
-function closeMenu(){ langMenu.classList.remove("open"); langBtn.setAttribute("aria-expanded","false"); }
-langBtn.addEventListener("click", function(e){
-  e.stopPropagation();
-  langMenu.classList.contains("open") ? closeMenu() : openMenu();
-});
-document.addEventListener("click", function(e){
-  if(!langMenu.contains(e.target) && e.target !== langBtn) closeMenu();
-});
-
-/* ---- Restore saved language ---- */
-var saved = "ru";
-try{ saved = localStorage.getItem("hai_lang") || "ru"; }catch(e){}
-if(!I18N[saved]) saved = "ru";
-applyLang(saved);
 
 /* Возврат на предыдущую страницу.
    Кнопка ведёт именно НАЗАД по истории браузера: человек приходит в FAQ из

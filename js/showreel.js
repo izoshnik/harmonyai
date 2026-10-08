@@ -74,10 +74,14 @@
     {ask:'Покажи его от ноты до',at:8.2,type:1.2,think:1.2,ans:'До — ми — соль — си-бемоль. Это доминантсептаккорд:',ansDur:2.0,kind:'staff'},
     {ask:'Нарисуй обложку для моего этюда',at:14.6,type:1.5,think:.4,ans:'',ansDur:4.4,kind:'image'}
   ];
+  // Демо-диалог на языке интерфейса: печатаем уже переведённые строки
+  // (посимвольные срезы словарь i18n узнать не может).
+  function T(s){try{return window.i18n&&window.i18n.t?window.i18n.t(s):s;}catch(e){return s;}}
+  composer.setAttribute('data-i18n-skip','');
   var built=Q.map(function(item,i){
     var u=document.createElement('div');u.className='sr-u';u.textContent=item.ask;
     var a=document.createElement('div');a.className='sr-a';
-    a.innerHTML='<b>H</b><div class="sr-a-body"><div class="sr-thinking"><svg viewBox="0 0 36 22"><g class="l"><line x1="0" x2="36" y1="3" y2="3"/><line x1="0" x2="36" y1="7" y2="7"/><line x1="0" x2="36" y1="11" y2="11"/><line x1="0" x2="36" y1="15" y2="15"/><line x1="0" x2="36" y1="19" y2="19"/></g><ellipse class="n n1" cx="7" cy="15" rx="2.3" ry="1.6"/><ellipse class="n n2" cx="15" cy="11" rx="2.3" ry="1.6"/><ellipse class="n n3" cx="23" cy="7" rx="2.3" ry="1.6"/><ellipse class="n n4" cx="31" cy="11" rx="2.3" ry="1.6"/></svg><span>'+(item.kind==='image'?'Рисую…':'Думаю')+'</span></div><div class="sr-a-text"></div>'+
+    a.innerHTML='<b>H</b><div class="sr-a-body"><div class="sr-thinking"><svg viewBox="0 0 36 22"><g class="l"><line x1="0" x2="36" y1="3" y2="3"/><line x1="0" x2="36" y1="7" y2="7"/><line x1="0" x2="36" y1="11" y2="11"/><line x1="0" x2="36" y1="15" y2="15"/><line x1="0" x2="36" y1="19" y2="19"/></g><ellipse class="n n1" cx="7" cy="15" rx="2.3" ry="1.6"/><ellipse class="n n2" cx="15" cy="11" rx="2.3" ry="1.6"/><ellipse class="n n3" cx="23" cy="7" rx="2.3" ry="1.6"/><ellipse class="n n4" cx="31" cy="11" rx="2.3" ry="1.6"/></svg><span>'+(item.kind==='image'?'Рисую…':'Думаю')+'</span></div><div class="sr-a-text" data-i18n-skip></div>'+
       (item.kind==='staff'?'<svg class="sr-mini-staff" viewBox="0 0 200 70"><g stroke="currentColor" stroke-width="1" opacity=".45"><line x1="0" x2="200" y1="14" y2="14"/><line x1="0" x2="200" y1="24" y2="24"/><line x1="0" x2="200" y1="34" y2="34"/><line x1="0" x2="200" y1="44" y2="44"/><line x1="0" x2="200" y1="54" y2="54"/></g><g class="ch"><line x1="84" x2="116" y1="64" y2="64" stroke="currentColor" stroke-width="1"/><ellipse cx="100" cy="64" rx="7" ry="5" transform="rotate(-20 100 64)"/><ellipse cx="100" cy="54" rx="7" ry="5" transform="rotate(-20 100 54)"/><ellipse cx="100" cy="44" rx="7" ry="5" transform="rotate(-20 100 44)"/><ellipse cx="100" cy="34" rx="7" ry="5" transform="rotate(-20 100 34)"/><text x="80" y="38" font-size="14" fill="currentColor">♭</text></g></svg>':'')+
       (item.kind==='image'?'<div class="sr-img"><i></i></div>':'')+'</div>';
     msgs.appendChild(u);msgs.appendChild(a);
@@ -88,12 +92,13 @@
     for(var i=0;i<built.length;i++){
       var b=built[i],it=b.item;
       var tSend=it.at+it.type,tAns=tSend+it.think;
-      if(tc>=it.at&&tc<tSend)typing=it.ask.slice(0,Math.ceil((tc-it.at)/it.type*it.ask.length));
+      var ask=T(it.ask),ans=T(it.ans);
+      if(tc>=it.at&&tc<tSend)typing=ask.slice(0,Math.ceil((tc-it.at)/it.type*ask.length));
       b.u.classList.toggle('show',tc>=tSend);
       b.a.classList.toggle('show',tc>=tSend+.25);
       b.a.classList.toggle('thinking',tc>=tSend+.25&&tc<tAns+(it.kind==='image'?it.ansDur:0));
       var p=Math.max(0,Math.min(1,(tc-tAns)/it.ansDur));
-      if(it.kind!=='image'){var n=Math.round(p*it.ans.length);if(b.text._n!==n){b.text._n=n;b.text.textContent=it.ans.slice(0,n);}}
+      if(it.kind!=='image'){var n=Math.round(p*ans.length);if(b.text._n!==n||b.text._a!==ans){b.text._n=n;b.text._a=ans;b.text.textContent=ans.slice(0,n);}}
       b.a.classList.toggle('done',p>=1);
       b.a.style.setProperty('--p',p.toFixed(3));
     }
