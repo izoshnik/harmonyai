@@ -1,4 +1,5 @@
 import { hasProAccess, requireUser } from '../lib/auth.js';
+import { buildMusicTheoryContext } from '../lib/music-theory-router.js';
 export const config = {
   maxDuration: 300
 };
@@ -161,6 +162,28 @@ function adanChain() {
   const all = adanModels();
   const live = all.filter(m => !isModelExhausted(m));
   return live.length ? live : all; // если «кончились» все — всё равно пробуем по кругу
+}
+/* Фото на Free: первая модель цепочки (glm-flash) картинки не видит и честно
+   отвечала «я не вижу изображение». Если в последнем сообщении пользователя есть
+   фото — сначала идут мультимодальные модели (ADAN_VISION_MODELS, через запятую),
+   остальные остаются запасными в конце цепочки. */
+const ADAN_VISION_DEFAULT = ['free-gemini-3.8-flash', 'free-gpt-6-astra', 'free-claude-opus-5.5'];
+function adanVisionModels() {
+  const fromEnv = readEnv('ADAN_VISION_MODELS').split(',').map(x => x.trim()).filter(Boolean);
+  return fromEnv.length ? fromEnv : ADAN_VISION_DEFAULT;
+}
+function lastUserHasImage(messages) {
+  const list = Array.isArray(messages) ? messages : [];
+  for (let i = list.length - 1; i >= 0; i--) {
+    const m = list[i];
+    if (!m || m.role !== 'user') continue;
+    return Array.isArray(m.content) && m.content.some((p) => p && p.type === 'image_url');
+  }
+  return false;
+}
+function visionFirst(chain) {
+  const vision = adanVisionModels().filter((m) => !isModelExhausted(m));
+  return Array.from(new Set(vision.concat(chain)));
 }
 function nextAdanModel(current) {
   const chain = adanChain().filter(m => m !== current);
@@ -1575,11 +1598,11 @@ async function streamOpenAIToClientInner(res, apiKey, modelName, messages, timeo
 function isProRole(profile){return hasProAccess(profile);
 }
 
-function selectRoute(profile, requestedModel) {
+function selectRoute(profile, requestedModel, messages) {
   const wantsPro = requestedModel === 'pro';
   // Если запрошена Pro-модель, но роль не Pro — тихо откатываемся на Adanatos.
   const allowedPro = wantsPro && isProRole(profile);
-  const modelChain = allowedPro ? MODEL_CHAINS.dynatos : adanChain();
+  const modelChain = allowedPro ? MODEL_CHAINS.dynatos : (lastUserHasImage(messages) ? visionFirst(adanChain()) : adanChain());
 
   return {
     provider: 'openai',
@@ -1803,7 +1826,7 @@ export default async function handler(req, res) {
 
     await maybeSaveDeveloperNote(profile, query, Boolean(trainingMode));
 
-    const route = selectRoute(profile, model);
+    const route = selectRoute(profile, model, messages);
     const systemText = messages.find(m => m.role === 'system')?.content || '';
     // Определяем размер контекста — если в чате есть большой документ, нужны увеличенные таймауты
     const totalContextChars = messages.reduce((sum, m) => {
@@ -1900,6 +1923,8 @@ export default async function handler(req, res) {
     const mergedSystem = appendServerContext(HM_GUARD_SYSTEM + '\n\n' + systemText, [
       jailbreakHit ? HM_GUARD_REMINDER : '',
       buildCurrentDateTimeContext(),
+      // Музыкальное ядро: точный расчёт нот/интервалов/аккордов по вопросу (см. lib/music-theory.js).
+      buildMusicTheoryContext(query),
       profile ? `Профиль пользователя: role=${profile.role || 'user'}, plan=${profile.plan || 'free'}` : '',
       think ? buildThinkInstruction() : '',
       buildMemoryContext(memories, query),
