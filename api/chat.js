@@ -1,4 +1,5 @@
 import { hasProAccess, requireUser } from '../lib/auth.js';
+import { buildMusicTheoryContext } from '../lib/music-theory-router.js';
 export const config = {
   maxDuration: 300
 };
@@ -161,6 +162,28 @@ function adanChain() {
   const all = adanModels();
   const live = all.filter(m => !isModelExhausted(m));
   return live.length ? live : all; // если «кончились» все — всё равно пробуем по кругу
+}
+/* Фото на Free: первая модель цепочки (glm-flash) картинки не видит и честно
+   отвечала «я не вижу изображение». Если в последнем сообщении пользователя есть
+   фото — сначала идут мультимодальные модели (ADAN_VISION_MODELS, через запятую),
+   остальные остаются запасными в конце цепочки. */
+const ADAN_VISION_DEFAULT = ['free-gemini-3.8-flash', 'free-gpt-6-astra', 'free-claude-opus-5.5'];
+function adanVisionModels() {
+  const fromEnv = readEnv('ADAN_VISION_MODELS').split(',').map(x => x.trim()).filter(Boolean);
+  return fromEnv.length ? fromEnv : ADAN_VISION_DEFAULT;
+}
+function lastUserHasImage(messages) {
+  const list = Array.isArray(messages) ? messages : [];
+  for (let i = list.length - 1; i >= 0; i--) {
+    const m = list[i];
+    if (!m || m.role !== 'user') continue;
+    return Array.isArray(m.content) && m.content.some((p) => p && p.type === 'image_url');
+  }
+  return false;
+}
+function visionFirst(chain) {
+  const vision = adanVisionModels().filter((m) => !isModelExhausted(m));
+  return Array.from(new Set(vision.concat(chain)));
 }
 function nextAdanModel(current) {
   const chain = adanChain().filter(m => m !== current);
@@ -1490,13 +1513,14 @@ async function streamOpenAIToClientInner(res, apiKey, modelName, messages, timeo
     } catch (fallbackErr) {
       // игнорируем — ниже вернём стандартную ошибку, дадим шанс следующей модели в цепочке
     }
-    if (headersSent) {
-      endReasoning();
-      writeSseEvent(res, { type: 'error', message: 'Потоковый ответ прервался слишком рано. Попробуйте ещё раз.' });
-      res.end();
-    }
+    /* Поток НЕ закрываем: обработчик попробует следующую модель цепочки в том же
+       SSE-ответе. Раньше здесь уходил {type:'error'} и res.end(), а следующая
+       модель писала уже в закрытый ответ — пользователь видел «ответ прервался»,
+       хотя запасная модель работала. Ошибку клиенту отправляет обработчик,
+       когда кончатся все модели (см. failRequest в handler). */
     return {
       ok: false,
+      headersSent,
       status: 504,
       message: `Потоковый ответ прервался слишком рано для модели ${modelName}`,
       model: modelName
@@ -1574,11 +1598,11 @@ async function streamOpenAIToClientInner(res, apiKey, modelName, messages, timeo
 function isProRole(profile){return hasProAccess(profile);
 }
 
-function selectRoute(profile, requestedModel) {
+function selectRoute(profile, requestedModel, messages) {
   const wantsPro = requestedModel === 'pro';
   // Если запрошена Pro-модель, но роль не Pro — тихо откатываемся на Adanatos.
   const allowedPro = wantsPro && isProRole(profile);
-  const modelChain = allowedPro ? MODEL_CHAINS.dynatos : adanChain();
+  const modelChain = allowedPro ? MODEL_CHAINS.dynatos : (lastUserHasImage(messages) ? visionFirst(adanChain()) : adanChain());
 
   return {
     provider: 'openai',
@@ -1752,7 +1776,7 @@ export default async function handler(req, res) {
     if (!isProRole(profile) && model === 'pro') model = 'lite';
     // Единый параметр: low | medium | max | extra (старые high/ultra отображаются на max/extra).
     effort = normalizeEffort(effort);
-    think = isProRole(profile)&&Boolean(think);
+    think = Boolean(think); // «Думать» — для всех тарифов (см. карту проекта: Adan «Думать» — да)
     if(!isProRole(profile)&&['max','extra'].includes(effort))effort='medium';
     const query = lastUserText(messages);
     const isQuick = isSimpleQuery(query);
@@ -1802,7 +1826,7 @@ export default async function handler(req, res) {
 
     await maybeSaveDeveloperNote(profile, query, Boolean(trainingMode));
 
-    const route = selectRoute(profile, model);
+    const route = selectRoute(profile, model, messages);
     const systemText = messages.find(m => m.role === 'system')?.content || '';
     // Определяем размер контекста — если в чате есть большой документ, нужны увеличенные таймауты
     const totalContextChars = messages.reduce((sum, m) => {
@@ -1899,6 +1923,8 @@ export default async function handler(req, res) {
     const mergedSystem = appendServerContext(HM_GUARD_SYSTEM + '\n\n' + systemText, [
       jailbreakHit ? HM_GUARD_REMINDER : '',
       buildCurrentDateTimeContext(),
+      // Музыкальное ядро: точный расчёт нот/интервалов/аккордов по вопросу (см. lib/music-theory.js).
+      buildMusicTheoryContext(query),
       profile ? `Профиль пользователя: role=${profile.role || 'user'}, plan=${profile.plan || 'free'}` : '',
       think ? buildThinkInstruction() : '',
       buildMemoryContext(memories, query),
@@ -1911,7 +1937,23 @@ export default async function handler(req, res) {
     let lastError = null;
 
     // Оценка токенов запроса — для серверного учёта использования (записывается при успешном ответе).
-    const promptTokens = estimateTokensFromMessages(mapMessagesForOpenAI(messages, mergedSystem));
+    // Системные инструкции сервиса (≈2 000 токенов на каждый запрос) в лимит пользователя
+    // не засчитываем — это наши накладные расходы, а не его сообщения.
+    const promptTokens = estimateTokensFromMessages(messages.filter((m) => m && m.role !== 'system'));
+
+    // Открыт ли уже SSE-поток клиенту (поиск или первая модель цепочки).
+    // Если открыт — ошибки отдаём событием {type:'error'}, а не JSON-ом.
+    let sseOpen = webHeadersSent;
+    const failRequest = (status, message) => {
+      if (sseOpen || res.headersSent) {
+        if (!res.writableEnded) {
+          writeSseEvent(res, { type: 'error', message, status });
+          res.end();
+        }
+        return;
+      }
+      return res.status(status).json({ error: { message, status } });
+    };
 
     if (route.provider === 'openai') {
       const limitNote = allowance.low ? `
@@ -1939,9 +1981,12 @@ export default async function handler(req, res) {
          размышлений, не увеличив при этом усилие модели, — это и есть тот самый
          визуальный эффект без содержания. */
       const reasoningParam = reasoningParamFor(think ? floorEffort(effort, 'medium') : effort);
-      for (const modelName of route.models) {
+      for (let mi = 0; mi < route.models.length; mi++) {
+        const modelName = route.models[mi];
+        const hasNextModel = mi < route.models.length - 1;
         if (stream) {
-          const streamResult = await streamOpenAIToClient(res, route.apiKey, modelName, openAiMessages, modelTimeoutMs, query, isLargeContext, Boolean(think), maxTokens, webHeadersSent, reasoningParam);
+          const streamResult = await streamOpenAIToClient(res, route.apiKey, modelName, openAiMessages, modelTimeoutMs, query, isLargeContext, Boolean(think), maxTokens, sseOpen, reasoningParam);
+          if (streamResult.headersSent) sseOpen = true;
           if (streamResult.ok) {
             const replyTokens = Math.max(1, Math.ceil(String(streamResult.text || '').length / 4));
             await insertUsageEvent(userId, model, promptTokens + replyTokens, 1);
@@ -1959,13 +2004,10 @@ export default async function handler(req, res) {
             lastError.unavailable = true;
             continue;
           }
-          if (isQuotaExceeded(lastError.status, errorMessage)) {
-            return res.status(429).json({
-              error: {
-                message: formatQuotaErrorMessage(errorMessage, modelName),
-                status: lastError.status || 429
-              }
-            });
+          if (isQuotaExceeded(lastError.status, errorMessage) || (isTokenatorModel(modelName) && looksLikeLimit(lastError.status, errorMessage))) {
+            // Adan: квота одной модели — не повод отказывать, у цепочки есть следующие.
+            if (isTokenatorModel(modelName) && hasNextModel) { lastError.quota = true; continue; }
+            return failRequest(429, formatQuotaErrorMessage(errorMessage, modelName));
           }
           if (isOverloaded(lastError.status, errorMessage)) {
             await sleep(800);
@@ -1982,13 +2024,9 @@ export default async function handler(req, res) {
             lastError.unavailable = true;
             continue;
           }
-          if (isQuotaExceeded(response.status, errorMessage)) {
-            return res.status(429).json({
-              error: {
-                message: formatQuotaErrorMessage(errorMessage, modelName),
-                status: response.status || 429
-              }
-            });
+          if (isQuotaExceeded(response.status, errorMessage) || (isTokenatorModel(modelName) && looksLikeLimit(response.status, errorMessage))) {
+            if (isTokenatorModel(modelName) && hasNextModel) { lastError.quota = true; continue; }
+            return failRequest(429, formatQuotaErrorMessage(errorMessage, modelName));
           }
           if (isOverloaded(response.status, errorMessage)) await sleep(800);
           continue;
@@ -2012,48 +2050,21 @@ export default async function handler(req, res) {
 
     if (route.provider === 'openai') {
       if (lastError && lastError.unavailable) {
-        return res.status(503).json({
-          error: {
-            message: 'Выбранная модель временно недоступна. Попробуйте другую модель или повторите позже.',
-            status: 503
-          }
-        });
+        return failRequest(503, 'Выбранная модель временно недоступна. Попробуйте другую модель или повторите позже.');
       }
-      if (lastError && isQuotaExceeded(lastError.status, lastError.message)) {
-        return res.status(429).json({
-          error: {
-            message: formatQuotaErrorMessage(lastError.message, lastError.model),
-            status: lastError.status || 429
-          }
-        });
+      if (lastError && (lastError.quota || isQuotaExceeded(lastError.status, lastError.message))) {
+        return failRequest(429, formatQuotaErrorMessage(lastError.message, lastError.model));
       }
-
       if (lastError && isOverloaded(lastError.status, lastError.message)) {
         console.error(`[harmonyai] overloaded | model=${lastError.model || ''} | reason=${compactErrorValue(lastError.message, 500)}`);
-        return res.status(503).json({
-          error: {
-            message: 'Сейчас высокая нагрузка на сервис. Попробуйте повторить запрос через минуту.',
-            status: lastError.status || 503
-          }
-        });
+        return failRequest(503, 'Сейчас высокая нагрузка на сервис. Попробуйте повторить запрос через минуту.');
       }
-
       if (lastError && isTimeoutError(lastError.message)) {
         console.error(`[harmonyai] timeout | model=${lastError.model || ''} | reason=${compactErrorValue(lastError.message, 500)}`);
-        return res.status(504).json({
-          error: {
-            message: 'Модель отвечает слишком долго. Попробуйте ещё раз или отключите сложный режим.',
-            status: 504
-          }
-        });
+        return failRequest(504, 'Модель отвечает слишком долго. Попробуйте ещё раз или отключите сложный режим.');
       }
-
       console.error(`[harmonyai] request failed | model=${lastError?.model || ''} | reason=${compactErrorValue(lastError?.message, 500)}`);
-      return res.status(lastError?.status || 500).json({
-        error: {
-          message: 'Не удалось получить ответ от модели. Попробуйте ещё раз.'
-        }
-      });
+      return failRequest(lastError?.status && lastError.status >= 400 ? lastError.status : 500, 'Не удалось получить ответ от модели. Попробуйте ещё раз.');
     }
 
     return res.status(500).json({
@@ -2062,6 +2073,11 @@ export default async function handler(req, res) {
       }
     });
   } catch (error) {
+    console.error('[harmonyai] handler error:', compactErrorValue(error?.message, 500));
+    if (res.headersSent) {
+      try { if (!res.writableEnded) { writeSseEvent(res, { type: 'error', message: 'Внутренняя ошибка сервера. Попробуйте ещё раз.' }); res.end(); } } catch (e) {}
+      return;
+    }
     return res.status(500).json({
       error: {
         message: error?.message || 'Внутренняя ошибка сервера'
