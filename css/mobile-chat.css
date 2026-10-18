@@ -121,8 +121,12 @@
     background:var(--mc-accent)!important;color:var(--mc-accent-ink)!important;border:0!important;box-shadow:none!important;
   }
   html body .input-box:has(#msgTa:not(:placeholder-shown)) #sendBtn,
+  html body .input-box.has-attachments #sendBtn,
+  html body .input-box #sendBtn.is-continue,
   html body .input-box #sendBtn.is-stop{display:flex!important;align-items:center;justify-content:center;}
   html body .input-box:has(#msgTa:not(:placeholder-shown)) .mic-btn,
+  html body .input-box.has-attachments .mic-btn,
+  html body .input-box:has(.send-btn.is-continue) .mic-btn,
   html body .input-box:has(.send-btn.is-stop) .mic-btn{display:none!important;}
 
   /* Ответы и сообщения — цвета темы, чтобы на светлых темах текст был виден */
