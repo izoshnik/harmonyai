@@ -132,3 +132,86 @@ test('роутер распознаёт вопросы учеников', () => 
   assert.equal(buildMusicTheoryContext('какой твой любимый композитор?'), '');
   assert.match(buildMusicTheoryContext('D7 в соль мажоре'), /```abc/);
 });
+
+/* ---------- II7, VII7, DD7, N6, K64, прерванный оборот ---------- */
+const paths = (key, code) => {
+  const r = M.buildChordInKey(key, code);
+  return Object.fromEntries(r.resolutions.map((p) => [p.label, p.steps.map((s) => `${names(s.to)} [${s.result}]`).join(' → ')]));
+};
+
+test('II7 и обращения: построение в мажоре и миноре', () => {
+  assert.equal(names(M.buildChordInKey(k(0, 0, 'major'), 'II7').notes), 'Ре Фа Ля До');
+  assert.equal(names(M.buildChordInKey(k(0, 0, 'major'), 'II65').notes), 'Фа Ля До Ре');
+  assert.equal(names(M.buildChordInKey(k(0, 0, 'major'), 'II43').notes), 'Ля До Ре Фа');
+  assert.equal(names(M.buildChordInKey(k(5, 0, 'minor'), 'II7').notes), 'Си Ре Фа Ля');
+  assert.match(M.buildChordInKey(k(5, 0, 'minor'), 'II7').quality, /малый уменьшённый/);
+});
+
+test('II7: разрешение через доминанту (II7→D43, II65→D2, II43→D7, II2→D65) и дальше в T', () => {
+  for (const key of [k(0, 0, 'major'), k(5, 0, 'minor'), k(1, 0, 'major'), k(4, 0, 'minor'), k(2, -1, 'major')]) {
+    const via = (code) => M.buildChordInKey(key, code).resolutions.find((p) => p.label === 'через доминанту').steps.map((s) => s.result);
+    assert.deepEqual(via('II7'), ['D43', 'T53 с удвоенным основным тоном']);
+    assert.deepEqual(via('II65'), ['D2', 'T6 с удвоенным основным тоном']);
+    assert.deepEqual(via('II43'), ['D7', 'неполное T53 с утроенным основным тоном']);
+    assert.deepEqual(via('II2'), ['D65', 'T53 с удвоенным основным тоном']);
+  }
+  assert.equal(paths(k(5, 0, 'minor'), 'II7')['через доминанту'], 'Си Ре Ми Соль-диез [D43] → Ля До Ми Ля [T53 с удвоенным основным тоном]');
+});
+
+test('II7: прямое разрешение в тонику', () => {
+  const p = (code) => paths(k(0, 0, 'major'), code)['прямо в тонику'];
+  assert.equal(p('II7'), 'Ми Ми Соль До [T6 с удвоенным терцовым тоном]');
+  assert.equal(p('II65'), 'Ми Соль До До [T6 с удвоенным основным тоном]');
+  assert.equal(p('II43'), 'Соль До До Ми [T64 с удвоенным основным тоном]');
+  assert.equal(p('II2'), 'До До Ми Соль [T53 с удвоенным основным тоном]');
+});
+
+test('VII7 и обращения: в тонику с удвоенной терцией и через доминанту', () => {
+  for (const key of [k(0, 0, 'major'), k(5, 0, 'minor'), k(3, 1, 'minor')]) {
+    const r = (code, label) => M.buildChordInKey(key, code).resolutions.find((p) => p.label === label).steps.map((s) => s.result).join(' → ');
+    assert.equal(r('VII7', 'в тонику'), 'T53 с удвоенным терцовым тоном');
+    assert.equal(r('VII65', 'в тонику'), 'T6 с удвоенным терцовым тоном');
+    assert.equal(r('VII43', 'в тонику'), 'T6 с удвоенным терцовым тоном');
+    assert.equal(r('VII2', 'в тонику'), 'T64 с удвоенным терцовым тоном');
+    assert.match(r('VII7', 'через доминанту'), /^D65 → /);
+    assert.match(r('VII65', 'через доминанту'), /^D43 → /);
+    assert.match(r('VII43', 'через доминанту'), /^D2 → /);
+    assert.match(r('VII2', 'через доминанту'), /^D7 → /);
+  }
+  assert.equal(names(M.buildChordInKey(k(5, 0, 'minor'), 'VII7').notes), 'Соль-диез Си Ре Фа');
+});
+
+test('D7: прерванный оборот в VI', () => {
+  assert.equal(paths(k(0, 0, 'major'), 'D7')['прерванный оборот (в VI)'], 'Ля До До Ми [VI53 с удвоенным терцовым тоном]');
+  assert.equal(paths(k(5, 0, 'minor'), 'D7')['прерванный оборот (в VI)'], 'Фа Ля Ля До [VI53 с удвоенным терцовым тоном]');
+});
+
+test('DD7 и обращения — двойная доминанта', () => {
+  assert.equal(names(M.buildChordInKey(k(0, 0, 'major'), 'DD7').notes), 'Ре Фа-диез Ля До');
+  assert.equal(names(M.buildChordInKey(k(5, 0, 'minor'), 'DD7').notes), 'Си Ре-диез Фа-диез Ля');
+  assert.equal(names(M.buildChordInKey(k(4, 0, 'minor'), 'ДД65').notes), 'До-диез Ми Соль Ля');
+  const r = (code) => paths(k(0, 0, 'major'), code)['в доминанту'];
+  assert.equal(r('DD7'), 'Соль Соль Соль Си [неполное D53 с утроенным основным тоном]');
+  assert.equal(r('DD65'), 'Соль Соль Си Ре [D53 с удвоенным основным тоном]');
+  assert.equal(r('DD43'), 'Соль Си Ре Соль [D53 с удвоенным основным тоном]');
+  assert.equal(r('DD2'), 'Си Ре Соль Соль [D6 с удвоенным основным тоном]');
+});
+
+test('N6 и K64', () => {
+  assert.equal(names(M.buildChordInKey(k(0, 0, 'major'), 'N6').notes), 'Фа Ля-бемоль Ре-бемоль');
+  assert.equal(names(M.buildChordInKey(k(2, 0, 'minor'), 'N6').notes), 'Ля До Фа');
+  assert.match(paths(k(0, 0, 'major'), 'N6')['в доминанту'], /^Соль Соль Си /);
+  assert.equal(names(M.buildChordInKey(k(5, 0, 'minor'), 'K64').notes), 'Ми Ля До');
+  assert.equal(paths(k(5, 0, 'minor'), 'K64')['в доминанту (каданс)'], 'Ми Соль-диез Си [D53]');
+});
+
+test('роутер: II7 с обращениями, DD7, N6', () => {
+  const t = (q) => analyzeMusicQuery(q).tasks.map((x) => x.text).join('\n');
+  const ii = t('II7 и его обращения в ре мажоре');
+  assert.match(ii, /II2 в Ре мажоре/);
+  assert.match(ii, /через доминанту/);
+  assert.match(ii, /прямо в тонику/);
+  assert.match(t('ДД7 в соль миноре'), /Ля — До-диез — Ми — Соль/);
+  assert.match(t('неаполитанский секстаккорд в ми миноре'), /Ля — До — Фа/);
+  assert.match(buildMusicTheoryContext('D7 в до мажоре'), /Не пересчитывай его заново/);
+});

@@ -1,5 +1,6 @@
 import { hasProAccess, requireUser } from '../lib/auth.js';
 import { buildMusicTheoryContext } from '../lib/music-theory-router.js';
+import { applyDevAccountProfile } from '../lib/dev-account.js';
 export const config = {
   maxDuration: 300
 };
@@ -335,6 +336,65 @@ async function supabaseRequest(path, init = {}) {
   return data;
 }
 
+/* ===== Кэш в памяти функции (как cacheGet/cacheSet в lib/auth.js) =====
+   Профиль и глобальная база знаний меняются редко, а читались на КАЖДОЕ
+   сообщение. TTL короткий: смена тарифа/роли видна максимум через минуту. */
+const PROFILE_TTL_MS = 60 * 1000;
+const GLOBAL_KNOWLEDGE_TTL_MS = 120 * 1000;
+const _memCache = new Map(); // key → { at, ttl, value }
+function memGet(key) {
+  const rec = _memCache.get(key);
+  if (!rec) return undefined;
+  if (Date.now() - rec.at > rec.ttl) { _memCache.delete(key); return undefined; }
+  return rec.value;
+}
+function memSet(key, value, ttl) {
+  if (_memCache.size > 800) {
+    const now = Date.now();
+    for (const [k, v] of _memCache) if (now - v.at > v.ttl) _memCache.delete(k);
+    if (_memCache.size > 800) _memCache.delete(_memCache.keys().next().value);
+  }
+  _memCache.set(key, { at: Date.now(), ttl, value });
+}
+/* Один сетевой запрос на ключ, даже если параллельно пришло несколько сообщений. */
+const _inflight = new Map();
+function cachedLoad(key, ttl, loader) {
+  const hit = memGet(key);
+  if (hit !== undefined) return Promise.resolve(hit);
+  if (_inflight.has(key)) return _inflight.get(key);
+  const p = Promise.resolve().then(loader).then((value) => { memSet(key, value, ttl); return value; })
+    .finally(() => _inflight.delete(key));
+  _inflight.set(key, p);
+  return p;
+}
+
+async function fetchProfileCached(userId) {
+  if (!userId) return null;
+  return cachedLoad('profile:' + userId, PROFILE_TTL_MS, () => fetchProfile(userId));
+}
+
+/* Глобальная база знаний (учебники, загруженные в режиме обучения) — общая для всех,
+   поэтому кэшируется целиком: документы + их чанки. */
+async function fetchGlobalKnowledgeCached() {
+  return cachedLoad('knowledge:global', GLOBAL_KNOWLEDGE_TTL_MS, async () => {
+    const documents = await supabaseRequest(
+      `/rest/v1/knowledge_documents?select=id,title,scope,source_type,owner_user_id,created_at,chunk_count,is_active&is_active=eq.true&scope=eq.global&order=created_at.desc&limit=500`
+    ) || [];
+    const chunks = documents.length ? (await fetchChunksForDocuments(documents.map((d) => d.id)) || []) : [];
+    return { documents, chunks };
+  });
+}
+
+/* Личные документы пользователя — без кэша (их видит только владелец). */
+async function fetchUserKnowledge(userId) {
+  if (!userId) return { documents: [], chunks: [] };
+  const documents = await supabaseRequest(
+    `/rest/v1/knowledge_documents?select=id,title,scope,source_type,owner_user_id,created_at,chunk_count,is_active&is_active=eq.true&scope=eq.user&owner_user_id=eq.${encodeURIComponent(userId)}&order=created_at.desc&limit=200`
+  ) || [];
+  const chunks = documents.length ? (await fetchChunksForDocuments(documents.map((d) => d.id)) || []) : [];
+  return { documents, chunks };
+}
+
 async function fetchProfile(userId) {
   if (!userId) return null;
   const rows = await supabaseRequest(
@@ -376,21 +436,44 @@ async function fetchFeedback(userId) {
   );
 }
 
-function scoreText(queryTokens, text) {
+/* Музыкальные обозначения (II7, D65, Д65, K64, DD7, умVII7, T6, S64 …) — в общий вид:
+   кириллица → латиница, без пробелов. Обычный tokenize их теряет (короче 3 символов
+   или «II 7» раздельно), поэтому для них отдельный точный бустинг. */
+const MUSIC_CODE_RE = /(?:^|[^A-Za-zА-Яа-яЁё])((?:ум|ув|м)?(?:DD|ДД|VII|VI|IV|III|II|V|[TSDKNТСДК])\s?(?:53|64|65|43|6|7|2))(?!\d)/g;
+function normalizeMusicCode(code) {
+  return String(code).replace(/\s+/g, '').replace(/Д/g, 'D').replace(/Т/g, 'T').replace(/С/g, 'S').replace(/К/g, 'K').replace(/^м(?=VII)/, '').toUpperCase().replace(/^УМ/, 'ум').replace(/^УВ/, 'ув');
+}
+function extractMusicCodes(text) {
+  const out = new Set();
+  for (const m of String(text || '').matchAll(MUSIC_CODE_RE)) out.add(normalizeMusicCode(m[1]));
+  const low = String(text || '').toLowerCase();
+  if (/кадансов/.test(low)) out.add('K64');
+  if (/неаполитанск/.test(low)) out.add('N6');
+  if (/двойн\S*\s+доминант/.test(low)) out.add('DD7');
+  return [...out];
+}
+function scoreText(queryTokens, text, queryCodes = []) {
   const low = String(text || '').toLowerCase();
   let score = 0;
   for (const token of queryTokens) {
     if (low.includes(token)) score += token.length > 5 ? 3 : 2;
   }
+  if (queryCodes.length) {
+    const codes = new Set(extractMusicCodes(text));
+    for (const c of queryCodes) if (codes.has(c)) score += 12;
+  }
   return score;
 }
 
-function selectTopItems(items, pickText, queryText, limit = 50, maxChars = 300000) {
+function selectTopItems(items, pickText, queryText, limit = 50, maxChars = 300000, bonus = null) {
   const tokens = tokenize(queryText);
+  const codes = extractMusicCodes(queryText);
   const scored = items
     .map((item) => {
       const text = pickText(item);
-      return { item, text, score: scoreText(tokens, text) };
+      let score = scoreText(tokens, text, codes);
+      if (score > 0 && bonus) score += bonus(item);
+      return { item, text, score };
     })
     .filter((entry) => entry.text && (entry.score > 0 || tokens.length === 0))
     .sort((a, b) => b.score - a.score);
@@ -406,15 +489,21 @@ function selectTopItems(items, pickText, queryText, limit = 50, maxChars = 30000
   return selected;
 }
 
-function buildKnowledgeContext(documents, chunks, query) {
+/* deep=false — обычный вопрос: несколько самых точных фрагментов (быстро и дёшево).
+   deep=true — «Думать»/max/обучение/личный контекст: прежний большой объём.
+   Правила, выжатые из учебников (source_type=textbook_rules), идут первыми. */
+function buildKnowledgeContext(documents, chunks, query, { deep = true } = {}) {
   if (!documents.length || !chunks.length) return '';
   const docMap = new Map(documents.map((doc) => [doc.id, doc]));
   const items = chunks
     .map((chunk) => ({ ...chunk, document: docMap.get(chunk.document_id) }))
     .filter((row) => row.document);
-  const picked = selectTopItems(items, (item) => item.content, query, 80, 350000);
+  const bonus = (item) => (item.document.source_type === 'textbook_rules' ? 8 : item.document.source_type === 'textbook' ? 3 : 0);
+  const picked = deep
+    ? selectTopItems(items, (item) => item.content, query, 80, 350000, bonus)
+    : selectTopItems(items, (item) => item.content, query, 8, 24000, bonus);
   if (!picked.length) return '';
-  return '\nБАЗА ЗНАНИЙ:\n' + picked
+  return '\nБАЗА ЗНАНИЙ (учебники и материалы, загруженные преподавателями; правила учебника важнее общих знаний):\n' + picked
     .map((item, index) => `[Источник ${index + 1}: ${item.document.title}]\n${item.content}`)
     .join('\n\n');
 }
@@ -453,6 +542,18 @@ function isSimpleQuery(query = '') {
     return true;
   }
   return false;
+}
+
+/* Короткий вопрос «что такое…/как называется…» без вложений и без просьбы
+   разобрать подробно — отвечается без скрытых рассуждений. */
+function isShortFactualQuery(query = '', messages = []) {
+  const clean = normalizeText(query).toLowerCase();
+  if (!clean || clean.length > 90) return false;
+  const last = [...(messages || [])].reverse().find((m) => m && m.role === 'user');
+  if (last && Array.isArray(last.content)) return false; // фото/файлы — не быстрый путь
+  if (/\[ФАЙЛ \d+:/.test(String(query))) return false;
+  if (/(подробн|разбер|объясни|сравни|почему|докажи|проанализ|напиши|сочини|составь|создай|сгенерируй|придумай|реши|посчитай|код|html|скрипт|программ|план|эссе|сочинени|реферат|перевед)/.test(clean)) return false;
+  return /^(что\s+(такое|значит|означает)|кто\s+(такой|такая|написал|сочинил)|как\s+называется|сколько\s+|какой\s+|какая\s+|какие\s+|когда\s+(родился|жил|написан)|чем\s+отличается)/.test(clean) || clean.split(' ').length <= 6;
 }
 
 // Определяет, нужен ли запросу персональный контекст пользователя:
@@ -1770,24 +1871,63 @@ export default async function handler(req, res) {
     const authedUser=await requireUser(req,res);if(!authedUser)return;
     userId=authedUser.id;
 
-    const profile = await fetchProfile(userId);
-    // Max и «Думать» разрешены всем. Только Dynatos остаётся серверно защищённым.
-    // Прямой запрос model:'pro' от FREE не получает платную модель.
-    if (!isProRole(profile) && model === 'pro') model = 'lite';
-    // Единый параметр: low | medium | max | extra (старые high/ultra отображаются на max/extra).
-    effort = normalizeEffort(effort);
-    think = Boolean(think); // «Думать» — для всех тарифов (см. карту проекта: Adan «Думать» — да)
-    if(!isProRole(profile)&&['max','extra'].includes(effort))effort='medium';
     const query = lastUserText(messages);
     const isQuick = isSimpleQuery(query);
     const wantsContext = needsPersonalContext(query, messages);
+    think = Boolean(think); // «Думать» — для всех тарифов (см. карту проекта: Adan «Думать» — да)
+    effort = normalizeEffort(effort);
+
+    /* Музыкальное ядро считается синхронно и без сети — сразу знаем, вопрос ли
+       это по теории и решён ли он точным расчётом. */
+    const musicContext = buildMusicTheoryContext(query);
+    const isTheoryQuestion = Boolean(musicContext);
+    const theoryResolved = musicContext.includes('РАСЧЁТ:');
+
+    /* ВСЕ запросы к Supabase — параллельно (раньше шли цепочкой: профиль →
+       лимиты → документы → чанки). Профиль и глобальная база знаний — из кэша.
+       Глобальные учебники нужны и на обычные вопросы по теории музыки, а личные
+       документы/память — только когда вопрос касается самого пользователя. */
+    const needPersonal = wantsContext || think || isDeepEffort(effort) || Boolean(trainingMode);
+    const needGlobal = needPersonal || isTheoryQuestion;
+    const profileP = fetchProfileCached(userId);
+    const settled = await Promise.allSettled([
+      profileP,
+      profileP.catch(() => null).then((p) => checkUsageAllowance(userId, p, (!isProRole(p) && model === 'pro') ? 'lite' : model)),
+      needGlobal ? fetchGlobalKnowledgeCached() : null,
+      needPersonal ? fetchUserKnowledge(userId) : null,
+      needPersonal ? fetchUserMemories(userId) : null,
+      needGlobal ? fetchFeedback(userId) : null
+    ]);
+    const val = (i, fallback) => (settled[i].status === 'fulfilled' && settled[i].value != null ? settled[i].value : fallback);
+    if (settled[0].status === 'rejected') console.warn('[harmonyai] profile fetch failed:', compactErrorValue(settled[0].reason?.message, 200));
+    let profile = val(0, null);
+    // Особый аккаунт разработчика (см. lib/dev-account.js): Pro + admin на сервере.
+    profile = applyDevAccountProfile(profile, authedUser);
+    const allowance = applyDevAccountProfile.isDev(authedUser) ? { ok: true } : val(1, { ok: true });
+    const globalKnowledge = val(2, { documents: [], chunks: [] });
+    const userKnowledge = val(3, { documents: [], chunks: [] });
+    const documents = [...(globalKnowledge.documents || []), ...(userKnowledge.documents || [])];
+    const chunks = [...(globalKnowledge.chunks || []), ...(userKnowledge.chunks || [])];
+    const memories = val(4, []);
+    const feedbackRows = val(5, []);
+
+    // Max и «Думать» разрешены всем. Только Dynatos остаётся серверно защищённым.
+    // Прямой запрос model:'pro' от FREE не получает платную модель.
+    if (!isProRole(profile) && model === 'pro') model = 'lite';
+    if(!isProRole(profile)&&['max','extra'].includes(effort))effort='medium';
+
+    /* БЫСТРЫЙ ПУТЬ: приветствие, короткий вопрос по термину или задача, уже
+       решённая музыкальным ядром, — без скрытых рассуждений модели, если
+       пользователь сам не включил «Думать». Лимит длины ответа и таймауты НЕ
+       трогаем: ускорение только за счёт reasoning_effort и пропуска поиска. */
+    const fastPath = !think && !trainingMode && (isQuick || theoryResolved || isShortFactualQuery(query, messages));
 
     // РЕШЕНИЕ О ПОИСКЕ В ИНТЕРНЕТЕ: ИИ сама определяет, нужен ли поиск, если webSearch='auto'.
     // Пользователь может принудительно включить ('on') или выключить ('off') через кнопку «Поиск».
-    const shouldSearch = decideWebSearch({ query, searchEnabled: webSearch });
+    let shouldSearch = decideWebSearch({ query, searchEnabled: webSearch });
+    if (shouldSearch && fastPath && webSearch !== 'on' && !isExplicitWebRequest(query)) shouldSearch = false;
 
     // СЕРВЕРНАЯ ПРОВЕРКА ЛИМИТОВ/ЗЛОУПОТРЕБЛЕНИЯ (нельзя обойти через localStorage).
-    const allowance = await checkUsageAllowance(userId, profile, model);
     if (!allowance.ok) {
       return res.status(allowance.status || 429).json({
         error: { message: allowance.message, status: allowance.status || 429, scope: allowance.scope, code: 'limit_reached', resetAt: allowance.resetAt || null }
@@ -1798,33 +1938,8 @@ export default async function handler(req, res) {
       try { res.setHeader('X-HM-Limit-Low', '1'); if (allowance.resetAt) res.setHeader('X-HM-Limit-Reset', allowance.resetAt); } catch (e) {}
     }
 
-    let documents = [];
-    let memories = [];
-    let feedbackRows = [];
-    let chunks = [];
-
-    if (wantsContext || think || isDeepEffort(effort) || trainingMode) {
-      const ownerId = profile?.id || userId || '';
-      // Fetch docs, memories, and feedback in parallel
-      const [docsResult, memoriesResult, feedbackResult] = await Promise.all([
-        fetchAccessibleDocuments(ownerId).catch(() => []),
-        fetchUserMemories(ownerId).catch(() => []),
-        fetchFeedback(ownerId).catch(() => [])
-      ]);
-      documents = docsResult || [];
-      memories = memoriesResult || [];
-      feedbackRows = feedbackResult || [];
-
-      if (documents.length) {
-        chunks = await withTimeout(
-          fetchChunksForDocuments(documents.map((doc) => doc.id)).catch(() => []),
-          8000,
-          'Knowledge chunks request timed out'
-        ).catch(() => []);
-      }
-    }
-
-    await maybeSaveDeveloperNote(profile, query, Boolean(trainingMode));
+    // Пассивное обучение от developer/admin — в фоне, ответ его не ждёт.
+    maybeSaveDeveloperNote(profile, query, Boolean(trainingMode)).catch(() => {});
 
     const route = selectRoute(profile, model, messages);
     const systemText = messages.find(m => m.role === 'system')?.content || '';
@@ -1924,12 +2039,12 @@ export default async function handler(req, res) {
       jailbreakHit ? HM_GUARD_REMINDER : '',
       buildCurrentDateTimeContext(),
       // Музыкальное ядро: точный расчёт нот/интервалов/аккордов по вопросу (см. lib/music-theory.js).
-      buildMusicTheoryContext(query),
+      musicContext,
       profile ? `Профиль пользователя: role=${profile.role || 'user'}, plan=${profile.plan || 'free'}` : '',
       think ? buildThinkInstruction() : '',
       buildMemoryContext(memories, query),
       buildFeedbackContext(feedbackRows, query),
-      buildKnowledgeContext(documents, chunks, query),
+      buildKnowledgeContext(documents, chunks, query, { deep: needPersonal }),
       webContext,
       webSources.length ? buildWebSearchInstruction(webSources) : ''
     ]);
@@ -1980,12 +2095,16 @@ export default async function handler(req, res) {
          Включённое «Думать» поднимает уровень минимум до medium: показывать блок
          размышлений, не увеличив при этом усилие модели, — это и есть тот самый
          визуальный эффект без содержания. */
-      const reasoningParam = reasoningParamFor(think ? floorEffort(effort, 'medium') : effort);
+      const reasoningParam = reasoningParamFor(think ? floorEffort(effort, 'medium') : (fastPath ? 'low' : effort));
+      /* Рассуждающие модели (gpt-5*) без параметра думают на уровне по умолчанию
+         (medium) — на быстром пути явно просим low. Остальным параметр не шлём:
+         лишний 400 и повтор только замедлили бы ответ. */
+      const reasoningFor = (name) => (fastPath && isReasoningModel(name) ? 'low' : reasoningParam);
       for (let mi = 0; mi < route.models.length; mi++) {
         const modelName = route.models[mi];
         const hasNextModel = mi < route.models.length - 1;
         if (stream) {
-          const streamResult = await streamOpenAIToClient(res, route.apiKey, modelName, openAiMessages, modelTimeoutMs, query, isLargeContext, Boolean(think), maxTokens, sseOpen, reasoningParam);
+          const streamResult = await streamOpenAIToClient(res, route.apiKey, modelName, openAiMessages, modelTimeoutMs, query, isLargeContext, Boolean(think), maxTokens, sseOpen, reasoningFor(modelName));
           if (streamResult.headersSent) sseOpen = true;
           if (streamResult.ok) {
             const replyTokens = Math.max(1, Math.ceil(String(streamResult.text || '').length / 4));
@@ -2015,7 +2134,7 @@ export default async function handler(req, res) {
           }
           continue;
         }
-        const { response, data } = await callOpenAI(route.apiKey, modelName, openAiMessages, modelTimeoutMs, maxTokens, reasoningParam);
+        const { response, data } = await callOpenAI(route.apiKey, modelName, openAiMessages, modelTimeoutMs, maxTokens, reasoningFor(modelName));
         const errorMessage = data?.error?.message || '';
         if (!response.ok || data.error) {
           lastError = { status: response.status || 500, message: errorMessage || `Ошибка модели ${modelName}`, model: modelName };

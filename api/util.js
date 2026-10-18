@@ -9,6 +9,8 @@
      /api/music-intent   -> ?op=music-intent
      /api/title          -> ?op=title
      /api/detect-locale  -> ?op=detect-locale
+     ingest-url / ingest-text / ingest-proxy / ingest-distill — загрузка
+     учебников в базу знаний (lib/textbook-ingestor.js, только для персонала)
 
    Старые URL продолжают работать через rewrites в vercel.json, поэтому клиент
    не меняли ни в одном месте. Логика самих классификаторов не изменилась —
@@ -19,19 +21,24 @@
    ============================================================================ */
 
 export const config = {
-  maxDuration: 30
+  maxDuration: 60
 };
 
 import { handler as intentHandler } from '../lib/util-intent.js';
 import { handler as musicIntentHandler } from '../lib/util-music-intent.js';
 import { handler as titleHandler } from '../lib/util-title.js';
 import { handler as detectLocaleHandler } from '../lib/util-detect-locale.js';
+import { handleIngestUrl, handleIngestText, handleIngestProxy, handleIngestDistill } from '../lib/textbook-ingestor.js';
 
 const OPS = {
   'intent': intentHandler,
   'music-intent': musicIntentHandler,
   'title': titleHandler,
-  'detect-locale': detectLocaleHandler
+  'detect-locale': detectLocaleHandler,
+  'ingest-url': handleIngestUrl,
+  'ingest-text': handleIngestText,
+  'ingest-proxy': handleIngestProxy,
+  'ingest-distill': handleIngestDistill
 };
 
 /* Определяем операцию: сначала ?op=, затем — по хвосту пути.

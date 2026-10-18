@@ -1,4 +1,5 @@
 import { handleStats, handleOnboarding, handleTrainingSetting } from '../lib/stats.js';
+import { handleDevInstantLogin } from '../lib/dev-account.js';
 /* ============================================================================
    /api/account — ЛИЧНЫЙ КАБИНЕТ API И ОБЩИЕ ССЫЛКИ НА ЧАТЫ.
 
@@ -422,6 +423,9 @@ export default async function handler(req, res) {
         }
       });
     }
+
+    // Вход аккаунта разработчика по ключу DEV_LOGIN_KEY (см. lib/dev-account.js).
+    if (action === 'dev_instant_login') return await handleDevInstantLogin(req, res, body);
 
     /* ---- Дальше всё требует подтверждённого токена ---- */
     const user = await requireUser(req, res);

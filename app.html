@@ -3402,7 +3402,7 @@ body.hm-dragging #chatInner::after{content:'Отпустите файлы, чт�
                 <svg class="bar-icon-plus mobile-only" width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></svg>
               </button>
             </div>
-            <input type="file" id="fileInp" accept="image/*,.pdf,.md,.markdown,.txt,.docx,.pptx,.xlsx,.xlsm,.zip,.rtf,.tsv,.log,.json,.html,.htm,.css,.js,.jsx,.ts,.tsx,.py,.csv,.xml,.svg,.yml,.yaml,.abc,.musicxml,.sql,.java,.c,.cpp,.cs,.go,.rs,.php,.rb,audio/*,.mp3,.m4a,.aac,.flac,.wav,.ogg" multiple style="display:none" onchange="handleFile(this)" aria-label="Выбрать файл или фотографию">
+            <input type="file" id="fileInp" accept="image/*,.pdf,.md,.markdown,.txt,.docx,.fb2,.pptx,.xlsx,.xlsm,.zip,.rtf,.tsv,.log,.json,.html,.htm,.css,.js,.jsx,.ts,.tsx,.py,.csv,.xml,.svg,.yml,.yaml,.abc,.musicxml,.sql,.java,.c,.cpp,.cs,.go,.rs,.php,.rb,audio/*,.mp3,.m4a,.aac,.flac,.wav,.ogg" multiple style="display:none" onchange="handleFile(this)" aria-label="Выбрать файл или фотографию">
           </div>
           <div class="bar-right">
             <!-- Training pill (shown instead of model pill while in Обучение) -->
@@ -4343,7 +4343,12 @@ function showNotification(id,probability){
  if(!shouldShowNotification(id,probability)||!renderNotification(id))return false;
  promoShown=true;try{const key='hm_promo_'+curUser.id;sessionStorage.setItem(key,'1');localStorage.setItem(key,String(Date.now()));}catch(e){}return true;
 }
-function isDeveloper(){return curUser?.role==='developer';}
+/* Аккаунт разработчика (вход по ключу DEV_LOGIN_KEY, см. lib/dev-account.js).
+   Права выдаёт сервер (profiles: admin + Pro); здесь — только интерфейс. */
+const HM_DEV_EMAIL='devharmonyai0802@dev.dev';
+function isDevAccountEmail(e){return String(e||'').trim().toLowerCase()===HM_DEV_EMAIL;}
+function isDevAccount(){return Boolean(curUser&&isDevAccountEmail(curUser.email));}
+function isDeveloper(){return curUser?.role==='developer'||isDevAccount();}
 /* Отображаемое название подписки по роли пользователя. */
 function subscriptionLabel(){
   const r=curUser?.role;
@@ -4353,12 +4358,13 @@ function subscriptionLabel(){
   if(hasActivePro())return 'Pro';
   return 'Free';
 }
-function hasTrainingAccess(){return Boolean(curUser&&(curUser.role==='developer'||curUser.role==='admin'));}
-function hasModeratorAccess(){return Boolean(curUser&&(curUser.role==='developer'||curUser.role==='moderator'||curUser.role==='admin'));}
+function hasTrainingAccess(){return Boolean(curUser&&(curUser.role==='developer'||curUser.role==='admin'||isDevAccount()));}
+function hasModeratorAccess(){return Boolean(curUser&&(curUser.role==='developer'||curUser.role==='moderator'||curUser.role==='admin'||isDevAccount()));}
 /* Доступ к Pro-функциям — активная Pro-подписка или роль developer/admin/moderator.
    Обычный User видит опции задизейбленными с тултипом «Доступно в Pro». */
 function isProUser(){
   if(!curUser)return false;
+  if(isDevAccount())return true;
   const role=String(curUser.role||'').trim().toLowerCase();
   if(['developer','admin','moderator'].includes(role))return true;
   const plan=String(curUser.plan||'').trim().toLowerCase();
@@ -4593,7 +4599,7 @@ function onboardingScreen(id){
  document.getElementById(id).classList.add('show');requestAnimationFrame(()=>document.querySelector('#'+id+' input,#'+id+' button')?.focus());
 }
 function maybeShowNicknameModal(){if(!curUser?.needsNickname)return false;onboardingScreen('nickOverlay');return true;}
-function surveyNeeded(){return Boolean(curUser?.needsNickname&&!curUser?.settings?.source);}
+function surveyNeeded(){return Boolean(!isDevAccount()&&curUser?.needsNickname&&!curUser?.settings?.source);}
 function maybeShowSurveyModal(){if(!surveyNeeded())return false;onboardingScreen('surveyOverlay');return true;}
 function openSurveyOther(){document.getElementById('surveyOther').hidden=false;document.getElementById('surveyOtherInput').focus();}
 let surveySaving=false;
@@ -4767,11 +4773,59 @@ async function sendOtpVariants(email){
   }
 }
 
+/* Вход аккаунта разработчика: письмо на dev.dev не дойдёт, поэтому вместо кода —
+   ключ DEV_LOGIN_KEY. Ключ спрашивается один раз и запоминается на устройстве,
+   дальше вход мгновенный. Сессия — настоящая сессия Supabase от сервера. */
+async function devInstantLogin(email){
+  const err=document.getElementById('emailErr');
+  const btn=document.getElementById('btnSend');
+  let keyInp=document.getElementById('devKeyInp');
+  let key='';
+  try{key=localStorage.getItem('hm_dev_key')||'';}catch(e){}
+  if(keyInp&&keyInp.value.trim())key=keyInp.value.trim();
+  if(!key){
+    if(!keyInp){
+      keyInp=document.createElement('input');
+      keyInp.className='auth-input';keyInp.id='devKeyInp';keyInp.type='password';
+      keyInp.autocomplete='current-password';keyInp.placeholder='Ключ разработчика';
+      keyInp.setAttribute('aria-label','Ключ разработчика');
+      keyInp.addEventListener('keydown',e=>{if(e.key==='Enter')sendOTP();});
+      document.getElementById('emailInp').insertAdjacentElement('afterend',keyInp);
+    }
+    keyInp.focus();
+    err.textContent='Введите ключ разработчика';err.style.display='block';
+    return;
+  }
+  btn.textContent='Входим...';btn.disabled=true;
+  try{
+    const res=await withTimeout(fetch('/api/account',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'dev_instant_login',email,key})}),20000,'Сервер слишком долго отвечает');
+    let data=null;try{data=await res.json();}catch(e){data=null;}
+    if(!res.ok||!data?.access_token){
+      if(res.status===403){try{localStorage.removeItem('hm_dev_key');}catch(e){}}
+      throw new Error(data?.error?.message||(res.status===404?'Вход разработчика не настроен на сервере (DEV_LOGIN_KEY)':`Не удалось войти (${res.status})`));
+    }
+    try{localStorage.setItem('hm_dev_key',key);}catch(e){}
+    const {data:setData,error:setError}=await withTimeout(sb.auth.setSession({access_token:data.access_token,refresh_token:data.refresh_token}),8000,'Сохранение сессии заняло слишком много времени');
+    if(setError)throw setError;
+    const session=setData?.session||await waitForSession(12000);
+    if(!session)throw new Error('Не удалось завершить вход');
+    keyInp?.remove();
+    beginSignedInState(session);
+  }catch(e){
+    if(authLeaving)return;
+    err.textContent=tErr(e.message);err.style.display='block';
+  }finally{
+    btn.textContent='Получить код';btn.disabled=false;
+  }
+}
+
 async function sendOTP(){
   const email=document.getElementById('emailInp').value.trim();
   const err=document.getElementById('emailErr');
   err.style.display='none';
   if(!isEmail(email)){err.textContent='Введите корректный email';err.style.display='block';return;}
+  if(isDevAccountEmail(email))return devInstantLogin(email.toLowerCase());
+  document.getElementById('devKeyInp')?.remove();
   const btn=document.getElementById('btnSend');
   btn.textContent='Отправляем...';btn.disabled=true;
   const requestNonce=++otpRequestNonce;
@@ -5102,6 +5156,11 @@ async function loadProfile(uid,email){
     const nickname=localNick||remoteNick||email.split('@')[0];
     if(curUser?.id!==uid)return;
     curUser={id:uid,email,nickname,role:String(data?.role||'user').trim().toLowerCase(),plan:data?.plan,plan_expires_at:data?.plan_expires_at,created_at:data?.created_at||null,settings:data?.settings||{},needsNickname:!remoteNick,profileReady:true};
+    if(isDevAccountEmail(email)){
+      if(!['developer','admin'].includes(curUser.role))curUser.role='admin';
+      curUser.plan='pro';curUser.plan_expires_at=null;curUser.needsNickname=false;
+      if(!remoteNick&&!localNick)curUser.nickname='Developer';
+    }
     if(!isProUser()){curModel='lite';if(['max','extra'].includes(curMode))curMode='low';}
     else{
       // Выбор модели переживает перезагрузку. Раньше curModel всегда начинался с 'lite',
@@ -5341,6 +5400,117 @@ function rememberDeveloperMessage(text){
   const clean=normalizeDocText(text);
   if(!hasTrainingAccess()||clean.length<12)return;
   storeKnowledgeDoc(makeKnowledgeDoc('Developer note',clean,'note'),'global');
+}
+/* ===== Учебники по ссылке и файлом (режим «Обучение», lib/textbook-ingestor.js) =====
+   Сервер скачивает FB2/TXT/MD/HTML/DOCX сам; PDF отдаёт байтами частями, его
+   разбирает браузер (parsePdfFile). Затем «Дистиллятор правил» выжимает из глав
+   правила — по 3 главы за запрос, с прогрессом в чате. */
+const HM_URL_RE=/https?:\/\/[^\s<>"'«»]+/gi;
+function hmHasUrl(text){return /https?:\/\/\S+/i.test(String(text||''));}
+async function hmUtil(op,{method='POST',body=null,query=''}={}){
+  const headers=await hmAuthHeaders();
+  const res=await fetch(`/api/util?op=${op}${query}`,{method,headers,body:body?JSON.stringify(body):undefined});
+  if(op==='ingest-proxy'&&res.ok)return res;
+  let data=null;try{data=await res.json();}catch(e){data=null;}
+  if(!res.ok||data?.ok===false)throw new Error(data?.error?.message||`Ошибка сервера (${res.status})`);
+  return data;
+}
+async function hmFetchPdfViaProxy(url,onProgress){
+  const parts=[];let total=0,got=0;
+  for(let part=0;part<20;part++){
+    const res=await hmUtil('ingest-proxy',{method:'GET',query:`&url=${encodeURIComponent(url)}&part=${part}`});
+    const buf=new Uint8Array(await res.arrayBuffer());
+    total=Number(res.headers.get('X-Total-Size'))||total;
+    parts.push(buf);got+=buf.length;
+    onProgress&&onProgress(got,total);
+    if(!buf.length||(total&&got>=total))break;
+  }
+  const all=new Uint8Array(got);let o=0;for(const p of parts){all.set(p,o);o+=p.length;}
+  return all;
+}
+function hmIngestBubble(){
+  let shell=null;
+  return {
+    async set(text){
+      if(!shell){shell=await addAiBubble(text,false,{showActions:false});return;}
+      renderMd(shell.msg,text);
+    },
+    text:''
+  };
+}
+async function hmDistillAll(docId,onProgress){
+  let from=0,rules=0,guard=0;
+  while(from!=null&&guard++<300){
+    const r=await hmUtil('ingest-distill',{body:{docId,from}});
+    rules+=r.rulesAdded||0;
+    onProgress&&onProgress(r,rules);
+    from=r.next;
+  }
+  return rules;
+}
+async function hmFinishIngest(result,title,report,lines){
+  if(result.duplicate){
+    lines.push(`• «${result.title||title}» уже есть в базе знаний (${result.chunks||0} фрагментов) — повторно не загружаю.`);
+    await report(lines.join('\n'));return;
+  }
+  lines.push(`• «${result.title}»: ${result.sections} разделов → ${result.chunks} фрагментов, по теории музыки — ${result.theoryChunks}. Выжимаю правила…`);
+  await report(lines.join('\n'));
+  let rules=0;
+  try{
+    rules=await hmDistillAll(result.docId,async(r,total)=>{
+      const done=r.next==null?r.total:r.next;
+      lines[lines.length-1]=`• «${result.title}»: ${result.chunks} фрагментов. Правила: обработано ${done} из ${r.total}, выжато ${total}.`;
+      await report(lines.join('\n'));
+    });
+    lines[lines.length-1]=`✓ «${result.title}»: ${result.chunks} фрагментов в базе знаний, правил учебника — ${rules}. ИИ уже использует их в ответах ученикам.`;
+  }catch(e){
+    lines[lines.length-1]=`✓ «${result.title}»: ${result.chunks} фрагментов сохранено. Правила выжать не удалось: ${e.message}. Учебник всё равно используется в ответах.`;
+  }
+  await report(lines.join('\n'));
+}
+async function hmIngestUrls(urls){
+  const bubble=hmIngestBubble();
+  const lines=['**Загрузка учебников в базу знаний**'];
+  const report=t=>bubble.set(t);
+  for(const raw of urls.slice(0,5)){
+    const url=raw.replace(/[).,;]+$/,'');
+    lines.push(`• ${url}: скачиваю…`);await report(lines.join('\n'));
+    try{
+      let r=await hmUtil('ingest-url',{body:{url}});
+      if(r.needsClientParse){
+        lines[lines.length-1]=`• PDF (${Math.round((r.size||0)/1048576*10)/10} МБ): загружаю и читаю в браузере…`;await report(lines.join('\n'));
+        const bytes=await hmFetchPdfViaProxy(r.url,(got,total)=>{lines[lines.length-1]=`• PDF: загружено ${Math.round(got/1048576*10)/10} из ${Math.round(total/1048576*10)/10} МБ…`;report(lines.join('\n'));});
+        const name=(r.name||'Учебник.pdf');
+        const text=await parsePdfFile(new File([bytes],name,{type:'application/pdf'}));
+        r=await hmUtil('ingest-text',{body:{title:name.replace(/\.pdf$/i,''),text,sourceUrl:url,kind:'pdf'}});
+      }
+      lines.pop();
+      await hmFinishIngest(r,url,report,lines);
+    }catch(e){
+      lines[lines.length-1]=`✗ ${url}: ${e.message}`;
+      await report(lines.join('\n'));
+    }
+  }
+  const finalText=lines.join('\n');
+  chatHistory.push({role:'assistant',content:finalText,createdAt:messageNow()});
+  await saveChat();
+}
+/* Файл, прикреплённый в режиме «Обучение», — через тот же серверный конвейер
+   (главы, теги, правила). Если сервер недоступен — старое сохранение в браузере. */
+async function hmIngestFileText(fileName,text,fallbackDoc){
+  try{
+    const r=await hmUtil('ingest-text',{body:{title:String(fileName||'Учебник').replace(/\.[a-z0-9]+$/i,''),text,kind:(String(fileName).split('.').pop()||'txt').toLowerCase()}});
+    toast(`«${r.title||fileName}» сохранён в базу знаний (${r.chunks||0} фрагм.)`);
+    if(!r.duplicate&&r.docId)hmDistillAll(r.docId).then(n=>toast(`Правила из «${r.title}»: ${n}`)).catch(()=>{});
+  }catch(e){
+    console.warn('textbook ingest failed, fallback to client KB',e);
+    storeKnowledgeDoc(fallbackDoc,'global');
+  }
+}
+function hmPromptTextbookUrl(){
+  const ta=document.getElementById('msgTa');if(!ta)return;
+  ta.placeholder='Вставьте ссылку на учебник: PDF, FB2, DOCX, TXT, MD, HTML, Google Drive, Яндекс.Диск…';
+  ta.focus();
 }
 function rememberTrainingMessage(text){
   // В режиме «Обучение» абсолютно всё, что отправляет developer/admin, сразу уходит в базу знаний —
@@ -5609,6 +5779,43 @@ async function parseDocxFile(file){
   const result=await mammothLib.extractRawText({arrayBuffer:arr});
   return result.value||'';
 }
+/* FB2 — XML-книга (UTF-8 или Windows-1251, иногда .fb2.zip). Кодировку берём из
+   заголовка encoding="…", структуру глав сохраняем: <title> → «## …», <p> → абзацы. */
+async function parseFb2File(file){
+  const name=(file.name||'').toLowerCase();
+  let bytes=new Uint8Array(await file.arrayBuffer());
+  if(name.endsWith('.zip')||(bytes[0]===0x50&&bytes[1]===0x4B)){
+    const entries=await hmUnzip(file,{wantRaw:n=>/\.fb2$/i.test(n),maxEntry:80*1024*1024});
+    const e=entries.find(x=>x.bytes);
+    if(!e)throw new Error('в архиве нет файла .fb2');
+    bytes=e.bytes;
+  }
+  const head=new TextDecoder('latin1').decode(bytes.subarray(0,400));
+  const enc=((head.match(/encoding=["']([\w-]+)["']/i)||[])[1]||'utf-8').toLowerCase();
+  let xml;
+  try{xml=new TextDecoder(enc).decode(bytes);}catch(e){xml=new TextDecoder('utf-8').decode(bytes);}
+  const doc=new DOMParser().parseFromString(xml,'application/xml');
+  if(doc.getElementsByTagName('parsererror').length){
+    // Битый XML — достаём текст грубо, но без тегов.
+    return xml.replace(/<binary[\s\S]*?<\/binary>/gi,'').replace(/<title>/gi,'\n## ').replace(/<\/(p|title|v)>/gi,'\n').replace(/<[^>]+>/g,'').replace(/\n{3,}/g,'\n\n').trim();
+  }
+  const clean=t=>String(t||'').replace(/\s+/g,' ').trim();
+  const out=[];
+  const bookTitle=clean(doc.getElementsByTagName('book-title')[0]?.textContent);
+  if(bookTitle)out.push('# '+bookTitle);
+  const walk=node=>{
+    for(const el of node.children){
+      const t=el.localName;
+      if(t==='title')out.push('\n## '+[...el.children].map(c=>clean(c.textContent)).filter(Boolean).join('. '));
+      else if(t==='subtitle')out.push('\n### '+clean(el.textContent));
+      else if(t==='p'||t==='v'||t==='text-author')out.push(clean(el.textContent));
+      else if(t==='empty-line')out.push('');
+      else if(['section','poem','stanza','epigraph','cite','annotation'].includes(t))walk(el);
+    }
+  };
+  for(const body of doc.getElementsByTagName('body')){if(body.getAttribute('name')==='notes')continue;walk(body);}
+  return out.join('\n').replace(/\n{3,}/g,'\n\n').trim();
+}
 /* Текст: сначала строгий UTF-8, при ошибке — Windows-1251 (частый случай для
    русских .txt из Блокнота/старого Word). Раньше такие файлы приходили «кракозябрами». */
 async function hmDecodeText(file){
@@ -5667,6 +5874,7 @@ async function parseGenericFile(file){
   if(file.type.startsWith('image/'))return {kind:'image'};
   if(name.endsWith('.pdf'))return {kind:'document',text:await parsePdfFile(file)};
   if(name.endsWith('.docx'))return {kind:'document',text:await parseDocxFile(file)};
+  if(name.endsWith('.fb2')||name.endsWith('.fb2.zip'))return {kind:'document',text:await parseFb2File(file)};
   if(name.endsWith('.md')||name.endsWith('.markdown')||name.endsWith('.txt'))return {kind:'document',text:await parseTextFile(file)};
   if(HM_TEXT_EXT.test(name))return {kind:'document',text:await hmReadCodeFile(file)};
   if(name.endsWith('.pptx'))return {kind:'document',text:await hmParsePptx(file)};
@@ -5674,7 +5882,7 @@ async function parseGenericFile(file){
   if(name.endsWith('.xlsx')||name.endsWith('.xlsm'))return {kind:'document',text:await hmParseXlsx(file)};
   if(/\.(doc|xls|ppt)$/.test(name))throw new Error('старый формат .'+name.split('.').pop()+' не читается — сохраните файл как .'+name.split('.').pop()+'x и прикрепите снова');
   if(/\.(heic|heif)$/.test(name))throw new Error('формат HEIC не открывается в этом браузере — сохраните фото как JPG или PNG');
-  throw new Error('Этот формат пока не читается. Подходят: фото, PDF, DOCX, PPTX, ZIP, TXT, MD, JSON, HTML, CSS, JS и другие текстовые файлы');
+  throw new Error('Этот формат пока не читается. Подходят: фото, PDF, DOCX, FB2, PPTX, ZIP, TXT, MD, JSON, HTML, CSS, JS и другие текстовые файлы');
 }
 /* ===== Чтение кода, PPTX и ZIP прямо в браузере =====
    ZIP/PPTX разбираем своим мини-распаковщиком на DecompressionStream
@@ -5686,7 +5894,7 @@ async function hmReadCodeFile(file){
   // Код оборачиваем в блок, чтобы ИИ видел границы и язык файла.
   return /^(md|txt|csv|log|srt|vtt|lrc)$/.test(ext)?t:('Файл '+file.name+':\n```'+ext+'\n'+t+'\n```');
 }
-async function hmUnzip(file,{maxFiles=400,wantText=null}={}){
+async function hmUnzip(file,{maxFiles=400,wantText=null,wantRaw=null,maxEntry=2*1024*1024}={}){
   const buf=new Uint8Array(await file.arrayBuffer());
   const dv=new DataView(buf.buffer);
   let eocd=-1;
@@ -5701,6 +5909,14 @@ async function hmUnzip(file,{maxFiles=400,wantText=null}={}){
     const name=dec.decode(buf.subarray(off+46,off+46+nlen));
     off+=46+nlen+xlen+clen;
     const entry={name,size:usize,dir:name.endsWith('/')};
+    if(!entry.dir&&wantRaw&&wantRaw(name)&&usize<maxEntry){
+      const lnl=dv.getUint16(lho+26,true),lxl=dv.getUint16(lho+28,true);
+      const data=buf.subarray(lho+30+lnl+lxl,lho+30+lnl+lxl+csize);
+      try{
+        if(method===0)entry.bytes=data.slice();
+        else if(method===8){const ds=new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'));entry.bytes=new Uint8Array(await new Response(ds).arrayBuffer());}
+      }catch(e){}
+    }
     if(!entry.dir&&wantText&&wantText(name)&&usize<2*1024*1024){
       const lnl=dv.getUint16(lho+26,true),lxl=dv.getUint16(lho+28,true);
       const data=buf.subarray(lho+30+lnl+lxl,lho+30+lnl+lxl+csize);
@@ -6376,7 +6592,12 @@ function trainingGreetingHTML(){
     <div class="training-rows">
       <div class="train-row" style="cursor:pointer" onclick="document.getElementById('fileInp').click()">
         <div class="train-row-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l8.57-8.57A4 4 0 1118 8.84l-8.59 8.57a2 2 0 01-2.83-2.83l8.49-8.48" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        <div class="train-row-text"><div class="train-row-title">Прикрепляйте файлы</div><div class="train-row-desc">PDF, DOCX, TXT и другие</div></div>
+        <div class="train-row-text"><div class="train-row-title">Прикрепляйте файлы</div><div class="train-row-desc">PDF, DOCX, FB2, TXT и другие</div></div>
+        <div class="train-row-chevron">›</div>
+      </div>
+      <div class="train-row" style="cursor:pointer" onclick="hmPromptTextbookUrl()">
+        <div class="train-row-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M10 14a4 4 0 005.66 0l3-3a4 4 0 00-5.66-5.66l-1 1M14 10a4 4 0 00-5.66 0l-3 3a4 4 0 005.66 5.66l1-1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="train-row-text"><div class="train-row-title">Учебник по ссылке</div><div class="train-row-desc">PDF, FB2, DOCX, TXT, MD, HTML, Google Drive, Яндекс.Диск</div></div>
         <div class="train-row-chevron">›</div>
       </div>
       <div class="train-row" style="cursor:pointer" onclick="document.getElementById('fileInp').click()">
@@ -7351,7 +7572,8 @@ async function handleFiles(fileList){
         if(!doc.chunks.length)throw new Error('в файле не найден читаемый текст');
         // Файл целиком уходит в базу знаний (RAG): текст режется на чанки и сохраняется в Supabase,
         // поэтому ИИ «помнит» его и в следующих чатах, а не только в текущем сообщении.
-        storeKnowledgeDoc(doc,hasTrainingAccess()?'global':'user');
+        if(trainingMode&&hasTrainingAccess())hmIngestFileText(f.name,parsed.text,doc);
+        else storeKnowledgeDoc(doc,hasTrainingAccess()?'global':'user');
         pendingAttachments.push({
           kind:'document',
           name:f.name,
@@ -11475,7 +11697,8 @@ async function handleTextReply(pendingText){
   const historyAttachments=outgoingAttachments.map(cloneAttachmentForHistory);
   const displayText=text||'';
   const wasTraining=Boolean(trainingMode&&hasTrainingAccess());
-  if(wasTraining&&text)rememberTrainingMessage(text);
+  const trainingUrls=wasTraining&&text?(text.match(HM_URL_RE)||[]):[];
+  if(wasTraining){if(text&&!trainingUrls.length)rememberTrainingMessage(text);}
   else if(hasTrainingAccess()&&text)rememberDeveloperMessage(text);
   function buildDocInlineText(att,idx){
     const chunks=att.doc?.chunks||[];
@@ -11513,6 +11736,7 @@ async function handleTextReply(pendingText){
   if(!wasTraining){try{if(window.HmMemory)HmMemory.maybeSuggest(text,{chatId:curChatId});}catch(_){}}
   await saveChat();
 
+  if(trainingUrls.length){await hmIngestUrls(trainingUrls);return;}
   await runAssistantReply(displayText);
 }
 
