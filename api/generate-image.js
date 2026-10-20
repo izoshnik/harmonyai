@@ -3,7 +3,7 @@ export const config = {
   maxDuration: 60
 };
 
-import { PRO_IMAGE_MODEL, FREE_IMAGE_MODEL, UTILITY_MODEL, envModel, utilityEndpoint, utilityModel } from '../lib/models.js';
+import { PRO_IMAGE_MODEL, FREE_IMAGE_MODEL, UTILITY_MODEL, envModel, utilityEndpoint, utilityModel, providerBaseUrl } from '../lib/models.js';
 
 function readEnv(name) {
   return String(process.env[name] || '').trim();
@@ -311,7 +311,7 @@ async function generateViaCloudflare(prompt) {
 
 /* ---------- Генерация через gpt-image-2 (Pro — Dynatos) ----------
    Идём через тот же OpenAI-совместимый шлюз, что и чат (OPENAI_BASE_URL,
-   по умолчанию api.codex-api.online) — прямой api.openai.com нашим ключом не
+   по умолчанию api.pro-ai.online) — прямой api.openai.com нашим ключом не
    открывается. Отдельный хост/ключ можно задать через OPENAI_IMAGE_BASE_URL /
    OPENAI_IMAGE_API_KEY, если картинки живут на другом провайдере.
    response_format НЕ передаём: gpt-image возвращает b64_json по умолчанию и
@@ -337,8 +337,8 @@ async function generateViaOpenAI(prompt) {
     err.code = 'NO_CREDENTIALS';
     throw err;
   }
-  const rawBase = readEnv('OPENAI_IMAGE_BASE_URL') || readEnv('OPENAI_BASE_URL');
-  const baseUrl = String(isPlaceholderValue(rawBase) ? 'https://api.codex-api.online/v1' : rawBase).replace(/\/+$/, '');
+  const rawBase = readEnv('OPENAI_IMAGE_BASE_URL') || providerBaseUrl();
+  const baseUrl = String(isPlaceholderValue(rawBase) ? 'https://api.pro-ai.online/v1' : rawBase).replace(/\/+$/, '');
   const model = envModel('OPENAI_IMAGE_MODEL', PRO_IMAGE_MODEL);
   const response = await withTimeout(
     fetch(`${baseUrl}/images/generations`, {
@@ -425,8 +425,8 @@ function openAiImageFromResponse(data) {
 async function editViaOpenAI(prompt, image) {
   const apiKey = readEnv('OPENAI_IMAGE_API_KEY') || readEnv('OPENAI_API_KEY');
   if (!apiKey || isPlaceholderValue(apiKey)) { const err = new Error('OpenAI API key not configured'); err.code = 'NO_CREDENTIALS'; throw err; }
-  const rawBase = readEnv('OPENAI_IMAGE_BASE_URL') || readEnv('OPENAI_BASE_URL');
-  const baseUrl = String(isPlaceholderValue(rawBase) ? 'https://api.codex-api.online/v1' : rawBase).replace(/\/+$/, '');
+  const rawBase = readEnv('OPENAI_IMAGE_BASE_URL') || providerBaseUrl();
+  const baseUrl = String(isPlaceholderValue(rawBase) ? 'https://api.pro-ai.online/v1' : rawBase).replace(/\/+$/, '');
   const form = new FormData();
   form.append('model', envModel('OPENAI_IMAGE_MODEL', PRO_IMAGE_MODEL));
   form.append('prompt', prompt);

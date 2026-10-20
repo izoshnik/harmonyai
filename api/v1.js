@@ -36,7 +36,7 @@
 
 import { extractApiKey, looksLikeApiKey, hashApiKey } from '../lib/api-keys.js';
 import { supabaseRest, readAccessProfile, hasProAccess, isUnlimitedApiRole } from '../lib/auth.js';
-import { resolvePublicModel, PUBLIC_MODEL_IDS, PUBLIC_MODELS } from '../lib/models.js';
+import { resolvePublicModel, PUBLIC_MODEL_IDS, PUBLIC_MODELS, providerBaseUrl } from '../lib/models.js';
 import {
   MODEL_PRICING,
   usageCostMicroRubles,
@@ -66,7 +66,7 @@ function readEnv(name) {
 }
 
 function upstreamBase() {
-  return String(readEnv('OPENAI_BASE_URL') || 'https://api.codex-api.online/v1').replace(/\/+$/, '');
+  return providerBaseUrl();
 }
 
 function withTimeout(promise, ms, message) {
