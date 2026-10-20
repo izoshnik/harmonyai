@@ -93,8 +93,10 @@ setTimeout(function(){
 <script defer src="/js/hm-memory.js"></script>
 <script defer src="/js/audio-analyzer.js"></script>
 <script defer src="/js/hm-docgen.js"></script>
+<script defer src="/js/hm-rich.js"></script>
 <script defer src="/js/thinking-loader.js"></script>
 <link rel="stylesheet" href="/css/hm-think.css">
+<link rel="stylesheet" href="/css/hm-rich.css">
 <script defer src="/js/hm-think-staff.js"></script>
 <link rel="stylesheet" href="/css/hm-bench.css">
 <script defer src="/js/hm-bench.js"></script>
@@ -4289,6 +4291,7 @@ function buildMarkedRenderer(){
     return '<div class="code-block" data-lang="'+escapeHtml(lang||'')+'" data-code="'+encodeURIComponent(code)+'">'
       +'<div class="code-head">'
       +'<span class="code-lang">'+escapeHtml(codeLangLabel(lang))+'</span>'
+      +(/^(js|javascript|mjs|py|python|python3)$/i.test(lang||'')?'<button class="code-run" type="button" disabled onclick="window.HmRich&&HmRich.runCode(this)" aria-label="Запустить код" title="Запустить код"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l13-7.5z"/></svg><span>Запустить</span></button>':'')
       +'<button class="code-copy" type="button" disabled onclick="copyCodeBlock(this)" aria-label="Копировать" title="Копировать">'
       +'<svg class="cc-ic-copy" width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="11" height="11" rx="2.4" stroke="currentColor" stroke-width="1.8"/><path d="M6 15H5a2 2 0 01-2-2V5a2 2 0 012-2h8a2 2 0 012 2v1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>'
       +'<svg class="cc-ic-done" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 12.5l5 5 11-11" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
@@ -4316,7 +4319,7 @@ function fallbackCopy(text,cb){
 // Активировать кнопки копирования внутри готового (не стримящегося) пузыря.
 function enableCodeCopy(el){
   if(!el)return;
-  el.querySelectorAll('.code-copy[disabled]').forEach(b=>{b.disabled=false;});
+  el.querySelectorAll('.code-copy[disabled],.code-run[disabled]').forEach(b=>{if(!b.classList.contains('running'))b.disabled=false;});
 }
 
 function isDesktop(){return window.innerWidth>=769;}
@@ -7329,12 +7332,40 @@ function buildSystem(){
   /* ПАМЯТЬ: компактный блок собирает клиент из кэша (см. js/hm-memory.js).
      memRecall=false — пользователь запретил, блок не добавляется. */
   try{ if(window.HmMemory) sys+=window.HmMemory.contextBlock(curChatId); }catch(_){}
+  sys+=RICH_SYSTEM;
   sys+=FILE_GEN_SYSTEM;
   return sys;
 }
 
 /* Инструкция по генерации файлов (md/txt/pdf/docx). ИИ кладёт директиву отдельным
    блоком, клиент её распознаёт, генерирует файл на сервере и показывает кнопку скачивания. */
+/* Интерактивные блоки ответа (js/hm-rich.js). Инструкция короткая: модель
+   видит её в каждом запросе, лишние токены здесь стоят времени и денег. */
+const RICH_SYSTEM=`
+ИНТЕРАКТИВНЫЕ БЛОКИ — интерфейс превращает их в виджеты. Внутри блоков — строго валидный JSON.
+1) ТЕСТ — когда просят тест, викторину, «проверь меня». Перед блоком 1–2 предложения, ответы в тексте не дублируй:
+\`\`\`quiz
+{"title":"Тема","questions":[{"question":"Вопрос?","hint":"подсказка без ответа","options":[{"text":"вариант","correct":false,"explanation":"почему неверно"},{"text":"вариант","correct":true,"explanation":"почему верно"}]}]}
+\`\`\`
+Ровно один правильный вариант из 3–4, правдоподобные неверные, explanation у каждого. Вопросов — сколько попросили (по умолчанию 5).
+2) ГРАФИК — когда он помогает понять зависимость или данные:
+\`\`\`chart
+{"type":"function","title":"…","x":[-10,10],"functions":[{"expr":"a*sin(b*x)","label":"y = a·sin(bx)"}],"params":[{"name":"a","label":"Амплитуда","min":0,"max":5,"step":0.1,"value":1}]}
+\`\`\`
+expr: + - * / ^, sin cos tan sqrt abs ln log exp, pi, e; params дают ползунки. Данные: {"type":"bar|line|area|pie|scatter","title":"…","labels":["…"],"series":[{"name":"…","data":[1,2]}],"xLabel":"…","yLabel":"…"}
+3) СХЕМА или карта понятий — блок \`\`\`diagram с кодом Mermaid (flowchart TD или mindmap), подписи узлов в кавычках.
+4) ФОТО — когда реальное изображение полезно (композитор, инструмент, место, картина), не больше 2 на ответ, URL не выдумывай:
+\`\`\`photo
+{"query":"Иоганн Себастьян Бах портрет","caption":"И. С. Бах","prompt":"English description for an illustration if no real photo exists"}
+\`\`\`
+5) ФОРМУЛЫ — LaTeX: $a^2+b^2=c^2$ в строке, $$…$$ отдельной строкой. Обозначения аккордов (T53, D7) — обычным текстом.
+6) КОД на JavaScript и Python пользователь запускает кнопкой — пиши законченные примеры с выводом (print / console.log); графики в Python — matplotlib.
+7) КНОПКИ — в конце содержательного ответа (не на приветствия и короткие реплики) 2–3 следующих шага:
+\`\`\`buttons
+[{"label":"2–5 слов","prompt":"готовый запрос от первого лица пользователя"}]
+\`\`\`
+prompt учитывает тему, уровень, память и настройки пользователя; не предлагай уже сделанное.`;
+
 const FILE_GEN_SYSTEM=`
 СОЗДАНИЕ ФАЙЛОВ: если пользователь явно просит сделать/скачать файл или презентацию (например «сделай pdf», «сохрани в docx», «сделай презентацию», «оформи в файл», «скачать txt/markdown»), сформируй содержимое и в САМОМ КОНЦЕ ответа добавь ровно один блок такого вида:
 \`\`\`harmony-file
@@ -7345,6 +7376,7 @@ const FILE_GEN_SYSTEM=`
 - Блок — строго валидный JSON в одну строку: переводы строк внутри content пиши как \\n, кавычки — как \\".
 - content — это ТО, что должно попасть в файл, в Markdown: # и ## заголовки, **жирный**, списки, таблицы | a | b |, картинки ![подпись](https://адрес). Не более 20000 символов.
 - Для pptx каждый слайд начинается с заголовка «## Название слайда», под ним 3–6 коротких пунктов списка. Картинку на слайд добавляй строкой ![подпись](адрес).
+- Фото по теме и графики в файле (pdf, docx, pptx) — отдельной строкой: [[photo: запрос для поиска фото | подпись]], [[chart: bar | Заголовок | Янв=10; Фев=20; Мар=15]] (типы bar, line, area, pie) или [[chart: function | Заголовок | sin(x) | -10..10]]. Они попадут в файл картинкой.
 - Картинки вставляй ТОЛЬКО по реальным адресам: адреса изображений, сгенерированных в этом чате, указаны в истории в пометке «Адрес картинки для вставки…». Адреса не выдумывай.
 - Если материал явно превышает ~20000 символов, НЕ создавай файл: вежливо объясни, что файл слишком большой, и предложи сократить объём или разбить на части.
 - Перед блоком дай ТОЛЬКО короткий ответ (1–2 предложения), что файл готов. НЕ пиши содержимое файла текстом в ответе и не дублируй его. Сам JSON пользователю не виден — интерфейс покажет карточку со скачиванием.
@@ -8050,9 +8082,7 @@ function renderMd(el,text){
       el.appendChild(wrap);
       hmRenderAbc(id,abcSrc,surface,cvs,60);
     }else if(part.trim()){
-      const div=document.createElement('div');
-      div.innerHTML=typeof marked!=='undefined'?marked.parse(part):part;
-      el.appendChild(div);
+      hmAppendRichText(el,part);
     }
   });
   if(hmBuilding&&!isGenerating&&!el.classList.contains('is-streaming')){
@@ -8065,6 +8095,24 @@ function renderMd(el,text){
   }
   // Кнопки копирования активны только у завершённого ответа (не во время стрима).
   if(!el.classList.contains('is-streaming'))enableCodeCopy(el);
+}
+/* ===== Интерактивные блоки (js/hm-rich.js): тест, график, схема, фото, кнопки, формулы =====
+   Свежий ответ (в течение 15 с после стрима) — «живой»: фото-иллюстрацию можно
+   нарисовать сразу. Из истории — только по кнопке, чтобы не тратить лимиты. */
+let hmRichLiveUntil=0;
+function hmRichCtx(){return {live:Date.now()<hmRichLiveUntil};}
+function hmAppendRichText(el,part){
+  const R=window.HmRich;
+  if(!R){const div=document.createElement('div');div.innerHTML=typeof marked!=='undefined'?marked.parse(part):part;el.appendChild(div);return;}
+  R.splitRich(part).forEach(seg=>{
+    if(seg.type==='text'){
+      if(!seg.raw.trim())return;
+      const div=document.createElement('div');div.innerHTML=R.mdToHtml(seg.raw);el.appendChild(div);R.typeset(div);
+    }else{
+      const host=document.createElement('div');host.className='hmr-host';el.appendChild(host);
+      if(seg.type==='rich')R.render(seg.kind,seg.body,host,hmRichCtx());else R.renderPending(seg.kind,host);
+    }
+  });
 }
 function splitMdSegments(text){
   // Та же логика разбиения, что и в renderMd, но возвращает массив сегментов с метаданными,
@@ -8086,9 +8134,15 @@ function splitMdSegments(text){
       segs.push({type:'abc-pending',raw:openMatch[0]});
     }
   }
-  return segs;
+  if(!window.HmRich)return segs;
+  const out=[];
+  segs.forEach(seg=>{
+    if(seg.type!=='text'){out.push(seg);return;}
+    window.HmRich.splitRich(seg.raw).forEach(r=>{if(r.type!=='text'||r.raw)out.push(r);});
+  });
+  return out;
 }
-function hashSeg(seg){return seg.type+':'+seg.raw.length+':'+seg.raw.slice(0,40);}
+function hashSeg(seg){return seg.type+':'+seg.raw.length+':'+seg.raw.slice(0,40)+(seg.type==='rich'?seg.raw.slice(-60):'');}
 function renderStreamingSegments(el,text){
   // Начался блок файла — дальше рисует renderMd (с карточкой «Собираю файл…»).
   if(/```\s*harmony-file/i.test(String(text||''))){el._segCache=null;renderMd(el,text);return;}
@@ -8104,6 +8158,17 @@ function renderStreamingSegments(el,text){
     // Уже отрендеренный закрытый сегмент с тем же содержимым — не трогаем DOM (избегаем мигания нотного стана)
     if(cached&&cached.hash===h&&cached.type==='abc'&&seg.type==='abc')return;
     if(cached&&cached.hash===h&&cached.type==='text'&&seg.type==='text'&&!isLast)return;
+    if(seg.type==='rich'||seg.type==='rich-pending'){
+      hmRichLiveUntil=Date.now()+15000;
+      // Готовый блок не перерисовываем (иначе сбросится состояние теста/графика);
+      // скелетон держим, пока блок дописывается.
+      if(cached&&cached.type===seg.type&&(seg.type==='rich'?cached.hash===h:cached.kind===seg.kind))return;
+      const host=document.createElement('div');host.className='hmr-host';
+      if(el.children[i])el.replaceChild(host,el.children[i]);else el.appendChild(host);
+      if(seg.type==='rich')window.HmRich.render(seg.kind,seg.body,host,{live:true});else window.HmRich.renderPending(seg.kind,host);
+      cache[i]={hash:h,type:seg.type,kind:seg.kind};
+      return;
+    }
     if(seg.type==='abc'){
       const meta=extractAbcDisplayMeta(seg.abcInner.trim());
       const abcSrc=meta.abc;
@@ -8139,11 +8204,12 @@ function renderStreamingSegments(el,text){
       cache[i]={hash:h,type:'abc-pending'};
     }else{
       let div=el.children[i];
-      if(!div||div.tagName!=='DIV'||div.classList.contains('abc-block')){
+      if(!div||div.tagName!=='DIV'||div.classList.contains('abc-block')||div.classList.contains('hmr-host')){
         div=document.createElement('div');
         if(el.children[i])el.replaceChild(div,el.children[i]);else el.appendChild(div);
       }
-      div.innerHTML=typeof marked!=='undefined'?marked.parse(seg.raw):seg.raw;
+      if(window.HmRich){div.innerHTML=window.HmRich.mdToHtml(seg.raw);window.HmRich.typeset(div);}
+      else div.innerHTML=typeof marked!=='undefined'?marked.parse(seg.raw):seg.raw;
       cache[i]={hash:h,type:'text'};
     }
   });
@@ -8156,7 +8222,7 @@ function updateStreamCursor(el,show){
   if(show){
     if(!cur){cur=document.createElement('span');cur.className='stream-cur';cur.textContent='▍';}
     const lastChild=el.lastElementChild;
-    if(lastChild&&!lastChild.classList.contains('abc-block')){lastChild.appendChild(cur);}
+    if(lastChild&&!lastChild.classList.contains('abc-block')&&!lastChild.classList.contains('hmr-host')){lastChild.appendChild(cur);}
     else{el.appendChild(cur);}
   }else if(cur)cur.remove();
 }
@@ -10377,7 +10443,31 @@ function showImageLimitReached(check){
 }
 // Основной обработчик генерации: показывает индикатор, дергает /api/generate-image,
 // рендерит картинку в чат и сохраняет метку+URL в историю.
-async function handleImageGeneration(promptText){
+/* Редактирование фото: «убери фон», «сделай в стиле аниме», «раскрась»… с одним
+   прикреплённым снимком. Вопросы о фото («что на фото?», «распознай ноты») —
+   это анализ, они идут обычным путём к модели. */
+function isImageEditRequest(text){
+  const s=String(text||'').toLowerCase().trim();
+  if(!s)return false;
+  if(/^(что|какой|какая|какие|кто|где|сколько|почему|зачем|опиши|распознай|определи|разбери|переведи|прочитай|объясни|проанализируй|найди|посчитай|реши)/.test(s))return false;
+  if(/(нот[аыу]?\b|ноты|аккорд|партитур|такт|описан|анализ|разбор|конспект|текст с фото|текст из|распозна)/.test(s))return false;
+  const verb=/(убери|удали|сотри|замени|поменяй|измени|перекрась|раскрась|перерисуй|отредактируй|отретушируй|дорисуй|добавь|преврати|стилизуй|обработай|улучши качество|осветли|затемни|размой|сделай)/;
+  const obj=/(фон|фото|снимок|снимк|картинк|изображени|цвет|стил|аниме|мульт|акварел|рисунк|чёрно-бел|черно-бел|ч\/б|неб[оа]|волос|глаз|одежд|лиц[оа]|человек|кот|собак|надпис|резкост|ретро|винтаж)/;
+  return verb.test(s)&&obj.test(s);
+}
+/* Для редактирования снимок уменьшаем (бесплатная модель работает с ~768 px). */
+async function hmImageForEdit(att){
+  const src=att.dataUrl||('data:'+(att.mime||'image/jpeg')+';base64,'+att.base64);
+  const max=isProUser()?1024:768;
+  try{
+    const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=src;});
+    const k=Math.min(1,max/Math.max(img.width,img.height));
+    const c=document.createElement('canvas');c.width=Math.max(8,Math.round(img.width*k/8)*8);c.height=Math.max(8,Math.round(img.height*k/8)*8);
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+    return c.toDataURL('image/png');
+  }catch(e){return src;}
+}
+async function handleImageGeneration(promptText,opts={}){
   const limit=checkImageLimit();
   if(limit.blocked){showImageLimitReached(limit);return;}
   setGeneratingState(true);
@@ -10388,6 +10478,7 @@ async function handleImageGeneration(promptText){
   renderImageGenPlaceholder(shell.msg,promptText);
   const endpoints=buildImageApiCandidates();
   const payload={prompt:promptText,userId:curUser?.id||null,model:curModel};
+  if(opts.image){payload.image=opts.image;payload.mode='edit';}
   let lastError=null;
   try{
     for(let i=0;i<endpoints.length;i++){
@@ -10420,7 +10511,7 @@ async function handleImageGeneration(promptText){
         recordImageUsage();
         // Промо-уведомление после каждой генерации (~78% для не-Pro, не чаще 1 раза за сессию).
         showNotification('promo_img',1/8);
-        chatHistory.push({role:'assistant',content:'[Сгенерировано изображение по запросу: «'+promptText+'». Адрес картинки для вставки в документ или презентацию: '+data.image+']',image:data.image,createdAt:messageNow()});
+        chatHistory.push({role:'assistant',content:'['+(opts.image?'Отредактировано фото':'Сгенерировано изображение')+' по запросу: «'+promptText+'». Адрес картинки для вставки в документ или презентацию: '+data.image+']',image:data.image,createdAt:messageNow()});
         await saveChat();
         return;
       }catch(e){
@@ -10954,6 +11045,17 @@ async function sendMsgInner(){
   // МАРШРУТИЗАЦИЯ НА ГЕНЕРАЦИЮ ИЗОБРАЖЕНИЯ:
   // либо включён режим кнопкой, либо текст содержит триггер-слово И нет прикреплённого фото
   // (иначе «нарисуй ...» с приложенным скриншотом — это анализ фото, обычный путь Codex).
+  const editImages=pendingAttachments.filter(a=>a.kind==='image');
+  if(text&&editImages.length===1&&!pendingAttachments.some(a=>a.kind==='document')&&isImageEditRequest(text)){
+    const att=editImages[0];
+    addUserBubble(text,pendingAttachments.slice());
+    chatHistory.push({role:'user',content:text,attachments:pendingAttachments.map(cloneAttachmentForHistory),createdAt:messageNow()});
+    await saveChat();
+    clearPendingAttachments();renderComposerAttachments();updateComposerPlaceholder();
+    if(imageGenModeActive)setImageMode(false);
+    await handleImageGeneration(text,{image:await hmImageForEdit(att)});
+    return;
+  }
   const wantsImage=imageGenModeActive||(isImageRequest(text)&&!pendingAttachments.some(a=>a.kind==='image'));
 
   // Нотный стан в режиме «Изображение»: генерацию картинок нот блокируем — качество

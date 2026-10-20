@@ -80,14 +80,31 @@
     for(var i=0;i<lines.length;i++){
       var line=lines[i];var m;
       if(/^\s*```/.test(line)){
+        var fence=(/^\s*```\s*([\w-]*)/.exec(line)||[])[1]||'';
         flush();var code=[];i++;
         while(i<lines.length&&!/^\s*```/.test(lines[i])){code.push(lines[i]);i++;}
+        // Графики и фото из чата попадают в документ картинкой (js/hm-rich.js).
+        if(/^chart$/i.test(fence)){blocks.push({type:'img',alt:'',chart:code.join('\n')});continue;}
+        if(/^(photo|image)$/i.test(fence)){var ph=null;try{ph=JSON.parse(code.join('\n'));}catch(e){}if(ph&&ph.query){blocks.push({type:'img',alt:ph.caption||'',photo:ph.query});continue;}}
+        if(/^(buttons|quiz|diagram|mermaid)$/i.test(fence))continue;
         blocks.push({type:'code',text:code.join('\n')});continue;
       }
       if(!line.trim()){flush();continue;}
       if((m=/^\s*(#{1,6})\s+(.*)$/.exec(line))){flush();blocks.push({type:'h',level:m[1].length,runs:parseInline(m[2].replace(/\s*#+\s*$/,''))});continue;}
       if(/^\s*([-*_])(\s*\1){2,}\s*$/.test(line)){flush();blocks.push({type:'hr'});continue;}
       if((m=IMG_LINE.exec(line))){flush();blocks.push({type:'img',alt:m[1],url:m[2]});continue;}
+      /* Простой синтаксис без кавычек (модели проще, чем JSON внутри JSON):
+         [[photo: запрос | подпись]]
+         [[chart: bar|line|area|pie | Заголовок | Янв=10; Фев=20; Мар=15]]
+         [[chart: function | Заголовок | sin(x) | -10..10]] */
+      if((m=/^\s*\[\[\s*photo\s*:\s*([^|\]]+?)\s*(?:\|\s*([^\]]*?)\s*)?\]\]\s*$/i.exec(line))){flush();blocks.push({type:'img',alt:m[2]||'',photo:m[1]});continue;}
+      if((m=/^\s*\[\[\s*chart\s*:\s*(\w+)\s*\|\s*([^|\]]*?)\s*\|\s*([^|\]]+?)\s*(?:\|\s*([^\]]*?)\s*)?\]\]\s*$/i.exec(line))){
+        flush();var ctype=m[1].toLowerCase(),spec;
+        if(ctype==='function'){var rg=(m[4]||'-10..10').split(/\.\.|;|,/).map(Number);spec={type:'function',title:m[2],functions:[{expr:m[3],label:'y = '+m[3]}],x:[isFinite(rg[0])?rg[0]:-10,isFinite(rg[1])?rg[1]:10]};}
+        else{var pairs=m[3].split(/[;,]\s*/).map(function(p){var kv=p.split('=');return [kv[0].trim(),Number(String(kv[1]||'').replace(',','.'))];}).filter(function(p){return p[0]&&isFinite(p[1]);});
+          spec={type:ctype,title:m[2],labels:pairs.map(function(p){return p[0];}),series:[{name:m[2],data:pairs.map(function(p){return p[1];})}]};}
+        blocks.push({type:'img',alt:m[2],chart:JSON.stringify(spec)});continue;
+      }
       if(/^\s*\|.*\|\s*$/.test(line)&&i+1<lines.length&&/^\s*\|?\s*:?-{2,}/.test(lines[i+1])){
         flush();var rows=[splitRow(line)];i+=2;
         while(i<lines.length&&/^\s*\|.*\|?\s*$/.test(lines[i])&&lines[i].trim()){rows.push(splitRow(lines[i]));i++;}
@@ -130,7 +147,18 @@
   }
   async function resolveImages(blocks){
     var imgs=blocks.filter(function(b){return b.type==='img';}).slice(0,20);
-    await Promise.all(imgs.map(async function(b){try{b.data=await fetchImage(b.url);}catch(e){b.data=null;}}));
+    await Promise.all(imgs.map(async function(b){
+      try{
+        if(b.chart){
+          if(!window.HmRich)throw new Error('no charts');
+          b.data=await window.HmRich.chartToImage(b.chart);
+          if(!b.alt){try{b.alt=JSON.parse(b.chart).title||'';}catch(e){}}
+          return;
+        }
+        if(b.photo){var ph=window.HmRich?await window.HmRich.findPhoto(b.photo):null;if(!ph)throw new Error('no photo');b.url=ph.url;if(!b.alt)b.alt=ph.source||'';}
+        b.data=await fetchImage(b.url);
+      }catch(e){b.data=null;}
+    }));
   }
   function dataUrlToBytes(d){var b=atob(d.split(',')[1]);var u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u;}
   function fitBox(w,h,maxW,maxH){var k=Math.min(maxW/w,maxH/h,1e9);return {w:w*k,h:h*k};}
