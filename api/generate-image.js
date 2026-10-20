@@ -378,6 +378,92 @@ async function generateViaOpenAI(prompt) {
   throw err;
 }
 
+/* ---------- Редактирование загруженного фото ----------
+   Pro — gpt-image-2 через /images/edits (тот же шлюз, что и генерация).
+   Free — Cloudflare Workers AI img2img (stable-diffusion-v1-5-img2img):
+   бесплатная модель хуже понимает русский, поэтому инструкцию сначала
+   переводим служебной моделью в короткий английский промпт. */
+const FREE_EDIT_MODEL = '@cf/runwayml/stable-diffusion-v1-5-img2img';
+
+function parseImageDataUrl(dataUrl) {
+  const m = /^data:(image\/(?:png|jpeg|jpg|webp));base64,([A-Za-z0-9+/=\s]+)$/i.exec(String(dataUrl || ''));
+  if (!m) return null;
+  const bytes = Buffer.from(m[2], 'base64');
+  if (!bytes.length || bytes.length > 6 * 1024 * 1024) return null;
+  return { mime: m[1].toLowerCase().replace('jpg', 'jpeg'), bytes };
+}
+
+async function toEnglishImagePrompt(prompt) {
+  const ep = utilityEndpoint();
+  if (!ep.apiKey || isPlaceholderValue(ep.apiKey)) return prompt;
+  try {
+    const response = await withTimeout(fetch(`${ep.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ep.apiKey}` },
+      body: JSON.stringify({ model: utilityModel('IMAGE_MODERATOR_MODEL'), temperature: 0, max_tokens: 120, messages: [
+        { role: 'system', content: 'Rewrite the user\'s photo editing instruction as a short English prompt for an image-to-image model describing the desired result. Output only the prompt.' },
+        { role: 'user', content: prompt }
+      ] })
+    }), 15000, 'translate timed out');
+    const data = await response.json().catch(() => ({}));
+    const out = String(data?.choices?.[0]?.message?.content || '').trim().replace(/^["']|["']$/g, '');
+    return out && out.length < 600 ? out : prompt;
+  } catch (e) { return prompt; }
+}
+
+function openAiImageFromResponse(data) {
+  const item = data?.data?.[0] || {};
+  const b64 = item.b64_json || item.b64 || '';
+  if (b64) {
+    const mimeRaw = String(item.mime_type || '').trim().toLowerCase();
+    const fmt = String(item.output_format || '').trim().toLowerCase().replace(/^image\//, '');
+    return { base64: b64, mime: mimeRaw.startsWith('image/') ? mimeRaw : fmt ? 'image/' + fmt : 'image/png' };
+  }
+  return { url: item.url || item.image_url || '' };
+}
+
+async function editViaOpenAI(prompt, image) {
+  const apiKey = readEnv('OPENAI_IMAGE_API_KEY') || readEnv('OPENAI_API_KEY');
+  if (!apiKey || isPlaceholderValue(apiKey)) { const err = new Error('OpenAI API key not configured'); err.code = 'NO_CREDENTIALS'; throw err; }
+  const rawBase = readEnv('OPENAI_IMAGE_BASE_URL') || readEnv('OPENAI_BASE_URL');
+  const baseUrl = String(isPlaceholderValue(rawBase) ? 'https://api.codex-api.online/v1' : rawBase).replace(/\/+$/, '');
+  const form = new FormData();
+  form.append('model', envModel('OPENAI_IMAGE_MODEL', PRO_IMAGE_MODEL));
+  form.append('prompt', prompt);
+  form.append('size', '1024x1024');
+  form.append('image', new Blob([image.bytes], { type: image.mime }), 'image.' + (image.mime.split('/')[1] || 'png'));
+  const response = await withTimeout(fetch(`${baseUrl}/images/edits`, { method: 'POST', headers: { Authorization: `Bearer ${apiKey}` }, body: form }), 90000, 'OpenAI image edit timed out');
+  let data = {};
+  try { data = await response.json(); } catch (e) { data = {}; }
+  if (!response.ok || data?.error) { const err = new Error(data?.error?.message || `OpenAI image edit error ${response.status}`); err.code = 'OAI_ERROR'; err.status = response.status; throw err; }
+  const r = openAiImageFromResponse(data);
+  if (r.base64) return r;
+  if (r.url) return await fetchRemoteImageAsBase64(r.url);
+  const err = new Error('OpenAI returned no image data'); err.code = 'OAI_NO_IMAGE'; throw err;
+}
+
+async function editViaCloudflare(prompt, image) {
+  const accountId = readEnv('CLOUDFLARE_ACCOUNT_ID');
+  const apiToken = readEnv('CLOUDFLARE_API_TOKEN');
+  if (!accountId || isPlaceholderValue(accountId) || !apiToken || isPlaceholderValue(apiToken)) { const err = new Error('Cloudflare credentials not configured'); err.code = 'NO_CREDENTIALS'; throw err; }
+  const model = readEnv('CLOUDFLARE_EDIT_MODEL') || FREE_EDIT_MODEL;
+  const response = await withTimeout(fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${model}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${apiToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt: await toEnglishImagePrompt(prompt), image: Array.from(image.bytes), strength: 0.6, num_steps: 20, guidance: 7.5 })
+  }), 60000, 'Cloudflare edit timed out');
+  if (!response.ok) { const err = new Error(`Cloudflare error ${response.status}`); err.code = 'CF_ERROR'; err.status = response.status; throw err; }
+  const type = (response.headers.get('content-type') || '').toLowerCase();
+  if (type.includes('application/json')) {
+    const data = await response.json();
+    const b64 = data?.result?.image || data?.image;
+    if (!b64) { const err = new Error('Cloudflare returned no image'); err.code = 'CF_NO_IMAGE'; throw err; }
+    return { base64: b64, mime: 'image/png' };
+  }
+  const buf = await response.arrayBuffer();
+  return { base64: bytesToBase64(new Uint8Array(buf)), mime: type.startsWith('image/') ? type.split(';')[0] : 'image/png' };
+}
+
 /* ---------- Supabase Storage ---------- */
 
 function base64ToBytes(base64) {
@@ -436,7 +522,12 @@ export default async function handler(req, res) {
 
   try {
     const user=await requireUser(req,res);if(!user)return;const userId=user.id;
-    const { prompt, model } = req.body || {};
+    const { prompt, model, image, mode } = req.body || {};
+    // Редактирование присланного фото (mode:'edit' + image: data URL).
+    const editImage = mode === 'edit' || image ? parseImageDataUrl(image) : null;
+    if ((mode === 'edit' || image) && !editImage) {
+      return res.status(400).json({ error: { message: 'Фото для редактирования не прочиталось. Пришлите PNG или JPEG до 6 МБ.' } });
+    }
     if (typeof prompt !== 'string' || !prompt.trim()) {
       return res.status(400).json({ error: { message: 'Пустой запрос на генерацию изображения' } });
     }
@@ -472,7 +563,9 @@ export default async function handler(req, res) {
     // 4. Генерация
     let generated;
     try {
-      if (userIsPro) {
+      if (editImage) {
+        generated = userIsPro ? await editViaOpenAI(cleanPrompt, editImage) : await editViaCloudflare(cleanPrompt, editImage);
+      } else if (userIsPro) {
         // Pro: OpenAI gpt-image-2
         generated = await generateViaOpenAI(cleanPrompt);
       } else {
