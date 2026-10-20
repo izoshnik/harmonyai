@@ -5,7 +5,7 @@ export const config = {
   maxDuration: 300
 };
 
-import { FREE_TEXT_MODEL, PRO_TEXT_MODEL, envModel } from '../lib/models.js';
+import { FREE_TEXT_MODEL, PRO_TEXT_MODEL, envModel, providerForModel, providerBaseUrl, isOpenRouterModel } from '../lib/models.js';
 import { authenticateRequest } from '../lib/auth.js';
 
 // Adanatos (free) отвечает на claude-haiku-4-5, Dynatos (pro) — на gpt-5.6-luna (см. lib/models.js).
@@ -83,16 +83,15 @@ function readEnv(name) {
 }
 
 /* ============================================================================
-   ADAN — бесплатная модель через Tokenator (замена Adanatos).
+   ADAN — бесплатная модель (Tokenator больше не используется).
    Переменные окружения Vercel:
-     TOKENATOR_API_KEY   — один ключ на все модели (обязательно)
-     ADAN_MODELS         — список моделей через запятую, первая — основная
-                           (по умолчанию: free-glm-5.3-flash, free-gemini-3.8-flash,
-                           free-gpt-6-astra, free-claude-opus-5.5, free-minimax-m3.1-flash)
-     TOKENATOR_BASE_URL  — необязательно; иначе .cloud, а при сетевой ошибке .top
-   Когда у модели кончается суточный лимит (сбрасывается в 03:00 МСК), сервер
-   помечает её «исчерпанной» и берёт следующую из списка — в том числе прямо
-   посреди ответа: ответ продолжает следующая модель с того же места.
+     ADAN_MODELS         — модели через запятую, первая — основная. По умолчанию:
+                           nvidia/nemotron-3.5-super-vl:free (OpenRouter, видит фото),
+                           deepseek-v4-flash-0731 (pro-ai.online) — запасная.
+     OPENROUTER_API_KEY  — ключ OpenRouter; OPENAI_API_KEY — ключ pro-ai.online.
+   Если модель не отвечает, упёрлась в лимит или оборвала ответ — сервер берёт
+   следующую из списка (в том числе посреди ответа: продолжение с того же места),
+   а «исчерпанную» модель временно пропускает.
    ========================================================================== */
 /* ============================================================================
    ЛИЧНОСТЬ И ЗАЩИТА ОТ JAILBREAK
@@ -133,15 +132,15 @@ function detectJailbreak(messages) {
   return '';
 }
 
-const ADAN_DEFAULT_MODELS = ['free-glm-5.3-flash', 'free-gemini-3.8-flash', 'free-gpt-6-astra', 'free-claude-opus-5.5', 'free-minimax-m3.1-flash'];
-const TOKENATOR_BASES = ['https://api.tokenator.cloud/v1', 'https://api.tokenator.top/v1'];
+const ADAN_DEFAULT_MODELS = ['nvidia/nemotron-3.5-super-vl:free', 'deepseek-v4-flash-0731'];
 const exhaustedModels = new Map(); // model → время (ms), до которого модель не используем
 
 function adanModels() {
   const fromEnv = readEnv('ADAN_MODELS').split(',').map(x => x.trim()).filter(Boolean);
   return fromEnv.length ? fromEnv : ADAN_DEFAULT_MODELS;
 }
-function isTokenatorModel(name) { return /^free-/i.test(String(name || '')); }
+/* Модель из цепочки Adan: при лимите/обрыве переключаемся на следующую. */
+function isAdanModel(name) { const n = String(name || ''); return isOpenRouterModel(n) || adanModels().includes(n); }
 function nextMskReset() {
   // 03:00 МСК = 00:00 UTC
   const d = new Date(); d.setUTCHours(24, 0, 0, 0); return d.getTime();
@@ -168,7 +167,7 @@ function adanChain() {
    отвечала «я не вижу изображение». Если в последнем сообщении пользователя есть
    фото — сначала идут мультимодальные модели (ADAN_VISION_MODELS, через запятую),
    остальные остаются запасными в конце цепочки. */
-const ADAN_VISION_DEFAULT = ['free-gemini-3.8-flash', 'free-gpt-6-astra', 'free-claude-opus-5.5'];
+const ADAN_VISION_DEFAULT = ['nvidia/nemotron-3.5-super-vl:free'];
 function adanVisionModels() {
   const fromEnv = readEnv('ADAN_VISION_MODELS').split(',').map(x => x.trim()).filter(Boolean);
   return fromEnv.length ? fromEnv : ADAN_VISION_DEFAULT;
@@ -195,24 +194,12 @@ function looksLikeLimit(status, text) {
   return status === 429 || status === 402 || /quota|limit|exhaust|insufficient|rate.?limit|лимит|исчерпан/.test(low);
 }
 function providerFor(modelName, apiKeyFallback) {
-  if (isTokenatorModel(modelName)) {
-    const custom = readEnv('TOKENATOR_BASE_URL').replace(/\/+$/, '');
-    return { bases: custom ? [custom] : TOKENATOR_BASES, apiKey: readEnv('TOKENATOR_API_KEY') || apiKeyFallback };
-  }
-  return { bases: [String(readEnv('OPENAI_BASE_URL') || 'https://api.codex-api.online/v1').replace(/\/+$/, '')], apiKey: apiKeyFallback || readEnv('OPENAI_API_KEY') };
+  const p = providerForModel(modelName);
+  return { bases: [p.baseUrl], apiKey: p.openrouter ? p.apiKey : (p.apiKey || apiKeyFallback), headers: p.headers };
 }
-/* POST с перебором адресов: .cloud → .top при сетевой ошибке/таймауте/5xx. */
 async function postProviderAny(modelName, apiKey, body, timeoutMs, label) {
   const p = providerFor(modelName, apiKey);
-  let lastErr = null;
-  for (let i = 0; i < p.bases.length; i++) {
-    try {
-      const r = await postProvider(p.bases[i], p.apiKey, body, timeoutMs, label);
-      if (r.status >= 500 && i < p.bases.length - 1) { lastErr = new Error('upstream ' + r.status); continue; }
-      return r;
-    } catch (e) { lastErr = e; if (i === p.bases.length - 1) throw e; }
-  }
-  throw lastErr || new Error('provider unreachable');
+  return postProvider(p.bases[0], p.apiKey, body, timeoutMs, label, p.headers);
 }
 
 function isPlaceholderValue(value = '') {
@@ -227,7 +214,7 @@ function hasUsableGemini() {
 
 function hasUsableOpenAI() {
   const key = readEnv('OPENAI_API_KEY');
-  const baseUrl = readEnv('OPENAI_BASE_URL') || 'https://api.codex-api.online/v1';
+  const baseUrl = providerBaseUrl();
   if (!key || isPlaceholderValue(key)) return false;
   if (isPlaceholderValue(baseUrl)) return false;
   try {
@@ -1041,6 +1028,19 @@ function providerBodyVariants(modelName, messages, maxTokens, reasoningEffort, s
   const base = { model: modelName, messages: sanitizeMessagesForProvider(messages) };
   if (stream) base.stream = true;
   const variants = [];
+  /* OpenRouter (nemotron и др.): reasoning_effort не принимается, вместо него
+     reasoning:{…}. Скрытые рассуждения модели идут на английском и съедают лимит
+     ответа (на 800 токенах — до 600 на «мысли»), поэтому без «Думать» они
+     выключены, а с ними к лимиту добавляется запас. */
+  if (isOpenRouterModel(modelName)) {
+    const v = { ...base, reasoning: reasoningEffort ? { effort: reasoningEffort === 'medium' ? 'medium' : 'high' } : { enabled: false } };
+    if (maxTokens > 0) v.max_tokens = maxTokens + (reasoningEffort ? reasoningReserve(reasoningEffort) : 0);
+    variants.push(v);
+    const plain = { ...base };
+    if (maxTokens > 0) plain.max_tokens = Math.max(maxTokens, 4096);
+    variants.push(plain);
+    return variants;
+  }
   if (isReasoningModel(modelName) && maxTokens > 0) {
     const v = { ...base, max_completion_tokens: maxTokens + reasoningReserve(reasoningEffort) };
     if (reasoningEffort) v.reasoning_effort = reasoningEffort;
@@ -1063,11 +1063,11 @@ function providerBodyVariants(modelName, messages, maxTokens, reasoningEffort, s
   const seen = new Set();
   return variants.filter((v) => { const k = Object.keys(v).sort().join(','); if (seen.has(k)) return false; seen.add(k); return true; });
 }
-async function postProvider(baseUrl, apiKey, body, timeoutMs, label) {
+async function postProvider(baseUrl, apiKey, body, timeoutMs, label, extraHeaders = {}) {
   return withTimeout(
     fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}`, ...extraHeaders },
       body: JSON.stringify(body)
     }),
     timeoutMs,
@@ -1085,7 +1085,7 @@ async function callOpenAI(apiKey, modelName, messages, timeoutMs = 35000, maxTok
     last = { response, data };
     if (response.ok && !data?.error) return last;
     const errText = JSON.stringify(data?.error || data || '');
-    if (isTokenatorModel(modelName) && looksLikeLimit(response.status, errText)) { markModelExhausted(modelName, errText); return last; }
+    if (isAdanModel(modelName) && looksLikeLimit(response.status, errText)) { markModelExhausted(modelName, errText); return last; }
     console.error(`[harmonyai] provider error | model=${modelName} | try=${i + 1}/${variants.length} | status=${response.status} | ${compactErrorValue(errText, 800)}`);
     if (!looksLikeBadRequest(response.status, errText)) return last;
   }
@@ -1100,7 +1100,7 @@ async function callOpenAIStream(apiKey, modelName, messages, timeoutMs = 65000, 
     if (response.ok) return response;
     let errText = '';
     try { errText = await response.clone().text(); } catch (error) { errText = ''; }
-    if (isTokenatorModel(modelName) && looksLikeLimit(response.status, errText)) { markModelExhausted(modelName, errText); return response; }
+    if (isAdanModel(modelName) && looksLikeLimit(response.status, errText)) { markModelExhausted(modelName, errText); return response; }
     console.error(`[harmonyai] provider stream error | model=${modelName} | try=${i + 1}/${variants.length} | status=${response.status} | ${compactErrorValue(errText, 800)}`);
     if (!looksLikeBadRequest(response.status, errText)) return response;
   }
@@ -1392,7 +1392,7 @@ async function streamOpenAIToClientInner(res, apiKey, modelName, messages, timeo
 
     // Adan: лимит модели кончился прямо во время ответа (или на продолжении) —
     // незаметно переключаемся на следующую модель и продолжаем с того же места.
-    if (!upstream.ok && attempt > 0 && isTokenatorModel(modelName)) {
+    if (!upstream.ok && attempt > 0 && isAdanModel(modelName)) {
       let guard = 0;
       while (!upstream.ok && guard++ < 4) {
         const nxt = nextAdanModel(modelName);
@@ -1574,7 +1574,7 @@ async function streamOpenAIToClientInner(res, apiKey, modelName, messages, timeo
     attempt += 1;
     // Для Adan продолжение сразу отдаём следующей модели: если текущая оборвалась,
     // чаще всего у неё кончился лимит.
-    if (isTokenatorModel(modelName) && fullText) {
+    if (isAdanModel(modelName) && fullText) {
       const nxt = nextAdanModel(modelName);
       if (nxt) { markModelExhausted(modelName, 'stream stopped mid-answer'); modelName = nxt; }
     }
@@ -1703,11 +1703,13 @@ function selectRoute(profile, requestedModel, messages) {
   const wantsPro = requestedModel === 'pro';
   // Если запрошена Pro-модель, но роль не Pro — тихо откатываемся на Adanatos.
   const allowedPro = wantsPro && isProRole(profile);
-  const modelChain = allowedPro ? MODEL_CHAINS.dynatos : (lastUserHasImage(messages) ? visionFirst(adanChain()) : adanChain());
+  // С фото сначала модель со зрением: ни glm-5.3-flash (Pro), ни deepseek картинки не видят.
+  const baseChain = allowedPro ? MODEL_CHAINS.dynatos.concat(adanChain()) : adanChain();
+  const modelChain = lastUserHasImage(messages) ? visionFirst(baseChain) : baseChain;
 
   return {
     provider: 'openai',
-    apiKey: allowedPro ? readEnv('OPENAI_API_KEY') : (readEnv('TOKENATOR_API_KEY') || readEnv('OPENAI_API_KEY')),
+    apiKey: readEnv('OPENAI_API_KEY'),
     models: Array.from(new Set(modelChain)),
     proDowngraded: wantsPro && !allowedPro
   };
@@ -2123,9 +2125,9 @@ export default async function handler(req, res) {
             lastError.unavailable = true;
             continue;
           }
-          if (isQuotaExceeded(lastError.status, errorMessage) || (isTokenatorModel(modelName) && looksLikeLimit(lastError.status, errorMessage))) {
+          if (isQuotaExceeded(lastError.status, errorMessage) || (isAdanModel(modelName) && looksLikeLimit(lastError.status, errorMessage))) {
             // Adan: квота одной модели — не повод отказывать, у цепочки есть следующие.
-            if (isTokenatorModel(modelName) && hasNextModel) { lastError.quota = true; continue; }
+            if (isAdanModel(modelName) && hasNextModel) { lastError.quota = true; continue; }
             return failRequest(429, formatQuotaErrorMessage(errorMessage, modelName));
           }
           if (isOverloaded(lastError.status, errorMessage)) {
@@ -2143,8 +2145,8 @@ export default async function handler(req, res) {
             lastError.unavailable = true;
             continue;
           }
-          if (isQuotaExceeded(response.status, errorMessage) || (isTokenatorModel(modelName) && looksLikeLimit(response.status, errorMessage))) {
-            if (isTokenatorModel(modelName) && hasNextModel) { lastError.quota = true; continue; }
+          if (isQuotaExceeded(response.status, errorMessage) || (isAdanModel(modelName) && looksLikeLimit(response.status, errorMessage))) {
+            if (isAdanModel(modelName) && hasNextModel) { lastError.quota = true; continue; }
             return failRequest(429, formatQuotaErrorMessage(errorMessage, modelName));
           }
           if (isOverloaded(response.status, errorMessage)) await sleep(800);
