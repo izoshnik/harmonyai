@@ -195,7 +195,7 @@
     document.getElementById('priceOld').textContent=discounted?rub(state.prices.month)+'₽':'';
     const note=document.getElementById('priceNote');
     note.classList.toggle('accent',discounted);
-    note.textContent=discounted?'Скидка 10% на первый месяц по приглашению':(week?'7 дней доступа, без автосписаний':'30 дней доступа, без автосписаний');
+    note.textContent=discounted?'Скидка 10% на первый месяц по приглашению':(week?'7 дней доступа, без автосписаний. Можно купить 1 раз':'30 дней доступа, без автосписаний');
     document.getElementById('freeBadge').hidden=state.pro||!state.signedIn;
     document.getElementById('proBadge').hidden=!state.pro;
     const freeAction=document.getElementById('freeAction');
