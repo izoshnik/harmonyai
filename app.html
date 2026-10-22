@@ -6719,7 +6719,18 @@ function generateChatId(){
   }
   return out;
 }
-async function saveChat(title){
+/* Сохранения идут строго по очереди. Поэтому перед запросом к модели сохранение
+   можно НЕ ждать (раньше Enter ждал запись в Supabase — 0,2–0,6 с до старта
+   ответа): следующее сохранение всё равно встанет за ним и не обгонит вставку
+   нового чата обновлением несуществующей строки. */
+let hmSaveChain=Promise.resolve();
+function saveChat(title){
+  const run=()=>saveChatNow(title);
+  const p=hmSaveChain.then(run,run);
+  hmSaveChain=p.catch(()=>{});
+  return p;
+}
+async function saveChatNow(title){
   if(!curUser||chatHistory.length===0)return;
   // В базу сохраняем ОБЛЕГЧЁННУЮ историю: фото — как текстовые метки, длинные тексты/файлы —
   // обрезаны. Иначе каждая запись таскала бы мегабайты base64 и полный текст документов,
@@ -9740,6 +9751,23 @@ function lastUserHasAttachments(){
    не получит токена. Fail-open здесь на месте, потому что деньги и API-ключи
    живут в других эндпоинтах и токен требуют безусловно.
    ========================================================================= */
+/* ПРОГРЕВ СЕРВЕРА ЧАТА (GET /api/chat?warm=1, см. handleWarm в api/chat.js).
+   Пока человек печатает, сервер просыпается, проверяет токен и кладёт в память
+   профиль, лимиты и базу знаний — к моменту Enter ответу не нужно ждать ни
+   холодного старта, ни Supabase. Модель не вызывается; не чаще раза в 45 с. */
+let hmWarmAt=0;
+async function hmWarmChat(){
+  try{
+    if(typeof curUser==='undefined'||!curUser)return;
+    const now=Date.now();
+    if(now-hmWarmAt<45000)return;
+    hmWarmAt=now;
+    const url=buildApiCandidates()[0]+'?warm=1&model='+encodeURIComponent(typeof curModel==='string'?curModel:'');
+    fetch(url,{method:'GET',headers:await hmAuthHeaders(),cache:'no-store',credentials:'omit'}).catch(()=>{});
+  }catch(e){}
+}
+document.addEventListener('input',e=>{if(e.target&&e.target.id==='msgTa')hmWarmChat();},true);
+document.addEventListener('focusin',e=>{if(e.target&&e.target.id==='msgTa')hmWarmChat();},true);
 async function hmAuthHeaders(base){
   const headers=Object.assign({'Content-Type':'application/json'},base||{});
   try{
@@ -11084,7 +11112,7 @@ async function sendMsgInner(){
     // Сообщение пользователя фиксируем в истории сразу — даже если классификатор решит,
     // что генерация не нужна, текстовый ответ модели должен видеть этот ход.
     chatHistory.push({role:'user',content:text,attachments:[],createdAt:messageNow()});
-    await saveChat();
+    saveChat().catch(()=>{});
     // Двухэтапный пайплайн: сначала intent-классификатор решает, действительно ли нужна
     // картинка и хватает ли деталей. forceImage=true только если режим был включён кнопкой
     // (тогда пользователь явно хочет генерацию — классификатору остаётся только уточнить детали).
@@ -11836,7 +11864,8 @@ async function handleTextReply(pendingText){
   /* Память: локальная эвристика (0 запросов, 0 токенов) может предложить
      сохранить факт. Решение — всегда за пользователем. */
   if(!wasTraining){try{if(window.HmMemory)HmMemory.maybeSuggest(text,{chatId:curChatId});}catch(_){}}
-  await saveChat();
+  // Запрос к модели уходит сразу, сохранение — параллельно (очередь в saveChat).
+  saveChat().catch(()=>{});
 
   if(trainingUrls.length){await hmIngestUrls(trainingUrls);return;}
   await runAssistantReply(displayText);
