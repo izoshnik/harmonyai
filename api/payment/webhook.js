@@ -4,7 +4,8 @@
    ЮKassa присылает уведомление о событии. Обслуживаем оба типа платежей одним
    вебхуком (второй платёжной системы в проекте нет):
 
-     metadata.type = 'subscription' → Pro на 30 дней
+     metadata.type = 'subscription' → Pro на 30 дней (plan=month) или 7 дней (plan=week);
+                                      дни ПРИБАВЛЯЮТСЯ к текущему сроку (продление)
      metadata.type = 'api_balance'  → баланс API + сумма платежа
 
    ПОРЯДОК ПРОВЕРОК — он же порядок защиты от подделки и двойного начисления:
@@ -32,7 +33,8 @@ export const config = { maxDuration: 15 };
 
 import { supabaseRest } from '../../lib/auth.js';
 import { fetchPayment, paymentAmountKopecks, PAYMENT_TYPES, yookassaConfigured } from '../../lib/yookassa.js';
-import { PRO_PLAN, kopecksToRublesString } from '../../lib/pricing.js';
+import { PRO_PLAN, kopecksToRublesString, periodDaysForPayment } from '../../lib/pricing.js';
+import { readProfile, extendedExpiry, isPerpetualPro, setProExpiry, markDiscountUsed } from '../../lib/referrals.js';
 
 /* Наша внутренняя запись платежа. Она — источник истины о владельце и сумме. */
 async function findInternalPayment(yookassaId) {
@@ -217,12 +219,18 @@ export default async function handler(req, res) {
       return res.status(200).end();
     }
 
+    /* Срок — по сумме, которую реально подтвердила ЮKassa: plan из metadata
+       лишь подсказка (неделя или месяц), а сумма обязана совпасть с нашей ценой. */
+    const periodDays = periodDaysForPayment(payment.metadata?.plan, amountKopecks) || PRO_PLAN.periodDays;
+    // Профиль ДО начисления: от него считаем продление (дни суммируются).
+    const before = await readProfile(internal.user_id).catch(() => null);
+
     const raw = await supabaseRest('/rest/v1/rpc/credit_subscription', {
       method: 'POST',
       body: JSON.stringify({
         p_yookassa_payment_id: paymentId,
         p_amount_kopecks: Number(amountKopecks),
-        p_period_days: PRO_PLAN.periodDays
+        p_period_days: periodDays
       })
     });
     const result = rpcResult(raw);
@@ -238,7 +246,29 @@ export default async function handler(req, res) {
       return res.status(200).end();
     }
 
-    console.log('[webhook] Pro активирован до', result.plan_expires_at, 'по платежу', paymentId);
+    /* ПРОДЛЕНИЕ. SQL-функция credit_subscription ставит срок сама, но мы не
+       полагаемся на то, как именно: итоговый срок обязан быть
+       max(сейчас, прежний срок) + оплаченные дни. Выполняется один раз —
+       только для впервые зачисленного платежа (already_credited выше). */
+    let expiresAt = result.plan_expires_at;
+    try {
+      if (isPerpetualPro(before)) {
+        if (result.plan_expires_at) await setProExpiry(internal.user_id, null);
+        expiresAt = null;
+      } else {
+        const want = extendedExpiry(before, periodDays);
+        const got = Date.parse(result.plan_expires_at || '') || 0;
+        if (Math.abs(got - Date.parse(want)) > 60 * 1000) {
+          await setProExpiry(internal.user_id, want);
+          expiresAt = want;
+        }
+      }
+    } catch (e) {
+      console.error('[webhook] не удалось выровнять срок Pro', paymentId, e?.message);
+    }
+    if (payment.metadata?.referralCode) await markDiscountUsed(internal.user_id, payment.metadata.referralCode, paymentId);
+
+    console.log('[webhook] Pro активирован до', expiresAt, 'по платежу', paymentId, `(${periodDays} дн.)`);
     await logEvent({ userId: internal.user_id, paymentId, amount: payment.amount?.value, status: 'activated' });
     return res.status(200).end();
   } catch (error) {

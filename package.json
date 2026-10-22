@@ -1,6 +1,6 @@
 {
   "name": "harmonyai",
-  "version": "0.8.2",
+  "version": "0.8.4",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.mjs"

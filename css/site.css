@@ -611,6 +611,12 @@ pre code{background:none;border:none;padding:0;font-size:inherit;}
   .grid-2,.grid-3,.grid-4{grid-template-columns:1fr;}
   .footer-grid{grid-template-columns:1fr 1fr;gap:26px;}
   .wrap,.wrap-narrow,.header-inner{padding-left:16px;padding-right:16px;}
+  /* Шапка не должна вылезать за экран (раньше на 390 px давала горизонтальную прокрутку на /about, /contacts, /api). */
+  .header-inner{gap:10px;}
+  .brand{min-width:0;}
+  .header-actions{gap:8px;min-width:0;}
+  .header-actions .btn-primary{padding:8px 12px;font-size:13.5px;white-space:nowrap;}
+  .nav-toggle{width:38px;height:38px;flex:none;}
   .card{padding:20px;}
   .modal{padding:12px;align-items:flex-end;}
   .modal-card{max-width:none;padding:22px 18px;border-radius:var(--radius-lg) var(--radius-lg) 0 0;max-height:88vh;}

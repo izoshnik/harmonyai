@@ -363,6 +363,7 @@
         const m = id ? byId[id] : null;
         let value = '';
         if (what === 'pro') value = rub(p.proPriceRub);
+        else if (what === 'week') value = rub(p.proWeekPriceRub);
         else if (what === 'usd-rate') value = rub(p.usdRubRate);
         else if (m && what === 'in') value = '$' + m.inputUsdPerMillion;
         else if (m && what === 'out') value = '$' + m.outputUsdPerMillion;

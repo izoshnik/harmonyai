@@ -425,13 +425,13 @@ document.addEventListener('DOMContentLoaded', function () {
     var isPro = plan.plan === 'pro';
     el('planValue').textContent = isPro ? 'Pro' : 'Базовый доступ';
     el('planNote').textContent = isPro
-      ? (plan.expiresAt ? 'Активна до ' + fmtDate(plan.expiresAt) : 'Активна')
+      ? (plan.staff ? 'Включена для вашей роли' : (plan.expiresAt ? 'Активна до ' + fmtDate(plan.expiresAt) : 'Активна'))
       : 'Подписка Pro открывает возможности чата. На баланс API она не влияет.';
     // Цену берём из серверных тарифов (lib/pricing.js), а не из вёрстки:
     // при смене PRO_PRICE_RUB кабинет не должен показывать старую цифру.
     var proRub = fmtRub((state.pricing && state.pricing.proPriceRub) || '299');
     el('planActions').innerHTML = isPro
-      ? '<a class="btn btn-ghost btn-sm" href="/subscribe">Управление подпиской</a>'
+      ? (plan.staff ? '' : '<a class="btn btn-ghost btn-sm" href="/subscribe">Продлить подписку</a>')
       : '<a class="btn btn-outline" href="/subscribe">Оформить Pro — ' + esc(proRub) + ' ₽</a>';
   }
 
