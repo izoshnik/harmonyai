@@ -1,4 +1,13 @@
 User-agent: *
 Allow: /
+Disallow: /chat
+Disallow: /login
+Disallow: /settings
+Disallow: /management
+Disallow: /api/
+Disallow: /v1/
+Disallow: /mcp
+Disallow: /*?share=
+Disallow: /*?invite=
 
 Sitemap: https://harmonyai.ru/sitemap.xml

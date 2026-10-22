@@ -1,0 +1,9 @@
+# Служебные файлы разработки: остаются в GitHub, но не публикуются на сайте
+PROJECT_MAP.html
+QA_REPORT.md
+README.md
+deploy-check.txt
+.env.example
+_i18n_*.json
+tests
+supabase
