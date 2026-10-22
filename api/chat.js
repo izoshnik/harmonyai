@@ -5,7 +5,7 @@ export const config = {
   maxDuration: 300
 };
 
-import { FREE_TEXT_MODEL, PRO_TEXT_MODEL, envModel, providerForModel, providerBaseUrl, isOpenRouterModel } from '../lib/models.js';
+import { FREE_TEXT_MODEL, PRO_TEXT_MODEL, envModel, providerForModel, providerBaseUrl, isOpenRouterModel, supportsReasoningEffort, noteUnaskedReasoning, responseHasReasoning, fastReasoningEffort } from '../lib/models.js';
 import { authenticateRequest } from '../lib/auth.js';
 
 // Adanatos (free) отвечает на claude-haiku-4-5, Dynatos (pro) — на gpt-5.6-luna (см. lib/models.js).
@@ -197,9 +197,9 @@ function providerFor(modelName, apiKeyFallback) {
   const p = providerForModel(modelName);
   return { bases: [p.baseUrl], apiKey: p.openrouter ? p.apiKey : (p.apiKey || apiKeyFallback), headers: p.headers };
 }
-async function postProviderAny(modelName, apiKey, body, timeoutMs, label) {
+async function postProviderAny(modelName, apiKey, body, timeoutMs, label, signal = null) {
   const p = providerFor(modelName, apiKey);
-  return postProvider(p.bases[0], p.apiKey, body, timeoutMs, label, p.headers);
+  return postProvider(p.bases[0], p.apiKey, body, timeoutMs, label, p.headers, signal);
 }
 
 function isPlaceholderValue(value = '') {
@@ -325,16 +325,15 @@ async function supabaseRequest(path, init = {}) {
 
 /* ===== Кэш в памяти функции (как cacheGet/cacheSet в lib/auth.js) =====
    Профиль и глобальная база знаний меняются редко, а читались на КАЖДОЕ
-   сообщение. TTL короткий: смена тарифа/роли видна максимум через минуту. */
+   сообщение. Свежими считаются минуту-две; после этого ещё STALE-время
+   значение отдаётся СРАЗУ, а обновление идёт в фоне (stale-while-revalidate):
+   ответ не ждёт Supabase. Прогрев (GET /api/chat?warm=1, пока человек печатает)
+   перечитывает профиль принудительно, поэтому смена тарифа видна сразу. */
 const PROFILE_TTL_MS = 60 * 1000;
+const PROFILE_STALE_MS = 10 * 60 * 1000;
 const GLOBAL_KNOWLEDGE_TTL_MS = 120 * 1000;
+const GLOBAL_KNOWLEDGE_STALE_MS = 30 * 60 * 1000;
 const _memCache = new Map(); // key → { at, ttl, value }
-function memGet(key) {
-  const rec = _memCache.get(key);
-  if (!rec) return undefined;
-  if (Date.now() - rec.at > rec.ttl) { _memCache.delete(key); return undefined; }
-  return rec.value;
-}
 function memSet(key, value, ttl) {
   if (_memCache.size > 800) {
     const now = Date.now();
@@ -345,19 +344,27 @@ function memSet(key, value, ttl) {
 }
 /* Один сетевой запрос на ключ, даже если параллельно пришло несколько сообщений. */
 const _inflight = new Map();
-function cachedLoad(key, ttl, loader) {
-  const hit = memGet(key);
-  if (hit !== undefined) return Promise.resolve(hit);
-  if (_inflight.has(key)) return _inflight.get(key);
-  const p = Promise.resolve().then(loader).then((value) => { memSet(key, value, ttl); return value; })
-    .finally(() => _inflight.delete(key));
-  _inflight.set(key, p);
-  return p;
+function cachedLoad(key, ttl, loader, { staleMs = 0, fresh = false } = {}) {
+  const load = () => {
+    if (_inflight.has(key)) return _inflight.get(key);
+    const p = Promise.resolve().then(loader).then((value) => { memSet(key, value, Math.max(ttl, staleMs)); return value; })
+      .finally(() => _inflight.delete(key));
+    _inflight.set(key, p);
+    return p;
+  };
+  const rec = _memCache.get(key);
+  const age = rec ? Date.now() - rec.at : Infinity;
+  if (!fresh && rec && age <= ttl) return Promise.resolve(rec.value);
+  if (!fresh && rec && age <= staleMs) {
+    load().catch(() => {}); // устарело, но ещё годно: отдаём сразу, обновляем в фоне
+    return Promise.resolve(rec.value);
+  }
+  return load();
 }
 
-async function fetchProfileCached(userId) {
+async function fetchProfileCached(userId, { fresh = false } = {}) {
   if (!userId) return null;
-  return cachedLoad('profile:' + userId, PROFILE_TTL_MS, () => fetchProfile(userId));
+  return cachedLoad('profile:' + userId, PROFILE_TTL_MS, () => fetchProfile(userId), { staleMs: PROFILE_STALE_MS, fresh });
 }
 
 /* Глобальная база знаний (учебники, загруженные в режиме обучения) — общая для всех,
@@ -369,7 +376,12 @@ async function fetchGlobalKnowledgeCached() {
     ) || [];
     const chunks = documents.length ? (await fetchChunksForDocuments(documents.map((d) => d.id)) || []) : [];
     return { documents, chunks };
-  });
+  }, { staleMs: GLOBAL_KNOWLEDGE_STALE_MS });
+}
+
+/* Исправления ответов (общие + свои) — тоже меняются редко. */
+async function fetchFeedbackCached(userId) {
+  return cachedLoad('feedback:' + (userId || '-'), PROFILE_TTL_MS, () => fetchFeedback(userId), { staleMs: PROFILE_STALE_MS });
 }
 
 /* Личные документы пользователя — без кэша (их видит только владелец). */
@@ -596,7 +608,8 @@ function wantsRenderedStaff(query = '') {
 
 const SEARCH_MAX_RESULTS = 6;
 const SEARCH_MAX_PAGES_TO_FETCH = 3;
-const SEARCH_PAGE_TIMEOUT_MS = 9000;
+// Страницы читаются параллельно; медленный сайт не держит ответ дольше этого.
+const SEARCH_PAGE_TIMEOUT_MS = 4000;
 const SEARCH_PAGE_MAX_CHARS = 6000;
 
 // Эвристика: явно ли пользователь просит свежую/внешнюю информацию из интернета.
@@ -613,6 +626,9 @@ function isDefinitelyOfflineQuery(query = '') {
   if (!clean) return true;
   // Приветствия / короткие нейтральные фразы
   if (isSimpleQuery(clean)) return true;
+  // Дата и время: они уже есть в системном контексте (buildCurrentDateTimeContext),
+  // искать их в интернете — лишние 3–5 секунд до ответа.
+  if (/^(а\s+)?(какое|какой|какая)\s+(сегодня|сейчас|завтра|вчера)?\s*(число|день|дата|год|месяц|день недели)\s*(сегодня|сейчас|завтра|вчера)?\s*\??$|^(который|сколько)\s+(сейчас\s+)?(час|времени)\s*\??$/.test(clean)) return true;
   // Музыкальная теория / творчество / ноты — всё это «домашние» знания ИИ
   if (wantsRenderedStaff(clean)) return true;
   if (/(гамм|аккорд|тональност|интервал|сольфеджи|нот(ы|ный|ная|ное)|аппликатур|ритм|такт(ы)?|размер\s+\d|трезвучи|септаккорд|обращени|импровиз|аранжир|транспони|темп\b|динамик(а|и)|штрих\b|фразировк|слух|диктовк)/.test(clean)) return true;
@@ -696,7 +712,7 @@ async function webSearchResults(query) {
           'Accept-Language': 'ru-RU,ru;q=0.9,en;q=0.8'
         }
       }),
-      12000,
+      6000,
       'Web search timed out'
     );
     if (!resp.ok) return [];
@@ -742,9 +758,9 @@ async function buildWebSearchContext(query, res) {
   if (!results.length) return { context: '', sources: [], browsed: 0 };
 
   const sources = results.map((r) => ({ url: r.url, title: r.title, snippet: r.snippet }));
-  // Тянем полный текст с нескольких первых страниц. Делаем это последовательно,
-  // чтобы посылать клиенту событие search_browse («Смотрю <host>…») перед каждым
-  // запросом — пользователь видит, какой конкретно сайт сейчас читает ИИ.
+  // Тянем полный текст с нескольких первых страниц — ПАРАЛЛЕЛЬНО (раньше по очереди,
+  // до 3×9 с). Клиент всё так же видит по каждому сайту «читаю» → «прочитал»:
+  // событие search_browse_done приходит, когда готова именно эта страница.
   const toFetch = results.slice(0, SEARCH_MAX_PAGES_TO_FETCH);
 
   // Список найденного отдаём СРАЗУ, до загрузки страниц: иначе клиент узнаёт о сайтах
@@ -761,15 +777,15 @@ async function buildWebSearchContext(query, res) {
     });
   }
 
-  const fetched = [];
-  for (const r of toFetch) {
+  const fetched = await Promise.all(toFetch.map(async (r) => {
     let host = '';
     try { host = new URL(r.url).hostname.replace(/^www\./, ''); } catch (e) { host = ''; }
     if (res && host) writeSseEvent(res, { type: 'search_browse', host });
-    fetched.push({ url: r.url, title: r.title, text: await fetchPageText(r.url) });
+    const text = await fetchPageText(r.url);
     // Страница прочитана — гасим «читаю» именно у этого сайта, а не у всех сразу.
     if (res && host) writeSseEvent(res, { type: 'search_browse_done', host });
-  }
+    return { url: r.url, title: r.title, text };
+  }));
 
   const browsed = fetched.filter((f) => f.text && f.text.length > 120).length;
   const parts = [];
@@ -1049,12 +1065,17 @@ function providerBodyVariants(modelName, messages, maxTokens, reasoningEffort, s
     variants.push({ ...base });
     return variants;
   }
+  /* Модели pro-ai.online с reasoning_effort: у части из них лимит ответа включает
+     и скрытые рассуждения, поэтому к лимиту добавляется запас (на 'low' — немного). */
+  const reserve = reasoningEffort && supportsReasoningEffort(modelName)
+    ? (reasoningEffort === 'low' ? 1500 : reasoningReserve(reasoningEffort))
+    : 0;
   const full = { ...base };
-  if (maxTokens > 0) full.max_tokens = maxTokens;
+  if (maxTokens > 0) full.max_tokens = maxTokens + reserve;
   if (reasoningEffort) full.reasoning_effort = reasoningEffort;
   variants.push(full);
   if (maxTokens > 0) {
-    const v = { ...base, max_completion_tokens: maxTokens };
+    const v = { ...base, max_completion_tokens: maxTokens + reserve };
     if (reasoningEffort) v.reasoning_effort = reasoningEffort;
     variants.push(v);
   }
@@ -1063,16 +1084,31 @@ function providerBodyVariants(modelName, messages, maxTokens, reasoningEffort, s
   const seen = new Set();
   return variants.filter((v) => { const k = Object.keys(v).sort().join(','); if (seen.has(k)) return false; seen.add(k); return true; });
 }
-async function postProvider(baseUrl, apiKey, body, timeoutMs, label, extraHeaders = {}) {
-  return withTimeout(
-    fetch(`${baseUrl}/chat/completions`, {
+/* signal — отмена извне (проигравший в гонке за первый токен). Таймаут тоже
+   обрывает сам запрос, а не только перестаёт его ждать: раньше зависший запрос
+   продолжал жить в фоне и держал соединение. Отмена действует и на тело ответа
+   (поток), поэтому слушатель signal не снимается после заголовков. */
+async function postProvider(baseUrl, apiKey, body, timeoutMs, label, extraHeaders = {}, signal = null) {
+  const ctrl = new AbortController();
+  if (signal) {
+    if (signal.aborted) ctrl.abort();
+    else signal.addEventListener('abort', () => ctrl.abort(), { once: true });
+  }
+  let timedOut = false;
+  const timer = setTimeout(() => { timedOut = true; ctrl.abort(); }, timeoutMs);
+  try {
+    return await fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}`, ...extraHeaders },
-      body: JSON.stringify(body)
-    }),
-    timeoutMs,
-    label
-  );
+      body: JSON.stringify(body),
+      signal: ctrl.signal
+    });
+  } catch (error) {
+    if (timedOut) throw new Error(label);
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 async function callOpenAI(apiKey, modelName, messages, timeoutMs = 35000, maxTokens = 0, reasoningEffort = '') {
@@ -1083,7 +1119,10 @@ async function callOpenAI(apiKey, modelName, messages, timeoutMs = 35000, maxTok
     let data = {};
     try { data = await response.json(); } catch (error) { data = {}; }
     last = { response, data };
-    if (response.ok && !data?.error) return last;
+    if (response.ok && !data?.error) {
+      if (!reasoningEffort && responseHasReasoning(data)) noteUnaskedReasoning(modelName);
+      return last;
+    }
     const errText = JSON.stringify(data?.error || data || '');
     if (isAdanModel(modelName) && looksLikeLimit(response.status, errText)) { markModelExhausted(modelName, errText); return last; }
     console.error(`[harmonyai] provider error | model=${modelName} | try=${i + 1}/${variants.length} | status=${response.status} | ${compactErrorValue(errText, 800)}`);
@@ -1092,11 +1131,11 @@ async function callOpenAI(apiKey, modelName, messages, timeoutMs = 35000, maxTok
   return last;
 }
 
-async function callOpenAIStream(apiKey, modelName, messages, timeoutMs = 65000, maxTokens = 0, reasoningEffort = '') {
+async function callOpenAIStream(apiKey, modelName, messages, timeoutMs = 65000, maxTokens = 0, reasoningEffort = '', signal = null) {
   const variants = providerBodyVariants(modelName, messages, maxTokens, reasoningEffort, true);
   let response = null;
   for (let i = 0; i < variants.length; i++) {
-    response = await postProviderAny(modelName, apiKey, variants[i], timeoutMs, `OpenAI stream timed out for ${modelName}`);
+    response = await postProviderAny(modelName, apiKey, variants[i], timeoutMs, `OpenAI stream timed out for ${modelName}`, signal);
     if (response.ok) return response;
     let errText = '';
     try { errText = await response.clone().text(); } catch (error) { errText = ''; }
@@ -1289,18 +1328,175 @@ function stripAllAnswerMarkers(text = '') {
 
 // Обёртка с SSE keep-alive: пинг-комментарий каждые 15 секунд, чтобы прокси и браузер
 // не обрывали соединение во время долгих пауз модели (главная причина «застрявшего» стриминга).
-async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs, query, largeContext = false, captureReasoning = false, maxTokens = 0, headersAlreadySent = false, reasoningEffort = '') {
+/* ============================================================================
+   ГОНКА ЗА ПЕРВЫЙ ТОКЕН (hedged request — так делают крупные сервисы).
+   Основная модель обычно начинает отвечать за доли секунды, но бесплатные
+   модели иногда стоят в очереди провайдера по 5–40 секунд. Раньше пользователь
+   ждал всё это время (до 45 с на соединение) и только потом получал запасную.
+   Теперь: если основная молчит дольше hedgeDelayMs (или сразу упала), сервер
+   параллельно запускает запасную модель и отдаёт ответ той, что ПЕРВОЙ выдала
+   текст. Вторую сразу обрывает (AbortController), поэтому лишних токенов почти
+   нет, а запасная запускается только когда основная действительно тормозит.
+   ========================================================================== */
+const raceLosses = new Map(); // модель → сколько гонок подряд проиграла
+const slowModels = new Map(); // модель → до какого времени (ms) она «медленная»
+function isModelSlow(name) {
+  const until = slowModels.get(name);
+  if (!until) return false;
+  if (Date.now() >= until) { slowModels.delete(name); return false; }
+  return true;
+}
+function noteRaceResult(primary, winner) {
+  if (!primary) return;
+  if (winner === primary) { raceLosses.delete(primary); return; }
+  const n = (raceLosses.get(primary) || 0) + 1;
+  raceLosses.set(primary, n);
+  if (n >= 3) {
+    // Три проигрыша подряд — у провайдера очередь. На 3 минуты основной
+    // становится запасная, а эта уходит на её место (и сама служит подстраховкой).
+    raceLosses.delete(primary);
+    slowModels.set(primary, Date.now() + 3 * 60 * 1000);
+    console.warn(`[harmonyai] model slow for 3 min | model=${primary} | lost 3 races in a row`);
+  }
+}
+
+/* Разбор SSE до первого «живого» события: 'token' — пошёл текст ответа
+   (или рассуждения, если они нужны), 'error' — провайдер прислал ошибку в потоке. */
+function scanSseForFirstToken(lines, acceptReasoning, modelName, askedReasoning) {
+  for (const line of lines) {
+    if (!line.startsWith('data:')) continue;
+    const raw = line.slice(5).trim();
+    if (!raw || raw === '[DONE]') continue;
+    let parsed = null;
+    try { parsed = JSON.parse(raw); } catch (e) { continue; }
+    if (parsed?.error) return { kind: 'error', message: String(parsed.error?.message || parsed.error || 'stream error') };
+    const d = parsed?.choices?.[0]?.delta || {};
+    let content = d.content;
+    if (Array.isArray(content)) content = content.map((item) => item?.text || '').join('');
+    if (typeof content === 'string' && content) return { kind: 'token' };
+    const reasoning = d.reasoning_content || d.reasoning;
+    if (reasoning) {
+      if (!askedReasoning) noteUnaskedReasoning(modelName);
+      if (acceptReasoning) return { kind: 'token' };
+    }
+  }
+  return null;
+}
+
+/* Открывает поток модели и читает его до первого токена. Прочитанные байты не
+   теряются: возвращается поток, который сначала отдаёт их, потом остальное. */
+async function openUntilFirstToken(apiKey, modelName, messages, deadlineMs, maxTokens, effort, acceptReasoning, signal) {
+  const startedAt = Date.now();
+  let response;
+  try {
+    response = await callOpenAIStream(apiKey, modelName, messages, deadlineMs, maxTokens, effort, signal);
+  } catch (error) {
+    return { ok: false, model: modelName, status: 504, message: String(error?.message || error) };
+  }
+  if (!response.ok || !response.body) {
+    let message = '';
+    try { const data = await response.json(); message = data?.error?.message || ''; } catch (e) {}
+    return { ok: false, model: modelName, status: response.status || 500, message: message || `Ошибка модели ${modelName}` };
+  }
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  const chunks = [];
+  let tail = '';
+  while (true) {
+    const left = deadlineMs - (Date.now() - startedAt);
+    let read;
+    try {
+      read = await withTimeout(reader.read(), Math.max(1, left), `OpenAI stream timed out for ${modelName}`);
+    } catch (error) {
+      reader.cancel().catch(() => {});
+      return { ok: false, model: modelName, status: 504, message: String(error?.message || error) };
+    }
+    if (read.done) {
+      return { ok: false, model: modelName, status: 504, message: `Потоковый ответ прервался слишком рано для модели ${modelName}` };
+    }
+    chunks.push(read.value);
+    tail += decoder.decode(read.value, { stream: true });
+    const lines = tail.split('\n');
+    tail = lines.pop() || '';
+    const found = scanSseForFirstToken(lines, acceptReasoning, modelName, Boolean(effort));
+    if (found?.kind === 'error') {
+      reader.cancel().catch(() => {});
+      if (isAdanModel(modelName) && looksLikeLimit(0, found.message)) markModelExhausted(modelName, found.message);
+      return { ok: false, model: modelName, status: 502, message: found.message };
+    }
+    if (found?.kind === 'token') break;
+  }
+  const body = new ReadableStream({
+    start(controller) { for (const chunk of chunks) controller.enqueue(chunk); },
+    async pull(controller) {
+      try {
+        const { done, value } = await reader.read();
+        if (done) controller.close(); else controller.enqueue(value);
+      } catch (error) { controller.error(error); }
+    },
+    cancel(reason) { return reader.cancel(reason).catch(() => {}); }
+  });
+  return { ok: true, model: modelName, response: { ok: true, status: 200, body }, ttftMs: Date.now() - startedAt };
+}
+
+/* Основная модель стартует сразу, запасная — через hedgeDelayMs или сразу после
+   падения основной. Возвращает победителя ({ok:true, model, response}) или
+   ошибку основной модели; tried — какие модели уже опробованы. */
+function raceFirstToken({ apiKey, primary, hedge, hedgeDelayMs, messages, deadlineMs, maxTokens, effortFor, acceptReasoning }) {
+  return new Promise((resolve) => {
+    const controllers = new Map();
+    const failures = new Map();
+    const tried = [];
+    let settled = false;
+    let hedgeTimer = null;
+    const finish = (value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(hedgeTimer);
+      resolve({ ...value, tried });
+    };
+    const launch = (name) => {
+      if (tried.includes(name)) return;
+      tried.push(name);
+      const ctrl = new AbortController();
+      controllers.set(name, ctrl);
+      openUntilFirstToken(apiKey, name, messages, deadlineMs, maxTokens, effortFor(name), acceptReasoning, ctrl.signal).then((result) => {
+        if (result.ok) {
+          if (settled) { ctrl.abort(); return; } // соперник успел раньше
+          for (const [other, otherCtrl] of controllers) if (other !== name) otherCtrl.abort();
+          if (hedge && tried.includes(hedge)) {
+            console.warn(`[harmonyai] race | ${primary} vs ${hedge} → ${name} (${result.ttftMs} ms)`);
+          }
+          if (hedge) noteRaceResult(primary, name);
+          finish(result);
+          return;
+        }
+        failures.set(name, result);
+        if (settled) return;
+        if (name === primary && hedge && !tried.includes(hedge)) { launch(hedge); return; }
+        if (failures.size === tried.length) {
+          if (hedge) noteRaceResult(primary, null);
+          finish(failures.get(primary) || result);
+        }
+      });
+    };
+    launch(primary);
+    if (hedge) hedgeTimer = setTimeout(() => { if (!settled) launch(hedge); }, Math.max(0, hedgeDelayMs));
+  });
+}
+
+async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs, query, largeContext = false, captureReasoning = false, maxTokens = 0, headersAlreadySent = false, reasoningEffort = '', race = null) {
   const heartbeat = setInterval(() => {
     try { if (res.headersSent && !res.writableEnded) res.write(': ping\n\n'); } catch (e) {}
   }, 15000);
   try {
-    return await streamOpenAIToClientInner(res, apiKey, modelName, messages, timeoutMs, query, largeContext, captureReasoning, maxTokens, headersAlreadySent, reasoningEffort);
+    return await streamOpenAIToClientInner(res, apiKey, modelName, messages, timeoutMs, query, largeContext, captureReasoning, maxTokens, headersAlreadySent, reasoningEffort, race);
   } finally {
     clearInterval(heartbeat);
   }
 }
 
-async function streamOpenAIToClientInner(res, apiKey, modelName, messages, timeoutMs, query, largeContext = false, captureReasoning = false, maxTokens = 0, headersAlreadySent = false, reasoningEffort = '') {
+async function streamOpenAIToClientInner(res, apiKey, modelName, messages, timeoutMs, query, largeContext = false, captureReasoning = false, maxTokens = 0, headersAlreadySent = false, reasoningEffort = '', race = null) {
   let fullText = '';
   let gotAnyDelta = false;
   let headersSent = Boolean(headersAlreadySent);
@@ -1388,7 +1584,22 @@ async function streamOpenAIToClientInner(res, apiKey, modelName, messages, timeo
     // 8-12с было недостаточно даже просто на установление соединения и первый токен под нагрузкой.
     // На "тихих" попытках продолжения тоже даём адекватное время на старт ответа.
     const connectTimeoutMs = attempt === 0 ? Math.max(timeoutMs, 45000) : 45000;
-    let upstream = await callOpenAIStream(apiKey, modelName, currentMessages, connectTimeoutMs, maxTokens, reasoningEffort);
+    let upstream;
+    if (attempt === 0 && race && race.hedge) {
+      // Первая попытка с подстраховкой: основная модель против запасной (см. raceFirstToken).
+      const raced = await raceFirstToken({
+        apiKey, primary: modelName, hedge: race.hedge, hedgeDelayMs: race.hedgeDelayMs, messages: currentMessages,
+        deadlineMs: connectTimeoutMs, maxTokens, effortFor: race.effortFor, acceptReasoning: captureReasoning
+      });
+      if (!raced.ok) {
+        return { ok: false, headersSent, status: raced.status || 504, message: raced.message || `Ошибка модели ${modelName}`, model: raced.model || modelName, tried: raced.tried };
+      }
+      modelName = raced.model;
+      reasoningEffort = race.effortFor(modelName);
+      upstream = raced.response;
+    } else {
+      upstream = await callOpenAIStream(apiKey, modelName, currentMessages, connectTimeoutMs, maxTokens, reasoningEffort);
+    }
 
     // Adan: лимит модели кончился прямо во время ответа (или на продолжении) —
     // незаметно переключаемся на следующую модель и продолжаем с того же места.
@@ -1492,6 +1703,7 @@ async function streamOpenAIToClientInner(res, apiKey, modelName, messages, timeo
              chain-of-thought взамен мы тоже не будем.
              ================================================================= */
           const reasoningDelta = parsed?.choices?.[0]?.delta?.reasoning_content || parsed?.choices?.[0]?.delta?.reasoning || '';
+          if (reasoningDelta && !reasoningEffort) noteUnaskedReasoning(modelName);
           if (captureReasoning && !switchedToAnswer && typeof reasoningDelta === 'string' && reasoningDelta) {
             beginReasoning();
             sawNativeReasoning = true;
@@ -1771,6 +1983,39 @@ async function sumUsageSince(userId, model, sinceIso) {
 function startOfTodayIso() { const d = new Date(); d.setHours(0, 0, 0, 0); return d.toISOString(); }
 function startOfMonthIso() { const d = new Date(); d.setDate(1); d.setHours(0, 0, 0, 0); return d.toISOString(); }
 
+/* ===== Кэш проверки лимитов =====
+   Проверка — два запроса к usage_events перед КАЖДЫМ ответом. Когда запас большой
+   (не меньше 4 сообщений и 8 000 токенов), результат действует 30 секунд на
+   несколько следующих сообщений (не больше 5): они не ждут Supabase. Как только
+   запас мал или кэш потрачен — снова точная проверка. Учёт расхода
+   (insertUsageEvent) пишется как раньше, на каждый ответ. */
+const ALLOWANCE_TTL_MS = 30 * 1000;
+const _allowanceCache = new Map(); // `${userId}:${pro|lite}` → { at, value, left }
+async function checkUsageAllowanceCached(userId, profile, requestedModel, { fresh = false } = {}) {
+  const key = `${userId}:${requestedModel === 'pro' ? 'pro' : 'lite'}`;
+  const rec = _allowanceCache.get(key);
+  if (!fresh && rec && Date.now() - rec.at < ALLOWANCE_TTL_MS && rec.left > 0) {
+    rec.left -= 1;
+    return rec.value;
+  }
+  const value = await checkUsageAllowance(userId, profile, requestedModel);
+  let left = 0;
+  if (value.ok && !value.low) {
+    left = 5;
+    if (value.remaining) {
+      left = Math.min(5, Math.max(0, (value.remaining.messages || 0) - 3));
+      if ((value.remaining.tokens || 0) < 8000) left = 0;
+    }
+  }
+  if (left > 0) {
+    if (_allowanceCache.size > 2000) _allowanceCache.delete(_allowanceCache.keys().next().value);
+    _allowanceCache.set(key, { at: Date.now(), value, left });
+  } else {
+    _allowanceCache.delete(key);
+  }
+  return value;
+}
+
 // Проверяет право на запрос ДО вызова модели. Возвращает {ok} или {ok:false, status, message, scope}.
 async function checkUsageAllowance(userId, profile, requestedModel) {
   // Разработчики/админы — без ограничений.
@@ -1834,13 +2079,45 @@ async function checkUsageAllowance(userId, profile, requestedModel) {
   }
 }
 
+/* ===== ПРОГРЕВ: GET /api/chat?warm=1 =====
+   Клиент шлёт его, когда человек начинает печатать (не чаще раза в 45 с).
+   К моменту Enter функция уже запущена (нет холодного старта), токен проверен,
+   а профиль, лимиты, исправления и общая база знаний лежат в памяти — ответ
+   не ждёт ни одного запроса к Supabase. Модель не вызывается, токены не тратятся. */
+const _warmSeen = new Map(); // userId → когда последний раз прогревали
+async function handleWarm(req, res) {
+  res.setHeader('Cache-Control', 'no-store');
+  try {
+    const user = await authenticateRequest(req);
+    const last = user ? (_warmSeen.get(user.id) || 0) : Date.now();
+    if (user && Date.now() - last > 15000) {
+      if (_warmSeen.size > 2000) _warmSeen.clear();
+      _warmSeen.set(user.id, Date.now());
+      let profile = await fetchProfileCached(user.id, { fresh: true }).catch(() => null);
+      profile = applyDevAccountProfile(profile, user);
+      const model = String(req.query?.model || '') === 'pro' && isProRole(profile) ? 'pro' : 'lite';
+      await Promise.allSettled([
+        checkUsageAllowanceCached(user.id, profile, model, { fresh: true }),
+        fetchGlobalKnowledgeCached(),
+        fetchFeedbackCached(user.id)
+      ]);
+    }
+  } catch (e) {
+    // Прогрев — необязательная оптимизация: ошибки молча игнорируем.
+  }
+  return res.status(204).end();
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-supabase-authorization');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
+  }
+  if (req.method === 'GET' && String(req.query?.warm || '') === '1') {
+    return handleWarm(req, res);
   }
 
   if (req.method !== 'POST') {
@@ -1894,11 +2171,11 @@ export default async function handler(req, res) {
     const profileP = fetchProfileCached(userId);
     const settled = await Promise.allSettled([
       profileP,
-      profileP.catch(() => null).then((p) => checkUsageAllowance(userId, p, (!isProRole(p) && model === 'pro') ? 'lite' : model)),
+      profileP.catch(() => null).then((p) => checkUsageAllowanceCached(userId, p, (!isProRole(p) && model === 'pro') ? 'lite' : model)),
       needGlobal ? fetchGlobalKnowledgeCached() : null,
       needPersonal ? fetchUserKnowledge(userId) : null,
       needPersonal ? fetchUserMemories(userId) : null,
-      needGlobal ? fetchFeedback(userId) : null
+      needGlobal ? fetchFeedbackCached(userId) : null
     ]);
     const val = (i, fallback) => (settled[i].status === 'fulfilled' && settled[i].value != null ? settled[i].value : fallback);
     if (settled[0].status === 'rejected') console.warn('[harmonyai] profile fetch failed:', compactErrorValue(settled[0].reason?.message, 200));
@@ -2101,12 +2378,40 @@ export default async function handler(req, res) {
       /* Рассуждающие модели (gpt-5*) без параметра думают на уровне по умолчанию
          (medium) — на быстром пути явно просим low. Остальным параметр не шлём:
          лишний 400 и повтор только замедлили бы ответ. */
-      const reasoningFor = (name) => (fastPath && isReasoningModel(name) ? 'low' : reasoningParam);
+      /* Модели pro-ai, которые «думают» без запроса, на низком уровне получают
+         явное 'low' (сервер узнаёт их по первому же ответу — см. lib/models.js). */
+      const reasoningFor = (name) => (fastPath && isReasoningModel(name) ? 'low' : reasoningParam) || fastReasoningEffort(name);
+
+      /* Подстраховка (гонка за первый токен, см. raceFirstToken). Запасная — следующая
+         модель цепочки, по возможности не бесплатная (у :free общий дневной лимит).
+         С фото гонки нет: остальные модели картинку не видят. */
+      const hasImage = lastUserHasImage(messages);
+      if (!hasImage) {
+        // Бесплатная модель, проигравшая 3 гонки подряд, на 3 минуты уходит в конец цепочки.
+        const slow = route.models.filter((m) => isAdanModel(m) && isModelSlow(m));
+        if (slow.length) route.models = route.models.filter((m) => !slow.includes(m)).concat(slow);
+      }
+      const proPrimary = Boolean(route.models[0]) && !isAdanModel(route.models[0]);
+      const hedgeDelayMs = Number(readEnv('HEDGE_DELAY_MS')) || (
+        (think || isDeepEffort(effort) || isLargeContext) ? 6000
+          : (fastPath ? 1500 : 2500) + (proPrimary ? 1000 : 0)
+      );
+      const triedModels = new Set();
+      const pickHedge = (mi) => {
+        if (hasImage) return null;
+        const rest = route.models.slice(mi + 1).filter((m) => !triedModels.has(m) && !isModelExhausted(m));
+        return rest.find((m) => !/:free$/i.test(m)) || rest[0] || null;
+      };
       for (let mi = 0; mi < route.models.length; mi++) {
         const modelName = route.models[mi];
         const hasNextModel = mi < route.models.length - 1;
+        if (triedModels.has(modelName)) continue; // уже участвовала в гонке как запасная
         if (stream) {
-          const streamResult = await streamOpenAIToClient(res, route.apiKey, modelName, openAiMessages, modelTimeoutMs, query, isLargeContext, Boolean(think), maxTokens, sseOpen, reasoningFor(modelName));
+          const hedge = pickHedge(mi);
+          const streamResult = await streamOpenAIToClient(res, route.apiKey, modelName, openAiMessages, modelTimeoutMs, query, isLargeContext, Boolean(think), maxTokens, sseOpen, reasoningFor(modelName),
+            hedge ? { hedge, hedgeDelayMs, effortFor: reasoningFor } : null);
+          triedModels.add(modelName);
+          (streamResult.tried || []).forEach((m) => triedModels.add(m));
           if (streamResult.headersSent) sseOpen = true;
           if (streamResult.ok) {
             const replyTokens = Math.max(1, Math.ceil(String(streamResult.text || '').length / 4));
