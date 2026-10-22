@@ -12146,6 +12146,17 @@ async function saveSetting(key,val){
   if(!curUser)return;
   if(!curUser.settings)curUser.settings={};
   curUser.settings[key]=val;
+  /* settings хранится одним JSON: без слияния старая копия из этой вкладки затирала
+     устройства, добавленные с других устройств, и в «Активных сеансах» оставался один текущий. */
+  if(key!==DEVICES_SETTING_KEY){
+    try{
+      const remote=await fetchRemoteSettings();
+      const byKey=new Map();
+      normalizeDeviceList((remote||{})[DEVICES_SETTING_KEY]).concat(normalizeDeviceList(curUser.settings[DEVICES_SETTING_KEY]))
+        .forEach(d=>{const p=byKey.get(d.key);if(!p||String(d.lastSeen||'')>String(p.lastSeen||''))byKey.set(d.key,d);});
+      if(byKey.size)curUser.settings[DEVICES_SETTING_KEY]=sortDeviceList(Array.from(byKey.values())).slice(0,DEVICES_MAX);
+    }catch(e){}
+  }
   try{await sb.from('profiles').upsert({id:curUser.id,settings:curUser.settings},{onConflict:'id'});}
   catch(e){console.warn('saveSetting failed',e);}
 }
@@ -13090,15 +13101,8 @@ function deviceCardMarkup(d,currentKey){
 function sessionsScreenMarkup(inner){
   return stpHead('Активные сеансы','renderSettingsSecurity()')+`
     <div class="stp-body" id="devWrap">
-      <div class="stp-row-desc" style="padding:2px 2px 10px;">Это список устройств, с которых выполнялся вход в ваш аккаунт HarmonyAI. Если вы не узнаёте какое-то устройство, выйдите со всех устройств и смените пароль.</div>
+      <div class="stp-row-desc" style="padding:2px 2px 10px;">Это все устройства, с которых выполнялся вход в ваш аккаунт HarmonyAI, — и текущие, и прошлые. Если вы не узнаёте какое-то устройство, выйдите со всех устройств и смените пароль.</div>
       ${inner}
-      <button type="button" class="dev-signout" onclick="signOutEverywhere()">
-        <div class="stp-conn-logo">${DEV_IC_EXIT}</div>
-        <div class="stp-conn-meta">
-          <div class="dev-signout-title">Выйти со всех устройств</div>
-          <div class="stp-row-desc">Все активные сеансы будут завершены, включая текущий. Это может занять до 30 минут.</div>
-        </div>
-      </button>
     </div>`;
 }
 async function renderSettingsSessions(){
@@ -13974,18 +13978,24 @@ const HM_ACCENTS=[
   {id:'white',name:'Белый',c:'#ffffff',ink:'#111'},
   {id:'black',name:'Чёрный',c:'#111111',ink:'#fff'}
 ];
-function hmPref(k,d){const s=getSettings();return s[k]===undefined?d:s[k];}
-function hmSetPref(k,v){try{saveSetting(k,v);}catch(e){}hmApplyPrefs();}
+/* Цвет аватара и акцент дублируются в localStorage: остаются после выхода из аккаунта и видны сразу при загрузке. */
+const HM_LOCAL_PREFS=['accent','avatarColor'];
+function hmLocalPrefs(){try{return JSON.parse(localStorage.getItem('hm_local_prefs')||'{}')||{};}catch(e){return {};}}
+function hmStoreLocalPref(k,v){if(!HM_LOCAL_PREFS.includes(k))return;try{const o=hmLocalPrefs();o[k]=v;localStorage.setItem('hm_local_prefs',JSON.stringify(o));}catch(e){}}
+function hmPref(k,d){const s=getSettings();if(s[k]!==undefined)return s[k];if(HM_LOCAL_PREFS.includes(k)){const l=hmLocalPrefs();if(l[k]!==undefined)return l[k];}return d;}
+function hmSetPref(k,v){hmStoreLocalPref(k,v);try{saveSetting(k,v);}catch(e){}hmApplyPrefs();}
 function hmEnterSends(){
   // На телефоне Enter всегда переносит строку — отправка кнопкой, как в мессенджерах.
   try{if(window.matchMedia('(max-width:768px) and (pointer:coarse)').matches)return false;}catch(e){}
   return hmPref('enterToSend',true)!==false;
 }
+document.addEventListener('DOMContentLoaded',()=>{try{hmApplyPrefs();}catch(e){}});
 function hmApplyPrefs(){
   const h=document.documentElement;
   h.setAttribute('data-fs',hmPref('fontSize','m'));
   h.classList.toggle('hm-no-hints',hmPref('showHints',true)===false);
   h.classList.toggle('hm-blur-chats',hmPref('blurChats',false)===true);
+  {const st=getSettings();HM_LOCAL_PREFS.forEach(k=>{if(st[k]!==undefined)hmStoreLocalPref(k,st[k]);});}
   const ac=HM_ACCENTS.find(a=>a.id===hmPref('accent','blue'))||HM_ACCENTS[0];
   h.style.setProperty('--hm-accent',ac.c);h.style.setProperty('--hm-accent-ink',ac.ink);
   h.setAttribute('data-accent',ac.id);
@@ -14052,7 +14062,7 @@ function toggleProfileMenu(anchor){
   if(document.getElementById('hmProfileMenu')?.classList.contains('open')){closeProfileMenu();return;}
   const ic={
     lim:'<svg viewBox="0 0 24 24" fill="none"><path d="M4 16a8 8 0 1116 0" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><path d="M12 16l4-5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><circle cx="12" cy="16" r="1.6" fill="currentColor"/></svg>',
-    set:'<svg viewBox="0 0 24 24" fill="none"><path d="M12 15.2a3.2 3.2 0 100-6.4 3.2 3.2 0 000 6.4z" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 13.5l1.6 1.2-1.8 3.1-1.9-.7a7.4 7.4 0 01-2 1.2L15 20.5h-3.6l-.3-2.2a7.4 7.4 0 01-2-1.2l-1.9.7-1.8-3.1 1.6-1.2a7.6 7.6 0 010-2.4L5.4 9.9l1.8-3.1 1.9.7a7.4 7.4 0 012-1.2L11.4 4H15l.3 2.3a7.4 7.4 0 012 1.2l1.9-.7 1.8 3.1-1.6 1.2a7.6 7.6 0 010 2.4z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>',
+    set:'<svg viewBox="0 0 24 24" fill="none"><path d="M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.7"/></svg>',
     lang:'<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"/><path d="M3.5 12h17M12 3.5c2.4 2.4 3.4 5.3 3.4 8.5s-1 6.1-3.4 8.5c-2.4-2.4-3.4-5.3-3.4-8.5s1-6.1 3.4-8.5z" stroke="currentColor" stroke-width="1.6"/></svg>',
     out:'<svg viewBox="0 0 24 24" fill="none"><path d="M14 4H6.5A1.5 1.5 0 005 5.5v13A1.5 1.5 0 006.5 20H14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M11 12h9m0 0l-3-3m3 3l-3 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     chev:'<svg class="hm-pm-chev" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
@@ -14224,6 +14234,12 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDesktopPlus();}
    Включение: QR-код для Google Authenticator / Яндекс Ключа / 1Password и т.п.
    → ввод 6-значного кода. Вход: после письма/Google спрашиваем код, пока он
    не введён — приложение не открывается. */
+/* Supabase отдаёт QR как «data:image/svg+xml;utf-8,<svg …>» без кодирования: кавычки из SVG
+   обрывали атрибут src, и рядом с картинкой вылезали битая иконка и обрывки разметки. */
+function hm2faQrSrc(raw){
+  const v=String(raw||'');const m=v.match(/^data:image\/svg\+xml;(?:charset=)?utf-?8,(<[\s\S]*)$/i);
+  return m?'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(m[1]):v.replace(/"/g,'%22');
+}
 async function hmMfaFactors(){
   try{const {data,error}=await sb.auth.mfa.listFactors();if(error)throw error;return (data&&data.totp||[]).filter(f=>f.status==='verified');}catch(e){return [];}
 }
@@ -14250,7 +14266,7 @@ async function renderSettings2fa(){
     if(error)throw error;
     stpEnsure('privacy-2fa','Двухфакторная аутентификация',back,`
       <div class="stp-row-desc" style="padding:4px 2px 10px">1. Откройте приложение-аутентификатор (Google Authenticator, Яндекс Ключ, 1Password…) и отсканируйте QR-код.</div>
-      <div class="hm2fa-qr"><img alt="QR-код для приложения-аутентификатора" src="${data.totp.qr_code}"></div>
+      <div class="hm2fa-qr"><img alt="" src="${hm2faQrSrc(data.totp.qr_code)}"></div>
       <div class="stp-row-desc" style="padding:8px 2px">Не сканируется? Введите ключ вручную: <code class="hm2fa-secret">${escapeHtml(data.totp.secret)}</code></div>
       <div class="stp-row-desc" style="padding:6px 2px">2. Введите 6-значный код из приложения:</div>
       <div class="hm2fa-code"><input id="hm2faOn" class="hm2fa-inp" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000"><button type="button" class="stp-btn" onclick="hm2faVerify('${data.id}')">Включить</button></div>
