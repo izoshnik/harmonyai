@@ -78,4 +78,3 @@ test('ссылки: Google Drive, Docs, GitHub; только http(s)', () => {
   assert.equal(normalizeSourceUrl('file:///etc/passwd'), null);
   assert.equal(normalizeSourceUrl('javascript:alert(1)'), null);
 });
-tests/textbook-ingestor.test.mjs

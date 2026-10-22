@@ -21,6 +21,11 @@ import { handleDevInstantLogin } from '../lib/dev-account.js';
    POST /api/account  { action:'share.create', chatId }  ссылка «Поделиться чатом»
    POST /api/account  { action:'share.revoke', chatId }
 
+   GET  /api/account?action=subscription        тариф, срок, цены, скидка, оплаты Pro
+   GET  /api/account?action=referral            мои приглашения и право приглашать
+   POST /api/account  { action:'referral.create' }       новое приглашение (≤ 2)
+   POST /api/account  { action:'referral.redeem', code } Pro на 3 дня + скидка 10 %
+
    ЧТО ГАРАНТИРУЕТСЯ.
 
    1. ВЛАДЕЛЕЦ — ИЗ ТОКЕНА. user_id берётся только из подписанного access-токена
@@ -47,7 +52,8 @@ import { handleDevInstantLogin } from '../lib/dev-account.js';
 
 export const config = { maxDuration: 15 };
 
-import { requireUser, supabaseRest, ownerFilter, readProfileRole, isUnlimitedApiRole } from '../lib/auth.js';
+import { requireUser, supabaseRest, ownerFilter, readProfileRole, isUnlimitedApiRole, hasProAccess } from '../lib/auth.js';
+import { referralState, createInvite, redeemInvite, referralDiscountCode, ReferralUnavailableError } from '../lib/referrals.js';
 import { originAllowed, siteUrl } from '../lib/origin.js';
 import {
   generateApiKey,
@@ -205,16 +211,39 @@ async function readUsage(userId, days = 30) {
 async function readPlan(userId) {
   try {
     const rows = await supabaseRest(
-      `/rest/v1/profiles?select=plan,plan_expires_at&id=eq.${encodeURIComponent(userId)}&limit=1`,
+      `/rest/v1/profiles?select=role,plan,plan_expires_at&id=eq.${encodeURIComponent(userId)}&limit=1`,
       { method: 'GET' }
     );
     const row = Array.isArray(rows) ? rows[0] : null;
-    const expires = row?.plan_expires_at ? new Date(row.plan_expires_at).getTime() : 0;
-    const active = row?.plan === 'pro' && (!expires || expires > Date.now());
-    return { plan: active ? 'pro' : 'free', expiresAt: row?.plan_expires_at || null };
+    // Сотрудники (developer / admin / moderator) — Pro по роли, как в чате.
+    const active = hasProAccess(row);
+    const staff = isUnlimitedApiRole(row?.role);
+    return { plan: active ? 'pro' : 'free', expiresAt: staff ? null : (row?.plan_expires_at || null), staff };
   } catch (e) {
-    return { plan: 'free', expiresAt: null };
+    return { plan: 'free', expiresAt: null, staff: false };
   }
+}
+
+/* Экран «Подписка» в настройках: срок, цены продления, скидка, история оплат Pro. */
+async function readSubscription(userId) {
+  const [plan, payments, discountCode] = await Promise.all([
+    readPlan(userId),
+    listPayments(userId, 30).catch(() => []),
+    referralDiscountCode(userId).catch(() => '')
+  ]);
+  const pricing = publicPricingTable();
+  return {
+    ...plan,
+    autoRenew: false,
+    prices: {
+      weekRub: pricing.proWeekPriceRub,
+      monthRub: pricing.proPriceRub,
+      monthReferralRub: pricing.referralMonthPriceRub,
+      discountPercent: pricing.referralDiscountPercent
+    },
+    discount: Boolean(discountCode),
+    payments: payments.filter((p) => p.type === 'subscription').slice(0, 10)
+  };
 }
 
 /* ============================================================================
@@ -439,6 +468,8 @@ export default async function handler(req, res) {
       if (action === 'balance') return res.status(200).json({ ok: true, balance: await readBalance(user.id) });
       if (action === 'payments') return res.status(200).json({ ok: true, payments: await listPayments(user.id) });
       if (action === 'usage') return res.status(200).json({ ok: true, usage: await readUsage(user.id) });
+      if (action === 'subscription') return res.status(200).json({ ok: true, subscription: await readSubscription(user.id) });
+      if (action === 'referral') return res.status(200).json({ ok: true, referral: await referralState(user.id) });
 
       if (action === 'overview' || !action) {
         /* Один запрос вместо пяти: /api/dashboard рисуется сразу целиком.
@@ -526,6 +557,18 @@ export default async function handler(req, res) {
       case 'share.create':
         return await createShare(user.id, body.chatId, res);
 
+      case 'referral.create': {
+        const created = await createInvite(user.id);
+        if (created.error) return fail(res, 400, created.error);
+        return res.status(200).json({ ok: true, invite: created.invite });
+      }
+
+      case 'referral.redeem': {
+        const redeemed = await redeemInvite(user.id, body.code);
+        if (redeemed.error) return fail(res, 400, redeemed.error);
+        return res.status(200).json({ ok: true, ...redeemed });
+      }
+
       case 'share.revoke':
         return await revokeShare(user.id, body.chatId, res);
 
@@ -533,6 +576,7 @@ export default async function handler(req, res) {
         return fail(res, 400, 'Неизвестное действие');
     }
   } catch (error) {
+    if (error instanceof ReferralUnavailableError) return fail(res, 503, error.message);
     console.error('[account]', action, String(error?.message || error).slice(0, 300));
     if (res.headersSent) return res.end();
     return fail(res, 500, 'Внутренняя ошибка');

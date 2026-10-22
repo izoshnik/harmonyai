@@ -4,8 +4,13 @@
    Один эндпоинт на ДВА типа оплаты — это расширение существующей интеграции,
    а не вторая платёжная система:
 
-     { type: 'subscription' }                 → Pro на 30 дней, цена 299 ₽
+     { type: 'subscription', plan: 'month' }  → Pro на 30 дней, 299 ₽
+                                                 (269 ₽ — первый месяц по приглашению)
+     { type: 'subscription', plan: 'week' }   → Pro на 7 дней, 129 ₽ (без скидок)
      { type: 'api_balance', amount: 500 }     → пополнение баланса API
+
+   Автосписаний нет: каждый платёж разовый. Оплата при активном Pro — это
+   продление: вебхук прибавляет дни к текущему сроку, а не начинает заново.
 
    Ответ: { confirmationUrl, paymentId } — фронтенд просто уходит по ссылке.
 
@@ -33,11 +38,15 @@ import { requireUser, supabaseRest } from '../../lib/auth.js';
 import { originAllowed, siteUrl } from '../../lib/origin.js';
 import { generateIdempotenceKey } from '../../lib/api-keys.js';
 import {
-  proPriceKopecks,
   validateTopupAmount,
   kopecksToRublesString,
-  PRO_PLAN
+  PRO_PLANS,
+  normalizePlanId,
+  planPriceKopecks,
+  referralMonthPriceKopecks,
+  REFERRAL_DISCOUNT_PERCENT
 } from '../../lib/pricing.js';
+import { referralDiscountCode } from '../../lib/referrals.js';
 import { createPayment, yookassaConfigured, PAYMENT_TYPES } from '../../lib/yookassa.js';
 
 /* Внутренняя запись платежа. Создаётся ДО обращения к ЮKassa и связывается с
@@ -108,6 +117,8 @@ export default async function handler(req, res) {
     let amountKopecks;
     let description;
     let returnUrl;
+    let plan = '';
+    let referralCode = '';
 
     if (type === PAYMENT_TYPES.API_BALANCE) {
       const check = validateTopupAmount(body.amount);
@@ -117,9 +128,18 @@ export default async function handler(req, res) {
       returnUrl = siteUrl() + '/api/dashboard?topup=1';
     } else if (type === PAYMENT_TYPES.SUBSCRIPTION) {
       // Цена подписки живёт в lib/pricing.js и не приходит от клиента.
-      amountKopecks = proPriceKopecks();
-      description = PRO_PLAN.description;
-      returnUrl = siteUrl() + '/subscribe?success=1';
+      plan = normalizePlanId(body.plan);
+      amountKopecks = planPriceKopecks(plan);
+      description = PRO_PLANS[plan].description;
+      if (plan === 'month') {
+        // Скидка по приглашению — только на первый месяц, решает сервер.
+        referralCode = await referralDiscountCode(user.id);
+        if (referralCode) {
+          amountKopecks = referralMonthPriceKopecks();
+          description = `${PRO_PLANS.month.description} (скидка ${REFERRAL_DISCOUNT_PERCENT}% по приглашению)`;
+        }
+      }
+      returnUrl = siteUrl() + '/subscribe?success=1&plan=' + plan;
     } else {
       return res.status(400).json({ error: 'Неизвестный тип платежа' });
     }
@@ -140,7 +160,7 @@ export default async function handler(req, res) {
         // userId дублируем в metadata для совместимости со старыми платежами:
         // вебхук раньше читал именно это поле. Доверять ему нельзя — вебхук
         // берёт владельца из нашей записи по internalPaymentId.
-        metadata: { type, userId: user.id, internalPaymentId: internalId },
+        metadata: { type, userId: user.id, internalPaymentId: internalId, ...(plan ? { plan } : {}), ...(referralCode ? { referralCode } : {}) },
         idempotenceKey: generateIdempotenceKey(),
         receiptEmail: user.email || String(body.email || '')
       });
@@ -161,7 +181,9 @@ export default async function handler(req, res) {
     return res.status(200).json({
       confirmationUrl: payment.confirmationUrl,
       paymentId: payment.id,
-      amountRub: kopecksToRublesString(amountKopecks)
+      amountRub: kopecksToRublesString(amountKopecks),
+      plan: plan || null,
+      discount: Boolean(referralCode)
     });
   } catch (error) {
     console.error('[payment/create]', String(error?.message || error).slice(0, 300));

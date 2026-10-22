@@ -329,7 +329,9 @@
   }
 
   var cardEl = null;
-  function closeCard() { if (cardEl) { cardEl.remove(); cardEl = null; } }
+  /* Одно уведомление за раз (app.html, hmNotice): пока карточка открыта, остальные ждут. */
+  function closeCard() { if (cardEl) { cardEl.remove(); cardEl = null; if (global.hmNoticeResume) global.hmNoticeResume(); } }
+  function yieldNotices() { if (global.hmNoticeYield) global.hmNoticeYield(); }
 
   function injectCSS() {
     if (document.getElementById('hmMemCSS')) return;
@@ -372,7 +374,7 @@
       + '<button type="button" class="hm-mem-card__ok">Запомнить</button>'
       + '<button type="button" class="hm-mem-card__no">Не сейчас</button>'
       + '</div>';
-    host.appendChild(el); cardEl = el;
+    yieldNotices(); host.appendChild(el); cardEl = el;
 
     var scope = (opts && opts.defaultScope === 'chat' && opts.chatId) ? 'chat' : 'user';
     var ta = el.querySelector('.hm-mem-card__ta');
@@ -417,7 +419,7 @@
     el.innerHTML =
       '<div class="hm-mem-card__head"><span>Не сохраняю секреты</span><button type="button" class="hm-mem-card__x" aria-label="Закрыть">×</button></div>'
       + '<div style="font-size:13px;color:var(--text2);line-height:1.5;">В тексте похоже на пароль, API-ключ или токен. Такие данные в память не попадают — так безопаснее.</div>';
-    host.appendChild(el); cardEl = el;
+    yieldNotices(); host.appendChild(el); cardEl = el;
     el.querySelector('.hm-mem-card__x').addEventListener('click', closeCard);
     setTimeout(closeCard, 6000);
   }

@@ -133,10 +133,16 @@ function guestBurstAllowed() {
   return true;
 }
 
-const IMG_LIMITS = {
-  free: { day: 7, week: 23, month: 50 },
-  pro: { burstMessages: 15, burstWindowSec: 180, day: 200 }
-};
+/* Лимиты генераций: Free — день / неделя / месяц, Pro — те же окна ×25
+   (безлимита больше нет) + антифлуд. Числа наружу не называем. */
+const IMG_LIMITS_FREE = { day: 7, week: 23, month: 50 };
+const IMG_PRO_MULTIPLIER = 25;
+const IMG_LIMITS_PRO = { day: IMG_LIMITS_FREE.day * IMG_PRO_MULTIPLIER, week: IMG_LIMITS_FREE.week * IMG_PRO_MULTIPLIER, month: IMG_LIMITS_FREE.month * IMG_PRO_MULTIPLIER };
+const IMG_PRO_BURST = { images: 15, windowSec: 180 };
+
+function nextDayIso() { const d = new Date(); d.setHours(24, 0, 0, 0); return d.toISOString(); }
+function nextWeekIso() { const d = new Date(startOfWeekIso()); d.setDate(d.getDate() + 7); return d.toISOString(); }
+function nextMonthIso() { const d = new Date(startOfMonthIso()); d.setMonth(d.getMonth() + 1); return d.toISOString(); }
 
 async function checkImageAllowance(userId, profile, isPro) {
   const role = profile?.role || 'user';
@@ -149,26 +155,20 @@ async function checkImageAllowance(userId, profile, isPro) {
     return { ok: true };
   }
 
+  const plan = isPro ? 'pro' : 'free';
+  const cfg = isPro ? IMG_LIMITS_PRO : IMG_LIMITS_FREE;
+  const upgrade = isPro ? '' : ' или перейдите на Pro';
   try {
-    if (isPro) {
-      const cfg = IMG_LIMITS.pro;
-      const [burst, day] = await Promise.all([
-        countUsageSince(userId, new Date(Date.now() - cfg.burstWindowSec * 1000).toISOString()),
-        countUsageSince(userId, startOfTodayIso())
-      ]);
-      if (burst >= cfg.burstMessages) return { ok: false, status: 429, scope: 'burst', message: 'Слишком много изображений подряд. Подождите пару минут.' };
-      if (day >= cfg.day) return { ok: false, status: 429, scope: 'day', message: 'Достигнут суточный предел для Pro. Обратитесь в поддержку.' };
-      return { ok: true };
-    }
-    const cfg = IMG_LIMITS.free;
-    const [day, week, month] = await Promise.all([
+    const [burst, day, week, month] = await Promise.all([
+      isPro ? countUsageSince(userId, new Date(Date.now() - IMG_PRO_BURST.windowSec * 1000).toISOString()) : 0,
       countUsageSince(userId, startOfTodayIso()),
       countUsageSince(userId, startOfWeekIso()),
       countUsageSince(userId, startOfMonthIso())
     ]);
-    if (day >= cfg.day) return { ok: false, status: 429, scope: 'day', message: 'Дневной лимит исчерпан (7 в день). Обновится завтра или перейдите на Dynatos.' };
-    if (week >= cfg.week) return { ok: false, status: 429, scope: 'week', message: 'Недельный лимит исчерпан (23 в неделю). Перейдите на Dynatos.' };
-    if (month >= cfg.month) return { ok: false, status: 429, scope: 'month', message: 'Месячный лимит исчерпан (50 в месяц). Перейдите на Dynatos.' };
+    if (isPro && burst >= IMG_PRO_BURST.images) return { ok: false, status: 429, scope: 'burst', plan, message: 'Слишком много изображений подряд. Подождите пару минут.' };
+    if (day >= cfg.day) return { ok: false, status: 429, scope: 'day', plan, resetAt: nextDayIso(), message: `Дневной лимит изображений исчерпан. Он обновится завтра${upgrade}.` };
+    if (week >= cfg.week) return { ok: false, status: 429, scope: 'week', plan, resetAt: nextWeekIso(), message: `Недельный лимит изображений исчерпан. Он обновится в понедельник${upgrade}.` };
+    if (month >= cfg.month) return { ok: false, status: 429, scope: 'month', plan, resetAt: nextMonthIso(), message: `Месячный лимит изображений исчерпан. Он обновится 1-го числа${upgrade}.` };
     return { ok: true };
   } catch (e) {
     console.warn('[generate-image] usage check failed (allowing):', compactErrorValue(e?.message, 200));
@@ -556,7 +556,7 @@ export default async function handler(req, res) {
     const allowance = await checkImageAllowance(userId, profile, userIsPro);
     if (!allowance.ok) {
       return res.status(allowance.status || 429).json({
-        error: { message: allowance.message, status: allowance.status || 429, scope: allowance.scope }
+        error: { message: allowance.message, status: allowance.status || 429, scope: allowance.scope, resetAt: allowance.resetAt || null, plan: allowance.plan || null }
       });
     }
 

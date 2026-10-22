@@ -1928,17 +1928,21 @@ function selectRoute(profile, requestedModel, messages) {
 }
 
 /* ============================================================================
-   СЕРВЕРНАЯ ЗАЩИТА ОТ ЗЛОУПОТРЕБЛЕНИЯ (таблица public.usage_events в Supabase)
-   - Adanatos (free): жёсткие лимиты в 5-часовом окне и за календарный месяц.
-   - Dynatos (pro): формально безлимитен, но защищён «мягкими» потолками, т.к. токены дороги:
-       • burst — не более N сообщений за короткое окно (антифлуд);
-       • суточный потолок токенов (очень высокий) — режет только явное злоупотребление/скрипты.
-   Учёт ведётся по user_id на сервере, поэтому его нельзя обойти очисткой localStorage.
-   Гости (без userId) режутся по «мягкому» burst в памяти инстанса (лучше, чем ничего). */
-const ABUSE = {
-  adanatos: { windowTokens: 20000, windowMessages: 14, monthTokens: 400000, monthMessages: 400 },
-  dynatos:  { burstMessages: 25, burstWindowSec: 180, dayTokens: 2000000, dayMessages: 4000 }
-};
+   ЛИМИТЫ (таблица public.usage_events в Supabase). Зависят от ТАРИФА, а не от
+   выбранной модели: подписчик Pro и на Adan, и на Dynatos живёт по лимитам Pro.
+   - Free: окно 5 часов, скользящая неделя и календарный месяц.
+   - Pro: те же окна, лимиты ×25 от Free (безлимита больше нет) + антифлуд
+     (не больше N сообщений за 3 минуты).
+   Учитываются сообщения обеих моделей. Учёт по user_id на сервере, поэтому его
+   нельзя обойти очисткой localStorage. Сами числа наружу не показываются:
+   клиент видит только проценты и время сброса.
+   ========================================================================== */
+const FREE_LIMITS = { windowTokens: 20000, windowMessages: 14, weekTokens: 160000, weekMessages: 112, monthTokens: 400000, monthMessages: 400 };
+const PRO_LIMIT_MULTIPLIER = 25;
+const PRO_LIMITS = Object.fromEntries(Object.entries(FREE_LIMITS).map(([k, v]) => [k, v * PRO_LIMIT_MULTIPLIER]));
+const PRO_BURST = { messages: 25, windowSec: 180 };
+const WINDOW_MS = 5 * 60 * 60 * 1000;
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 function estimateTokensFromMessages(messages = []) {
   let chars = 0;
@@ -1970,19 +1974,6 @@ async function insertUsageEvent(userId, model, tokens, messagesCount) {
   }
 }
 
-async function sumUsageSince(userId, model, sinceIso) {
-  // Возвращает {tokens, messages, count} по событиям пользователя для модели с момента sinceIso.
-  const rows = await supabaseRequest(
-    `/rest/v1/usage_events?select=tokens,messages&user_id=eq.${encodeURIComponent(userId)}&model=eq.${model}&created_at=gte.${encodeURIComponent(sinceIso)}&limit=100000`
-  );
-  let tokens = 0, messages = 0;
-  for (const r of rows || []) { tokens += r.tokens || 0; messages += r.messages || 0; }
-  return { tokens, messages, count: (rows || []).length };
-}
-
-function startOfTodayIso() { const d = new Date(); d.setHours(0, 0, 0, 0); return d.toISOString(); }
-function startOfMonthIso() { const d = new Date(); d.setDate(1); d.setHours(0, 0, 0, 0); return d.toISOString(); }
-
 /* ===== Кэш проверки лимитов =====
    Проверка — два запроса к usage_events перед КАЖДЫМ ответом. Когда запас большой
    (не меньше 4 сообщений и 8 000 токенов), результат действует 30 секунд на
@@ -1990,9 +1981,10 @@ function startOfMonthIso() { const d = new Date(); d.setDate(1); d.setHours(0, 0
    запас мал или кэш потрачен — снова точная проверка. Учёт расхода
    (insertUsageEvent) пишется как раньше, на каждый ответ. */
 const ALLOWANCE_TTL_MS = 30 * 1000;
-const _allowanceCache = new Map(); // `${userId}:${pro|lite}` → { at, value, left }
+const _allowanceCache = new Map(); // userId → { at, value, left }
 async function checkUsageAllowanceCached(userId, profile, requestedModel, { fresh = false } = {}) {
-  const key = `${userId}:${requestedModel === 'pro' ? 'pro' : 'lite'}`;
+  // Лимиты зависят от тарифа, а не от выбранной модели — ключ только по пользователю.
+  const key = String(userId);
   const rec = _allowanceCache.get(key);
   if (!fresh && rec && Date.now() - rec.at < ALLOWANCE_TTL_MS && rec.left > 0) {
     rec.left -= 1;
@@ -2016,6 +2008,27 @@ async function checkUsageAllowanceCached(userId, profile, requestedModel, { fres
   return value;
 }
 
+/* Все события чата пользователя с начала месяца (или недели, если она длиннее):
+   одним запросом, а окно, неделя и месяц считаются здесь. */
+async function chatUsageRows(userId, sinceMs) {
+  const rows = await supabaseRequest(
+    `/rest/v1/usage_events?select=tokens,messages,created_at&user_id=eq.${encodeURIComponent(userId)}&model=in.(adanatos,dynatos)&created_at=gte.${encodeURIComponent(new Date(sinceMs).toISOString())}&order=created_at.asc&limit=100000`
+  );
+  return (rows || []).map((r) => ({ at: Date.parse(r.created_at) || 0, tokens: Number(r.tokens) || 0, messages: Number(r.messages) || 0 }));
+}
+function sumRows(rows, sinceMs) {
+  let tokens = 0, messages = 0, first = 0;
+  for (const r of rows) {
+    if (r.at < sinceMs) continue;
+    if (!first) first = r.at;
+    tokens += r.tokens; messages += r.messages;
+  }
+  return { tokens, messages, first };
+}
+
+function startOfMonthIso() { const d = new Date(); d.setDate(1); d.setHours(0, 0, 0, 0); return d.toISOString(); }
+function nextMonthIso() { const d = new Date(); d.setMonth(d.getMonth() + 1, 1); d.setHours(0, 0, 0, 0); return d.toISOString(); }
+
 // Проверяет право на запрос ДО вызова модели. Возвращает {ok} или {ok:false, status, message, scope}.
 async function checkUsageAllowance(userId, profile, requestedModel) {
   // Разработчики/админы — без ограничений.
@@ -2024,54 +2037,49 @@ async function checkUsageAllowance(userId, profile, requestedModel) {
   // Без userId серверный учёт невозможен — пропускаем (клиент всё равно ограничивает).
   if (!userId) return { ok: true };
 
-  const isPro = requestedModel === 'pro';
+  const isPro = isProRole(profile);
+  const cfg = isPro ? PRO_LIMITS : FREE_LIMITS;
+  const plan = isPro ? 'pro' : 'free';
   try {
+    const now = Date.now();
+    const monthStart = Date.parse(startOfMonthIso());
+    const rows = await chatUsageRows(userId, Math.min(monthStart, now - WEEK_MS));
     if (isPro) {
-      const cfg = ABUSE.dynatos;
-      const [burst, day] = await Promise.all([
-        sumUsageSince(userId, 'dynatos', new Date(Date.now() - cfg.burstWindowSec * 1000).toISOString()),
-        sumUsageSince(userId, 'dynatos', startOfTodayIso())
-      ]);
-      if (burst.messages >= cfg.burstMessages) {
-        return { ok: false, status: 429, scope: 'burst',
+      const burst = sumRows(rows, now - PRO_BURST.windowSec * 1000);
+      if (burst.messages >= PRO_BURST.messages) {
+        return { ok: false, status: 429, scope: 'burst', plan,
           message: 'Слишком много сообщений подряд. Подождите пару минут — это временная защита от перегрузки.' };
       }
-      if (day.tokens >= cfg.dayTokens || day.messages >= cfg.dayMessages) {
-        return { ok: false, status: 429, scope: 'day',
-          message: 'Достигнут суточный предел защиты от злоупотребления для Dynatos. Он очень высок — если вы его достигли при обычном использовании, обратитесь в поддержку.' };
-      }
-      return { ok: true };
     }
-    const cfg = ABUSE.adanatos;
-    const windowStart = new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString();
-    const [windowUsage, month] = await Promise.all([
-      sumUsageSince(userId, 'adanatos', windowStart),
-      sumUsageSince(userId, 'adanatos', startOfMonthIso())
-    ]);
-    // Когда освободится окно: самое старое событие в окне + 5 часов.
-    const windowResetAt = async () => {
-      try {
-        const rows = await supabaseRequest(`/rest/v1/usage_events?select=created_at&user_id=eq.${encodeURIComponent(userId)}&model=eq.adanatos&created_at=gte.${encodeURIComponent(windowStart)}&order=created_at.asc&limit=1`);
-        const first = rows && rows[0] && Date.parse(rows[0].created_at);
-        return new Date((first || Date.now()) + 5 * 60 * 60 * 1000).toISOString();
-      } catch (e) { return new Date(Date.now() + 5 * 60 * 60 * 1000).toISOString(); }
-    };
-    if (windowUsage.tokens >= cfg.windowTokens || windowUsage.messages >= cfg.windowMessages) {
-      return { ok: false, status: 429, scope: 'window_limit', resetAt: await windowResetAt(),
-        message: 'Лимиты закончились. Подождите обновления окна или перейдите на Pro.' };
+    const win = sumRows(rows, now - WINDOW_MS);
+    const week = sumRows(rows, now - WEEK_MS);
+    const month = sumRows(rows, monthStart);
+    const windowReset = new Date((win.first || now) + WINDOW_MS).toISOString();
+    const weekReset = new Date((week.first || now) + WEEK_MS).toISOString();
+    const upgrade = isPro ? '' : ' или перейдите на Pro';
+    if (win.tokens >= cfg.windowTokens || win.messages >= cfg.windowMessages) {
+      return { ok: false, status: 429, scope: 'window_limit', plan, resetAt: windowReset,
+        message: `Лимиты закончились. Подождите обновления окна${upgrade}.` };
+    }
+    if (week.tokens >= cfg.weekTokens || week.messages >= cfg.weekMessages) {
+      return { ok: false, status: 429, scope: 'week_limit', plan, resetAt: weekReset,
+        message: `Недельный лимит закончился. Он обновится автоматически${upgrade}.` };
     }
     if (month.tokens >= cfg.monthTokens || month.messages >= cfg.monthMessages) {
-      const d = new Date(); d.setMonth(d.getMonth() + 1, 1); d.setHours(0, 0, 0, 0);
-      return { ok: false, status: 429, scope: 'month_limit', resetAt: d.toISOString(),
-        message: 'Месячный лимит закончился. Он обновится в начале месяца, либо перейдите на Pro.' };
+      return { ok: false, status: 429, scope: 'month_limit', plan, resetAt: nextMonthIso(),
+        message: `Месячный лимит закончился. Он обновится в начале месяца${upgrade}.` };
     }
-    // Остаток отдаём дальше: модель узнает, что лимит почти исчерпан.
-    const remaining = {
-      tokens: Math.max(0, cfg.windowTokens - windowUsage.tokens),
-      messages: Math.max(0, cfg.windowMessages - windowUsage.messages)
-    };
-    const low = remaining.messages <= 2 || remaining.tokens <= 5000;
-    return { ok: true, remaining, low, resetAt: low ? await windowResetAt() : null };
+    // Самый «узкий» из трёх запасов — по нему модель узнаёт, что лимит на исходе.
+    const scopes = [
+      { left: cfg.windowMessages - win.messages, leftTok: cfg.windowTokens - win.tokens, msgCap: cfg.windowMessages, tokCap: cfg.windowTokens, resetAt: windowReset },
+      { left: cfg.weekMessages - week.messages, leftTok: cfg.weekTokens - week.tokens, msgCap: cfg.weekMessages, tokCap: cfg.weekTokens, resetAt: weekReset },
+      { left: cfg.monthMessages - month.messages, leftTok: cfg.monthTokens - month.tokens, msgCap: cfg.monthMessages, tokCap: cfg.monthTokens, resetAt: nextMonthIso() }
+    ];
+    const tight = scopes.reduce((a, b) => (Math.min(b.left / b.msgCap, b.leftTok / b.tokCap) < Math.min(a.left / a.msgCap, a.leftTok / a.tokCap) ? b : a));
+    const remaining = { tokens: Math.max(0, tight.leftTok), messages: Math.max(0, tight.left) };
+    const low = remaining.messages <= Math.max(2, Math.ceil(tight.msgCap * 0.05))
+      || remaining.tokens <= Math.max(5000, Math.ceil(tight.tokCap * 0.05));
+    return { ok: true, plan, remaining, low, resetAt: low ? tight.resetAt : null };
   } catch (e) {
     // Если учётная таблица недоступна — не блокируем пользователя, но логируем.
     console.warn('[harmonyai] usage check failed (allowing request):', compactErrorValue(e?.message, 200));
@@ -2193,7 +2201,8 @@ export default async function handler(req, res) {
     // Max и «Думать» разрешены всем. Только Dynatos остаётся серверно защищённым.
     // Прямой запрос model:'pro' от FREE не получает платную модель.
     if (!isProRole(profile) && model === 'pro') model = 'lite';
-    if(!isProRole(profile)&&['max','extra'].includes(effort))effort='medium';
+    // Все уровни усилия (Low / Medium / Max / Extra) открыты и в Free: тарифы
+    // различаются моделью и лимитами, а не глубиной размышления.
 
     /* БЫСТРЫЙ ПУТЬ: приветствие, короткий вопрос по термину или задача, уже
        решённая музыкальным ядром, — без скрытых рассуждений модели, если
@@ -2209,7 +2218,7 @@ export default async function handler(req, res) {
     // СЕРВЕРНАЯ ПРОВЕРКА ЛИМИТОВ/ЗЛОУПОТРЕБЛЕНИЯ (нельзя обойти через localStorage).
     if (!allowance.ok) {
       return res.status(allowance.status || 429).json({
-        error: { message: allowance.message, status: allowance.status || 429, scope: allowance.scope, code: 'limit_reached', resetAt: allowance.resetAt || null }
+        error: { message: allowance.message, status: allowance.status || 429, scope: allowance.scope, code: 'limit_reached', resetAt: allowance.resetAt || null, plan: allowance.plan || null }
       });
     }
     // Лимит почти исчерпан: сообщаем клиенту (заголовок) и модели (системная заметка).
@@ -2353,10 +2362,13 @@ export default async function handler(req, res) {
       const limitNote = allowance.low ? `
 
 [ЛИМИТ ПОЛЬЗОВАТЕЛЯ ПОЧТИ ИСЧЕРПАН]
-У пользователя осталось примерно ${allowance.remaining?.messages ?? 0} сообщ. и ~${allowance.remaining?.tokens ?? 0} токенов в текущем окне.
-Если задача большая (много изменений, длинный код, несколько файлов) и её не получится завершить целиком в этом ответе:
-кратко сделай план и первый законченный шаг, затем ОСТАНОВИСЬ и в самом конце ответа отдельной строкой напиши маркер [[HM_LIMIT_PAUSE]].
-Если задача небольшая — отвечай как обычно, без маркера.` : '';
+У пользователя осталось примерно ${allowance.remaining?.messages ?? 0} сообщ. в текущем окне лимитов.
+Если задача большая (много изменений, длинный код, несколько файлов, длинный разбор) и её не получится завершить целиком в этом ответе:
+1) первой строкой ответа коротко предупреди: «⚠️ Лимиты на исходе — сделаю первую часть, остальное продолжу по кнопке «Продолжить».»;
+2) кратко составь план и выполни первый законченный шаг;
+3) ОСТАНОВИСЬ и в самом конце ответа отдельной строкой напиши маркер [[HM_LIMIT_PAUSE]].
+Если пользователь пишет «Продолжить» — продолжай с того шага плана, на котором остановился, без повторов.
+Если задача небольшая — отвечай как обычно, без предупреждения и без маркера. Точные числа лимитов не называй.` : '';
       const openAiMessages = mapMessagesForOpenAI(messages, mergedSystem + limitNote);
       /* reasoning_effort отправляем ВСЕГДА, когда уровень его подразумевает —
          в том числе в режиме «Думать». Раньше в этом режиме параметр гасился,

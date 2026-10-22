@@ -515,6 +515,8 @@ button:active,.model-pill:active,.send-btn:active{
   background:linear-gradient(125deg,rgba(255,255,255,0.10) 0%,rgba(255,255,255,0) 22%,rgba(255,255,255,0) 72%,rgba(255,255,255,0.045) 100%);
   mix-blend-mode:overlay;opacity:.85;animation:liquidSheen 9s ease-in-out infinite;
 }
+/* Сайдбар уже размывает фон сам: второй backdrop-filter у ::before рисовал по краям «рамки» в тёмной теме */
+html:root .sidebar::before{backdrop-filter:none;-webkit-backdrop-filter:none;filter:none;}
 }
 @keyframes liquidSheen{0%,100%{opacity:.62;}50%{opacity:.92;}}
 @keyframes dropMenuIn{from{opacity:0;transform:translateY(6px) scale(.97);}to{opacity:1;transform:translateY(0) scale(1);}}
@@ -2711,6 +2713,25 @@ html[data-boot="app"] #initialLoading{display:flex;}.boot-spinner{width:22px;hei
 .notif-host{position:static;inset:auto;z-index:auto;padding:0;width:100%;max-width:720px;pointer-events:auto;}.notif-host:empty{display:none;}
 #notifHost .notif-card{width:100%;max-width:none;display:flex;align-items:center;gap:12px;padding:8px 8px 8px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;box-shadow:none;animation:none;backdrop-filter:none;}
 .notif-title{flex:1;font-size:14px;font-weight:500;line-height:1.5;padding:0;margin:0;}.notif-close{position:static;flex:0 0 44px;width:44px;height:44px;border-radius:8px;pointer-events:auto;font-size:24px;}
+/* Единые уведомления (hmNotice) — 0.8.4 */
+.hm-note{display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;margin:0 0 8px;padding:8px 8px 8px 12px;border-radius:14px;background:var(--bg2);border:1px solid var(--border);color:var(--text);font-size:14px;line-height:1.4;opacity:0;transform:translateY(4px);transition:opacity .16s ease,transform .16s ease;}
+.hm-note.in{opacity:1;transform:none;}
+.hm-note-ic{flex:none;width:20px;height:20px;color:var(--text2);display:flex;}
+.hm-note-ic svg{width:20px;height:20px;}
+.hm-note-success .hm-note-ic{color:#16a34a;}
+.hm-note-warn .hm-note-ic{color:#f59e0b;}
+.hm-note-promo .hm-note-ic{color:#7c5cff;}
+.hm-note-txt{flex:1;min-width:0;overflow-wrap:anywhere;}
+.hm-note-act{flex:none;padding:7px 12px;border-radius:999px;border:0;background:var(--text);color:var(--bg);font:600 13px/1 inherit;font-family:inherit;text-decoration:none;cursor:pointer;white-space:nowrap;}
+.hm-note-x{flex:none;width:30px;height:30px;border:0;border-radius:9px;background:transparent;color:var(--text2);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;}
+.hm-note-x:hover{background:rgba(127,127,127,.14);color:var(--text);}
+.hm-note-x:focus-visible,.hm-note-act:focus-visible{outline:2px solid var(--accent,#4f72ff);outline-offset:2px;}
+.hm-note-x svg{width:18px;height:18px;}
+.hm-note-float{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 14px);transform:translate(-50%,-6px);width:max-content;max-width:min(520px,calc(100vw - 32px));z-index:790;box-shadow:0 12px 32px rgba(0,0,0,.28);}
+.hm-note-float.in{transform:translate(-50%,0);}
+.set-notif:empty{display:none;}
+.set-notif .hm-note{margin:4px 0 6px;background:color-mix(in srgb,var(--set-text,var(--text)) 6%,transparent);border-color:color-mix(in srgb,var(--set-text,var(--text)) 12%,transparent);color:var(--set-text,var(--text));}
+@media(max-width:768px){.hm-note{font-size:13.5px;padding:7px 6px 7px 11px;border-radius:13px;}}
 #surveyOverlay,#nickOverlay{background:var(--bg);backdrop-filter:none;overflow:auto;padding:32px 24px;}
 #surveyOverlay .fb-modal,#nickOverlay .fb-modal{width:min(100%,540px);max-width:540px;margin:auto;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:36px;border-radius:20px;box-shadow:none;}
 #surveyOverlay .fb-title,#nickOverlay .fb-title{font-size:26px;line-height:1.3;color:var(--text);}#surveyOverlay .fb-desc,#nickOverlay .fb-desc{font-size:14px;color:var(--text2);}
@@ -3002,6 +3023,31 @@ html[data-theme="messenger"] .rec-overlay{background:rgba(23,33,43,.34);}
 .stp-cmp-row{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:8px;padding:10px 14px;}
 .stp-cmp-row+.stp-cmp-row{border-top:1px solid color-mix(in srgb,var(--set-text,var(--text)) 8%,transparent);}
 .stp-cmp-row span:nth-child(3){font-weight:600;}
+/* Подписка: продление, приглашения, история оплат (0.8.4) */
+.stp-block{padding:6px 2px 4px;}
+.stp-block .stp-row-desc{margin-top:4px;}
+.stp-renew{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0 4px;max-width:460px;}
+.stp-renew-btn{display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:12px 14px;border-radius:16px;border:1px solid color-mix(in srgb,var(--set-text,var(--text)) 16%,transparent);background:transparent;color:var(--set-text,var(--text));font:inherit;cursor:pointer;text-align:left;transition:background .15s,border-color .15s;}
+.stp-renew-btn span{font-size:13px;color:var(--set-muted,var(--text2));}
+.stp-renew-btn b{font-size:20px;font-weight:700;line-height:1.1;}
+.stp-renew-btn s{font-size:12px;color:var(--set-muted,var(--text2));}
+.stp-renew-btn:hover:not(:disabled){background:color-mix(in srgb,var(--set-text,var(--text)) 6%,transparent);}
+.stp-renew-btn.primary{border-color:#4f72ff;background:color-mix(in srgb,#4f72ff 12%,transparent);}
+.stp-renew-btn:disabled{opacity:.6;cursor:wait;}
+.stp-note{font-size:13px;line-height:1.45;color:var(--set-muted,var(--text2));margin:8px 2px 0;}
+.stp-note-accent{padding:10px 12px;border-radius:12px;background:color-mix(in srgb,#4f72ff 12%,transparent);color:var(--set-text,var(--text));margin:4px 0 10px;}
+.stp-invites{display:flex;flex-direction:column;gap:8px;margin-top:10px;max-width:520px;}
+.stp-inv{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border-radius:14px;background:color-mix(in srgb,var(--set-text,var(--text)) 5%,transparent);}
+.stp-inv-meta{min-width:0;}
+.stp-inv-code{font:600 15px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.06em;}
+.stp-inv-done{color:#16a34a;font-weight:700;font-size:18px;padding:0 6px;}
+.stp-inv-new{align-self:flex-start;}
+.stp-pay{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:8px 2px;font-size:14px;border-top:1px solid color-mix(in srgb,var(--set-text,var(--text)) 8%,transparent);}
+.stp-pay:first-of-type{border-top:0;margin-top:6px;}
+.stp-pay span{color:var(--set-muted,var(--text2));}
+.stp-pay .stp-pay-desc{color:var(--set-text,var(--text));}
+@media(max-width:768px){.settings-overlay .stp-perks-label{font-size:16px!important;}.settings-overlay .stp-badge{white-space:nowrap!important;}}
+@media(max-width:768px){.stp-renew{grid-template-columns:1fr 1fr;gap:8px;}.stp-renew-btn{padding:10px 12px;}.stp-renew-btn b{font-size:17px;}.stp-inv{padding:9px 10px;}}
 .stp-cmp-head{font-weight:700;background:color-mix(in srgb,var(--set-text,var(--text)) 5%,transparent);}
 @media(max-width:768px){.stp-cmp-row{grid-template-columns:1.3fr .9fr 1fr;padding:9px 10px;font-size:12.5px;}.stp-seg-btn{padding:7px 9px;font-size:12.5px;}}
 /* Размер текста в чате */
@@ -3160,6 +3206,16 @@ html body .greeting-wrap[style*="display: none"],html body .greeting-wrap[style*
 .hm-plus-sw.on::after{transform:translateX(18px);}
 @media(min-width:769px){.plus-btn-wrap .bar-icon .hm-plus-d{width:22px;height:22px;}}
 @media(prefers-reduced-motion:reduce){.hm-plus,.hm-plus-sw::after{transition:none;}}
+/* Лимит исчерпан: пункт серый, под подписью — время сброса (0.8.4) */
+.hm-plus .hm-plus-lbl{display:flex;flex-direction:column;gap:2px;min-width:0;}
+.hm-plus .hm-plus-lbl>span{white-space:nowrap;}
+.hm-plus-lim{font-size:12.5px;line-height:1.25;color:var(--text2);white-space:normal;}
+.hm-plus button:disabled{cursor:not-allowed;color:color-mix(in srgb,var(--text) 42%,transparent);}
+.hm-plus button:disabled:hover{background:transparent;}
+.attach-opt.is-limited{flex-wrap:wrap;row-gap:2px;cursor:not-allowed;}
+.attach-opt.is-limited .attach-opt-ic,.attach-opt.is-limited .attach-opt-txt{opacity:.42;}
+.attach-opt.is-limited:hover,.attach-opt.is-limited:active{background:transparent;}
+.attach-opt.is-limited .attach-opt-hint{flex-basis:100%;margin-left:40px;color:var(--text2);}
 </style>
 <style id="hm-2fa">
 .hm2fa-qr{display:flex;justify-content:center;padding:10px;background:#fff;border-radius:16px;width:max-content;margin:0 auto;}
@@ -3264,7 +3320,7 @@ body.hm-dragging #chatInner::after{content:'Отпустите файлы, чт�
       <div class="auth-switch">Уже зарегистрированы? <a href="#" onclick="toggleLoginHint();return false;">Войти</a></div>
       <div class="auth-hint" id="loginHint" style="display:none;"></div>
       <div class="auth-tos">Продолжая, вы соглашаетесь с <a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Политикой Конфиденциальности</a> и <a href="/legal/terms.html" target="_blank" rel="noopener noreferrer">Условиями Пользователя</a> HarmonyAI</div>
-      <div class="auth-beta">Beta 0.8.2</div>
+      <div class="auth-beta">Beta 0.8.4</div>
     </div>
 
     <!-- Экран 2: Код подтверждения -->
@@ -3279,7 +3335,7 @@ body.hm-dragging #chatInner::after{content:'Отпустите файлы, чт�
       <div class="auth-resend" id="btnResend" onclick="resendOTP()">Не пришел код? Отправить снова</div>
       <div class="auth-switch">Уже зарегистрированы? <a href="#" onclick="toggleLoginHint();return false;">Войти</a></div>
       <div class="auth-tos">Продолжая, вы соглашаетесь с <a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Политикой Конфиденциальности</a> и <a href="/legal/terms.html" target="_blank" rel="noopener noreferrer">Условиями Пользователя</a> HarmonyAI</div>
-      <div class="auth-beta">Beta 0.8.2</div>
+      <div class="auth-beta">Beta 0.8.4</div>
     </div>
 
   </div>
@@ -3678,13 +3734,13 @@ body.hm-dragging #chatInner::after{content:'Отпустите файлы, чт�
         </button>
         <div class="mm-divider"></div>
         <button class="mm-opt" id="mmOptMax" onclick="selectMode('max')">
-          <div class="mm-opt-main"><span class="mm-opt-name">High</span><span class="mm-opt-badge">Pro</span></div>
+          <div class="mm-opt-main"><span class="mm-opt-name">High</span></div>
           <span class="mm-opt-check" id="mmCheckMax">✓</span>
           <div class="mm-opt-desc">Глубокое мышление</div>
         </button>
         <div class="mm-divider"></div>
         <button class="mm-opt" id="mmOptExtra" onclick="selectMode('extra')">
-          <div class="mm-opt-main"><span class="mm-opt-name">Extra</span><span class="mm-opt-badge">Pro</span></div>
+          <div class="mm-opt-main"><span class="mm-opt-name">Extra</span></div>
           <span class="mm-opt-check" id="mmCheckExtra">✓</span>
           <div class="mm-opt-desc">Максимальное качество</div>
         </button>
@@ -3755,7 +3811,7 @@ body.hm-dragging #chatInner::after{content:'Отпустите файлы, чт�
         <span class="attach-opt-txt">Поиск в сети</span>
         <span class="attach-opt-state" id="attachSearchState">ИИ сам решит</span>
       </div>
-      <div class="attach-opt" onclick="attachChoose('files',event)">
+      <div class="attach-opt" id="attachFiles" onclick="attachChoose('files',event)">
         <span class="attach-opt-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M8 12l6-6a3 3 0 114 4l-8 8a5 5 0 01-7-7l8-8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
         <span class="attach-opt-txt">Добавить файлы</span>
         <span class="attach-opt-hint">PDF, DOCX, TXT, изображения</span>
@@ -4081,10 +4137,19 @@ function setLocalNickname(uid,val){
 /* ===== ЛИМИТЫ ИСПОЛЬЗОВАНИЯ =====
    На экране показывается один общий процент: берётся более заполненное из двух
    внутренних ограничителей. Сервер остаётся источником истины. */
+/* Лимиты зависят от ТАРИФА (как на сервере, api/chat.js): Pro — ×25 от Free
+   по каждому окну + антифлуд. Сообщения обеих моделей считаются вместе. */
+const PRO_LIMIT_MULTIPLIER=25;
 const LIMITS={
   adanatos:{ rolling:{tokens:20000,messages:14}, weekly:{tokens:160000,messages:112}, monthly:{tokens:400000,messages:400} },
   dynatos:{ burst:{messages:25,windowMs:180000} }
 };
+function planLimits(){
+  const f=LIMITS.adanatos;
+  if(!isProUser())return f;
+  const x=o=>({tokens:o.tokens*PRO_LIMIT_MULTIPLIER,messages:o.messages*PRO_LIMIT_MULTIPLIER});
+  return {rolling:x(f.rolling),weekly:x(f.weekly),monthly:x(f.monthly)};
+}
 const USAGE_PREFIX='harmonyai_usage_v1_';
 function usageKey(){return USAGE_PREFIX+(curUser?.id||'guest');}
 function todayKey(d=new Date()){return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();}
@@ -4132,14 +4197,11 @@ function getUsage(){
 // Грубая оценка токенов по тексту (≈4 символа на токен) — для локального учёта достаточно.
 function estimateTokens(text){return Math.max(1,Math.ceil(String(text||'').length/4));}
 function recordUsage(promptText,replyText){
-  if(curModel==='pro'){ // Dynatos — учитываем только burst для защиты
-    const u=getUsage();
+  const u=getUsage();
+  if(isProUser()){ // антифлуд Pro
     u.burst.push(Date.now());
     u.burst=u.burst.filter(t=>Date.now()-t<LIMITS.dynatos.burst.windowMs);
-    writeUsage(u);
-    return;
   }
-  const u=getUsage();
   const tok=estimateTokens(promptText)+estimateTokens(replyText);
   u.windowEvents.push({at:Date.now(),tokens:tok,messages:1});
   u.weekEvents.push({at:Date.now(),tokens:tok,messages:1});
@@ -4153,38 +4215,40 @@ function checkLimit(){
   // Сервер уже ответил «лимит» — до сброса окна не отправляем запросы зря.
   try{
     const sbk=readUsage().serverBlock;
-    if(sbk&&sbk.until>Date.now()&&(sbk.model==='pro')===(curModel==='pro')){
-      const map={burst:'burst',day:'burst',window_limit:'window',day_limit:'window',week_limit:'month',month_limit:'month'};
+    if(sbk&&sbk.until>Date.now()&&(sbk.plan||'')===(isProUser()?'pro':'free')){
+      const map={burst:'burst',day:'burst',window_limit:'window',day_limit:'window',week_limit:'week',month_limit:'month'};
       return {blocked:true,scope:map[sbk.scope]||'window',resetAt:sbk.resetAt||new Date(sbk.until).toISOString()};
     }
   }catch(e){}
-  if(curModel==='pro'){
-    const u=getUsage();
+  const u=getUsage();
+  if(isProUser()){
     const recent=u.burst.filter(t=>Date.now()-t<LIMITS.dynatos.burst.windowMs);
     if(recent.length>=LIMITS.dynatos.burst.messages){
-      return {blocked:true,scope:'burst',reason:'Слишком много сообщений подряд. Подождите пару минут — это временная защита от перегрузки.'};
+      return {blocked:true,scope:'burst',reason:'Слишком много сообщений подряд. Подождите пару минут — это временная защита от перегрузки.',resetAt:new Date(recent[0]+LIMITS.dynatos.burst.windowMs).toISOString()};
     }
-    return {blocked:false};
   }
-  const u=getUsage();
-  const L=LIMITS.adanatos;
+  const L=planLimits();
   if(u.dayTokens>=L.rolling.tokens||u.dayMessages>=L.rolling.messages){
-    return {blocked:true,scope:'window'};
+    return {blocked:true,scope:'window',resetAt:nextFiveHourReset().toISOString()};
   }
   if(u.weekTokens>=L.weekly.tokens||u.weekMessages>=L.weekly.messages){
-    return {blocked:true,scope:'week'};
+    return {blocked:true,scope:'week',resetAt:nextWeeklyReset().toISOString()};
   }
   return {blocked:false};
 }
 
 /* ===== ЛИМИТЫ ГЕНЕРАЦИИ ИЗОБРАЖЕНИЙ (клиентский барьер, сервер — авторитетный) =====
-   free: 7 в день, 23 в неделю, 50 в месяц.
-   pro:  burst (15 за 3 мин) + суточный потолок 200 — защита от злоупотребления.
+   Те же числа, что в api/generate-image.js: Free — день / неделя / месяц,
+   Pro — ×25 по каждому окну + антифлуд (15 за 3 мин).
    Учёт отдельный от чата (свой ключ localStorage), чтобы не смешивать с расходом сообщений. */
 const IMG_LIMITS={
-  adanatos:{daily:7,weekly:56,monthly:112},
-  dynatos:{burst:{images:15,windowMs:180000},daily:200}
+  adanatos:{daily:7,weekly:23,monthly:50},
+  dynatos:{burst:{images:15,windowMs:180000}}
 };
+function imgPlanLimits(){
+  const f=IMG_LIMITS.adanatos;
+  return isProUser()?{daily:f.daily*PRO_LIMIT_MULTIPLIER,weekly:f.weekly*PRO_LIMIT_MULTIPLIER,monthly:f.monthly*PRO_LIMIT_MULTIPLIER}:f;
+}
 const IMG_USAGE_PREFIX='harmonyai_img_v1_';
 function imgUsageKey(){return IMG_USAGE_PREFIX+(curUser?.id||'guest');}
 function monthKey(d=new Date()){return d.getFullYear()+'-'+(d.getMonth()+1);}
@@ -4210,23 +4274,33 @@ function recordImageUsage(){
 // Возвращает {blocked, scope, reason} — можно ли генерировать изображение.
 function checkImageLimit(){
   if(hasTrainingAccess())return {blocked:false}; // разработчики/админы без ограничений
-  if(curModel==='pro'){
-    const u=getImgUsage();
+  const u=getImgUsage();
+  // Сервер уже ответил «лимит» — до сброса кнопка остаётся серой.
+  if(u.serverBlock&&u.serverBlock.until>Date.now())return {blocked:true,scope:u.serverBlock.scope||'day',resetAt:new Date(u.serverBlock.until).toISOString()};
+  if(isProUser()){
     const recent=u.burst.filter(t=>Date.now()-t<IMG_LIMITS.dynatos.burst.windowMs);
     if(recent.length>=IMG_LIMITS.dynatos.burst.images){
-      return {blocked:true,scope:'burst',reason:'Слишком много изображений подряд. Подождите пару минут — это временная защита от перегрузки.'};
+      return {blocked:true,scope:'burst',reason:'Слишком много изображений подряд. Подождите пару минут — это временная защита от перегрузки.',resetAt:new Date(recent[0]+IMG_LIMITS.dynatos.burst.windowMs).toISOString()};
     }
-    if(u.dayImages>=IMG_LIMITS.dynatos.daily){
-      return {blocked:true,scope:'day',reason:'Суточный предел защиты от злоупотребления для генерации изображений достигнут. Он очень высок — обратитесь в поддержку, если это обычное использование.'};
-    }
-    return {blocked:false};
   }
-  const u=getImgUsage();
-  const L=IMG_LIMITS.adanatos;
-  if(u.dayImages>=L.daily)return {blocked:true,scope:'day'};
-  if(u.weekImages>=L.weekly)return {blocked:true,scope:'week'};
-  if(u.monthImages>=L.monthly)return {blocked:true,scope:'month',reason:'Вы использовали весь месячный лимит генерации изображений. Обновление — <b>'+fmtResetHuman(nextMonthlyReset())+'</b>. Перейдите на <b>Dynatos</b>, чтобы продолжить без ограничений.'};
+  const L=imgPlanLimits();
+  if(u.dayImages>=L.daily)return {blocked:true,scope:'day',resetAt:nextDailyReset().toISOString()};
+  if(u.weekImages>=L.weekly)return {blocked:true,scope:'week',resetAt:nextCalendarWeekReset().toISOString()};
+  if(u.monthImages>=L.monthly)return {blocked:true,scope:'month',resetAt:nextMonthlyReset().toISOString()};
   return {blocked:false};
+}
+// Календарная неделя (как на сервере генерации картинок): понедельник 00:00.
+function nextCalendarWeekReset(){const d=new Date();d.setHours(0,0,0,0);const day=d.getDay()||7;d.setDate(d.getDate()+(8-day));return d;}
+/* «Лимит будет сброшен в 14:30» / «… завтра в 00:00» / «… 25.10 в 00:00». */
+function fmtLimitReset(resetAt){
+  const d=resetAt?new Date(resetAt):null;
+  if(!d||isNaN(d.getTime()))return hmT('Лимит скоро будет сброшен');
+  const now=new Date();const t=fmtTime(d);
+  const same=(a,b)=>a.getDate()===b.getDate()&&a.getMonth()===b.getMonth()&&a.getFullYear()===b.getFullYear();
+  if(same(d,now))return hmT('Лимит будет сброшен в')+' '+t;
+  const tm=new Date(now);tm.setDate(now.getDate()+1);
+  if(same(d,tm))return hmT('Лимит будет сброшен завтра в')+' '+t;
+  return hmT('Лимит будет сброшен')+' '+d.toLocaleDateString(hmLocale(),{day:'2-digit',month:'2-digit'})+', '+t;
 }
 // Время сброса месячного лимита — 1-е число следующего месяца 00:00.
 function nextMonthlyReset(){const d=new Date();d.setHours(24,0,0,0);d.setDate(1);d.setMonth(d.getMonth()+1);return d;}
@@ -4244,15 +4318,18 @@ function nextFiveHourReset(){
 }
 function nextDailyReset(){const d=new Date();d.setHours(24,0,0,0);return d;}
 function fmtTime(d){return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
+/* Перевод строки интерфейса и локаль для дат: фразы с временем и датой
+   собираются из постоянных слов (они есть в словаре) и локализованной даты. */
+function hmT(s){try{return (window.i18n&&window.i18n.t)?window.i18n.t(s):s;}catch(e){return s;}}
+function hmLocale(){try{const l=window.i18n&&window.i18n.get&&window.i18n.get();return ({en:'en-GB',fr:'fr-FR',de:'de-DE',es:'es-ES',it:'it-IT',zh:'zh-CN'})[l]||'ru-RU';}catch(e){return 'ru-RU';}}
 function fmtResetHuman(d){
   const now=new Date();
   const sameDay=d.getDate()===now.getDate()&&d.getMonth()===now.getMonth();
   const t=fmtTime(d);
-  if(sameDay)return 'сегодня в '+t;
-  const days=['вс','пн','вт','ср','чт','пт','сб'];
+  if(sameDay)return hmT('сегодня в')+' '+t;
   const tomorrow=new Date(now);tomorrow.setDate(now.getDate()+1);
-  if(d.getDate()===tomorrow.getDate()&&d.getMonth()===tomorrow.getMonth())return 'завтра в '+t;
-  return days[d.getDay()]+', '+String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+' в '+t;
+  if(d.getDate()===tomorrow.getDate()&&d.getMonth()===tomorrow.getMonth())return hmT('завтра в')+' '+t;
+  return d.toLocaleDateString(hmLocale(),{weekday:'short',day:'2-digit',month:'2-digit'})+', '+t;
 }
 
 /* marked setup */
@@ -4324,28 +4401,116 @@ function enableCodeCopy(el){
 
 function isDesktop(){return window.innerWidth>=769;}
 
-const NOTIF_TEXTS={promo_img:'Получите более детальные изображения с Pro',promo_quality:'Улучшите качество ответов с Pro',promo_limits:'Получите безграничные лимиты и намного более умные модели с Pro'};
+const NOTIF_TEXTS={promo_img:'Получите более детальные изображения с Pro',promo_quality:'Улучшите качество ответов с Pro',promo_limits:'В Pro — в 25 раз больше лимитов и более умная модель Dynatos'};
 let promoShown=false;
 function hasActivePro(){return isProUser();}
 function shouldShowNotification(id,probability){
  if(!NOTIF_TEXTS[id]||!window.__appShown||!curUser?.profileReady||hasActivePro()||promoShown)return false;
  if(!/^\/chat(?:\/|$)/.test(location.pathname)||sharedView||document.querySelector('#settingsOverlay.open,#surveyOverlay.show,#nickOverlay.show'))return false;
+ if(hmNoteCur||hmNoteQueue.length||document.querySelector('#notifHost .hm-mem-card'))return false; // одно уведомление за раз
  const key='hm_promo_'+curUser.id;
  try{if(sessionStorage.getItem(key)||Date.now()-Number(localStorage.getItem(key)||0)<21600000)return false;}catch(e){}
- return Math.random()<probability&&!document.querySelector('#notifHost .notif-card');
-}
-function dismissNotification(el){el?.remove();}
-function renderNotification(id){
- const host=document.getElementById('notifHost');if(!host||host.firstElementChild)return false;
- const card=document.createElement('div');card.className='notif-card';
- const title=document.createElement('span');title.className='notif-title';title.textContent=NOTIF_TEXTS[id];
- const close=document.createElement('button');close.type='button';close.className='notif-close';close.textContent='×';close.setAttribute('aria-label','Закрыть уведомление');
- close.onclick=e=>{e.preventDefault();e.stopPropagation();dismissNotification(card);};card.append(title,close);host.append(card);return true;
+ return Math.random()<probability;
 }
 function showNotification(id,probability){
- if(!shouldShowNotification(id,probability)||!renderNotification(id))return false;
+ if(!shouldShowNotification(id,probability))return false;
+ hmNotice({text:NOTIF_TEXTS[id],kind:'promo',ttl:0,action:{label:'Подробнее',href:'/subscribe'}});
  promoShown=true;try{const key='hm_promo_'+curUser.id;sessionStorage.setItem(key,'1');localStorage.setItem(key,String(Date.now()));}catch(e){}return true;
 }
+
+/* ===== УВЕДОМЛЕНИЯ: одно за раз и никогда поверх строки ввода, меню, настроек =====
+   Где появляется уведомление:
+     • в чате — в #notifHost над строкой ввода, В ПОТОКЕ (сдвигает переписку,
+       а не перекрывает поле ввода; боковое меню его не касается);
+     • при открытых настройках — в слоте под шапкой правой панели (тоже в потоке);
+     • в просмотрщике фото — плашкой сверху окна просмотра.
+   Видно не больше одного уведомления: короткие «тосты» сменяют друг друга,
+   реклама Pro уступает любому другому, остальное ждёт в очереди. Карточка
+   «Сохранить в память» (js/hm-memory.js) важнее всего: пока она открыта,
+   очередь ждёт (hmNoticeYield / hmNoticeResume). */
+const HM_NOTE_IC={
+  info:'<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 11v5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="7.8" r="1.2" fill="currentColor"/></svg>',
+  success:'<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M8 12.4l2.7 2.7L16.2 9.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  warn:'<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3.5l9 16H3l9-16z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 10v4.2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17" r="1.1" fill="currentColor"/></svg>',
+  promo:'<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2.5l1.8 5.7 5.7 1.8-5.7 1.8-1.8 5.7-1.8-5.7L4.5 10l5.7-1.8L12 2.5z" fill="currentColor"/></svg>'
+};
+const hmNoteQueue=[];let hmNoteCur=null;let hmNotePaused=false;
+function hmNoteHost(){
+  const pv=document.getElementById('photoViewerOverlay');
+  if(pv&&pv.classList.contains('open'))return {el:pv,overlay:true};
+  const so=document.getElementById('settingsOverlay');
+  if(so&&so.classList.contains('open')){
+    const main=so.querySelector('.set-main');
+    if(main){
+      let slot=main.querySelector('.set-notif');
+      if(!slot){slot=document.createElement('div');slot.className='set-notif';const head=main.querySelector('.stp-head');if(head)head.after(slot);else main.prepend(slot);}
+      return {el:slot,overlay:false};
+    }
+  }
+  const host=document.getElementById('notifHost');
+  // Пустой #notifHost скрыт (display:none), поэтому видимость проверяем по полю ввода.
+  const box=document.getElementById('inputBox');
+  if(host&&box&&box.offsetParent!==null&&!document.body.classList.contains('shared-view'))return {el:host,overlay:false};
+  return {el:document.body,overlay:true};
+}
+function hmNoteRender(item){
+  const host=hmNoteHost();
+  const card=document.createElement('div');
+  card.className='hm-note hm-note-'+(item.kind||'info')+(host.overlay?' hm-note-float':'');
+  card.setAttribute('role',item.kind==='warn'?'alert':'status');
+  const ic=document.createElement('span');ic.className='hm-note-ic';ic.innerHTML=HM_NOTE_IC[item.kind]||HM_NOTE_IC.info;
+  const txt=document.createElement('span');txt.className='hm-note-txt';txt.textContent=item.text;
+  card.append(ic,txt);
+  if(item.action){
+    const a=document.createElement(item.action.href?'a':'button');a.className='hm-note-act';a.textContent=item.action.label;
+    if(item.action.href){a.href=item.action.href;a.target='_blank';a.rel='noopener';a.addEventListener('click',()=>hmNoticeClose());}
+    else{a.type='button';a.addEventListener('click',e=>{e.stopPropagation();try{item.action.onClick&&item.action.onClick();}finally{hmNoticeClose();}});}
+    card.append(a);
+  }
+  if(!item.ttl||item.closable){
+    const x=document.createElement('button');x.type='button';x.className='hm-note-x';x.setAttribute('aria-label','Закрыть уведомление');
+    x.innerHTML='<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+    x.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();hmNoticeClose();});
+    card.append(x);
+  }
+  host.el.appendChild(card);
+  requestAnimationFrame(()=>card.classList.add('in'));
+  return card;
+}
+function hmNoticeShowNext(){
+  if(hmNoteCur||hmNotePaused||!hmNoteQueue.length)return;
+  if(document.querySelector('#notifHost .hm-mem-card'))return;
+  const item=hmNoteQueue.shift();
+  const el=hmNoteRender(item);
+  hmNoteCur={item,el,timer:item.ttl?setTimeout(hmNoticeClose,item.ttl):null};
+  try{scrollChat();}catch(e){}
+}
+function hmNoticeClose(){
+  if(!hmNoteCur)return;
+  const {el,timer}=hmNoteCur;hmNoteCur=null;
+  clearTimeout(timer);
+  if(el){el.classList.remove('in');setTimeout(()=>el.remove(),160);}
+  setTimeout(hmNoticeShowNext,180);
+}
+function hmNotice(opts){
+  const item=Object.assign({kind:'info',ttl:3200},typeof opts==='string'?{text:opts}:opts);
+  if(!item.text)return;
+  if(hmNoteCur){
+    const cur=hmNoteCur.item;
+    // Реклама уступает всему; короткое уведомление сменяет короткое.
+    if(cur.kind==='promo'||(cur.ttl&&item.ttl)){hmNoteQueue.unshift(item);hmNoticeClose();return;}
+    if(cur.text===item.text)return;
+  }
+  if(hmNoteQueue.some(q=>q.text===item.text))return;
+  if(item.ttl)while(hmNoteQueue.filter(q=>q.ttl).length>=3)hmNoteQueue.splice(hmNoteQueue.findIndex(q=>q.ttl),1);
+  hmNoteQueue.push(item);
+  hmNoticeShowNext();
+}
+// Карточка памяти (js/hm-memory.js) важнее: убираем текущее и ждём её закрытия.
+function hmNoticeYield(){hmNotePaused=true;if(hmNoteCur){const it=hmNoteCur.item;if(it.kind!=='promo'&&it.ttl===0)hmNoteQueue.unshift(it);hmNoticeClose();}}
+function hmNoticeResume(){hmNotePaused=false;setTimeout(hmNoticeShowNext,200);}
+window.hmNotice=hmNotice;window.hmNoticeYield=hmNoticeYield;window.hmNoticeResume=hmNoticeResume;
+function dismissNotification(el){if(hmNoteCur&&hmNoteCur.el===el)hmNoticeClose();else el?.remove();}
 /* Аккаунт разработчика (вход по ключу DEV_LOGIN_KEY, см. lib/dev-account.js).
    Права выдаёт сервер (profiles: admin + Pro); здесь — только интерфейс. */
 const HM_DEV_EMAIL='devharmonyai0802@dev.dev';
@@ -4617,7 +4782,43 @@ async function saveSurveySource(val){
  finally{surveySaving=false;document.querySelectorAll('#surveyOverlay button').forEach(b=>b.disabled=false);}
 }
 async function maybeShowOnboardingModals(){if(maybeShowSurveyModal()||maybeShowNicknameModal())return;await revealReadyChat();}
-async function revealReadyChat(){updateUserUI();refreshModelUI();await syncSignedInRoute();window.__appShown=true;document.getElementById('app').classList.add('show');document.documentElement.removeAttribute('data-boot');window.HmStats?.start();}
+async function revealReadyChat(){updateUserUI();refreshModelUI();await syncSignedInRoute();window.__appShown=true;document.getElementById('app').classList.add('show');document.documentElement.removeAttribute('data-boot');window.HmStats?.start();setTimeout(hmRedeemPendingInvite,600);}
+/* ===== ПРИГЛАШЕНИЕ В PRO (реферальная программа, lib/referrals.js) =====
+   Ссылка вида /chat?invite=КОД. Код запоминаем сразу (человек может быть ещё не
+   вошёл), убираем из адресной строки и активируем после входа: Pro на 3 дня +
+   скидка 10% на первый месяц. Ошибки (код занят, свой код) показываем один раз. */
+const HM_INVITE_KEY='hm_invite_code';
+(function captureInvite(){
+  try{
+    const p=new URLSearchParams(location.search);
+    const code=(p.get('invite')||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+    if(!code)return;
+    localStorage.setItem(HM_INVITE_KEY,code);
+    p.delete('invite');
+    const q=p.toString();
+    history.replaceState(history.state,'',location.pathname+(q?'?'+q:'')+location.hash);
+  }catch(e){}
+})();
+let hmInviteBusy=false;
+async function hmRedeemPendingInvite(){
+  let code='';try{code=localStorage.getItem(HM_INVITE_KEY)||'';}catch(e){}
+  if(!code||hmInviteBusy||!curUser?.profileReady)return;
+  hmInviteBusy=true;
+  try{
+    const res=await fetch('/api/account',{method:'POST',headers:await hmAuthHeaders(),body:JSON.stringify({action:'referral.redeem',code})});
+    const data=await res.json().catch(()=>({}));
+    if(res.status>=500&&res.status!==503)return; // сбой сети/сервера — попробуем при следующем входе
+    try{localStorage.removeItem(HM_INVITE_KEY);}catch(e){}
+    if(res.ok&&data.ok){
+      curUser.plan='pro';curUser.plan_expires_at=data.trialUntil||curUser.plan_expires_at;
+      try{refreshModelUI();refreshTopbarUpgradeUI();updateUserUI();}catch(e){}
+      hmNotice({text:`Pro на ${data.trialDays||3} дня активирован по приглашению. Скидка ${data.discountPercent||10}% на первый месяц — в разделе «Подписка».`,kind:'success',ttl:9000});
+    }else{
+      hmNotice({text:data?.error?.message||'Не удалось активировать приглашение',kind:'warn',ttl:6000});
+    }
+  }catch(e){}
+  finally{hmInviteBusy=false;}
+}
 function showBootError(){const el=document.getElementById('initialLoading');if(el)el.innerHTML='<div role="alert">Не удалось загрузить аккаунт</div><button type="button" onclick="location.reload()">Повторить</button>';}
 async function saveNicknameModal(){
   const inp=document.getElementById('nickModalInp');
@@ -5164,7 +5365,7 @@ async function loadProfile(uid,email){
       curUser.plan='pro';curUser.plan_expires_at=null;curUser.needsNickname=false;
       if(!remoteNick&&!localNick)curUser.nickname='Developer';
     }
-    if(!isProUser()){curModel='lite';if(['max','extra'].includes(curMode))curMode='low';}
+    if(!isProUser()){curModel='lite';}
     else{
       // Выбор модели переживает перезагрузку. Раньше curModel всегда начинался с 'lite',
       // и Pro-пользователь после F5 молча оказывался на Adan с его бесплатными лимитами.
@@ -6432,8 +6633,10 @@ function continueSharedInOwnChat(){
    живёт в блоке просмотрщика фото (pvToast); здесь только понятное имя,
    которым уже пользуется showFileError(). */
 function toast(text){
-  if(typeof pvToast==='function')pvToast(text);
+  hmNotice({text:String(text||''),kind:'info',ttl:2600});
 }
+// Плееру и плейлистам (js/music-*.js) — тот же единый показ уведомлений.
+window.showToast=toast;
 /* --- Поиск по сообщениям текущего чата --- */
 function chatMenuFind(){
   const pop=document.getElementById('chatMenuPop');
@@ -6880,8 +7083,7 @@ function fitDesktopSubs(){
 }
 function selectMode(m){
   const next=normEffort(m);
-  // High/Extra — только в Pro: вместо молчаливого игнора показываем, как их получить.
-  if(['max','extra'].includes(next)&&!isProUser()){if(typeof goToDynatos==='function')goToDynatos();return;}
+  // Все уровни (Low / Medium / High / Extra) доступны всем тарифам.
   curMode=next;
   try{localStorage.setItem(EFFORT_KEY,curMode);}catch(e){}
   refreshModelUI();
@@ -6964,7 +7166,7 @@ function syncMobileComposerUI(effortNow){
   setText('adaEffHint',EFFORT_HINT[eff]||'');
   /* Pro-гейт: платной остаётся только модель Dynatos (patch11). */
   const locked=!isProUser();
-  ['adaModelPro','adaEff_max','adaEff_extra'].forEach(function(id){
+  ['adaModelPro'].forEach(function(id){
     const el=document.getElementById(id);
     if(!el)return;
     el.classList.toggle('pro-locked',locked);
@@ -7018,6 +7220,16 @@ function togglePlusDrop(e){
 }
 // Синхронизирует состояние переключателей внутри bottom-sheet с актуальными настройками.
 function refreshAttachSheet(){
+  // Лимиты: файлы и аудио — по лимиту сообщений, генерация — по лимиту изображений.
+  const chatLim=checkLimit(),imgLim=checkImageLimit();
+  [['attachFiles',chatLim],['attachAudio',chatLim],['attachImage',imgLim]].forEach(([id,l])=>{
+    const opt=document.getElementById(id);if(!opt)return;
+    const hint=opt.querySelector('.attach-opt-hint');
+    if(hint&&hint.dataset.base==null)hint.dataset.base=hint.textContent;
+    opt.classList.toggle('is-limited',Boolean(l.blocked));
+    opt.setAttribute('aria-disabled',l.blocked?'true':'false');
+    if(hint)hint.textContent=l.blocked?fmtLimitReset(l.resetAt):hint.dataset.base;
+  });
   const thinkSw=document.getElementById('attachThinkSw');
   if(thinkSw)thinkSw.classList.toggle('on',thinkOn);
   const searchOpt=document.getElementById('attachSearch');
@@ -7032,6 +7244,8 @@ function refreshAttachSheet(){
 // Выбор пункта в bottom-sheet: 'think' | 'search' | 'files'.
 function attachChoose(kind,e){
   if(e)e.stopPropagation();
+  const optId={files:'attachFiles',audio:'attachAudio',image:'attachImage'}[kind];
+  if(optId&&document.getElementById(optId)?.classList.contains('is-limited'))return;
   if(kind==='think'){
     toggleThink({stopPropagation:()=>{}});
     refreshAttachSheet();
@@ -7184,12 +7398,17 @@ function refreshModelUI(){
   ['low','medium','max','extra'].forEach(k=>{const id=k.charAt(0).toUpperCase()+k.slice(1);toggleClass('mmOpt'+id,'active',effortNow===k);setOpacity('mmCheck'+id,effortNow===k?'1':'0');});
   setOpacity('mmCheckLite',curModel==='lite'?'1':'0');
   setOpacity('mmCheckPro',curModel==='pro'?'1':'0');
-  /* Pro-гейт: помечаем недоступные для User опции классом .locked с tooltip.
-     Переключатели «Думать» (desktopThinkSw / mmThinkSw / attachThinkSw) здесь
-     сознательно отсутствуют — режим размышления открыт всем тарифам. */
+  /* Pro-гейт: недоступна для Free только модель Dynatos. Уровни усилия и
+     «Думать» (desktopThinkSw / mmThinkSw / attachThinkSw) открыты всем тарифам. */
   const locked=!isProUser();
   const proTip='Доступно с активной Pro-подпиской';
-  ['desktopCkPro','mmOptPro','desktopCkMax','desktopCkExtra','mmOptMax','mmOptExtra','desktopThinkSw','mmThinkSw','attachThinkSw'].forEach(id=>{
+  ['desktopCkMax','desktopCkExtra','mmOptMax','mmOptExtra','desktopThinkSw','mmThinkSw','attachThinkSw'].forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    el.classList.remove('locked');
+    const host=el.closest('.desktop-option,.desktop-think,.mm-opt,.mm-think-card,.attach-opt')||el;
+    host.removeAttribute('title');host.classList.remove('pro-locked');
+  });
+  ['desktopCkPro','mmOptPro'].forEach(id=>{
     const el=document.getElementById(id);
     if(!el)return;
     el.classList.toggle('locked',locked);
@@ -9915,7 +10134,7 @@ async function requestChatReplyLive(msgEl,actionsEl,extraMessages=[],prefixText=
         if(res.status===429&&data?.error?.scope){
           try{
             const until=Date.parse(data.error.resetAt||'')||(Date.now()+(data.error.scope==='burst'?120000:3600000));
-            const u=readUsage();u.serverBlock={until,scope:data.error.scope,model:curModel,resetAt:data.error.resetAt||null};writeUsage(u);
+            const u=readUsage();u.serverBlock={until,scope:data.error.scope,plan:data.error.plan||(isProUser()?'pro':'free'),resetAt:data.error.resetAt||null};writeUsage(u);
           }catch(_){}
           const le=new Error(data.error.message||'Достигнут лимит');
           le.limitScope=data.error.scope;
@@ -9926,6 +10145,8 @@ async function requestChatReplyLive(msgEl,actionsEl,extraMessages=[],prefixText=
       }
       if(type.includes('text/event-stream')&&res.body){
         streamStarted=true;
+        // Сервер сообщил, что лимиты почти исчерпаны (см. allowance.low в api/chat.js).
+        try{window.__hmLimitLow=res.headers.get('X-HM-Limit-Low')==='1'?{resetAt:res.headers.get('X-HM-Limit-Reset')||null}:null;}catch(_){window.__hmLimitLow=null;}
         const reader=res.body.getReader();
         const decoder=new TextDecoder();
         const typer=createLiveTypingController(msgEl,prefixText);
@@ -10085,38 +10306,49 @@ async function requestChatReplyLive(msgEl,actionsEl,extraMessages=[],prefixText=
 function hmFmtWait(resetAt,fallback){
   let ms=resetAt?Date.parse(resetAt)-Date.now():NaN;
   if(!isFinite(ms)&&fallback)ms=fallback-Date.now();
-  if(!isFinite(ms)||ms<=0)return 'немного';
+  if(!isFinite(ms)||ms<=0)return hmT('немного');
   const m=Math.ceil(ms/60000),d=Math.floor(m/1440),h=Math.floor((m%1440)/60),mm=m%60;
-  if(d)return d+'д '+h+'ч';
-  return (h?h+'ч ':'')+mm+'мин';
+  if(d)return d+hmT('д')+' '+h+hmT('ч');
+  return (h?h+hmT('ч')+' ':'')+mm+hmT('мин');
 }
 const HM_IC_WARN='<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9.2" stroke="currentColor" stroke-width="2"/><path d="M12 7.2v6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="16.6" r="1.25" fill="currentColor"/></svg>';
 const HM_IC_UP='<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l1.9 5.6L19.5 10l-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.4z" fill="currentColor"/></svg>';
 function limitMessageHtml(check){
+  const pro=isProUser();
+  const img=check.kind==='image';
   if(check.scope==='burst'){
-    return `<div class="hm-limit"><div class="hm-limit-head"><b>Слишком часто</b>${HM_IC_WARN}</div><div class="hm-limit-row"><span>${escapeHtml(check.reason||'Подождите пару минут и попробуйте снова.')}</span></div></div>`;
+    return `<div class="hm-limit" role="alert"><div class="hm-limit-head"><b>Слишком часто</b>${HM_IC_WARN}</div><div class="hm-limit-row"><span>${escapeHtml(check.reason||'Подождите пару минут и попробуйте снова.')}</span></div></div>`;
   }
-  const fb=check.scope==='month'?nextMonthlyReset():(check.scope==='window'?nextFiveHourReset():nextDailyReset());
+  const fb=check.scope==='month'?nextMonthlyReset():(check.scope==='window'?nextFiveHourReset():(check.scope==='week'?(img?nextCalendarWeekReset():nextWeeklyReset()):nextDailyReset()));
   const wait=hmFmtWait(check.resetAt,fb&&fb.getTime?fb.getTime():fb);
+  const what=img?'Лимит изображений исчерпан':'Лимиты закончились';
+  // Подписчикам Pro «Обновить» не показываем: Pro у них уже есть.
+  const action=pro
+    ?`<span>Лимиты Pro обновятся через <b>${wait}</b></span>`
+    :`<span>Подождите <b>${wait}</b> или перейдите на Pro</span><a class="hm-limit-btn" href="/subscribe" target="_blank" rel="noopener">Обновить ${HM_IC_UP}</a>`;
   return `<div class="hm-limit" role="alert">
-    <div class="hm-limit-head"><b>Лимиты закончились</b>${HM_IC_WARN}</div>
-    <div class="hm-limit-row"><span>Подождите <b>${wait}</b> или перейдите на Pro</span>
-      <a class="hm-limit-btn" href="/subscribe">Обновить ${HM_IC_UP}</a></div>
+    <div class="hm-limit-head"><b>${what}</b>${HM_IC_WARN}</div>
+    <div class="hm-limit-row">${action}</div>
   </div>`;
 }
-/* Плашка «Лимиты скоро кончатся» в конце ответа, где модель остановилась на плане. */
+/* Плашка «Лимиты на исходе» в конце ответа, где модель остановилась на плане.
+   «Продолжить» отправляет в чат слово «Продолжить»: если лимиты ещё есть —
+   ответ продолжается, если кончились — сервер вернёт 429 и в чате появится
+   карточка «Лимиты закончились» с временем сброса. */
 const HM_LIMIT_MARK=/\n?\s*\[\[HM_LIMIT_PAUSE\]\]\s*$/;
 function hmLimitPauseHtml(){
+  const hint=isProUser()?'Лимиты Pro скоро закончатся':'Подождите сброса или перейдите на Pro';
   return `<div class="hm-limit hm-limit-soon">
-    <div class="hm-limit-head"><b>Лимиты скоро кончатся</b>${HM_IC_WARN}</div>
-    <div class="hm-limit-row"><span>Подождите сброса или перейдите на Pro</span>
+    <div class="hm-limit-head"><b>Лимиты на исходе</b>${HM_IC_WARN}</div>
+    <div class="hm-limit-row"><span>${hint}</span>
       <button type="button" class="hm-limit-btn" onclick="hmContinueAfterPause(this)">Продолжить <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg></button></div>
   </div>`;
 }
 function hmContinueAfterPause(btn){
+  if(isGenerating||hmSendBusy)return;
   btn.closest('.hm-limit')?.remove();
   const ta=document.getElementById('msgTa');if(!ta)return;
-  ta.value='Продолжай: выполни оставшиеся шаги плана.';
+  ta.value='Продолжить';
   sendMsg();
 }
 /* ▶ Продолжить после остановки */
@@ -10414,17 +10646,8 @@ function pvDelete(){
 }
 // Маленький тост-индикатор для фолбэков share/редактирования (без отдельной системы тостов).
 function pvToast(text){
-  let t=document.getElementById('pvToast');
-  if(!t){
-    t=document.createElement('div');
-    t.id='pvToast';
-    t.style.cssText='position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:rgba(20,20,24,.92);color:#fff;padding:11px 18px;border-radius:12px;font-size:14px;font-weight:600;z-index:800;opacity:0;transition:opacity .18s;pointer-events:none;box-shadow:0 10px 30px rgba(0,0,0,.4);';
-    document.body.appendChild(t);
-  }
-  t.textContent=text;
-  requestAnimationFrame(()=>{t.style.opacity='1';});
-  clearTimeout(t._timer);
-  t._timer=setTimeout(()=>{t.style.opacity='0';},2200);
+  // Просмотрщик открыт — hmNoteHost() покажет уведомление сверху его окна.
+  hmNotice({text:String(text||''),kind:'info',ttl:2400});
 }
 // Привязываем кнопки один раз после загрузки DOM.
 (function initPhotoViewerBindings(){
@@ -10497,7 +10720,7 @@ async function hmImageForEdit(att){
 }
 async function handleImageGeneration(promptText,opts={}){
   const limit=checkImageLimit();
-  if(limit.blocked){showImageLimitReached(limit);return;}
+  if(limit.blocked){showImageLimitReached(Object.assign({kind:'image'},limit));return;}
   setGeneratingState(true);
   activeAbortController=new AbortController();
   const shell=createAiBubbleShell({showActions:false});
@@ -10522,8 +10745,13 @@ async function handleImageGeneration(promptText,opts={}){
           // Серверный лимит (429 со scope) — красивая плашка вместо текста ошибки.
           if(res.status===429&&data?.error?.scope){
             hideTyping();
-            const scopeMap={burst:'burst',day:'day',window_limit:'window',day_limit:'window',week_limit:'month',month_limit:'month',month:'month'};
-            const check={scope:scopeMap[data.error.scope]||'day',reason:data.error.message,resetAt:data.error.resetAt};
+            const scopeMap={burst:'burst',day:'day',week:'week',window_limit:'window',day_limit:'window',week_limit:'week',month_limit:'month',month:'month'};
+            const check={scope:scopeMap[data.error.scope]||'day',reason:data.error.message,resetAt:data.error.resetAt,kind:'image'};
+            // Запоминаем серверный лимит: до сброса пункт «Сгенерировать изображение» в «+» серый.
+            try{
+              const until=Date.parse(data.error.resetAt||'')||(Date.now()+(data.error.scope==='burst'?180000:3600000));
+              const iu=getImgUsage();iu.serverBlock={until,scope:check.scope};writeImgUsage(iu);
+            }catch(_){}
             const holder=document.createElement('div');
             holder.innerHTML=limitMessageHtml(check);
             shell.wrap.replaceWith(holder.firstElementChild);
@@ -11762,6 +11990,13 @@ async function runAssistantReply(displayText){
     }
     if(result?.text){chatHistory.push({role:'assistant',content:result.text,createdAt:messageNow()});recordUsage(displayText,result.text);}
     if(hmPaused){const h=document.createElement('div');h.innerHTML=hmLimitPauseHtml();aiShell.wrap.appendChild(h.firstElementChild);scrollChat();}
+    else if(window.__hmLimitLow&&result?.text){
+      // Короткий ответ уместился, но лимиты на исходе — предупреждаем заранее.
+      const h=document.createElement('div');
+      h.innerHTML=`<div class="hm-limit hm-limit-soon"><div class="hm-limit-head"><b>Лимиты на исходе</b>${HM_IC_WARN}</div><div class="hm-limit-row"><span>${escapeHtml(fmtLimitReset(window.__hmLimitLow.resetAt))}</span></div></div>`;
+      aiShell.wrap.appendChild(h.firstElementChild);scrollChat();
+    }
+    window.__hmLimitLow=null;
     try{hmThoughtFooter(aiShell);}catch(_){}
     if(result?.text)await maybeHandleFileDirective(result.text,aiShell.msg,chatHistory.length-1);
     try{window.HmBench&&HmBench.scan(aiShell.msg,true);}catch(_){}
@@ -11771,8 +12006,8 @@ async function runAssistantReply(displayText){
     hideTyping();
     if(e.limitScope){
       // Серверный лимит/защита — показываем плашку вместо текста ошибки.
-      const scopeMap={burst:'burst',day:'burst',window_limit:'window',day_limit:'window',week_limit:'month',month_limit:'month'};
-      const check={scope:scopeMap[e.limitScope]||'day',reason:e.message,resetAt:e.limitReset};
+      const scopeMap={burst:'burst',day:'burst',window_limit:'window',day_limit:'window',week_limit:'week',month_limit:'month'};
+      const check={scope:scopeMap[e.limitScope]||'window',reason:e.message,resetAt:e.limitReset};
       try{hmFinalizeLiveReasoning();}catch(_){}
       const holder=document.createElement('div');
       holder.innerHTML=limitMessageHtml(check);
@@ -12181,17 +12416,18 @@ async function _memClearAll(){
    Подписка и Плагины. Вставлено патчем.
    ========================================================================== */
 
-/* Дата окончания подписки в профиле может лежать под разными именами —
-   проверяем все известные, чтобы экран не зависел от одной схемы. */
+/* Дата окончания подписки. Сервер хранит её в profiles.plan_expires_at;
+   старые имена полей оставлены для совместимости. */
 function subUntilInfo(){
   const u=curUser||{};
   const s=u.settings||{};
-  const raw=u.proUntil||u.pro_until||u.subscriptionUntil||u.subscription_until
+  const raw=u.plan_expires_at||u.proUntil||u.pro_until||u.subscriptionUntil||u.subscription_until
           ||s.proUntil||s.subscriptionUntil||null;
   if(!raw)return null;
   const d=new Date(raw);
   if(isNaN(d.getTime()))return null;
   return {
+    short:d.toLocaleDateString(hmLocale(),{day:'numeric',month:'short',year:'numeric'}).replace(/\s*г\.?$/i,''),
     text:d.toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'}).replace(/\s*г\.?$/i,'')+' года',
     days:Math.max(0,Math.ceil((d.getTime()-Date.now())/86400000))
   };
@@ -12204,46 +12440,148 @@ function dayWord(n){
   if(b>=2&&b<=4)return 'дня';
   return 'дней';
 }
+function hmRub(v){const n=Number(v);if(!isFinite(n))return String(v||'');return (Math.round(n*100)%100?n.toFixed(2).replace('.',','):String(Math.round(n)))+' ₽';}
+function hmDateShort(iso){const d=new Date(iso);return isNaN(d.getTime())?'':d.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'});}
 
-function renderSettingsSubscription(){
+/* Данные экрана «Подписка» с сервера: срок, цены, скидка, оплаты, приглашения. */
+let hmSubData=null,hmRefData=null;
+async function hmLoadSubscriptionData(){
+  const h=await hmAuthHeaders();
+  const get=async(action)=>{try{const r=await fetch('/api/account?action='+action,{headers:h,cache:'no-store'});const d=await r.json().catch(()=>null);return r.ok?d:{error:d?.error?.message||('Ошибка '+r.status)};}catch(e){return {error:'Нет соединения'};}};
+  const [sub,ref]=await Promise.all([get('subscription'),get('referral')]);
+  hmSubData=sub&&sub.subscription?sub.subscription:null;
+  hmRefData=ref&&ref.referral?ref.referral:(ref&&ref.error?{available:false,message:ref.error}:null);
+  // Срок с сервера точнее локального профиля — подтягиваем, чтобы шапка не врала.
+  if(hmSubData&&curUser&&!hmSubData.staff&&hmSubData.expiresAt!==undefined){curUser.plan=hmSubData.plan==='pro'?'pro':curUser.plan;curUser.plan_expires_at=hmSubData.expiresAt;}
+}
+
+/* Оплата/продление прямо из настроек: тот же /api/payment/create, что и на /subscribe. */
+async function hmBuyPro(plan,btn){
+  if(btn){btn.disabled=true;btn.dataset.label=btn.innerHTML;btn.textContent='Открываю оплату…';}
+  try{
+    const res=await fetch('/api/payment/create',{method:'POST',headers:await hmAuthHeaders(),body:JSON.stringify({type:'subscription',plan})});
+    const data=await res.json().catch(()=>({}));
+    if(!res.ok||!data.confirmationUrl)throw new Error(data.error||'Не удалось создать платёж');
+    location.href=data.confirmationUrl;
+  }catch(e){
+    if(btn){btn.disabled=false;btn.innerHTML=btn.dataset.label||'Оплатить';}
+    toast(e.message||'Не удалось создать платёж');
+  }
+}
+
+async function hmCreateInvite(btn){
+  if(btn)btn.disabled=true;
+  try{
+    const res=await fetch('/api/account',{method:'POST',headers:await hmAuthHeaders(),body:JSON.stringify({action:'referral.create'})});
+    const data=await res.json().catch(()=>({}));
+    if(!res.ok)throw new Error(data?.error?.message||'Не удалось создать приглашение');
+    await hmLoadSubscriptionData();
+    if(window.__setScreen==='subscription')renderSettingsSubscription(true);
+    hmCopyText(data.invite.url,'Ссылка-приглашение скопирована');
+  }catch(e){
+    if(btn)btn.disabled=false;
+    toast(e.message);
+  }
+}
+function hmCopyText(text,okMsg){
+  const done=()=>toast(okMsg||'Скопировано');
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(text).then(done).catch(()=>fallbackCopy(text,done));
+  else fallbackCopy(text,done);
+}
+async function hmShareInvite(url){
+  const text='Приглашаю в HarmonyAI — ИИ-помощник для музыкантов. По ссылке Pro на 3 дня и скидка 10% на первый месяц:';
+  if(navigator.share){try{await navigator.share({title:'HarmonyAI Pro',text,url});return;}catch(e){if(e&&e.name==='AbortError')return;}}
+  hmCopyText(url,'Ссылка-приглашение скопирована');
+}
+
+function renderSettingsSubscription(skipLoad){
   const el=settingsPane();
   if(!el)return;
   window.__setScreen='subscription';
-  const info=subUntilInfo();
   const isPro=isProUser();
+  const staff=hasTrainingAccess()||['developer','admin','moderator'].includes(String(curUser?.role||''));
+  const info=subUntilInfo();
+  const sub=hmSubData,ref=hmRefData;
   const dot='<span class="stp-perk-dot" aria-hidden="true"></span>';
-  const perks=['Неограниченные сообщения с ИИ','Доступ ко всем моделям','Приоритетная генерация ответов','История чатов без ограничений','Экспорт и сохранение чатов','Увеличенное хранилище'];
   const upgradeIcon='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2.5l1.8 5.7 5.7 1.8-5.7 1.8-1.8 5.7-1.8-5.7L4.5 10l5.7-1.8L12 2.5z" fill="currentColor"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15z" fill="currentColor"/></svg>';
-  const planCard=isPro?`
+  const weekRub=sub?.prices?.weekRub||'129',monthRub=sub?.prices?.monthRub||'299',refRub=sub?.prices?.monthReferralRub||'269';
+  const trial=isPro&&!staff&&ref&&ref.redeemed&&!(sub&&sub.payments&&sub.payments.some(p=>p.credited));
+  const perks=['В 25 раз больше лимитов, чем в Free','Модель Dynatos для сложных задач','Изображения повышенного качества','Распознавание музыки и нот','Приглашения друзей в Pro'];
+  let html='';
+  if(isPro){
+    const status=staff?'Без срока':(info?`<span><span>до</span> ${info.short}</span>`:'Активна');
+    const left=!staff&&info?`<span class="stp-plan-date">${info.days>0?'<span>Осталось</span> '+info.days+' <span>'+dayWord(info.days)+'</span>':'Заканчивается сегодня'}</span>`:'';
+    html+=`
     <div class="stp-plan-line">
-      <div class="stp-card-label">Тарифный план <strong>Pro</strong></div>
-      <div class="stp-plan-status"><span class="stp-badge">Активна</span>${info?`<span class="stp-plan-date">до ${info.text}</span>`:''}</div>
+      <div class="stp-card-label">Тарифный план <strong>Pro</strong>${trial?'<div class="stp-row-desc">Пробный период по приглашению</div>':''}</div>
+      <div class="stp-plan-status"><span class="stp-badge">${status}</span>${left}</div>
     </div>
-    <div class="stp-hr stp-plan-hr"></div>
-    <div class="stp-perks-box">
-      <div class="stp-perks-label">Что входит в подписку Pro</div>
-      <div class="stp-perks">${perks.map(p=>`<div class="stp-perk">${dot}<span>${p}</span></div>`).join('')}</div>
-    </div>`:`
+    <div class="stp-hr stp-plan-hr"></div>`;
+    if(!staff){
+      html+=`
+    <div class="stp-block">
+      <div class="stp-row-title">Продлить подписку</div>
+      <div class="stp-row-desc">Оплаченные дни добавятся к текущему сроку — ничего не сгорит. Автоматических списаний нет: подписка продлевается только когда вы сами оплачиваете.</div>
+      <div class="stp-renew">
+        <button type="button" class="stp-renew-btn" onclick="hmBuyPro('week',this)"><span>+7 дней</span><b>${hmRub(weekRub)}</b></button>
+        <button type="button" class="stp-renew-btn primary" onclick="hmBuyPro('month',this)"><span>+30 дней</span><b>${hmRub(sub&&sub.discount?refRub:monthRub)}</b>${sub&&sub.discount?`<s>${hmRub(monthRub)}</s>`:''}</button>
+      </div>
+      ${sub&&sub.discount?`<div class="stp-note">Скидка ${sub.prices.discountPercent}% на первый месяц по приглашению.</div>`:''}
+    </div>
+    <div class="stp-hr"></div>`;
+    }
+  }else{
+    html+=`
     <div class="stp-plan-line">
       <div class="stp-card-label">Тарифный план <strong>Free</strong></div>
       <button type="button" class="stp-btn stp-btn-accent stp-upgrade-btn" onclick="goToDynatos()">${upgradeIcon}<span>Обновить</span></button>
-    </div>`;
-  const cmp=[['Сообщения с ИИ','С лимитом','Без ограничений'],['Модели','Adan','Все модели'],['Приоритетная генерация','—','Да'],['История чатов','С лимитом','Без ограничений'],['Хранилище','Базовое','Увеличенное']];
-  const cmpHtml=`<div class="stp-cmp"><div class="stp-cmp-row stp-cmp-head"><span></span><span>Free</span><span>Pro</span></div>${cmp.map(r=>`<div class="stp-cmp-row"><span>${r[0]}</span><span>${r[1]}</span><span>${r[2]}</span></div>`).join('')}</div>`;
-  const manage=isPro?`
-    <div class="stp-row"><div class="stp-row-label"><div class="stp-row-title">Продлить подписку</div><div class="stp-row-desc">Оплатить следующий период заранее.</div></div><button type="button" class="stp-btn" onclick="goToDynatos()">Продлить</button></div>`
-    :`<div class="stp-sub-title">Free или Pro</div>${cmpHtml}`;
-  stpEnsure('subscription','Подписка',stpBackMain(),planCard+`
+    </div>
+    ${sub&&sub.discount?`<div class="stp-note stp-note-accent">По приглашению вам доступна скидка ${sub.prices.discountPercent}% на первый месяц Pro: ${hmRub(refRub)} вместо ${hmRub(monthRub)}.</div>`:''}
+    <div class="stp-hr"></div>`;
+  }
+  // Приглашения: только у подписчиков Pro.
+  if(isPro){
+    let refBody='';
+    if(!ref)refBody='<div class="stp-row-desc">Загружаю…</div>';
+    else if(ref.available===false)refBody=`<div class="stp-row-desc">${escapeHtml(ref.message||'Скоро будет доступно.')}</div>`;
+    else{
+      const rows=(ref.invites||[]).map(inv=>`
+        <div class="stp-inv">
+          <div class="stp-inv-meta"><div class="stp-inv-code">${escapeHtml(inv.code)}</div><div class="stp-row-desc">${inv.used?'Использовано'+(inv.usedAt?' '+hmDateShort(inv.usedAt):''):'Ждёт друга'}</div></div>
+          ${inv.used?'<span class="stp-inv-done">✓</span>':`<button type="button" class="stp-btn stp-btn-white" onclick="hmShareInvite('${escapeHtml(inv.url)}')">Отправить</button>`}
+        </div>`).join('');
+      const can=ref.canInvite&&ref.left>0;
+      refBody=`${rows}
+        ${can?`<button type="button" class="stp-btn stp-btn-accent stp-inv-new" onclick="hmCreateInvite(this)">Создать приглашение · осталось <span>${ref.left}</span></button>`:''}
+        ${!ref.canInvite?'<div class="stp-row-desc">Приглашения откроются после первой оплаты Pro.</div>':''}`;
+    }
+    html+=`
+    <div class="stp-block">
+      <div class="stp-row-title">Пригласить друзей</div>
+      <div class="stp-row-desc">Друг получит Pro на 3 дня и скидку 10% на первый месяц. Можно отправить 2 приглашения.</div>
+      <div class="stp-invites">${refBody}</div>
+    </div>
     <div class="stp-hr"></div>
-    ${manage}
+    <div class="stp-perks-box">
+      <div class="stp-perks-label">Что входит в Pro</div>
+      <div class="stp-perks">${perks.map(p=>`<div class="stp-perk">${dot}<span>${p}</span></div>`).join('')}</div>
+    </div>`;
+  }else{
+    const cmp=[['Лимиты','Базовые','В 25 раз больше'],['Модели','Adan','Adan и Dynatos'],['Уровни размышления','Все','Все'],['Изображения','Базовое качество','Повышенное качество'],['Распознавание музыки','—','Да']];
+    html+=`<div class="stp-sub-title">Free или Pro</div><div class="stp-cmp"><div class="stp-cmp-row stp-cmp-head"><span></span><span>Free</span><span>Pro</span></div>${cmp.map(r=>`<div class="stp-cmp-row"><span>${r[0]}</span><span>${r[1]}</span><span>${r[2]}</span></div>`).join('')}</div>`;
+  }
+  // История оплат подписки.
+  const pays=(sub&&sub.payments||[]).filter(p=>p.credited||p.status==='succeeded');
+  if(pays.length){
+    html+=`<div class="stp-hr"></div><div class="stp-block"><div class="stp-row-title">История оплат</div>${pays.slice(0,6).map(p=>`<div class="stp-pay"><span>${hmDateShort(p.paidAt||p.createdAt)}</span><span class="stp-pay-desc">${/7 дней/.test(p.description)?'Pro · 7 дней':'Pro · 30 дней'}</span><b>${hmRub(p.amountRub)}</b></div>`).join('')}</div>`;
+  }
+  html+=`
+    <div class="stp-hr"></div>
     <div class="stp-row" onclick="window.open('/subscribe','_blank','noopener')" role="link" tabindex="0"><div class="stp-row-label"><div class="stp-row-title">Тарифы и цены</div></div><span class="stp-link">›</span></div>
-    <div class="stp-row" onclick="location.href='mailto:help@harmonyai.ru?subject='+encodeURIComponent('Вопрос об оплате')" role="button" tabindex="0"><div class="stp-row-label"><div class="stp-row-title">Вопрос об оплате</div><div class="stp-row-desc">Напишите нам — ответим на почту.</div></div><span class="stp-link">›</span></div>
-  </div>`);
-}
-
-function cancelSubscription(){
-  if(!confirm('Отменить подписку? Доступ сохранится до конца оплаченного периода.'))return;
-  openSupportChat();
+    <div class="stp-row" onclick="openSupportChat()" role="button" tabindex="0"><div class="stp-row-label"><div class="stp-row-title">${isPro&&!staff?'Отмена подписки и вопросы об оплате':'Вопрос об оплате'}</div><div class="stp-row-desc">${isPro&&!staff?'Отменить подписку или вернуть оплату можно только через поддержку.':'Поддержка в Telegram или на harmonyaisent@gmail.com.'}</div></div><span class="stp-link">›</span></div>
+  </div>`;
+  stpEnsure('subscription','Подписка',stpBackMain(),html);
+  if(!skipLoad)hmLoadSubscriptionData().then(()=>{if(window.__setScreen==='subscription')renderSettingsSubscription(true);});
 }
 
 /* ---------------------------------------------------------------- Плагины */
@@ -12987,7 +13325,7 @@ function renderAbout(){
       <div class="stp-about-hero">
         <div class="stp-about-logo"><svg width="26" height="26" viewBox="0 0 64 64"><path d="M18 14h8v18h12V14h8v36h-8V39H26v11h-8z" fill="currentColor"/></svg></div>
         <div class="stp-about-name">HarmonyAI</div>
-        <div class="stp-about-ver">Beta 0.8.2</div>
+        <div class="stp-about-ver">Beta 0.8.4</div>
       </div>
       <div class="stp-row" onclick="window.open('/legal/privacy.html','_blank','noopener')" role="link" tabindex="0">
         <div class="stp-row-label"><div class="stp-row-title">Политика конфиденциальности</div></div>
@@ -13022,48 +13360,35 @@ function renderSettingsLimits(){
   if(!el)return;
   window.__setScreen='usage';
   const isPro=isProUser();
+  if(hasTrainingAccess()){
+    stpEnsure('usage','Использование',stpBackMain(),`<div class="stp-sec-label">Лимиты</div><div class="stp-row-desc" style="padding:4px 2px;">У служебной роли лимитов нет.</div></div>`);
+    return;
+  }
   const u=getUsage();
-  const L=LIMITS.adanatos;
-  const unlimited=isPro||hasTrainingAccess();
+  const L=planLimits();
+  const iu=getImgUsage();
+  const IL=imgPlanLimits();
   const rollingPct=combinedLimitPercent(u.dayTokens,u.dayMessages,L.rolling.tokens,L.rolling.messages);
   const weekPct=combinedLimitPercent(u.weekTokens||0,u.weekMessages||0,L.weekly.tokens,L.weekly.messages);
-  const rollingReset=fmtResetHuman(nextFiveHourReset());
-  const weekReset=fmtResetHuman(nextWeeklyReset());
-  const freeCards=`
-    <div class="stp-sec-label">Лимиты плана Free</div>
+  const imgPct=Math.min(100,Math.round(Math.max(iu.dayImages/IL.daily,iu.weekImages/IL.weekly,iu.monthImages/IL.monthly)*100));
+  const card=(title,sub,pct)=>`
     <div class="stp-usage-card">
       <div class="stp-usage-top">
-        <div><div class="stp-usage-title">5 часов</div><div class="stp-usage-sub">Сброс произойдет ${rollingReset}</div></div>
-        <div class="stp-usage-pct">${rollingPct}%</div>
+        <div><div class="stp-usage-title">${title}</div><div class="stp-usage-sub">${sub}</div></div>
+        <div class="stp-usage-pct">${pct}%</div>
       </div>
-      <div class="stp-bar"><div class="stp-bar-fill" style="width:${rollingPct}%"></div></div>
-    </div>
-    <div class="stp-usage-card">
-      <div class="stp-usage-top">
-        <div><div class="stp-usage-title">Неделя</div><div class="stp-usage-sub">Сброс произойдет ${weekReset}</div></div>
-        <div class="stp-usage-pct">${weekPct}%</div>
-      </div>
-      <div class="stp-bar"><div class="stp-bar-fill" style="width:${weekPct}%"></div></div>
-    </div>
-    <div class="stp-row-desc" style="padding:4px 2px;">Перейдите на <strong>Dynatos</strong>, чтобы снять ограничения.</div>`;
-  const proCards=`
-    <div class="stp-sec-label">Лимиты плана Pro</div>
-    <div class="stp-usage-card">
-      <div class="stp-usage-top">
-        <div><div class="stp-usage-title">5 часов</div><div class="stp-usage-sub">без ограничений</div></div>
-        <div class="stp-usage-pct">0%</div>
-      </div>
-      <div class="stp-bar"><div class="stp-bar-fill" style="width:0%"></div></div>
-    </div>
-    <div class="stp-usage-card">
-      <div class="stp-usage-top">
-        <div><div class="stp-usage-title">Неделя</div><div class="stp-usage-sub">без ограничений</div></div>
-        <div class="stp-usage-pct">0%</div>
-      </div>
-      <div class="stp-bar"><div class="stp-bar-fill" style="width:0%"></div></div>
-    </div>
-    <div class="stp-row-desc" style="padding:4px 2px;">Для Pro нет жёстких лимитов — только защита от слишком частых запросов подряд.</div>`;
-  stpEnsure('usage','Использование',stpBackMain(),`${unlimited?proCards:freeCards}</div>`);
+      <div class="stp-bar"><div class="stp-bar-fill" style="width:${pct}%"></div></div>
+    </div>`;
+  const imgReset=iu.monthImages>=IL.monthly?nextMonthlyReset():(iu.weekImages>=IL.weekly?nextCalendarWeekReset():nextDailyReset());
+  const foot=isPro
+    ?'В Pro лимиты в 25 раз выше, чем в Free. Проценты обновляются после каждого сообщения.'
+    :'Перейдите на <strong>Pro</strong>, чтобы получить в 25 раз больше лимитов.';
+  stpEnsure('usage','Использование',stpBackMain(),`
+    <div class="stp-sec-label">Лимиты плана ${isPro?'Pro':'Free'}</div>
+    ${card('5 часов','<span>Сброс произойдет</span> '+fmtResetHuman(nextFiveHourReset()),rollingPct)}
+    ${card('Неделя','<span>Сброс произойдет</span> '+fmtResetHuman(nextWeeklyReset()),weekPct)}
+    ${card('Изображения','<span>Сброс произойдет</span> '+fmtResetHuman(imgReset),imgPct)}
+    <div class="stp-row-desc" style="padding:4px 2px;">${foot}</div></div>`);
 }
 
 /* ===== ПЕРСОНАЛИЗАЦИЯ (по макету: тема, память, быстрые ответы) ===== */
@@ -13153,7 +13478,7 @@ function renderSettingsAccount(){
 function requestAccountDeletion(){
   if(!confirm('Удаление аккаунта выполняется через поддержку. Открыть почтовый клиент с готовым письмом?'))return;
   const email=curUser?.email||'';
-  location.href='mailto:help@harmonyai.ru?subject='+encodeURIComponent('Удаление аккаунта')+'&body='+encodeURIComponent('Прошу удалить мою учетную запись HarmonyAI.\nEmail: '+email);
+  location.href='mailto:harmonyaisent@gmail.com?subject='+encodeURIComponent('Удаление аккаунта')+'&body='+encodeURIComponent('Прошу удалить мою учетную запись HarmonyAI.\nEmail: '+email);
 }
 
 /* ===== ХРАНИЛИЩЕ ===== */
@@ -13852,14 +14177,18 @@ function toggleDesktopPlus(anchor){
   const m=document.createElement('div');
   m.id='hmPlusMenu';m.className='hm-plus';m.setAttribute('role','menu');
   const on=webSearchMode==='on';
+  // Лимиты: пункт серый, под ним — когда лимит сбросится.
+  const chatLim=checkLimit(),imgLim=checkImageLimit();
+  const lim=(l)=>l.blocked?` disabled aria-disabled="true"`:'';
+  const limHint=(l)=>l.blocked?`<small class="hm-plus-lim">${escapeHtml(fmtLimitReset(l.resetAt))}</small>`:'';
   m.innerHTML=`
-    <button type="button" role="menuitem" data-k="files"><svg viewBox="0 0 24 24" fill="none"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l8.57-8.57A4 4 0 1118 8.84l-8.59 8.57a2 2 0 01-2.83-2.83l8.49-8.48" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Добавить файлы</span></button>
+    <button type="button" role="menuitem" data-k="files"${lim(chatLim)}><svg viewBox="0 0 24 24" fill="none"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l8.57-8.57A4 4 0 1118 8.84l-8.59 8.57a2 2 0 01-2.83-2.83l8.49-8.48" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="hm-plus-lbl"><span>Добавить файлы</span>${limHint(chatLim)}</span></button>
     <div class="hm-plus-sep"></div>
     <button type="button" role="menuitemcheckbox" aria-checked="${on}" data-k="search"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M3 12h18M12 3c2.5 2.6 3.7 5.6 3.7 9s-1.2 6.4-3.7 9c-2.5-2.6-3.7-5.6-3.7-9S9.5 5.6 12 3z" stroke="currentColor" stroke-width="1.5"/></svg><span>Веб-поиск</span><i class="hm-plus-sw${on?' on':''}"></i></button>
     <button type="button" role="menuitemcheckbox" aria-checked="${thinkOn}" data-k="think"><svg viewBox="0 0 24 24" fill="none"><path d="M9 18h6M10 21h4M12 3a6 6 0 00-3.6 10.8c.6.5 1 1.2 1 2V16h5.2v-.2c0-.8.4-1.5 1-2A6 6 0 0012 3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg><span>Размышление</span><i class="hm-plus-sw${thinkOn?' on':''}"></i></button>
     <div class="hm-plus-sep"></div>
-    <button type="button" role="menuitem" data-k="image"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="16" rx="2.5" stroke="currentColor" stroke-width="1.6"/><circle cx="9" cy="10" r="1.8" stroke="currentColor" stroke-width="1.5"/><path d="M4 17l5-4.5 4 3.5 3-2.5 4 3.5" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg><span>Сгенерировать изображение</span></button>
-    <button type="button" role="menuitem" data-k="audio"><svg viewBox="0 0 24 24" fill="none"><path d="M3 12h2M7 8v8M11 5v14M15 9v6M19 7v10M21 12h0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span>Анализ аудио</span></button>
+    <button type="button" role="menuitem" data-k="image"${lim(imgLim)}><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="16" rx="2.5" stroke="currentColor" stroke-width="1.6"/><circle cx="9" cy="10" r="1.8" stroke="currentColor" stroke-width="1.5"/><path d="M4 17l5-4.5 4 3.5 3-2.5 4 3.5" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg><span class="hm-plus-lbl"><span>Сгенерировать изображение</span>${limHint(imgLim)}</span></button>
+    <button type="button" role="menuitem" data-k="audio"${lim(chatLim)}><svg viewBox="0 0 24 24" fill="none"><path d="M3 12h2M7 8v8M11 5v14M15 9v6M19 7v10M21 12h0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span class="hm-plus-lbl"><span>Анализ аудио</span>${limHint(chatLim)}</span></button>
     <div class="hm-plus-sep"></div>
     <button type="button" role="menuitem" data-k="music"><svg viewBox="0 0 24 24" fill="none"><path d="M9 18V5.5l10-2v12" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="6.5" cy="18" r="2.5" stroke="currentColor" stroke-width="1.7"/><circle cx="16.5" cy="15.5" r="2.5" stroke="currentColor" stroke-width="1.7"/><path d="M19.5 2.5l.5 1.3 1.3.5-1.3.5-.5 1.3-.5-1.3-1.3-.5 1.3-.5z" fill="currentColor"/></svg><span>Определить музыку</span></button>`;
   document.body.appendChild(m);
@@ -13869,7 +14198,7 @@ function toggleDesktopPlus(anchor){
   requestAnimationFrame(()=>m.classList.add('open'));
   m.addEventListener('click',ev=>{
     ev.stopPropagation();
-    const b=ev.target.closest('button');if(!b)return;
+    const b=ev.target.closest('button');if(!b||b.disabled)return;
     const k=b.dataset.k;
     if(k==='files'){closeDesktopPlus();triggerFileInput();}
     else if(k==='music'){closeDesktopPlus();openRecognizeModal();}
