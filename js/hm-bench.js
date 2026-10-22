@@ -133,7 +133,7 @@
       if(!cb.querySelector('.code-bench')){
         var b=document.createElement('button');b.type='button';b.className='code-copy code-bench';b.title='Открыть в окне';b.setAttribute('aria-label','Открыть в окне');b.innerHTML=IC.open;
         b.onclick=function(){open(it);};
-        var head=cb.querySelector('.code-head');if(head){var cp=head.querySelector('.code-copy');head.insertBefore(b,cp);}
+        var head=cb.querySelector('.code-head');if(head){var cp=head.querySelector('.code-copy');if(cp)cp.parentNode.insertBefore(b,cp);else head.appendChild(b);}
       }
       if(big)found.push(it);
     });

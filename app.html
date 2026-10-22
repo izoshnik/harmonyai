@@ -4368,11 +4368,17 @@ function buildMarkedRenderer(){
     return '<div class="code-block" data-lang="'+escapeHtml(lang||'')+'" data-code="'+encodeURIComponent(code)+'">'
       +'<div class="code-head">'
       +'<span class="code-lang">'+escapeHtml(codeLangLabel(lang))+'</span>'
-      +(/^(js|javascript|mjs|py|python|python3)$/i.test(lang||'')?'<button class="code-run" type="button" disabled onclick="window.HmRich&&HmRich.runCode(this)" aria-label="Запустить код" title="Запустить код"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l13-7.5z"/></svg><span>Запустить</span></button>':'')
+      +'<span class="code-tools">'
       +'<button class="code-copy" type="button" disabled onclick="copyCodeBlock(this)" aria-label="Копировать" title="Копировать">'
       +'<svg class="cc-ic-copy" width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="11" height="11" rx="2.4" stroke="currentColor" stroke-width="1.8"/><path d="M6 15H5a2 2 0 01-2-2V5a2 2 0 012-2h8a2 2 0 012 2v1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>'
       +'<svg class="cc-ic-done" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 12.5l5 5 11-11" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
       +'</button>'
+      +(/^(js|javascript|mjs|py|python|python3|html|htm|svg)$/i.test(lang||'')
+        ?'<span class="code-seg" role="tablist">'
+          +'<button class="code-tab code-tab-code on" type="button" role="tab" onclick="window.HmRich&&HmRich.showCode(this)" aria-label="Код" title="Код"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M7 4H5.5A1.5 1.5 0 004 5.5v13A1.5 1.5 0 005.5 20H7M17 4h1.5A1.5 1.5 0 0120 5.5v13a1.5 1.5 0 01-1.5 1.5H17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M8.5 9.5l2.5 2.5-2.5 2.5M13 15h3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>'
+          +'<button class="code-tab code-run" type="button" role="tab" disabled onclick="window.HmRich&&HmRich.runCode(this)" aria-label="Запустить код" title="Запустить"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l13-7.5z"/></svg></button>'
+        +'</span>':'')
+      +'</span>'
       +'</div>'
       +'<pre class="code-pre"><code class="hljs">'+highlighted+'</code></pre>'
       +'</div>';
@@ -7589,12 +7595,13 @@ expr: + - * / ^, sin cos tan sqrt abs ln log exp, pi, e; params дают пол�
 {"query":"Иоганн Себастьян Бах портрет","caption":"И. С. Бах","prompt":"English description for an illustration if no real photo exists"}
 \`\`\`
 5) ФОРМУЛЫ — LaTeX: $a^2+b^2=c^2$ в строке, $$…$$ отдельной строкой. Обозначения аккордов (T53, D7) — обычным текстом.
-6) КОД на JavaScript и Python пользователь запускает кнопкой — пиши законченные примеры с выводом (print / console.log); графики в Python — matplotlib.
+6) КОД на JavaScript, Python и HTML пользователь запускает кнопкой ▶ (HTML показывается живой страницей) — пиши законченные примеры с выводом (print / console.log); графики в Python — matplotlib.
 7) КНОПКИ — в конце содержательного ответа (не на приветствия и короткие реплики) 2–3 следующих шага:
 \`\`\`buttons
 [{"label":"2–5 слов","prompt":"готовый запрос от первого лица пользователя"}]
 \`\`\`
-prompt учитывает тему, уровень, память и настройки пользователя; не предлагай уже сделанное.`;
+prompt учитывает тему, уровень, память и настройки пользователя; не предлагай уже сделанное.
+Порядок: ответ → конец ответа → сразу блок buttons. Перед кнопками НИЧЕГО не пиши: никаких «Выберите следующее действие», «Что дальше?», заголовков и разделителей.`;
 
 const FILE_GEN_SYSTEM=`
 СОЗДАНИЕ ФАЙЛОВ: если пользователь явно просит сделать/скачать файл или презентацию (например «сделай pdf», «сохрани в docx», «сделай презентацию», «оформи в файл», «скачать txt/markdown»), сформируй содержимое и в САМОМ КОНЦЕ ответа добавь ровно один блок такого вида:
