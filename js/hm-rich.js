@@ -67,8 +67,15 @@
       if(om.index>0)out.push({type:'text',raw:tail.slice(0,om.index)});
       out.push({type:'rich-pending',kind:om[1].toLowerCase(),raw:om[0]});
     }else if(tail)out.push({type:'text',raw:tail});
+    /* Ответ — конец ответа — кнопки: модель любит подписывать кнопки
+       («Выберите следующее действие:», «Что дальше?») — такую строку убираем. */
+    for(var i=1;i<out.length;i++){
+      var k=out[i];if(!k.kind||k.kind!=='buttons'||out[i-1].type!=='text')continue;
+      out[i-1].raw=out[i-1].raw.replace(BTN_LEAD,'\n');
+    }
     return out;
   }
+  var BTN_LEAD=/\n?[ \t]*(?:[*_#>]+[ \t]*)?(?:выберите|выбери|что дальше|дальше можно|следующ|варианты|можно продолжить|что сделаем|куда двигаемся|next step|choose)[^\n]{0,70}\s*$/i;
 
   /* ---------- формулы ---------- */
   var MATH_MARK='\u2063HMMATH';
@@ -646,12 +653,28 @@
   /* ======================================================================
      ЗАПУСК КОДА
      ====================================================================== */
-  var RUN_LANGS={js:'js',javascript:'js',mjs:'js',py:'py',python:'py',python3:'py'};
+  var RUN_LANGS={js:'js',javascript:'js',mjs:'js',py:'py',python:'py',python3:'py',html:'html',htm:'html',svg:'html'};
   function runnable(lang){return RUN_LANGS[String(lang||'').toLowerCase()]||'';}
   function outPanel(block){
     var o=block.querySelector(':scope > .code-out');
     if(!o){o=el('div','code-out');block.appendChild(o);}
-    o.innerHTML='<div class="code-out-head">'+esc(t('Результат'))+'</div>';return o;
+    o.innerHTML='';o.classList.remove('is-html');return o;
+  }
+  /* HTML/SVG — живая страница в изолированном iframe (без доступа к сайту и аккаунту). */
+  function runHtml(code,o){
+    o.classList.add('is-html');
+    var fr=document.createElement('iframe');fr.className='code-frame';
+    fr.setAttribute('sandbox','allow-scripts allow-modals allow-pointer-lock');
+    fr.setAttribute('referrerpolicy','no-referrer');fr.title=t('Результат');
+    var doc=/<html|<body|<!doctype/i.test(code)?code:'<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><body style="margin:0;background:#fff">'+code;
+    fr.srcdoc=doc;o.appendChild(fr);
+    return Promise.resolve();
+  }
+  function showCode(btn){
+    var block=btn.closest('.code-block');if(!block)return;
+    block.classList.remove('show-out');
+    block.querySelectorAll('.code-tab').forEach(function(b){b.classList.toggle('on',b.classList.contains('code-tab-code'));});
+    var o=block.querySelector(':scope > .code-out');if(o&&o.classList.contains('is-html'))o.innerHTML='';
   }
   function outLine(o,text,cls){var d=el('div',cls||'');d.textContent=text;o.appendChild(d);o.scrollTop=o.scrollHeight;}
   function fmtVal(v){try{if(typeof v==='string')return v;if(v instanceof Error)return v.stack||String(v);return JSON.stringify(v,null,2);}catch(e){return String(v);}}
@@ -665,7 +688,7 @@
         if(e.source!==fr.contentWindow||!e.data||!e.data.hmRun)return;
         var m=e.data;
         if(m.t==='ready'){fr.contentWindow.postMessage({code:code},'*');return;}
-        if(m.t==='done'){if(o.children.length<2)outLine(o,t('(нет вывода)'),'st');end();return;}
+        if(m.t==='done'){if(!o.children.length)outLine(o,t('(нет вывода)'),'st');end();return;}
         outLine(o,(m.a||[]).join(' '),m.t==='error'||m.t==='warn'?'err':'');
       }
       window.addEventListener('message',onMsg);
@@ -725,11 +748,13 @@
     var lang=runnable(block.getAttribute('data-lang'));if(!lang)return;
     var code='';try{code=decodeURIComponent(block.getAttribute('data-code')||'');}catch(e){code=(block.querySelector('code')||{}).textContent||'';}
     var o=outPanel(block);
+    block.classList.add('show-out');
+    block.querySelectorAll('.code-tab').forEach(function(b){b.classList.toggle('on',b===btn);});
     btn.disabled=true;btn.classList.add('running');
-    try{await (lang==='py'?runPy(code,o):runJs(code,o));}
+    try{await (lang==='py'?runPy(code,o):lang==='html'?runHtml(code,o):runJs(code,o));}
     finally{btn.disabled=false;btn.classList.remove('running');}
   }
 
   window.HmRich={KINDS:KINDS,splitRich:splitRich,render:render,renderPending:renderPending,mdToHtml:mdToHtml,typeset:typeset,
-    runCode:runCode,runnable:runnable,chartToImage:chartToImage,findPhoto:findPhoto,sendPrompt:sendPrompt,compileExpr:compileExpr,parseLoose:parseLoose,ICON:ICON};
+    runCode:runCode,showCode:showCode,runnable:runnable,chartToImage:chartToImage,findPhoto:findPhoto,sendPrompt:sendPrompt,compileExpr:compileExpr,parseLoose:parseLoose,ICON:ICON};
 })();

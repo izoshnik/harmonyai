@@ -1248,7 +1248,40 @@ async function repairNotationReplyIfNeeded(apiKey, modelName, query, replyText) 
   }
 }
 
-function writeSseEvent(res, payload) {
+/* Модели иногда начинают ответ с «метки говорящего» — «[HarmonyAI]», «[P]» — подражая
+   служебным блокам контекста. Начало ответа придерживаем, пока не станет ясно, есть ли
+   такая метка, и отправляем текст уже без неё. */
+const SPEAKER_TAG = /^\s*\[(?!\[)[^\]\n]{1,32}\]\s*(?:\n|$)\s*/;
+export function stripSpeakerTag(text) {
+  const src = String(text || '');
+  return src.replace(SPEAKER_TAG, '') || src; // ответ целиком из «[Да]» не теряем
+}
+function leadUndecided(lead) {
+  const t = lead.trimStart();
+  if (!t) return true;
+  if (t[0] !== '[' || t[1] === '[' || t.length >= 40) return false;
+  const close = t.indexOf(']');
+  if (close < 0) return true;               // метка ещё не закрыта
+  return !/[\n\S]/.test(t.slice(close + 1)); // после «]» пока ничего — ждём перевода строки или текста
+}
+export function writeSseEvent(res, payload) {
+  if (payload && payload.type === 'delta' && res.__hmLead !== 'done') {
+    const lead = (res.__hmLead || '') + String(payload.text || '');
+    if (leadUndecided(lead)) { res.__hmLead = lead; return; }
+    res.__hmLead = 'done';
+    const out = lead.replace(SPEAKER_TAG, '');
+    if (!out) return;
+    payload = { ...payload, text: out };
+  } else if (payload && payload.type === 'done') {
+    if (res.__hmLead && res.__hmLead !== 'done') {
+      const rest = stripSpeakerTag(res.__hmLead);
+      res.__hmLead = 'done';
+      if (rest) res.write(`data: ${JSON.stringify({ type: 'delta', text: rest })}\n\n`);
+    }
+    if (typeof payload.text === 'string') payload = { ...payload, text: stripSpeakerTag(payload.text) };
+  } else if (payload && payload.type === 'reasoning_reset') {
+    res.__hmLead = undefined;
+  }
   res.write(`data: ${JSON.stringify(payload)}\n\n`);
 }
 

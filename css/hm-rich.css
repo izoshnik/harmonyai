@@ -120,13 +120,21 @@
 .hm-math-block .katex-display{margin:0;}
 
 /* ---------- запуск кода ---------- */
-.code-run{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border:none;border-radius:8px;background:transparent;
-  color:#c5c5cd;font:600 13px/1 'Inter',sans-serif;cursor:pointer;margin-left:auto;margin-right:4px;transition:background .14s,color .14s,opacity .14s;}
-.code-run:hover:not(:disabled){background:rgba(255,255,255,.09);color:#fff;}
-.code-run:disabled{opacity:.4;cursor:default;}
-.code-run.running svg{animation:hmrSpin 1s linear infinite;}
-.code-out{border-top:1px solid rgba(255,255,255,.08);padding:10px 14px 12px;font:12.5px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#d6d6de;
-  white-space:pre-wrap;word-break:break-word;max-height:320px;overflow:auto;}
+.code-tools{display:flex;align-items:center;gap:8px;margin-left:auto;}
+.code-seg{display:inline-flex;align-items:center;gap:2px;padding:3px;border-radius:999px;background:rgba(255,255,255,.07);}
+.code-tab{display:inline-flex;align-items:center;justify-content:center;width:38px;height:30px;border:none;border-radius:999px;background:transparent;
+  color:#c5c5cd;cursor:pointer;transition:background .16s,color .16s,opacity .14s;-webkit-tap-highlight-color:transparent;}
+.code-tab:hover:not(:disabled){color:#fff;}
+.code-tab.on{background:rgba(255,255,255,.16);color:#fff;}
+.code-tab:disabled{opacity:.4;cursor:default;}
+.code-run.running svg{animation:hmrPulse 1s ease-in-out infinite;}
+@keyframes hmrPulse{50%{opacity:.35;}}
+.code-out{padding:12px 15px 14px;font:12.5px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#d6d6de;
+  white-space:pre-wrap;word-break:break-word;max-height:420px;min-height:60px;overflow:auto;display:none;}
+.code-block.show-out .code-out{display:block;}
+.code-block.show-out .code-pre,.code-block.show-out .code-copy{display:none;}
+.code-out.is-html{padding:0 10px 10px;max-height:none;overflow:hidden;}
+.code-frame{display:block;width:100%;height:min(62vh,460px);border:0;border-radius:12px;background:#fff;}
 .code-out .err{color:#ff8a8a;}
 .code-out .st{color:#8b8b96;}
 .code-out img{display:block;max-width:100%;background:#fff;border-radius:8px;margin:8px 0;}
