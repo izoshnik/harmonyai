@@ -11742,19 +11742,23 @@ function startMusicQueue(payload){
    а любой сбой стриминга молча съедал ответ, и пользователь видел только
    карточку. Здесь — простой нестриминговый запрос, инструкция идёт обычным
    user-сообщением (его принимают все модели), а сбой виден пользователю. */
-async function requestMusicAnswer(facts,answerRequest,customInstruction){
+async function requestMusicAnswer(facts,answerRequest,customInstruction,onText){
   const instruction=customInstruction||(
     'Одной фразой я попросил найти музыку и задал вопрос. '+
     'Трек уже найден и показан карточкой в этом же сообщении: '+facts+'. '+
     'Не пиши «вот трек», не давай ссылок, не описывай карточку и не здоровайся — '+
     'ответь только на вторую, содержательную часть моей просьбы'+
     (answerRequest?(' ('+answerRequest+')'):'')+'. Коротко и по делу.');
+  /* Поток, а не один большой ответ: текст печатается сразу, а сервер берёт быстрый
+     путь (quick) — минимум скрытых рассуждений и подстраховка второй моделью.
+     Раньше нестриминговый запрос ждал, пока модель «додумает», — до двух минут. */
   const payload={
     messages:[{role:'system',content:buildSystem()},...toWireHistory(chatHistory),{role:'user',content:instruction}],
     model:curModel,
-    effort:curMode,
+    effort:'low',
     think:false,
-    stream:false,
+    stream:true,
+    quick:true,
     webSearch:'off',
     trainingMode:false,
     userId:curUser?.id||null,
@@ -11769,12 +11773,39 @@ async function requestMusicAnswer(facts,answerRequest,customInstruction){
         CHAT_TIMEOUT_MS,
         'Сервер слишком долго отвечает'
       );
-      const data=await res.json().catch(function(){return null;});
-      if(!res.ok)throw new Error((data&&data.error&&data.error.message)||('Ошибка сервера ('+res.status+')'));
-      const reply=data&&data.choices&&data.choices[0]&&data.choices[0].message
-        ? String(data.choices[0].message.content||'').trim():'';
-      if(!reply)throw new Error('Модель вернула пустой ответ');
-      return reply;
+      const ct=String(res.headers.get('content-type')||'');
+      if(!res.ok||!/event-stream/.test(ct)||!res.body){
+        const data=await res.json().catch(function(){return null;});
+        if(!res.ok)throw new Error((data&&data.error&&data.error.message)||('Ошибка сервера ('+res.status+')'));
+        const r0=data&&data.choices&&data.choices[0]&&data.choices[0].message?String(data.choices[0].message.content||'').trim():'';
+        if(!r0)throw new Error('Модель вернула пустой ответ');
+        return r0;
+      }
+      const reader=res.body.getReader(),dec=new TextDecoder();
+      let buf='',text='',done=false,lastPaint=0;
+      while(!done){
+        const chunk=await reader.read();
+        if(chunk.done)break;
+        buf+=dec.decode(chunk.value,{stream:true});
+        let k;
+        while((k=buf.indexOf('\n\n'))>=0){
+          const evt=buf.slice(0,k);buf=buf.slice(k+2);
+          const line=evt.split('\n').find(function(l){return l.indexOf('data:')===0;});
+          if(!line)continue;
+          let d=null;try{d=JSON.parse(line.slice(5).trim());}catch(e){continue;}
+          if(!d)continue;
+          if(d.type==='delta'){text+=String(d.text||'');}
+          else if(d.type==='done'){if(typeof d.text==='string'&&d.text.trim())text=d.text;done=true;}
+          else if(d.type==='error'){throw new Error((d.error&&d.error.message)||d.message||'Ошибка модели');}
+          else if(d.type==='reasoning_reset'){text='';}
+        }
+        const now=Date.now();
+        if(onText&&text&&now-lastPaint>120){lastPaint=now;try{onText(text);}catch(e){}}
+      }
+      try{reader.cancel();}catch(e){}
+      text=String(text||'').trim();
+      if(!text)throw new Error('Модель вернула пустой ответ');
+      return text;
     }catch(e){
       lastError=e;
       const msg=String(e&&e.message||'').toLowerCase();
@@ -12219,46 +12250,11 @@ async function runMusicMessage(text){
   /* Вторая половина составной просьбы: «…и расскажи, кто его написал».
      Ответ модели дописываем в ЭТОТ ЖЕ пузырь под карточкой: отдельное
      сообщение выглядело бы как дубль, а история чата разъезжалась бы. */
-  if(intent.wantAnswer){
-    const answerEl=document.createElement('div');
-    answerEl.className='music-answer';
-    shell.msg.appendChild(answerEl);
-
-    const t=payload.bestMatch||payload.items[0]||null;
-    const facts=t
-      ? ('«'+t.title+'» — '+t.artist+(t.album?(', альбом «'+t.album+'»'):''))
-      : 'ничего конкретного';
-
-    setGeneratingState(true);
-    let answerText='';
-    try{
-      answerText=await requestMusicAnswer(facts,intent.answerRequest||'');
-    }catch(e){
-      answerText='';
-    }finally{
-      setGeneratingState(false);
-    }
-
-    if(answerText){
-      renderMd(answerEl,answerText);
-      scrollChat();
-      // ОДНА запись в истории: и карточка, и текст ответа.
-      chatHistory.push({role:'assistant',content:answerText,music:stored,createdAt:messageNow()});
-      try{recordUsage(text,answerText);}catch(e){}
-      saveChat().catch(function(){});
-      maybeGenerateChatTitle();
-      return true;
-    }
-    // Модель не ответила — НЕ прячем это молча: честная строка под карточкой.
-    answerEl.textContent='Не удалось получить описание. Спросите меня об этом треке — отвечу в чате.';
-    scrollChat();
-  }
-
   const note={role:'assistant',content:musicLabelFor(intent,payload),
     music:stored,musicLabel:true,createdAt:messageNow()};
   chatHistory.push(note);
   saveChat().catch(function(){});
-  await hmMusicBlurb(shell,intent,payload,note,text);
+  await hmMusicBlurb(shell,intent,payload,note,text,intent.wantAnswer?(intent.answerRequest||text):'');
   maybeGenerateChatTitle();
   return true;
 }
@@ -12266,7 +12262,7 @@ async function runMusicMessage(text){
 /* Короткий текст ИИ под найденным треком: чем он известен, из какого альбома,
    и предложение продолжить (собрать плейлист артиста) с кнопкой. Карточка уже
    играет — текст догружается под ней; при сбое или лимите просто не появляется. */
-async function hmMusicBlurb(shell,intent,payload,note,userText){
+async function hmMusicBlurb(shell,intent,payload,note,userText,question){
   const t=payload.bestMatch||(payload.items||[])[0]||null;
   const col=payload.collection;
   if(!t&&!col)return;
@@ -12277,8 +12273,12 @@ async function hmMusicBlurb(shell,intent,payload,note,userText){
   const instruction=
     'Я написал: «'+String(userText||'').slice(0,300)+'». По этой просьбе уже найден и показан карточкой '+subject+'. '+
     'Не пиши «вот трек», не давай ссылок, не описывай карточку и не здоровайся. '+
-    'Напиши 2–3 коротких живых предложения: чем это известно, из какого альбома и когда вышло — только факты, в которых ты уверен; '+
-    'если не уверен в дате или истории, просто не упоминай их. '+
+    (question
+      ? ('Ответь на мою просьбу «'+String(question).slice(0,300)+'» по существу: 1–3 коротких абзаца, только факты, в которых ты уверен; '+
+         'если не уверен в дате или истории, не упоминай их. ')
+      : ('Напиши 2–3 коротких живых предложения: чем это известно, из какого альбома и когда вышло — только факты, в которых ты уверен; '+
+         'если не уверен в дате или истории, просто не упоминай их. '))+
+    'Пиши грамотно по-русски, без вставок на других языках. '+
     'Затем одним предложением предложи продолжение — например собрать плейлист из популярных треков этого исполнителя или похожих. '+
     'Обращайся так же, как я: на «ты», если я пишу на «ты», иначе на «вы». '+
     'В самом конце добавь блок ```buttons с 1–2 кнопками для этого продолжения'+
@@ -12289,9 +12289,18 @@ async function hmMusicBlurb(shell,intent,payload,note,userText){
   shell.msg.appendChild(answerEl);scrollChat();
   let reply='';
   setGeneratingState(true);
-  try{reply=await requestMusicAnswer('','',instruction);}catch(e){reply='';}
+  try{
+    reply=await requestMusicAnswer('','',instruction,function(partial){
+      // Пока идёт поток — текст без незакрытого блока кнопок.
+      const cut=partial.replace(/```[\s\S]*$/,'').trim();
+      if(cut){try{renderMd(answerEl,normalizeReplyNotation(cut));}catch(e){answerEl.textContent=cut;}scrollChat();}
+    });
+  }catch(e){reply='';}
   finally{setGeneratingState(false);}
-  if(!reply){answerEl.remove();return;}
+  if(!reply){
+    if(question){answerEl.textContent='Не удалось получить ответ. Спросите ещё раз — отвечу в чате.';return;}
+    answerEl.remove();return;
+  }
   try{hmRichLiveUntil=Date.now()+15000;}catch(e){}
   try{renderMd(answerEl,normalizeReplyNotation(reply));}catch(e){answerEl.textContent=reply;}
   scrollChat();
