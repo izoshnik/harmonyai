@@ -200,8 +200,10 @@ html[data-theme="light"] .limit-reached{background:rgba(239,68,68,.07);border-co
 .music-card__desc{padding:2px 14px 8px;font-size:13px;line-height:1.45;color:var(--text2);}
 .music-pl-saved{display:flex;align-items:center;gap:7px;margin:8px 2px 0;font-size:12.5px;color:var(--text2);}
 .music-pl-saved svg{color:#34c759;flex:none;}
-.music-pl-saved button{margin-left:auto;border:0;background:color-mix(in srgb,var(--text) 8%,transparent);color:var(--text);font-family:inherit;font-weight:600;font-size:12px;line-height:1;padding:7px 11px;border-radius:999px;cursor:pointer;}
-.music-pl-saved button:hover{background:color-mix(in srgb,var(--text) 14%,transparent);}
+.music-pl-ym svg{color:#ffcc00;}
+.music-pl-saved+.music-pl-saved{margin-top:6px;}
+.music-pl-saved .music-pl-btn,.music-pl-saved button{margin-left:auto;text-decoration:none;border:0;background:color-mix(in srgb,var(--text) 8%,transparent);color:var(--text);font-family:inherit;font-weight:600;font-size:12px;line-height:1;padding:7px 11px;border-radius:999px;cursor:pointer;}
+.music-pl-saved .music-pl-btn:hover,.music-pl-saved button:hover{background:color-mix(in srgb,var(--text) 14%,transparent);}
 .stp-aboutme{padding:14px 6px 6px;text-align:left!important;width:100%;box-sizing:border-box;align-self:stretch;}.stp-aboutme .stp-row-title,.stp-aboutme .stp-row-desc{text-align:left!important;margin-left:0;}.stp-aboutme-foot span{margin-right:auto;}
 .stp-aboutme-ta{display:block;width:100%;box-sizing:border-box;margin-top:10px;padding:12px 14px;border-radius:14px;resize:vertical;min-height:110px;
   font-family:inherit;font-size:14px;line-height:1.55;color:var(--set-text,var(--text));background:var(--set-soft,rgba(127,127,127,.08));border:1px solid color-mix(in srgb,var(--set-line,#999) 45%,transparent);outline:none;transition:border-color .15s;}
@@ -210,6 +212,9 @@ html[data-theme="light"] .limit-reached{background:rgba(239,68,68,.07);border-co
 .music-pl-intro{margin:0 2px 10px;}
 .music-pl-suggest{margin:12px 2px 0;}
 .music-pl-saved+.music-pl-suggest{margin-top:10px;}
+/* Окно настроек на компьютере: содержимое не растягивает окно — прокручивается тело
+   экрана (раньше длинный плейлист обрезался и не листался). */
+@media(min-width:769px){#settingsContent{flex:1 1 auto;min-height:0;height:100%;max-height:100%;}}
 </style>
 <style>
 /* Шрифты подключены через <link rel="stylesheet"> в <head> — быстрее, чем @import внутри CSS. */
@@ -6825,7 +6830,12 @@ async function openChat(id,opts){
       // Подписанной ссылки в истории нет, поэтому Play возьмёт свежую.
       const shell=createAiBubbleShell({showActions:false,createdAt:m.createdAt,historyIndex:idx});
       try{
-        if(m.music.aiPlaylist)hmRenderAiPlaylist(shell.msg,m.music);
+        if(m.music.aiPlaylist){
+          hmRenderAiPlaylist(shell.msg,m.music);
+          const ymRow=hmYandexPlaylistRow(m.music,function(url){m.music.aiText=Object.assign({},m.music.aiText,{yandexUrl:url});saveChat().catch(function(){});});
+          const card=shell.msg.querySelector('.music-card');
+          if(card&&card.nextSibling)shell.msg.insertBefore(ymRow,card.nextSibling);else shell.msg.appendChild(ymRow);
+        }
         else shell.msg.appendChild(buildMusicCard(m.music));
       }catch(e){shell.msg.textContent=txt||'';}
       /* Под карточкой мог быть настоящий ответ модели («кто написал песню»).
@@ -7906,12 +7916,21 @@ async function handleFiles(fileList){
   const tracks=files.filter(hmIsAudioFile);
   if(tracks.length){
     files=files.filter(f=>!hmIsAudioFile(f));
+    window.__hmLastAudio=tracks;window.__hmLastAudioAt=Date.now();
+    /* Уже написано «добавь в Яндекс Музыку / в плейлист» — загружаем сразу, без анализатора. */
+    const ta=document.getElementById('msgTa');
+    if(ta&&HM_YM_UPLOAD_RE.test(ta.value||'')){
+      ta.value='';try{ta.dispatchEvent(new Event('input',{bubbles:true}));}catch(e){}
+      for(const f of tracks)await hmSendTrackToYandex(f);
+      if(!files.length)return;
+    }else{
     try{
       if(window.AudioAnalyzer&&typeof window.AudioAnalyzer.openWithFile==='function'){
         window.AudioAnalyzer.openWithFile(tracks[0]);
         if(tracks.length>1)toast('Аудио анализируется по одному файлу — открыт «'+tracks[0].name+'»');
       }else toast('Анализ аудио сейчас недоступен — обновите страницу');
     }catch(e){console.warn(e);}
+    }
     if(!files.length)return;
   }
   // Тот же файл повторно не прикрепляем.
@@ -11723,13 +11742,13 @@ function startMusicQueue(payload){
    а любой сбой стриминга молча съедал ответ, и пользователь видел только
    карточку. Здесь — простой нестриминговый запрос, инструкция идёт обычным
    user-сообщением (его принимают все модели), а сбой виден пользователю. */
-async function requestMusicAnswer(facts,answerRequest){
-  const instruction=
+async function requestMusicAnswer(facts,answerRequest,customInstruction){
+  const instruction=customInstruction||(
     'Одной фразой я попросил найти музыку и задал вопрос. '+
     'Трек уже найден и показан карточкой в этом же сообщении: '+facts+'. '+
     'Не пиши «вот трек», не давай ссылок, не описывай карточку и не здоровайся — '+
     'ответь только на вторую, содержательную часть моей просьбы'+
-    (answerRequest?(' ('+answerRequest+')'):'')+'. Коротко и по делу.';
+    (answerRequest?(' ('+answerRequest+')'):'')+'. Коротко и по делу.');
   const payload={
     messages:[{role:'system',content:buildSystem()},...toWireHistory(chatHistory),{role:'user',content:instruction}],
     model:curModel,
@@ -11862,6 +11881,35 @@ function hmRenderAiPlaylist(container,payload){
     row.appendChild(c);container.appendChild(row);
   }
 }
+const HM_YM_ICON='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9.2" stroke="currentColor" stroke-width="1.8"/><path d="M10 8.2v7.6l6-3.8z" fill="currentColor"/></svg>';
+/* Строка под плейлистом: «Добавлен в Яндекс Музыку · Открыть» или кнопка «Сохранить в Яндекс Музыку». */
+function hmYandexPlaylistRow(payload,onSaved){
+  const row=document.createElement('div');row.className='music-pl-saved music-pl-ym';
+  const url=payload.aiText&&payload.aiText.yandexUrl;
+  if(url){
+    row.innerHTML=HM_YM_ICON+'<span>Добавлен в Яндекс Музыку</span><a class="music-pl-btn" target="_blank" rel="noopener" href="'+musicEscape(url)+'">Открыть</a>';
+    return row;
+  }
+  row.innerHTML=HM_YM_ICON+'<span>Можно сохранить и в Яндекс Музыку</span><button type="button" class="music-pl-btn">Сохранить</button>';
+  const btn=row.querySelector('button');
+  btn.onclick=async function(){
+    btn.disabled=true;btn.textContent='Сохраняю…';
+    try{
+      const tracks=(payload.items||[]).map(function(t){return {trackId:t.trackId,albumId:t.albumId};});
+      const r=await window.MusicClient.call('export_playlist',{title:(payload.collection&&payload.collection.title)||'HarmonyAI',tracks:tracks},{timeout:30000});
+      payload.aiText=Object.assign({},payload.aiText,{yandexUrl:r.url});
+      row.replaceWith(hmYandexPlaylistRow(payload));
+      if(onSaved)onSaved(r.url);
+    }catch(e){
+      if(e&&(e.type==='music_auth_required'||e.status===401)){
+        btn.disabled=false;btn.textContent='Подключить';
+        row.querySelector('span').textContent='Подключите свой аккаунт Яндекса, чтобы сохранять плейлисты';
+        btn.onclick=function(){try{openSettings();setTimeout(function(){openSettingsSection('plugins');},60);}catch(_){}};
+      }else{btn.disabled=false;btn.textContent='Повторить';row.querySelector('span').textContent='Не получилось сохранить в Яндекс Музыку';}
+    }
+  };
+  return row;
+}
 function showAiPlaylist(sh,text,data,note){
   const items=data.items;
   let savedId=null;
@@ -11875,7 +11923,7 @@ function showAiPlaylist(sh,text,data,note){
   const payload={kind:'playlist',query:text,items:items,bestMatch:null,aiPlaylist:true,
     collection:{title:data.title||'Плейлист от HarmonyAI',subtitle:n+' '+word+' · собрал HarmonyAI',
       description:data.description||'',cover:(items.find(function(t){return t.cover;})||{}).cover||''},
-    aiText:{intro:data.intro||'',suggest:data.suggest||'',chip:data.chip||''},_t:Date.now()};
+    aiText:{intro:data.intro||'',suggest:data.suggest||'',chip:data.chip||'',yandexUrl:(data.yandex&&data.yandex.url)||''},_t:Date.now()};
   sh.msg.innerHTML='';
   hmRenderAiPlaylist(sh.msg,payload);
   if(savedId){
@@ -11885,6 +11933,11 @@ function showAiPlaylist(sh,text,data,note){
     const card=sh.msg.querySelector('.music-card');
     if(card&&card.nextSibling)sh.msg.insertBefore(foot,card.nextSibling);else sh.msg.appendChild(foot);
   }
+  const ymRow=hmYandexPlaylistRow(payload,function(url){
+    const st=note.music;if(st){st.aiText=Object.assign({},st.aiText,{yandexUrl:url});saveChat().catch(function(){});}
+  });
+  const after=sh.msg.querySelector('.music-pl-saved')||sh.msg.querySelector('.music-card');
+  if(after&&after.nextSibling)sh.msg.insertBefore(ymRow,after.nextSibling);else sh.msg.appendChild(ymRow);
   scrollChat();
   const stored=Object.assign({},payload);delete stored._t;
   /* Для модели в истории — вступление, список треков и предложение (на «да»,
@@ -11916,6 +11969,18 @@ async function runMusicMessage(text){
   catch(e){ window.__hmUserId=null; }
 
   if(!window.MusicIntents||!window.MusicClient||!window.MusicPlayer)return false;
+
+  /* --- 0а. «Добавь этот трек в Яндекс Музыку» после прикреплённого mp3. --- */
+  if(window.__hmLastAudio&&window.__hmLastAudio.length&&Date.now()-(window.__hmLastAudioAt||0)<10*60*1000&&HM_YM_UPLOAD_RE.test(text)){
+    const files=window.__hmLastAudio;window.__hmLastAudio=null;
+    const gw=document.getElementById('greetingWrap');if(gw)gw.style.display='none';
+    addUserBubble(text,[],{createdAt:messageNow()});
+    chatHistory.push({role:'user',content:text,createdAt:messageNow()});
+    for(const f of files)await hmSendTrackToYandex(f);
+    chatHistory.push({role:'assistant',content:'Загружаю '+(files.length>1?files.length+' трека':'трек «'+files[0].name+'»')+' в ваш плейлист «HarmonyAI» в Яндекс Музыке.',createdAt:messageNow(),musicLabel:true});
+    saveChat().catch(function(){});
+    return true;
+  }
 
   /* --- 0. «Собери плейлист …» — отдельный сценарий: подбор треков моделью. --- */
   const plSpec=hmDetectPlaylistBuild(text);
@@ -12189,12 +12254,50 @@ async function runMusicMessage(text){
     scrollChat();
   }
 
-  chatHistory.push({role:'assistant',content:musicLabelFor(intent,payload),
-    music:stored,musicLabel:true,createdAt:messageNow()});
-
+  const note={role:'assistant',content:musicLabelFor(intent,payload),
+    music:stored,musicLabel:true,createdAt:messageNow()};
+  chatHistory.push(note);
   saveChat().catch(function(){});
+  await hmMusicBlurb(shell,intent,payload,note,text);
   maybeGenerateChatTitle();
   return true;
+}
+
+/* Короткий текст ИИ под найденным треком: чем он известен, из какого альбома,
+   и предложение продолжить (собрать плейлист артиста) с кнопкой. Карточка уже
+   играет — текст догружается под ней; при сбое или лимите просто не появляется. */
+async function hmMusicBlurb(shell,intent,payload,note,userText){
+  const t=payload.bestMatch||(payload.items||[])[0]||null;
+  const col=payload.collection;
+  if(!t&&!col)return;
+  const subject=col
+    ? ((intent.kind==='artist'?'исполнитель ':intent.kind==='album'?'альбом ':'плейлист ')+'«'+(col.title||col.name||intent.query)+'»'+(col.subtitle?(' ('+col.subtitle+')'):''))
+    : ('трек «'+t.title+'» — '+t.artist+(t.album?(', альбом «'+t.album+'»'):''));
+  const artist=(t&&t.artist)||(col&&(col.subtitle||col.title))||'';
+  const instruction=
+    'Я написал: «'+String(userText||'').slice(0,300)+'». По этой просьбе уже найден и показан карточкой '+subject+'. '+
+    'Не пиши «вот трек», не давай ссылок, не описывай карточку и не здоровайся. '+
+    'Напиши 2–3 коротких живых предложения: чем это известно, из какого альбома и когда вышло — только факты, в которых ты уверен; '+
+    'если не уверен в дате или истории, просто не упоминай их. '+
+    'Затем одним предложением предложи продолжение — например собрать плейлист из популярных треков этого исполнителя или похожих. '+
+    'Обращайся так же, как я: на «ты», если я пишу на «ты», иначе на «вы». '+
+    'В самом конце добавь блок ```buttons с 1–2 кнопками для этого продолжения'+
+    (artist?(' (например {"label":"Собрать плейлист","prompt":"Собери плейлист из популярных треков '+artist.replace(/"/g,'')+'"})'):'')+'.';
+  const answerEl=document.createElement('div');
+  answerEl.className='music-answer';
+  answerEl.innerHTML='<div class="thinking"><div class="think-dots"><span></span><span></span><span></span></div></div>';
+  shell.msg.appendChild(answerEl);scrollChat();
+  let reply='';
+  setGeneratingState(true);
+  try{reply=await requestMusicAnswer('','',instruction);}catch(e){reply='';}
+  finally{setGeneratingState(false);}
+  if(!reply){answerEl.remove();return;}
+  try{hmRichLiveUntil=Date.now()+15000;}catch(e){}
+  try{renderMd(answerEl,normalizeReplyNotation(reply));}catch(e){answerEl.textContent=reply;}
+  scrollChat();
+  // Теперь в истории настоящий ответ: он же восстановится под карточкой и уйдёт модели в контекст.
+  note.content=reply;note.musicLabel=false;
+  saveChat().catch(function(){});
 }
 
 /* Сохраняет историю конкретного чата, не трогая открытый сейчас.
@@ -14463,6 +14566,8 @@ window.addEventListener('resize',()=>{if(document.getElementById('hmProfileMenu'
    плейлист «HarmonyAI» в Яндекс Музыке (как «Загрузить с устройства» в
    приложении Яндекса), даже если такого трека нет в каталоге. */
 const HM_AUDIO_RE=/\.(mp3|m4a|aac|flac|wav|ogg|opus)$/i;
+/* «добавь (этот трек) в Яндекс Музыку», «закинь в плейлист», «загрузи в яндекс» */
+const HM_YM_UPLOAD_RE=/(добав|загрузи|закинь|сохрани|залей|отправь|положи)[а-яё]*[\s\S]{0,40}(яндекс|плейлист|ям\b|ya\s*music|yandex)/i;
 function hmIsAudioFile(f){return !!f&&((f.type||'').indexOf('audio/')===0||HM_AUDIO_RE.test(f.name||''));}
 function hmFmtMb(n){return (n/1048576).toFixed(n<10485760?1:0).replace('.',',')+' МБ';}
 async function hmMusicCall(action,payload){
@@ -14503,8 +14608,8 @@ async function hmSendTrackToYandex(file){
     set('Готово — трек появится в плейлисте «'+(t.playlistTitle||'HarmonyAI')+'» через 1–3 минуты, пока Яндекс его обрабатывает.','ok');
   }catch(e){
     const needAuth=e.status===401||e.type==='need_auth'||/подключите/i.test(e.message||'');
-    set(needAuth?'Подключите Яндекс Музыку: Настройки → Плейлисты.':('Не получилось: '+(e.message||'ошибка')),'err');
-    if(needAuth){const b=document.createElement('button');b.type='button';b.className='hm-ytrack-btn';b.textContent='Подключить';b.onclick=()=>{openSettings();setTimeout(()=>openSettingsSection('music'),80);};card.appendChild(b);}
+    set(needAuth?'Подключите свой аккаунт Яндекса: Настройки → Плагины.':('Не получилось: '+(e.message||'ошибка')),'err');
+    if(needAuth){const b=document.createElement('button');b.type='button';b.className='hm-ytrack-btn';b.textContent='Подключить';b.onclick=()=>{openSettings();setTimeout(()=>openSettingsSection('plugins'),80);};card.appendChild(b);}
   }
   scrollChat();
 }

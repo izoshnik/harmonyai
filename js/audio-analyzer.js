@@ -321,6 +321,7 @@ self.onmessage=function(ev){
     + '<div class="aa-status" id="aaStatus"></div>'
     + '<div class="aa-acts">'
     + '<button type="button" class="aa-btn aa-btn-primary" id="aaAIBtn" disabled>Анализировать с помощью ИИ</button>'
+    + '<button type="button" class="aa-btn aa-btn-ghost" id="aaYmBtn" title="Загрузить трек в ваш плейлист «HarmonyAI» в Яндекс Музыке">В Яндекс Музыку</button>'
     + '<button type="button" class="aa-btn aa-btn-ghost" id="aaOtherBtn">Другой файл</button>'
     + '</div>'
     + '<div class="aa-note">Весь анализ идёт в вашем браузере. В чат уходят только метрики — не аудиофайл.</div>'
@@ -362,6 +363,13 @@ self.onmessage=function(ev){
     $('aaClose').addEventListener('click', function () { close(); });
     $('aaPickBtn').addEventListener('click', function () { $('aaFileInp').click(); });
     $('aaOtherBtn').addEventListener('click', function () { $('aaFileInp').click(); });
+    /* Свой трек → личный плейлист в Яндекс Музыке (как «Загрузить с устройства»). */
+    $('aaYmBtn').addEventListener('click', function () {
+      if (!st.file || typeof window.hmSendTrackToYandex !== 'function') return;
+      var f = st.file;
+      close();
+      window.hmSendTrackToYandex(f);
+    });
     $('aaFileInp').addEventListener('change', function (ev) {
       var f = ev.target.files && ev.target.files[0];
       ev.target.value = '';
