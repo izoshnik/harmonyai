@@ -139,3 +139,65 @@
 .code-out .st{color:#8b8b96;}
 .code-out img{display:block;max-width:100%;background:#fff;border-radius:8px;margin:8px 0;}
 .code-out-head{font:600 11px/1 'Inter',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#8b8b96;margin-bottom:6px;}
+
+/* =====================================================================
+   ОКНО КОДА — мягкий дизайн. :not(#_) поднимает специфичность над
+   стеклянными правилами тем в app.html, не трогая их самих.
+   ===================================================================== */
+html:not(#_) .code-block{
+  --cb-bg:#17171b;--cb-head:transparent;--cb-line:rgba(255,255,255,.07);--cb-text:#e4e2ea;--cb-muted:#8f8c99;
+  --cb-seg:rgba(255,255,255,.06);--cb-seg-on:rgba(255,255,255,.13);--cb-btn:#b9b6c3;--cb-btn-hover:rgba(255,255,255,.07);
+  --cb-frame:#0f0f12;
+  /* пастельная подсветка */
+  --hl-kw:#c9b2ff;--hl-str:#a9dcc0;--hl-num:#f5c9a6;--hl-fn:#a7cbff;--hl-attr:#f1b8dc;--hl-tag:#f4aeb4;
+  --hl-com:#76737f;--hl-punc:#a9a6b3;--hl-var:#e9d9a7;
+  margin:16px 0;border-radius:18px;background:var(--cb-bg);border:1px solid var(--cb-line);
+  box-shadow:0 1px 0 rgba(255,255,255,.04) inset,0 8px 24px -12px rgba(0,0,0,.45);
+  -webkit-backdrop-filter:none;backdrop-filter:none;overflow:hidden;
+}
+html[data-theme="light"]:not(#_) .code-block,html[data-theme="messenger"]:not(#_) .code-block{
+  --cb-bg:#f8f7fb;--cb-line:rgba(40,30,70,.08);--cb-text:#34313d;--cb-muted:#8a8697;
+  --cb-seg:rgba(40,30,70,.06);--cb-seg-on:#fff;--cb-btn:#6f6b7c;--cb-btn-hover:rgba(40,30,70,.06);--cb-frame:#fff;
+  --hl-kw:#7a4fd0;--hl-str:#2d7f5c;--hl-num:#b4612a;--hl-fn:#2f69c2;--hl-attr:#a33f86;--hl-tag:#c0485c;
+  --hl-com:#a09cab;--hl-punc:#7d7989;--hl-var:#8a6d1c;
+  box-shadow:0 1px 2px rgba(40,30,70,.04),0 10px 26px -16px rgba(40,30,70,.18);
+}
+html:not(#_) .code-block .code-head{padding:10px 10px 6px 16px;background:var(--cb-head);gap:8px;}
+html:not(#_) .code-block .code-lang{font:600 12px/1 'Inter',sans-serif;letter-spacing:.02em;color:var(--cb-muted);}
+html:not(#_) .code-block .code-copy{width:32px;height:32px;border-radius:10px;color:var(--cb-btn);}
+html:not(#_) .code-block .code-copy:hover:not(:disabled){background:var(--cb-btn-hover);color:var(--cb-text);}
+html:not(#_) .code-block .code-seg{background:var(--cb-seg);padding:3px;}
+html:not(#_) .code-block .code-tab{width:36px;height:28px;color:var(--cb-btn);}
+html:not(#_) .code-block .code-tab:hover:not(:disabled){color:var(--cb-text);}
+html:not(#_) .code-block .code-tab.on{background:var(--cb-seg-on);color:var(--cb-text);box-shadow:0 1px 2px rgba(0,0,0,.12);}
+html:not(#_) .code-block .code-pre{padding:4px 18px 18px;scrollbar-width:thin;}
+html:not(#_) .code-block .code-pre code.hljs{font-size:13px;line-height:1.7;color:var(--cb-text);font-feature-settings:"calt" 0;}
+
+/* подсветка */
+html:not(#_) .code-block .hljs-keyword,html:not(#_) .code-block .hljs-built_in,html:not(#_) .code-block .hljs-literal,
+html:not(#_) .code-block .hljs-type,html:not(#_) .code-block .hljs-meta .hljs-keyword,html:not(#_) .code-block .hljs-selector-tag{color:var(--hl-kw);}
+html:not(#_) .code-block .hljs-string,html:not(#_) .code-block .hljs-regexp,html:not(#_) .code-block .hljs-meta .hljs-string,
+html:not(#_) .code-block .hljs-addition{color:var(--hl-str);}
+html:not(#_) .code-block .hljs-number,html:not(#_) .code-block .hljs-symbol,html:not(#_) .code-block .hljs-bullet{color:var(--hl-num);}
+html:not(#_) .code-block .hljs-title,html:not(#_) .code-block .hljs-title.function_,html:not(#_) .code-block .hljs-section,
+html:not(#_) .code-block .hljs-selector-class,html:not(#_) .code-block .hljs-selector-id{color:var(--hl-fn);}
+html:not(#_) .code-block .hljs-attr,html:not(#_) .code-block .hljs-attribute,html:not(#_) .code-block .hljs-property{color:var(--hl-attr);}
+html:not(#_) .code-block .hljs-name,html:not(#_) .code-block .hljs-tag,html:not(#_) .code-block .hljs-deletion{color:var(--hl-tag);}
+html:not(#_) .code-block .hljs-variable,html:not(#_) .code-block .hljs-params,html:not(#_) .code-block .hljs-template-variable{color:var(--hl-var);}
+html:not(#_) .code-block .hljs-comment,html:not(#_) .code-block .hljs-quote{color:var(--hl-com);font-style:italic;}
+html:not(#_) .code-block .hljs-punctuation,html:not(#_) .code-block .hljs-tag .hljs-punctuation,html:not(#_) .code-block .hljs-meta{color:var(--hl-punc);}
+
+/* результат: консоль и живое превью */
+html:not(#_) .code-block .code-out{color:var(--cb-text);padding:6px 18px 16px;font-size:12.5px;line-height:1.65;animation:cbFade .22s ease-out;}
+html:not(#_) .code-block .code-out > div:not(.st):not(.err)::before{content:"›";color:var(--cb-muted);margin-right:8px;}
+html:not(#_) .code-block .code-out .st{color:var(--cb-muted);}
+html:not(#_) .code-block .code-out.is-html{padding:2px 8px 8px;}
+html:not(#_) .code-block .code-frame{border-radius:12px;background:var(--cb-frame);box-shadow:0 0 0 1px var(--cb-line);height:min(60vh,440px);}
+@keyframes cbFade{from{opacity:0;transform:translateY(3px);}to{opacity:1;transform:none;}}
+@media (prefers-reduced-motion:reduce){html:not(#_) .code-block .code-out{animation:none;}}
+@media (max-width:768px){
+  html:not(#_) .code-block{border-radius:16px;}
+  html:not(#_) .code-block .code-pre{padding:2px 15px 16px;}
+  html:not(#_) .code-block .code-pre code.hljs{font-size:12.5px;}
+}
+html:not(#_) .code-block .code-pre,html:not(#_) .code-block .code-pre code.hljs{background:transparent;border:0;box-shadow:none;border-radius:0;}
