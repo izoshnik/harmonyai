@@ -12,7 +12,7 @@
 html[data-theme="dark"] .hts{--ns:88%;--nl:70%;--nl-lit:82%;}
 @media(max-width:768px){html:not([data-theme="light"]):not([data-theme="messenger"]) .hts{--ns:88%;--nl:70%;--nl-lit:82%;}}
 
-.hts-staff{width:36px;height:22px;flex:none;overflow:visible;color:var(--hts-faint);}
+.hts-staff{width:21px;height:13px;flex:none;overflow:visible;color:var(--hts-faint);}
 .hts-lines line{stroke:currentColor;stroke-width:.8;}
 .hts-playhead{stroke:var(--hts-accent);stroke-width:1.2;opacity:.45;transition:opacity .4s;}
 .hts-n{transition:transform .38s cubic-bezier(.34,1.5,.5,1),opacity .35s;}
@@ -131,3 +131,15 @@ html[data-theme="dark"] .hts{--ns:88%;--nl:70%;--nl-lit:82%;}
 .hts-key,.hts-time{white-space:nowrap;flex:none;}
 .hts-alt.hts-wave{overflow:hidden;}
 .tr .trHeader .hts{min-width:0;flex:1 1 auto;}
+
+/* ===== Canvas-анимации «Думаю» — высотой на пару пикселей больше заглавной буквы ===== */
+.hts-cv{display:inline-block;width:13px;height:13px;flex:none;}
+.hts-cv canvas{display:block;width:100%;height:100%;}
+.hts[data-state="done"] .hts-cv{opacity:.55;}
+/* Цветные анимации — подпись переливается теми же цветами */
+.hts.hts-color[data-state="thinking"] .hts-label{
+  background:linear-gradient(90deg,var(--lc-a),var(--lc-b),var(--lc-c),var(--lc-b),var(--lc-a));
+  background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;
+  animation:htsFlow 3s linear infinite;}
+@keyframes htsFlow{to{background-position:-300% 0}}
+@media(prefers-reduced-motion:reduce){.hts.hts-color[data-state="thinking"] .hts-label{animation:none;}}
