@@ -203,3 +203,6 @@ html:not(#_) .code-block .code-frame{border-radius:12px;background:var(--cb-fram
 html:not(#_) .code-block .code-pre,html:not(#_) .code-block .code-pre code.hljs{background:transparent;border:0;box-shadow:none;border-radius:0;}
 .music-pl-intro p,.music-pl-suggest p{margin:0;}
 .music-pl-suggest + .hmr-chips{margin-top:10px;}
+.music-answer p{margin:0 0 8px;}
+.music-answer p:last-child{margin-bottom:0;}
+.music-answer .hmr-host{margin-top:8px;}

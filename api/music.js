@@ -37,6 +37,7 @@ import {
   getAccountStatus,
   YandexError,
   ensureUgcPlaylist, getUgcUploadTarget, uploadUgcBytes, UGC_PLAYLIST_TITLE,
+  createPlaylistWithTracks, playlistWebUrl,
 } from '../lib/yandex.js';
 
 import {
@@ -75,6 +76,13 @@ function pickByArtist(r, wanted) {
   });
   if (hit) return hit;
   return /[а-я]/.test(w) !== /[а-я]/.test(artistKey(list[0].artist)) ? list[0] : null;
+}
+
+async function exportToYandex(resolved, token, title, tracks) {
+  const uid = await ensureUid(resolved);
+  if (!uid) throw new YandexError('Не удалось определить аккаунт Яндекса', 401, 'auth');
+  const r = await createPlaylistWithTracks(uid, title, tracks, { token });
+  return { kind: r.kind, added: r.added, url: playlistWebUrl(resolved.login || uid, r.kind) };
 }
 
 function fail(res, status, type, message) {
@@ -424,10 +432,30 @@ export default async function handler(req, res) {
           console.warn('[music] ai_playlist empty:', plan.reason || 'not_found');
           return res.status(200).json({ type: 'music_not_found', reason: plan.reason || 'not_found' });
         }
+        /* Подключён свой аккаунт Яндекса — плейлист сразу появляется и там. */
+        let yandex = null;
+        if (resolved.source === 'user' && body.toYandex !== false) {
+          yandex = await exportToYandex(resolved, token, title || 'Плейлист от HarmonyAI', items).catch((e) => {
+            console.warn('[music] export to Yandex failed:', String(e?.message || e).slice(0, 200));
+            return null;
+          });
+        }
         return res.status(200).json({
+          yandex,
           title: title || 'Плейлист от HarmonyAI', description, items, source,
           intro: source === 'ai' ? plan.intro : '', suggest: source === 'ai' ? plan.suggest : '', chip: source === 'ai' ? plan.chip : ''
         });
+      }
+
+      /* «Сохранить в Яндекс Музыку» для уже показанного плейлиста. */
+      case 'export_playlist': {
+        if (resolved.source !== 'user') {
+          return needAuth(res, 'Чтобы сохранить плейлист в вашу Яндекс Музыку, подключите свой аккаунт Яндекса.');
+        }
+        const tracks = Array.isArray(body.tracks) ? body.tracks : [];
+        if (!tracks.length) return fail(res, 400, 'bad_request', 'Нет треков');
+        const out = await exportToYandex(resolved, token, String(body.title || 'HarmonyAI'), tracks);
+        return res.status(200).json(out);
       }
 
       case 'suggest': {
