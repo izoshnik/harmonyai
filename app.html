@@ -207,6 +207,9 @@ html[data-theme="light"] .limit-reached{background:rgba(239,68,68,.07);border-co
   font-family:inherit;font-size:14px;line-height:1.55;color:var(--set-text,var(--text));background:var(--set-soft,rgba(127,127,127,.08));border:1px solid color-mix(in srgb,var(--set-line,#999) 45%,transparent);outline:none;transition:border-color .15s;}
 .stp-aboutme-ta:focus{border-color:color-mix(in srgb,var(--set-text,#888) 45%,transparent);}
 .stp-aboutme-foot{display:flex;text-align:left;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;font-size:12.5px;color:var(--set-muted,var(--text2));}
+.music-pl-intro{margin:0 2px 10px;}
+.music-pl-suggest{margin:12px 2px 0;}
+.music-pl-saved+.music-pl-suggest{margin-top:10px;}
 </style>
 <style>
 /* Шрифты подключены через <link rel="stylesheet"> в <head> — быстрее, чем @import внутри CSS. */
@@ -6821,7 +6824,10 @@ async function openChat(id,opts){
       // Музыкальная карточка — пересобираем из сохранённого пейлоада.
       // Подписанной ссылки в истории нет, поэтому Play возьмёт свежую.
       const shell=createAiBubbleShell({showActions:false,createdAt:m.createdAt,historyIndex:idx});
-      try{shell.msg.appendChild(buildMusicCard(m.music));}catch(e){shell.msg.textContent=txt||'';}
+      try{
+        if(m.music.aiPlaylist)hmRenderAiPlaylist(shell.msg,m.music);
+        else shell.msg.appendChild(buildMusicCard(m.music));
+      }catch(e){shell.msg.textContent=txt||'';}
       /* Под карточкой мог быть настоящий ответ модели («кто написал песню»).
          Служебная подпись «Включаю: …» помечена musicLabel — её не рисуем. */
       if(txt&&!m.musicLabel){
@@ -9297,7 +9303,7 @@ function hmRenderReasoningSteps(tr,clean){
   // Сводка в шапке — последний законченный шаг
   const doneSteps=tr._done?steps:steps.slice(0,-1);
   const last=doneSteps[doneSteps.length-1]||steps[steps.length-1];
-  if(last&&tr._hts&&tr._hts.setHeadline)tr._hts.setHeadline(last.title);
+  if(last&&tr._hts&&tr._hts.setHeadline){const nowH=performance.now();if(!tr._stepHeadAt||nowH-tr._stepHeadAt>20000){tr._stepHeadAt=nowH;tr._hts.setHeadline(last.title);}}
   tr._hmStepHead=true;
 }
 function formatReasoningText(text){
@@ -9559,7 +9565,8 @@ function appendReasoningChunk(msgEl,text){
   // рассуждений (как «Сравниваю минорные гаммы» рядом с «Думаю»). Не чаще раза в 1,2 с.
   if(tr._hts&&tr._hts.setHeadline&&!tr._hmStepHead){
     const now=Date.now();
-    if(!tr._headAt||now-tr._headAt>1200){tr._headAt=now;try{tr._hts.setHeadline(hmReasoningHeadline(tr._text));}catch(_){}}
+    // Заголовок меняется не чаще раза в 20 с — иначе фразы мелькали каждую секунду.
+    if(!tr._headAt||now-tr._headAt>20000){const h=hmReasoningHeadline(tr._text);if(h){tr._headAt=now;try{tr._hts.setHeadline(h);}catch(_){}}}
   }
   // Пишем в DOM не чаще одного раза за кадр — иначе стриминг начинает дёргаться.
   if(!tr._raf)tr._raf=requestAnimationFrame(function(){flushReasoning(tr);});
@@ -11775,6 +11782,22 @@ function hmDetectPlaylistBuild(text){
   count=Math.max(5,Math.min(30,count||15));
   return {count};
 }
+/* Что модель знает о вкусах человека — для предложения после плейлиста. */
+function hmPlaylistContext(){
+  const parts=[];
+  try{const s=getSettings();if(s.memRecall!==false&&s.aboutUser&&s.aboutUser.text)parts.push(String(s.aboutUser.text));}catch(e){}
+  try{
+    if(getSettings().memRecall!==false&&window.HmMemory){
+      const f=HmMemory.list().filter(function(r){return (r.scope||'user')==='user';}).map(function(r){return '- '+String(r.memory_text||'').slice(0,160);}).slice(0,15);
+      if(f.length)parts.push(f.join('\n'));
+    }
+  }catch(e){}
+  try{
+    const prev=chatHistory.filter(function(m){return m.role==='user'&&typeof m.content==='string';}).slice(-6,-1).map(function(m){return '- '+m.content.slice(0,160);});
+    if(prev.length)parts.push('Недавние просьбы в этом чате:\n'+prev.join('\n'));
+  }catch(e){}
+  return parts.join('\n\n').slice(0,1400);
+}
 async function runAiPlaylist(text,spec){
   const gw=document.getElementById('greetingWrap');if(gw)gw.style.display='none';
   addUserBubble(text,[],{createdAt:messageNow()});
@@ -11793,14 +11816,14 @@ async function runAiPlaylist(text,spec){
     return true;
   };
   let data=null;
-  try{data=await window.MusicClient.aiPlaylist(text,spec.count);}
+  try{data=await window.MusicClient.aiPlaylist(text,spec.count,hmPlaylistContext());}
   catch(e){
     if(e&&e.type==='music_auth_required'){
       try{hts&&hts.stop();}catch(_){}
       const note={role:'assistant',content:'Чтобы собрать плейлист, подключите аккаунт Яндекса.',createdAt:messageNow()};
       chatHistory.push(note);
       await renderMusicConnect(sh.msg,async function(){
-        try{const d2=await window.MusicClient.aiPlaylist(text,spec.count);if(d2&&d2.items&&d2.items.length)showAiPlaylist(sh,text,d2,note);}catch(_){}
+        try{const d2=await window.MusicClient.aiPlaylist(text,spec.count,hmPlaylistContext());if(d2&&d2.items&&d2.items.length)showAiPlaylist(sh,text,d2,note);}catch(_){}
       });
       saveChat().catch(function(){});
       return true;
@@ -11816,6 +11839,29 @@ async function runAiPlaylist(text,spec){
   showAiPlaylist(sh,text,data,note);
   return true;
 }
+function hmPlWord(n){return n%10===1&&n%100!==11?'трек':(n%10>=2&&n%10<=4&&(n%100<10||n%100>=20)?'трека':'треков');}
+/* Вступление — карточка — предложение с кнопкой. Используется и для нового
+   ответа, и при открытии старого чата (данные лежат в payload.aiText). */
+function hmRenderAiPlaylist(container,payload){
+  const t=payload.aiText||{};
+  const n=(payload.items||[]).length;
+  const intro=t.intro||('Собрал плейлист «'+((payload.collection&&payload.collection.title)||'Плейлист')+'» — '+n+' '+hmPlWord(n)+'.');
+  const p1=document.createElement('div');p1.className='music-answer music-pl-intro';
+  try{renderMd(p1,intro);}catch(e){p1.textContent=intro;}
+  container.appendChild(p1);
+  container.appendChild(buildMusicCard(payload));
+  const sug=t.suggest||'Если хотите, изменю этот плейлист или соберу ещё один.';
+  const p2=document.createElement('div');p2.className='music-answer music-pl-suggest';
+  try{renderMd(p2,sug);}catch(e){p2.textContent=sug;}
+  container.appendChild(p2);
+  if(t.chip){
+    const row=document.createElement('div');row.className='hmr-chips';
+    const c=document.createElement('button');c.type='button';c.className='hmr-chip';
+    c.innerHTML=((window.HmRich&&HmRich.ICON&&HmRich.ICON.arrow)||'')+'<span>'+musicEscape(t.chip)+'</span>';
+    c.onclick=function(){if(window.HmRich&&HmRich.sendPrompt(t.chip))c.disabled=true;};
+    row.appendChild(c);container.appendChild(row);
+  }
+}
 function showAiPlaylist(sh,text,data,note){
   const items=data.items;
   let savedId=null;
@@ -11825,24 +11871,28 @@ function showAiPlaylist(sh,text,data,note){
       if(pl){savedId=pl.id;items.forEach(function(t){window.MusicPlaylists.addToPlaylist(pl.id,t);});}
     }
   }catch(e){}
-  const n=items.length;
-  const word=n%10===1&&n%100!==11?'трек':(n%10>=2&&n%10<=4&&(n%100<10||n%100>=20)?'трека':'треков');
+  const n=items.length,word=hmPlWord(n);
   const payload={kind:'playlist',query:text,items:items,bestMatch:null,aiPlaylist:true,
     collection:{title:data.title||'Плейлист от HarmonyAI',subtitle:n+' '+word+' · собрал HarmonyAI',
-      description:data.description||'',cover:(items.find(function(t){return t.cover;})||{}).cover||''},_t:Date.now()};
+      description:data.description||'',cover:(items.find(function(t){return t.cover;})||{}).cover||''},
+    aiText:{intro:data.intro||'',suggest:data.suggest||'',chip:data.chip||''},_t:Date.now()};
   sh.msg.innerHTML='';
-  sh.msg.appendChild(buildMusicCard(payload));
+  hmRenderAiPlaylist(sh.msg,payload);
   if(savedId){
     const foot=document.createElement('div');foot.className='music-pl-saved';
     foot.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4.5 12.5l5 5 10-11" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Сохранён во вкладку «Плейлисты»</span><button type="button">Открыть</button>';
     foot.querySelector('button').onclick=function(){try{openSettings();setTimeout(function(){openSettingsSection('music');},60);}catch(e){}};
-    sh.msg.appendChild(foot);
+    const card=sh.msg.querySelector('.music-card');
+    if(card&&card.nextSibling)sh.msg.insertBefore(foot,card.nextSibling);else sh.msg.appendChild(foot);
   }
   scrollChat();
   const stored=Object.assign({},payload);delete stored._t;
-  /* Для модели в истории — список треков (на «добавь ещё», «убери рэп» ей есть на что опереться);
-     на экране он не дублируется: musicLabel скрывает текст под карточкой. */
-  note.content='Собрал плейлист «'+payload.collection.title+'» ('+n+' '+word+'): '+items.map(function(t){return t.artist+' — '+t.title;}).join('; ');
+  /* Для модели в истории — вступление, список треков и предложение (на «да»,
+     «добавь ещё», «убери рэп» ей есть на что опереться); на экране текст под
+     карточкой не дублируется: musicLabel скрывает его. */
+  note.content=(payload.aiText.intro||('Собрал плейлист «'+payload.collection.title+'» ('+n+' '+word+').'))+
+    '\nТреки: '+items.map(function(t){return t.artist+' — '+t.title;}).join('; ')+
+    (payload.aiText.suggest?'\n'+payload.aiText.suggest:'');
   note.music=stored;note.musicLabel=true;
   saveChat().catch(function(){});
 }

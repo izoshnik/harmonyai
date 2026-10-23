@@ -80,6 +80,25 @@
     'Обосновываю','Систематизирую','Структурирую','Синтезирую'];
   function pickVerb(prev){var v;do{v=VERBS[Math.floor(Math.random()*VERBS.length)];}while(v===prev&&VERBS.length>1);return v;}
 
+  /* Смена слова при долгом ожидании: раз в 25–40 с, а не каждую секунду.
+     Расписание общее для одного запроса (по startedAt) — индикатор в ленте и
+     заголовок блока рассуждений показывают одно и то же слово. */
+  var ROTATE=['Думаю','Размышляю','Анализирую','Сопоставляю','Проверяю','Уточняю','Продумываю','Рассуждаю','Создаю ответ','Формулирую','Собираю ответ'];
+  function schedule(t0,firstVerb){
+    var g=window.__hmThinkSched;
+    if(g&&g.t0===t0)return g;
+    var verbs=[firstVerb],gaps=[],prev=firstVerb;
+    for(var i=0;i<24;i++){var v;do{v=ROTATE[Math.floor(Math.random()*ROTATE.length)];}while(v===prev);verbs.push(v);prev=v;gaps.push(25000+Math.random()*15000);}
+    g={t0:t0,verbs:verbs,gaps:gaps};
+    window.__hmThinkSched=g;
+    return g;
+  }
+  function verbAt(g,elapsed){
+    var acc=0;
+    for(var i=0;i<g.gaps.length;i++){acc+=g.gaps[i];if(elapsed<acc)return g.verbs[i];}
+    return g.verbs[g.verbs.length-1];
+  }
+
   /* ---------- анимации рядом с подписью ----------
      staff — нотный стан, только для музыкальных вопросов. Остальные — 15 canvas-
      анимаций: рисуются в поле 56×56 на скрытом холсте и уменьшаются до размера
@@ -223,6 +242,7 @@
     var col=[0,1,2,3,4],pitch=X.map(function(){return 2+Math.floor(Math.random()*5);}),wasLit=[0,0,0,0,0];
     var raf=0,running=false,lastSec=-1,lastSwap=0,timers=[];
     var t0=Number(opts.startedAt)||performance.now();
+    var sched=opts.label&&!opts.startedAt?null:schedule(t0,verb); // явная подпись («Собираю плейлист») не меняется
     function place(i,y,x,delay){
       if(x==null)x=X[col[i]];
       notes[i].style.transitionDelay=(delay||0)+'ms';
@@ -259,6 +279,7 @@
       if(cvAnim)cvAnim.frame(reduced?0.6:e/1000);
       var s=Math.floor(e/1000);
       if(s!==lastSec){lastSec=s;time.textContent=s>0?fmtSecs(s*1000):'';}
+      if(sched&&s!==lastVerb){lastVerb=s;var want=verbAt(sched,e);if(want!==label.textContent)setLabel(want);}
       raf=requestAnimationFrame(frame);
     }
     function setLabel(str){
