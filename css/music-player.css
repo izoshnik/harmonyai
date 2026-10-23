@@ -769,7 +769,7 @@ body.music-screen-open { overflow: hidden; }
 
 .music-card__row {
   display: grid;
-  grid-template-columns: 26px 1fr auto auto;
+  grid-template-columns: 26px minmax(0, 1fr) minmax(0, 38%) auto;
   gap: 10px;
   align-items: center;
   width: 100%;
@@ -786,7 +786,7 @@ body.music-screen-open { overflow: hidden; }
 .music-card__row[disabled] { opacity: .45; cursor: not-allowed; }
 .music-card__n { color: var(--music-card-dim); font-variant-numeric: tabular-nums; }
 .music-card__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.music-card__artist { color: var(--music-card-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 34%; }
+.music-card__artist { color: var(--music-card-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .music-card__dur { color: var(--music-card-dim); font-variant-numeric: tabular-nums; }
 
 /* Одиночный трек: компактная «таблетка». */
@@ -846,7 +846,12 @@ body.music-screen-open { overflow: hidden; }
   .music-bar__row { gap: 10px; padding: 7px 8px; }
   .music-card--single { max-width: 100%; }
   .music-card--single .music-card__title { font-size: 14.5px; }
-  .music-card__artist { display: none; }
+  /* Исполнитель под названием — в плейлисте он важен, а в одну строку не помещается. */
+  .music-card__row { grid-template-columns: 22px minmax(0, 1fr) auto; grid-template-areas: "n name dur" "n artist dur"; row-gap: 1px; column-gap: 10px; padding: 8px 12px; }
+  .music-card__n { grid-area: n; }
+  .music-card__name { grid-area: name; }
+  .music-card__artist { grid-area: artist; font-size: 12px; }
+  .music-card__dur { grid-area: dur; }
 
   .music-screen__inner { padding-left: 18px; padding-right: 18px; gap: 12px; }
   /* На узких экранах центральные кнопки бара уступают мета-данным:

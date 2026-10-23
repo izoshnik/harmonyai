@@ -28,6 +28,7 @@ import { handler as intentHandler } from '../lib/util-intent.js';
 import { handler as musicIntentHandler } from '../lib/util-music-intent.js';
 import { handler as titleHandler } from '../lib/util-title.js';
 import { handler as detectLocaleHandler } from '../lib/util-detect-locale.js';
+import { handler as profileSummaryHandler } from '../lib/util-profile-summary.js';
 import { handleIngestUrl, handleIngestText, handleIngestProxy, handleIngestDistill } from '../lib/textbook-ingestor.js';
 
 const OPS = {
@@ -35,6 +36,7 @@ const OPS = {
   'music-intent': musicIntentHandler,
   'title': titleHandler,
   'detect-locale': detectLocaleHandler,
+  'profile-summary': profileSummaryHandler,
   'ingest-url': handleIngestUrl,
   'ingest-text': handleIngestText,
   'ingest-proxy': handleIngestProxy,

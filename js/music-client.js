@@ -212,8 +212,14 @@
     });
   }
 
+  /** Плейлист по описанию: модель подбирает треки, сервер проверяет их в каталоге. */
+  function aiPlaylist(prompt, count) {
+    return call('ai_playlist', { prompt: prompt, count: count }, { timeout: 65000 });
+  }
+
   global.MusicClient = {
     call: call,
+    aiPlaylist: aiPlaylist,
     streamUrl: streamUrl,
     resolve: resolve,
     search: search,

@@ -48,6 +48,7 @@ import {
 } from '../lib/yandex-auth.js';
 
 import { cacheDelete } from '../lib/music-cache.js';
+import { planPlaylist } from '../lib/ai-tasks.js';
 
 import { Readable } from 'node:stream';
 
@@ -344,6 +345,41 @@ export default async function handler(req, res) {
         const r = await searchTracks(body.query, { token, limit });
         if (!r.items.length) return res.status(200).json({ type: 'music_not_found' });
         return res.status(200).json({ items: r.items, bestMatch: r.bestMatch });
+      }
+
+      /* Плейлист по описанию: модель предлагает треки, каталог Яндекса
+         подтверждает каждый. В ответ — только найденные, без выдуманных. */
+      case 'ai_playlist': {
+        const plan = await planPlaylist(body.prompt, body.count);
+        if (!plan || !plan.tracks.length) return fail(res, 502, 'playlist_failed', 'Не получилось придумать плейлист, попробуйте переформулировать');
+        const found = new Array(plan.tracks.length).fill(null);
+        let next = 0;
+        const worker = async () => {
+          while (next < plan.tracks.length) {
+            const i = next++;
+            const t = plan.tracks[i];
+            try {
+              const r = await searchTracks(`${t.artist} ${t.title}`, { token, limit: 3 });
+              const best = r.bestMatch || r.items[0] || null;
+              if (best && best.playable !== false) found[i] = best;
+            } catch (e) { /* трек пропускаем */ }
+          }
+        };
+        await Promise.all(Array.from({ length: 6 }, worker));
+        const seenId = new Set(), seenName = new Set(), perArtist = {};
+        const items = [];
+        for (const t of found) {
+          if (!t || items.length >= plan.want) continue;
+          const nameKey = `${String(t.artist || '').toLowerCase()}|${String(t.title || '').toLowerCase()}`;
+          const artistKey = String(t.artist || '').toLowerCase();
+          if (seenId.has(String(t.trackId)) || seenName.has(nameKey)) continue;
+          if ((perArtist[artistKey] || 0) >= 2) continue;
+          seenId.add(String(t.trackId)); seenName.add(nameKey);
+          perArtist[artistKey] = (perArtist[artistKey] || 0) + 1;
+          items.push(t);
+        }
+        if (!items.length) return res.status(200).json({ type: 'music_not_found' });
+        return res.status(200).json({ title: plan.title, description: plan.description, items });
       }
 
       case 'suggest': {
