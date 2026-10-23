@@ -26,6 +26,7 @@ import {
   prefetchPlaybackUrl,
   getPlaylist,
   searchPlaylist,
+  catalogPicks,
   getArtist,
   searchArtist,
   getAlbum,
@@ -48,13 +49,33 @@ import {
 } from '../lib/yandex-auth.js';
 
 import { cacheDelete } from '../lib/music-cache.js';
-import { planPlaylist } from '../lib/ai-tasks.js';
+import { planPlaylist, playlistTopic } from '../lib/ai-tasks.js';
 
 import { Readable } from 'node:stream';
 
 export const config = { maxDuration: 60 };
 
 /* ------------------------------------------------------------------ ответы */
+
+/* Каверы и караоке-версии не подставляем: из результатов поиска берём трек
+   того исполнителя, которого назвала модель. Кириллицу с латиницей не сравнить
+   (модель пишет «Кино», каталог — «Кино» / «Kino») — тогда доверяем поиску. */
+function artistKey(s) { return String(s || '').toLowerCase().replace(/ё/g, 'е').replace(/[^a-zа-я0-9]+/g, ' ').trim(); }
+function pickByArtist(r, wanted) {
+  const list = [r?.bestMatch, ...(r?.items || [])].filter((t) => t && t.playable !== false);
+  if (!list.length) return null;
+  const w = artistKey(wanted);
+  if (!w) return list[0];
+  const words = w.split(' ').filter((x) => x.length >= 3);
+  const hit = list.find((t) => {
+    const a = artistKey(t.artist);
+    const aw = a.split(' ');
+    // «Dua Lipa, DaBaby» подходит к «Dua Lipa»; «Harry» к «Harry Styles» — нет.
+    return a === w || a.includes(w) || (words.length && words.every((x) => aw.includes(x)));
+  });
+  if (hit) return hit;
+  return /[а-я]/.test(w) !== /[а-я]/.test(artistKey(list[0].artist)) ? list[0] : null;
+}
 
 function fail(res, status, type, message) {
   return res.status(status).json({ type, error: { message } });
@@ -350,36 +371,63 @@ export default async function handler(req, res) {
       /* Плейлист по описанию: модель предлагает треки, каталог Яндекса
          подтверждает каждый. В ответ — только найденные, без выдуманных. */
       case 'ai_playlist': {
-        const plan = await planPlaylist(body.prompt, body.count);
-        if (!plan || !plan.tracks.length) return fail(res, 502, 'playlist_failed', 'Не получилось придумать плейлист, попробуйте переформулировать');
-        const found = new Array(plan.tracks.length).fill(null);
-        let next = 0;
-        const worker = async () => {
-          while (next < plan.tracks.length) {
-            const i = next++;
-            const t = plan.tracks[i];
-            try {
-              const r = await searchTracks(`${t.artist} ${t.title}`, { token, limit: 3 });
-              const best = r.bestMatch || r.items[0] || null;
-              if (best && best.playable !== false) found[i] = best;
-            } catch (e) { /* трек пропускаем */ }
-          }
-        };
-        await Promise.all(Array.from({ length: 6 }, worker));
-        const seenId = new Set(), seenName = new Set(), perArtist = {};
+        const t0 = Date.now();
+        const plan = await planPlaylist(body.prompt, body.count, String(body.context || '').slice(0, 1500));
+        const want = plan.want;
         const items = [];
-        for (const t of found) {
-          if (!t || items.length >= plan.want) continue;
-          const nameKey = `${String(t.artist || '').toLowerCase()}|${String(t.title || '').toLowerCase()}`;
+        const seenId = new Set(), seenName = new Set(), perArtist = {};
+        const push = (t, maxPerArtist) => {
+          if (!t || t.playable === false || items.length >= want) return;
+          const nameKey = `${String(t.artist || '').toLowerCase()}|${String(t.title || '').toLowerCase().replace(/\s*\(.*?\)\s*/g, '')}`;
           const artistKey = String(t.artist || '').toLowerCase();
-          if (seenId.has(String(t.trackId)) || seenName.has(nameKey)) continue;
-          if ((perArtist[artistKey] || 0) >= 2) continue;
+          if (seenId.has(String(t.trackId)) || seenName.has(nameKey)) return;
+          if (maxPerArtist && (perArtist[artistKey] || 0) >= maxPerArtist) return;
           seenId.add(String(t.trackId)); seenName.add(nameKey);
           perArtist[artistKey] = (perArtist[artistKey] || 0) + 1;
           items.push(t);
+        };
+        if (plan.tracks.length) {
+          const found = new Array(plan.tracks.length).fill(null);
+          let next = 0;
+          const worker = async () => {
+            while (next < plan.tracks.length) {
+              const i = next++;
+              const t = plan.tracks[i];
+              try {
+                const r = await searchTracks(`${t.artist} ${t.title}`, { token, limit: 5 });
+                found[i] = pickByArtist(r, t.artist);
+              } catch (e) { /* трек пропускаем */ }
+            }
+          };
+          await Promise.all(Array.from({ length: 8 }, worker));
+          // Плейлист одного исполнителя — по просьбе «треки Канье Уэста»: тогда без ограничения на артиста.
+          const artists = new Set(plan.tracks.map((t) => t.artist.toLowerCase()));
+          const oneArtist = artists.size <= 2;
+          found.forEach((t) => push(t, oneArtist ? 0 : 2));
         }
-        if (!items.length) return res.status(200).json({ type: 'music_not_found' });
-        return res.status(200).json({ title: plan.title, description: plan.description, items });
+        /* Модель не справилась или почти ничего не нашлось в каталоге — добираем
+           прямо из каталога Яндекса по теме просьбы. */
+        let title = plan.title, description = plan.description, source = 'ai';
+        if (items.length < Math.min(want, 8) && Date.now() - t0 < 50000) {
+          const topic = playlistTopic(body.prompt) || String(body.prompt || '');
+          const picks = await catalogPicks(topic, { token, limit: want }).catch(() => null);
+          if (picks && picks.tracks.length) {
+            if (!items.length) {
+              source = 'catalog';
+              title = picks.kind === 'artist' ? `${picks.title}: лучшее` : (picks.title || 'Подборка');
+              description = picks.kind === 'artist' ? `Самые популярные треки ${picks.title}.` : '';
+            }
+            picks.tracks.forEach((t) => push(t, picks.kind === 'artist' ? 0 : 3));
+          }
+        }
+        if (!items.length) {
+          console.warn('[music] ai_playlist empty:', plan.reason || 'not_found');
+          return res.status(200).json({ type: 'music_not_found', reason: plan.reason || 'not_found' });
+        }
+        return res.status(200).json({
+          title: title || 'Плейлист от HarmonyAI', description, items, source,
+          intro: source === 'ai' ? plan.intro : '', suggest: source === 'ai' ? plan.suggest : '', chip: source === 'ai' ? plan.chip : ''
+        });
       }
 
       case 'suggest': {

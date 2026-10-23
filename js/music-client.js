@@ -213,8 +213,8 @@
   }
 
   /** Плейлист по описанию: модель подбирает треки, сервер проверяет их в каталоге. */
-  function aiPlaylist(prompt, count) {
-    return call('ai_playlist', { prompt: prompt, count: count }, { timeout: 65000 });
+  function aiPlaylist(prompt, count, context) {
+    return call('ai_playlist', { prompt: prompt, count: count, context: context || '' }, { timeout: 65000 });
   }
 
   global.MusicClient = {
