@@ -2192,7 +2192,9 @@ export default async function handler(req, res) {
     userId=authedUser.id;
 
     const query = lastUserText(messages);
-    const isQuick = isSimpleQuery(query);
+    /* quick:true — служебный короткий ответ клиента (описание найденного трека и т.п.):
+       сразу быстрый путь — минимум рассуждений, гонка за первый токен, без веб-поиска. */
+    const isQuick = req.body?.quick === true || isSimpleQuery(query);
     const wantsContext = needsPersonalContext(query, messages);
     think = Boolean(think); // «Думать» — для всех тарифов (см. карту проекта: Adan «Думать» — да)
     effort = normalizeEffort(effort);
