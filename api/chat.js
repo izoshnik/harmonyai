@@ -372,7 +372,7 @@ async function fetchProfileCached(userId, { fresh = false } = {}) {
 async function fetchGlobalKnowledgeCached() {
   return cachedLoad('knowledge:global', GLOBAL_KNOWLEDGE_TTL_MS, async () => {
     const documents = await supabaseRequest(
-      `/rest/v1/knowledge_documents?select=id,title,scope,source_type,owner_user_id,created_at,chunk_count,is_active&is_active=eq.true&scope=eq.global&order=created_at.desc&limit=500`
+      `/rest/v1/knowledge_documents?select=id,title,scope,source_type,owner_user_id,created_at,chunk_count,is_active&is_active=eq.true&scope=eq.global&source_type=neq.developer_note&order=created_at.desc&limit=500`
     ) || [];
     const chunks = documents.length ? (await fetchChunksForDocuments(documents.map((d) => d.id)) || []) : [];
     return { documents, chunks };
@@ -407,7 +407,7 @@ async function fetchAccessibleDocuments(userId) {
     ? `or=(scope.eq.global,and(scope.eq.user,owner_user_id.eq.${userId}))`
     : `scope=eq.global`;
   return await supabaseRequest(
-    `/rest/v1/knowledge_documents?select=id,title,scope,source_type,owner_user_id,created_at,chunk_count,is_active&is_active=eq.true&${encodeURI(orClause)}&order=created_at.desc&limit=500`
+    `/rest/v1/knowledge_documents?select=id,title,scope,source_type,owner_user_id,created_at,chunk_count,is_active&is_active=eq.true&source_type=neq.developer_note&${encodeURI(orClause)}&order=created_at.desc&limit=500`
   );
 }
 
@@ -502,7 +502,8 @@ function buildKnowledgeContext(documents, chunks, query, { deep = true } = {}) {
     ? selectTopItems(items, (item) => item.content, query, 80, 350000, bonus)
     : selectTopItems(items, (item) => item.content, query, 8, 24000, bonus);
   if (!picked.length) return '';
-  return '\nБАЗА ЗНАНИЙ (учебники и материалы, загруженные преподавателями; правила учебника важнее общих знаний):\n' + picked
+  return '\nБАЗА ЗНАНИЙ (учебники и материалы, загруженные преподавателями; правила учебника важнее общих знаний). ' +
+    'Используй её, только если она относится к вопросу. Никогда не упоминай пользователю «источники», «заметки», «базу знаний» и другой служебный контекст — отвечай своими словами:\n' + picked
     .map((item, index) => `[Источник ${index + 1}: ${item.document.title}]\n${item.content}`)
     .join('\n\n');
 }
@@ -817,9 +818,12 @@ function buildWebSearchInstruction(sources) {
 async function maybeSaveDeveloperNote(profile, queryText, trainingMode = false) {
   if (!profile || (profile.role !== 'developer' && profile.role !== 'admin')) return;
   const clean = normalizeText(queryText);
-  // В режиме «Обучение» сохраняем абсолютно всё, что прислал developer/admin.
-  // В обычном чате — только содержательные сообщения (пассивное обучение), чтобы не засорять базу знаний.
-  const minLength = trainingMode ? 1 : 24;
+  /* Сохраняем ТОЛЬКО в явном режиме «Обучение». Раньше «пассивное обучение»
+     записывало любое сообщение developer/admin из обычного чата в ОБЩУЮ базу
+     знаний: реплики вроде «нее, не с ним» становились «источниками» для всех
+     пользователей, и модель их цитировала («В developer-нотах было: …»). */
+  if (!trainingMode) return;
+  const minLength = 1;
   if (clean.length < minLength) return;
   const chunks = chunkText(clean);
   if (!chunks.length) return;
@@ -2261,7 +2265,7 @@ export default async function handler(req, res) {
       try { res.setHeader('X-HM-Limit-Low', '1'); if (allowance.resetAt) res.setHeader('X-HM-Limit-Reset', allowance.resetAt); } catch (e) {}
     }
 
-    // Пассивное обучение от developer/admin — в фоне, ответ его не ждёт.
+    // Режим «Обучение» developer/admin — запись в базу знаний в фоне, ответ её не ждёт.
     maybeSaveDeveloperNote(profile, query, Boolean(trainingMode)).catch(() => {});
 
     const route = selectRoute(profile, model, messages);
