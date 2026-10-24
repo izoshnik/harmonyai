@@ -215,6 +215,21 @@ html[data-theme="light"] .limit-reached{background:rgba(239,68,68,.07);border-co
 /* Окно настроек на компьютере: содержимое не растягивает окно — прокручивается тело
    экрана (раньше длинный плейлист обрезался и не листался). */
 @media(min-width:769px){#settingsContent{flex:1 1 auto;min-height:0;height:100%;max-height:100%;}}
+.hm-ystats{margin:0 0 16px;padding:16px 18px;border-radius:18px;background:linear-gradient(135deg,color-mix(in srgb,#ffcc00 14%,transparent),color-mix(in srgb,var(--set-text,#888) 4%,transparent));border:1px solid color-mix(in srgb,#ffcc00 25%,transparent);text-align:left;}
+.hm-ystats-head{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--set-muted,var(--text2));}
+.hm-ystats-logo{width:16px;height:16px;border-radius:50%;background:#ffcc00;flex:none;}
+.hm-ystats-big{margin:8px 0 10px;font-size:15px;color:var(--set-text,var(--text));}
+.hm-ystats-big b{font-size:34px;font-weight:700;letter-spacing:-.02em;}
+.hm-ystats-big span{color:var(--set-muted,var(--text2));font-size:14px;}
+.hm-ystats-row{display:flex;gap:18px;flex-wrap:wrap;margin-bottom:10px;}
+.hm-ystats-row div{display:flex;flex-direction:column;}
+.hm-ystats-row b{font-size:18px;color:var(--set-text,var(--text));}
+.hm-ystats-row span{font-size:12px;color:var(--set-muted,var(--text2));}
+.hm-ystats-sub{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--set-muted,var(--text2));margin:4px 0 6px;}
+.hm-ystats-top{margin:0 0 8px;padding-left:20px;}
+.hm-ystats-top li{display:flex;justify-content:space-between;gap:10px;font-size:14px;padding:2px 0;color:var(--set-text,var(--text));}
+.hm-ystats-top em{font-style:normal;color:var(--set-muted,var(--text2));font-size:13px;}
+.hm-ystats-note{font-size:12px;line-height:1.45;color:var(--set-muted,var(--text2));margin:6px 0 0;}
 </style>
 <style>
 /* Шрифты подключены через <link rel="stylesheet"> в <head> — быстрее, чем @import внутри CSS. */
@@ -5428,7 +5443,7 @@ async function loadProfile(uid,email){
     const remoteNick=data?.nickname||null;
     const nickname=localNick||remoteNick||email.split('@')[0];
     if(curUser?.id!==uid)return;
-    curUser={id:uid,email,nickname,role:String(data?.role||'user').trim().toLowerCase(),plan:data?.plan,plan_expires_at:data?.plan_expires_at,created_at:data?.created_at||null,settings:data?.settings||{},needsNickname:!remoteNick,profileReady:true};
+    curUser={id:uid,email,nickname,role:String(data?.role||'user').trim().toLowerCase(),plan:data?.plan,plan_expires_at:data?.plan_expires_at,created_at:data?.created_at||null,settings:data?.settings||{},__settingsLoaded:true,needsNickname:!remoteNick,profileReady:true};
     if(isDevAccountEmail(email)){
       if(!['developer','admin'].includes(curUser.role))curUser.role='admin';
       curUser.plan='pro';curUser.plan_expires_at=null;curUser.needsNickname=false;
@@ -6828,7 +6843,8 @@ async function openChat(id,opts){
     else if(m.music){
       // Музыкальная карточка — пересобираем из сохранённого пейлоада.
       // Подписанной ссылки в истории нет, поэтому Play возьмёт свежую.
-      const shell=createAiBubbleShell({showActions:false,createdAt:m.createdAt,historyIndex:idx});
+      const shell=createAiBubbleShell({showActions:true,createdAt:m.createdAt,historyIndex:idx});
+      try{setMessageActionsVisible(shell.actions,true);}catch(e){}
       try{
         if(m.music.aiPlaylist){
           hmRenderAiPlaylist(shell.msg,m.music);
@@ -11852,7 +11868,8 @@ async function runAiPlaylist(text,spec){
   const gw=document.getElementById('greetingWrap');if(gw)gw.style.display='none';
   addUserBubble(text,[],{createdAt:messageNow()});
   chatHistory.push({role:'user',content:text,createdAt:messageNow()});
-  const sh=createAiBubbleShell({showActions:false});
+  const sh=createAiBubbleShell({showActions:true,hiddenActions:true});
+  window.__hmLastMusicShell=sh;
   const wait=document.createElement('div');wait.className='thinking think-staff';
   let hts=null;
   try{if(window.HmThinkStaff){hts=window.HmThinkStaff.create(text,{anim:'staff',label:'Собираю плейлист'});wait.appendChild(hts.el);}}catch(e){}
@@ -11988,8 +12005,14 @@ async function handleMusicMessage(text){
      пузырь, второй поиск и вторую карточку того же трека. */
   if(window.__musicBusy)return true;
   window.__musicBusy=true;
+  window.__hmLastMusicShell=null;
   try{ return await runMusicMessage(text); }
-  finally{ window.__musicBusy=false; }
+  finally{
+    window.__musicBusy=false;
+    // Ответ готов — показываем копировать / нравится / не нравится / «ещё», как у обычных ответов.
+    const sh=window.__hmLastMusicShell;
+    if(sh&&sh.wrap&&sh.wrap.isConnected)try{setMessageActionsVisible(sh.actions,true);}catch(e){}
+  }
 }
 
 async function runMusicMessage(text){
@@ -12029,7 +12052,8 @@ async function runMusicMessage(text){
     const gw=document.getElementById('greetingWrap');if(gw)gw.style.display='none';
     const bub=addUserBubble(text,[],{createdAt:messageNow()});
     chatHistory.push({role:'user',content:text,createdAt:messageNow()});
-    const sh=createAiBubbleShell({showActions:false});
+    const sh=createAiBubbleShell({showActions:true,hiddenActions:true});
+    window.__hmLastMusicShell=sh;
     // Пока не ясно, музыка это или обычный вопрос, — те же три точки, что у обычного ответа.
     sh.msg.innerHTML='<div class="thinking"><div class="think-dots"><span></span><span></span><span></span></div></div>';
     scrollChat();
@@ -12274,9 +12298,9 @@ async function hmMusicBlurb(shell,intent,payload,note,userText,question){
     'Я написал: «'+String(userText||'').slice(0,300)+'». По этой просьбе уже найден и показан карточкой '+subject+'. '+
     'Не пиши «вот трек», не давай ссылок, не описывай карточку и не здоровайся. '+
     (question
-      ? ('Ответь на мою просьбу «'+String(question).slice(0,300)+'» по существу: 1–3 коротких абзаца, только факты, в которых ты уверен; '+
+      ? ('Ответь на мою просьбу «'+String(question).slice(0,300)+'» по существу: 1–2 коротких абзаца, всего не больше 90 слов, только факты, в которых ты уверен; '+
          'если не уверен в дате или истории, не упоминай их. ')
-      : ('Напиши 2–3 коротких живых предложения: чем это известно, из какого альбома и когда вышло — только факты, в которых ты уверен; '+
+      : ('Напиши 2 коротких живых предложения, всего не больше 45 слов: чем это известно, из какого альбома и когда вышло — только факты, в которых ты уверен; '+
          'если не уверен в дате или истории, просто не упоминай их. '))+
     'Пиши грамотно по-русски, без вставок на других языках. '+
     'Затем одним предложением предложи продолжение — например собрать плейлист из популярных треков этого исполнителя или похожих. '+
@@ -12516,23 +12540,40 @@ function closeSettings(){
 function getSettings(){return curUser?.settings||{};}
 /* Сохранение одной настройки в профиль. Функция была случайно удалена 14–15.09,
    из-за чего не работали выбор темы и все переключатели в настройках. */
-async function saveSetting(key,val){
-  if(!curUser)return;
+/* Запись одной настройки БЕЗ затирания остальных. settings — один JSON на профиль:
+   раньше сюда писалась вся копия из вкладки, и если она была старой или ещё пустой
+   (первые секунды после входа: curUser.settings={}), из профиля пропадало всё —
+   свои плейлисты, устройства, сводка «О вас». Теперь: свежая копия с сервера +
+   только изменённое поле; записи идут строго по очереди. */
+let hmSettingsChain=Promise.resolve();
+function saveSetting(key,val){
+  if(!curUser)return Promise.resolve();
   if(!curUser.settings)curUser.settings={};
   curUser.settings[key]=val;
-  /* settings хранится одним JSON: без слияния старая копия из этой вкладки затирала
-     устройства, добавленные с других устройств, и в «Активных сеансах» оставался один текущий. */
-  if(key!==DEVICES_SETTING_KEY){
-    try{
-      const remote=await fetchRemoteSettings();
-      const byKey=new Map();
-      normalizeDeviceList((remote||{})[DEVICES_SETTING_KEY]).concat(normalizeDeviceList(curUser.settings[DEVICES_SETTING_KEY]))
-        .forEach(d=>{const p=byKey.get(d.key);if(!p||String(d.lastSeen||'')>String(p.lastSeen||''))byKey.set(d.key,d);});
-      if(byKey.size)curUser.settings[DEVICES_SETTING_KEY]=sortDeviceList(Array.from(byKey.values())).slice(0,DEVICES_MAX);
-    }catch(e){}
+  const uid=curUser.id;
+  hmSettingsChain=hmSettingsChain.then(()=>hmWriteSetting(uid,key,val)).catch(e=>console.warn('saveSetting failed',e));
+  return hmSettingsChain;
+}
+async function hmWriteSetting(uid,key,val){
+  if(!curUser||curUser.id!==uid)return;
+  const remote=await fetchRemoteSettings();
+  if(remote===null&&!curUser.__settingsLoaded){
+    // Сервер не ответил, а профиль ещё не загружен — нельзя писать «пустую» копию.
+    setTimeout(()=>{if(curUser&&curUser.id===uid)saveSetting(key,curUser.settings[key]);},4000);
+    return;
   }
-  try{await sb.from('profiles').upsert({id:curUser.id,settings:curUser.settings},{onConflict:'id'});}
-  catch(e){console.warn('saveSetting failed',e);}
+  const base=Object.assign({},remote===null?curUser.settings:remote);
+  base[key]=val;
+  if(key!==DEVICES_SETTING_KEY){
+    const byKey=new Map();
+    normalizeDeviceList((remote||{})[DEVICES_SETTING_KEY]).concat(normalizeDeviceList(curUser.settings[DEVICES_SETTING_KEY]))
+      .forEach(d=>{const p=byKey.get(d.key);if(!p||String(d.lastSeen||'')>String(p.lastSeen||''))byKey.set(d.key,d);});
+    if(byKey.size)base[DEVICES_SETTING_KEY]=sortDeviceList(Array.from(byKey.values())).slice(0,DEVICES_MAX);
+  }
+  const {error}=await sb.from('profiles').upsert({id:uid,settings:base},{onConflict:'id'});
+  if(error)throw error;
+  // Локальная копия догоняет серверную (в т.ч. изменения с других устройств).
+  if(curUser&&curUser.id===uid)curUser.settings=Object.assign({},base,{[key]:curUser.settings[key]});
 }
 
 function avatarInitials(){
@@ -13991,8 +14032,7 @@ window.persistLangToProfile=async function(lang){
   try{
     if(!curUser)return;
     if(!curUser.settings)curUser.settings={};
-    curUser.settings.lang=lang;
-    await sb.from('profiles').upsert({id:curUser.id,settings:curUser.settings},{onConflict:'id'});
+    await saveSetting('lang',lang); // безопасная запись: не затирает остальные настройки
   }catch(e){}
 };
 </script>
@@ -14570,6 +14610,37 @@ window.addEventListener('resize',()=>{if(document.getElementById('hmProfileMenu'
 })();
 </script>
 <script>
+/* ===== Статистика: прослушивания в Яндекс Музыке за год ===== */
+function hmPlural(n,f){const a=Math.abs(n)%100,b=a%10;return a>10&&a<20?f[2]:b>1&&b<5?f[1]:b===1?f[0]:f[2];}
+async function hmRenderYandexStats(panel){
+  const box=document.createElement('div');box.className='hm-ystats';
+  const year=new Date().getFullYear();
+  box.innerHTML='<div class="hm-ystats-head"><span class="hm-ystats-logo" aria-hidden="true"></span><span>Яндекс Музыка · '+year+'</span></div><div class="hm-ystats-body"><div class="thinking"><div class="think-dots"><span></span><span></span><span></span></div></div></div>';
+  panel.prepend(box);
+  const body=box.querySelector('.hm-ystats-body');
+  let d;
+  try{d=await hmMusicCall('listening_stats',{year});}
+  catch(e){
+    const needAuth=e.status===401||e.type==='music_auth_required';
+    body.innerHTML='<p class="hm-ystats-note">'+(needAuth?'Подключите свой аккаунт Яндекса, чтобы видеть, сколько вы слушали музыку в этом году.':'Не удалось получить историю Яндекс Музыки. Попробуйте позже.')+'</p>'+
+      (needAuth?'<button type="button" class="stp-btn" onclick="openSettingsSection(\'plugins\')">Подключить</button>':'');
+    return;
+  }
+  if(!box.isConnected)return;
+  const min=d.minutes||0,h=Math.floor(min/60);
+  const sinceTxt=d.since&&d.since.slice(0,4)===String(year)&&d.since.slice(5)!=='01-01'
+    ?'По истории Яндекса с '+new Intl.DateTimeFormat(hmLocale(),{day:'numeric',month:'long'}).format(new Date(d.since))+' — Яндекс хранит последние ~2000 прослушиваний, поэтому за весь год цифра может быть больше.'
+    :'По истории прослушиваний Яндекса. Минуты считаются по длительности треков.';
+  body.innerHTML=
+    '<div class="hm-ystats-big"><b>'+min.toLocaleString(hmLocale())+'</b> '+hmPlural(min,['минута','минуты','минут'])+(h>=1?'<span> ≈ '+h+' '+hmPlural(h,['час','часа','часов'])+'</span>':'')+'</div>'+
+    '<div class="hm-ystats-row"><div><b>'+(d.plays||0).toLocaleString(hmLocale())+'</b><span>'+hmPlural(d.plays||0,['прослушивание','прослушивания','прослушиваний'])+'</span></div>'+
+    '<div><b>'+(d.uniqueTracks||0).toLocaleString(hmLocale())+'</b><span>'+hmPlural(d.uniqueTracks||0,['трек','трека','треков'])+'</span></div>'+
+    '<div><b>'+(d.days||0)+'</b><span>'+hmPlural(d.days||0,['день','дня','дней'])+' с музыкой</span></div></div>'+
+    ((d.topArtists||[]).length?'<div class="hm-ystats-sub">Чаще всего</div><ol class="hm-ystats-top">'+d.topArtists.slice(0,5).map(function(a){return '<li><span>'+escapeHtml(a.name)+'</span><em>'+Number(a.minutes||0).toLocaleString(hmLocale())+' мин</em></li>';}).join('')+'</ol>':'')+
+    '<p class="hm-ystats-note">'+escapeHtml(sinceTxt)+'</p>';
+}
+window.hmRenderYandexStats=hmRenderYandexStats;
+
 /* ===== Свой трек → плейлист Яндекс Музыки =====
    Прикрепите mp3/m4a/flac/wav/ogg в чат — трек загрузится в ваш личный
    плейлист «HarmonyAI» в Яндекс Музыке (как «Загрузить с устройства» в
@@ -14610,7 +14681,7 @@ async function hmSendTrackToYandex(file){
       sent=true;
     }catch(e){sent=false;}
     if(!sent){
-      if(file.size>2.5*1024*1024)throw new Error('Браузер не дал загрузить файл напрямую, а через сервер можно только до 2,5 МБ');
+      if(file.size>3.2*1024*1024)throw new Error('Браузер не дал загрузить файл напрямую, а через сервер можно только до 3 МБ. Обновите страницу и попробуйте ещё раз');
       const b64=await new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(String(r.result).split(',')[1]||'');r.onerror=()=>no(new Error('Не удалось прочитать файл'));r.readAsDataURL(file);});
       await hmMusicCall('ugc_upload',{filename:file.name,mime:file.type||'audio/mpeg',data:b64});
     }

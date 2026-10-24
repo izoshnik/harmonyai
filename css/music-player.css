@@ -1299,3 +1299,9 @@ body.music-screen-open { overflow: hidden; }
 }
 /* тост поднимается только когда плеер виден (класс раньше ничего не делал) */
 body:not(.has-music-bar) .pl-toast{bottom:24px;}
+
+/* Телефон: шапка (меню, выбор модели) закреплена сверху и перекрывала панель
+   плеера — опускаем панель под шапку. */
+@media (max-width: 768px) {
+  .music-bar { margin-top: calc(60px + env(safe-area-inset-top, 0px)); }
+}

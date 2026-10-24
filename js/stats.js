@@ -23,6 +23,7 @@
   try{const d=await request('stats.personal');if(n!==seq||!panel.isConnected)return;
    panel.innerHTML='<div class="hm-stats-grid">'+tile('Время в HarmonyAI',duration(d.activeSeconds),'Активная вкладка, без простоя более 5 минут')+tile('Сообщения ИИ',fmt(d.aiMessages),'Успешные текстовые ответы')+tile('Распознанные произведения',fmt(d.recognized),'Включая предположения ИИ')+tile('Изображения',fmt(d.images),'Успешные генерации')+tile('Созданные файлы',fmt(d.filesCreated))+tile('Обработанные файлы',fmt(d.filesProcessed),'Документы, прочитанные в браузере')+'</div><p class="hm-stat-note">Время и файлы учитываются с '+esc(new Date(d.trackingSince).toLocaleDateString('ru-RU'))+'. Более ранние действия не восстанавливаются. «—» означает недоступный источник данных.</p>';
   }catch(e){if(panel.isConnected)panel.innerHTML='<p role="alert">'+esc(e.message)+'</p><button class="conn-btn" onclick="renderPersonalStats()">Повторить</button>';}
+  try{if(panel.isConnected&&typeof window.hmRenderYandexStats==='function')window.hmRenderYandexStats(panel);}catch(e){}
  };
  async function management(){
   const host=document.getElementById('managementStats');if(!host)return;const filter=document.getElementById('statsPeriod'),n=++seq;
