@@ -85,6 +85,9 @@ async function exportToYandex(resolved, token, title, tracks) {
   return { kind: r.kind, added: r.added, url: playlistWebUrl(resolved.login || uid, r.kind) };
 }
 
+const UGC_BUCKET = 'ym-uploads';
+let ugcBucketReady = false;
+
 function fail(res, status, type, message) {
   return res.status(status).json({ type, error: { message } });
 }
@@ -544,12 +547,38 @@ export default async function handler(req, res) {
       /* Свой трек через хранилище: браузер кладёт файл в chat-attachments (без лимита
          Vercel 4,5 МБ на запрос), сервер забирает его и сам отправляет в Яндекс —
          видит ответ и не «стреляет вслепую», как прямая отправка из браузера. */
+      /* Подготовка загрузки: свой приватный бакет ym-uploads (создаётся сам, без лимитов
+         на тип и размер, которые могли стоять у chat-attachments) и одноразовая
+         подписанная ссылка — браузер грузит файл прямо в неё. */
+      case 'ugc_prepare': {
+        if (resolved.source !== 'user') {
+          return needAuth(res, 'Чтобы добавить трек в вашу Яндекс Музыку, подключите свой аккаунт Яндекса.');
+        }
+        const sbase = String(process.env.SUPABASE_URL || '').replace(/\/+$/, '');
+        const skey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (!sbase || !skey) return fail(res, 500, 'storage', 'Хранилище не настроено');
+        const auth = { apikey: skey, Authorization: `Bearer ${skey}`, 'Content-Type': 'application/json' };
+        if (!ugcBucketReady) {
+          const cr = await fetch(`${sbase}/storage/v1/bucket`, { method: 'POST', headers: auth,
+            body: JSON.stringify({ id: UGC_BUCKET, name: UGC_BUCKET, public: false, file_size_limit: 52428800 }) });
+          if (cr.ok || cr.status === 409 || /already exists|Duplicate/i.test(await cr.text().catch(() => ''))) ugcBucketReady = true;
+        }
+        const safe = String(body.filename || 'track.mp3').normalize('NFKC').replace(/[^\w.\-]+/g, '-').replace(/-+/g, '-').slice(0, 80) || 'track.mp3';
+        const path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safe}`;
+        const sr = await fetch(`${sbase}/storage/v1/object/upload/sign/${UGC_BUCKET}/${path}`, { method: 'POST', headers: auth, body: '{}' });
+        const sj = await sr.json().catch(() => ({}));
+        const tokenParam = (String(sj.url || '').match(/[?&]token=([^&]+)/) || [])[1] || sj.token;
+        if (!sr.ok || !tokenParam) return fail(res, 502, 'storage', 'Хранилище не выдало ссылку для загрузки' + (sj.message ? `: ${sj.message}` : ''));
+        return res.status(200).json({ bucket: UGC_BUCKET, path, token: decodeURIComponent(tokenParam) });
+      }
+
       case 'ugc_from_storage': {
         const path = String(body.storagePath || '');
+        const bucket = body.bucket === UGC_BUCKET ? UGC_BUCKET : 'chat-attachments';
         if (!path.startsWith(`${userId}/`) || path.includes('..')) return fail(res, 400, 'bad_request', 'Неверный путь файла');
         const base = String(process.env.SUPABASE_URL || '').replace(/\/+$/, '');
         const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-        const fileUrl = `${base}/storage/v1/object/chat-attachments/${path.split('/').map(encodeURIComponent).join('/')}`;
+        const fileUrl = `${base}/storage/v1/object/${bucket}/${path.split('/').map(encodeURIComponent).join('/')}`;
         // Временный файл удаляем при любом исходе — и при успехе, и при отказе.
         const dropFile = () => fetch(fileUrl, { method: 'DELETE', headers: { apikey: key, Authorization: `Bearer ${key}` } }).catch(() => {});
         try {
