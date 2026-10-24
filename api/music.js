@@ -36,7 +36,7 @@ import {
   setLike,
   getAccountStatus,
   YandexError,
-  ensureUgcPlaylist, getUgcUploadTarget, uploadUgcBytes, UGC_PLAYLIST_TITLE,
+  ensureUgcPlaylist, getUgcUploadTarget, uploadUgcBytes, UGC_PLAYLIST_TITLE, listUserPlaylists,
   createPlaylistWithTracks, playlistWebUrl, getListeningStats,
 } from '../lib/yandex.js';
 
@@ -541,6 +541,46 @@ export default async function handler(req, res) {
          поэтому только на сервере). Шаг 2 — браузер отправляет файл прямо туда;
          если браузеру это запрещено, маленький файл (до ~2,5 МБ) можно передать через
          ugc_upload — сервер перешлёт его сам (у Vercel лимит тела запроса 4,5 МБ). */
+      /* Свой трек через хранилище: браузер кладёт файл в chat-attachments (без лимита
+         Vercel 4,5 МБ на запрос), сервер забирает его и сам отправляет в Яндекс —
+         видит ответ и не «стреляет вслепую», как прямая отправка из браузера. */
+      case 'ugc_from_storage': {
+        const path = String(body.storagePath || '');
+        if (!path.startsWith(`${userId}/`) || path.includes('..')) return fail(res, 400, 'bad_request', 'Неверный путь файла');
+        const base = String(process.env.SUPABASE_URL || '').replace(/\/+$/, '');
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        const fileUrl = `${base}/storage/v1/object/chat-attachments/${path.split('/').map(encodeURIComponent).join('/')}`;
+        // Временный файл удаляем при любом исходе — и при успехе, и при отказе.
+        const dropFile = () => fetch(fileUrl, { method: 'DELETE', headers: { apikey: key, Authorization: `Bearer ${key}` } }).catch(() => {});
+        try {
+          if (resolved.source !== 'user') {
+            return needAuth(res, 'Чтобы добавить трек в вашу Яндекс Музыку, подключите свой аккаунт Яндекса.');
+          }
+          const uid = await ensureUid(resolved);
+          if (!uid) return needAuth(res, 'Не удалось определить ваш аккаунт Яндекса. Подключите его заново.');
+          const filename = String(body.filename || 'track.mp3').slice(0, 200);
+          const kind = await ensureUgcPlaylist(uid, { token, kind: body.kind ? String(body.kind) : '' });
+          const before = (await listUserPlaylists(uid, { token }).catch(() => [])).find((p) => p.kind === String(kind));
+          const fr = await fetch(fileUrl, { headers: { apikey: key, Authorization: `Bearer ${key}` } });
+          if (!fr.ok) return fail(res, 502, 'storage', 'Не удалось прочитать файл из хранилища');
+          const bytes = Buffer.from(await fr.arrayBuffer());
+          const target = await getUgcUploadTarget(uid, kind, filename, { token });
+          await uploadUgcBytes(target.postTarget, filename, bytes, String(body.mime || 'audio/mpeg'));
+          return res.status(200).json({ ok: true, kind, before: before ? before.trackCount : null, playlistTitle: body.kind ? null : UGC_PLAYLIST_TITLE });
+        } finally {
+          dropFile();
+        }
+      }
+
+      /* Появился ли загруженный трек в плейлисте (Яндекс обрабатывает его не сразу). */
+      case 'ugc_check': {
+        if (resolved.source !== 'user') return needAuth(res);
+        const uid = await ensureUid(resolved);
+        const list = await listUserPlaylists(uid, { token });
+        const pl = list.find((p) => p.kind === String(body.kind || ''));
+        return res.status(200).json({ trackCount: pl ? pl.trackCount : null });
+      }
+
       case 'ugc_target':
       case 'ugc_upload': {
         if (resolved.source !== 'user') {
