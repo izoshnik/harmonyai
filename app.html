@@ -14669,25 +14669,21 @@ async function hmSendTrackToYandex(file){
   const set=(t,state)=>{sub.textContent=t;card.dataset.state=state||'';};
   set(hmFmtMb(file.size)+' · загружаем…','busy');
   try{
-    if(file.size>200*1024*1024)throw new Error('Файл больше 200 МБ — Яндекс такие не принимает');
+    if(file.size>50*1024*1024)throw new Error('Файл больше 50 МБ — такой не загрузить');
     /* Через наш сервер, а не напрямую из браузера: прямая отправка шла «вслепую»
        (ответ Яндекса браузеру не виден), и при отказе трек молча не появлялся.
        Большой файл сначала кладём в хранилище — так обходим лимит запроса Vercel. */
     let r=null;
-    let stored=null;
-    try{
-      const safe=String(file.name||'track.mp3').normalize('NFKC').replace(/[\\/:*?"<>|\x00-\x1f]/g,'-').replace(/\s+/g,'-').slice(0,100)||'track.mp3';
-      const path=curUser.id+'/ym-upload/'+Date.now()+'-'+Math.random().toString(36).slice(2,8)+'-'+safe;
-      const up=await sb.storage.from('chat-attachments').upload(path,file,{contentType:file.type||'audio/mpeg',upsert:false});
-      if(!up.error)stored=path;
-    }catch(e){stored=null;}
-    if(stored){
-      set('Отправляем в Яндекс Музыку…','busy');
-      r=await window.MusicClient.call('ugc_from_storage',{storagePath:stored,filename:file.name,mime:file.type||'audio/mpeg'},{timeout:90000});
-    }else{
-      if(file.size>3.2*1024*1024)throw new Error('Не получилось подготовить файл к загрузке. Попробуйте ещё раз');
+    // 1) Подписанная ссылка в свой бакет ym-uploads; 2) файл — прямо в хранилище; 3) сервер отправляет в Яндекс.
+    const prep=await window.MusicClient.call('ugc_prepare',{filename:file.name},{timeout:20000});
+    const up=await sb.storage.from(prep.bucket).uploadToSignedUrl(prep.path,prep.token,file,{contentType:file.type||'audio/mpeg'});
+    if(up.error){
+      if(file.size>3.2*1024*1024)throw new Error('Хранилище не приняло файл: '+(up.error.message||'ошибка'));
       const b64=await new Promise((ok,no)=>{const fr=new FileReader();fr.onload=()=>ok(String(fr.result).split(',')[1]||'');fr.onerror=()=>no(new Error('Не удалось прочитать файл'));fr.readAsDataURL(file);});
       r=await hmMusicCall('ugc_upload',{filename:file.name,mime:file.type||'audio/mpeg',data:b64});
+    }else{
+      set('Отправляем в Яндекс Музыку…','busy');
+      r=await window.MusicClient.call('ugc_from_storage',{bucket:prep.bucket,storagePath:prep.path,filename:file.name,mime:file.type||'audio/mpeg'},{timeout:90000});
     }
     const title=r.playlistTitle||'HarmonyAI';
     set('Яндекс обрабатывает трек — обычно меньше минуты…','busy');
