@@ -23,6 +23,27 @@
   'use strict';
 
   var STORE_KEY = 'hm_music_player_v1';
+  /* Громкость, «без звука», перемешивание и повтор живут отдельно от очереди:
+     очередь стирается при закрытии плеера, а эти настройки должны пережить
+     и закрытие, и уход с сайта. */
+  var PREFS_KEY = 'hm_music_player_prefs';
+  function savePrefs() {
+    try {
+      global.localStorage.setItem(PREFS_KEY, JSON.stringify({
+        volume: state.volume, muted: state.muted, shuffle: state.shuffle, repeat: state.repeat
+      }));
+    } catch (e) { /* noop */ }
+  }
+  function loadPrefs() {
+    var p = null;
+    try { p = JSON.parse(global.localStorage.getItem(PREFS_KEY) || 'null'); } catch (e) { p = null; }
+    if (!p) return false;
+    if (typeof p.volume === 'number') state.volume = Math.max(0, Math.min(1, p.volume));
+    state.muted = Boolean(p.muted);
+    state.shuffle = Boolean(p.shuffle);
+    if (p.repeat === 'off' || p.repeat === 'all' || p.repeat === 'one') state.repeat = p.repeat;
+    return true;
+  }
   var SAVE_DEBOUNCE_MS = 1200;
 
   var el = {};
@@ -113,7 +134,13 @@
     return state.repeat === 'all' ? 0 : -1;
   }
 
+  /* Одно и то же сообщение не чаще раза в 20 с — раньше при сбое потока
+     «Яндекс Музыка не отдаёт аудио» сыпалось на каждую попытку. */
+  var lastNotice = { text: '', at: 0 };
   function notify(msg) {
+    var now = Date.now();
+    if (msg === lastNotice.text && now - lastNotice.at < 20000) return;
+    lastNotice = { text: msg, at: now };
     if (typeof global.showToast === 'function') { global.showToast(msg); return; }
     console.warn('[music]', msg);
   }
@@ -453,6 +480,7 @@
     // и звук продолжал идти в фоне при свёрнутом браузере.
     audio.setAttribute('playsinline', '');
     audio.setAttribute('webkit-playsinline', '');
+    if (loadPrefs()) { audio.volume = state.volume; audio.muted = state.muted; }
     // ВАЖНО: crossOrigin НЕ задаём. Хосты Яндекса, отдающие mp3-поток, не
     // присылают CORS-заголовки; с crossOrigin='anonymous' браузер БЛОКИРУЕТ
     // загрузку аудио, и трек не играет вообще.
@@ -1204,6 +1232,7 @@
 
   function writeState() {
     lastSaveAt = Date.now();
+    savePrefs();
     try {
       global.localStorage.setItem(STORE_KEY, JSON.stringify({
         queue: state.queue.slice(0, 100),
@@ -1265,6 +1294,7 @@
     state.repeat = s.repeat || 'off';
     state.volume = typeof s.volume === 'number' ? s.volume : 1;
     state.muted = Boolean(s.muted);
+    loadPrefs(); // свежие настройки звука важнее снимка очереди
     state.collection = s.collection || null;
 
     audio.volume = state.volume;

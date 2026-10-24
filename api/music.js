@@ -37,7 +37,7 @@ import {
   getAccountStatus,
   YandexError,
   ensureUgcPlaylist, getUgcUploadTarget, uploadUgcBytes, UGC_PLAYLIST_TITLE,
-  createPlaylistWithTracks, playlistWebUrl,
+  createPlaylistWithTracks, playlistWebUrl, getListeningStats,
 } from '../lib/yandex.js';
 
 import {
@@ -254,13 +254,14 @@ async function streamAudio(req, res) {
 
   if (!trackId) return fail(res, 400, 'bad_request', 'Не указан трек');
 
-  let upstream;
+  let upstream, streamCodec = 'mp3';
   try {
     const resolved = await resolveToken(userId);
     if (!resolved.token) return needAuth(res);
 
     const info = await getPlaybackUrl(trackId, { token: resolved.token });
     if (!info || !info.url) return fail(res, 502, 'music_error', 'Нет ссылки на аудио');
+    streamCodec = info.codec;
 
     const headers = { 'User-Agent': 'Mozilla/5.0' };
     // Перемотка: браузер шлёт «Range: bytes=…», переносим его в апстрим.
@@ -282,7 +283,14 @@ async function streamAudio(req, res) {
     const v = upstream.headers.get(name);
     if (v) res.setHeader(name, v);
   }
-  if (!upstream.headers.get('content-type')) res.setHeader('Content-Type', 'audio/mpeg');
+  /* Safari (iPhone) не играет поток с «application/octet-stream» — Chrome на
+     компьютере такой тип прощает, поэтому раньше музыка работала только там.
+     Тип ставим по кодеку, если хранилище прислало не аудио-тип. */
+  const upType = String(upstream.headers.get('content-type') || '');
+  if (!/^audio\//i.test(upType)) {
+    const codec = String(streamCodec || 'mp3').toLowerCase();
+    res.setHeader('Content-Type', /flac/.test(codec) ? 'audio/flac' : /aac|mp4|m4a/.test(codec) ? 'audio/aac' : 'audio/mpeg');
+  }
   if (!upstream.headers.get('accept-ranges')) res.setHeader('Accept-Ranges', 'bytes');
   // Подпись протухает за минуты — короткий приватный кэш, не публичный.
   res.setHeader('Cache-Control', 'private, max-age=0, no-store');
@@ -447,6 +455,17 @@ export default async function handler(req, res) {
         });
       }
 
+      /* Статистика прослушиваний за год по истории Яндекса. */
+      case 'listening_stats': {
+        if (resolved.source !== 'user') {
+          return needAuth(res, 'Подключите свой аккаунт Яндекса, чтобы видеть статистику прослушиваний.');
+        }
+        const uid = await ensureUid(resolved);
+        if (!uid) return needAuth(res, 'Не удалось определить ваш аккаунт Яндекса. Подключите его заново.');
+        const year = Number(body.year) || new Date().getFullYear();
+        return res.status(200).json(await getListeningStats(uid, { token, year }));
+      }
+
       /* «Сохранить в Яндекс Музыку» для уже показанного плейлиста. */
       case 'export_playlist': {
         if (resolved.source !== 'user') {
@@ -538,7 +557,7 @@ export default async function handler(req, res) {
         const b64 = String(body.data || '');
         if (!b64) return fail(res, 400, 'bad_request', 'Нет данных файла');
         const bytes = Buffer.from(b64, 'base64');
-        if (bytes.length > 2.5 * 1024 * 1024) return fail(res, 413, 'too_large', 'Файл слишком большой для загрузки через сервер');
+        if (bytes.length > 3.3 * 1024 * 1024) return fail(res, 413, 'too_large', 'Файл слишком большой для загрузки через сервер');
         await uploadUgcBytes(target.postTarget, filename, bytes, String(body.mime || 'audio/mpeg'));
         return res.status(200).json({ ok: true, kind, playlistTitle: body.kind ? null : UGC_PLAYLIST_TITLE });
       }
