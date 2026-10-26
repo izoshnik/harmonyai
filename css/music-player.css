@@ -1305,3 +1305,36 @@ body:not(.has-music-bar) .pl-toast{bottom:24px;}
 @media (max-width: 768px) {
   .music-bar { margin-top: calc(60px + env(safe-area-inset-top, 0px)); }
 }
+
+/* ------------------------------------------------------------ Моя волна */
+.pl-wave {
+  position: relative; overflow: hidden; isolation: isolate;
+  display: flex; align-items: center; gap: 14px; width: 100%;
+  margin: 0 0 14px; padding: 18px 16px; border: 0; border-radius: 18px;
+  background: #15121f; color: #fff; text-align: left; cursor: pointer;
+  font: inherit; -webkit-tap-highlight-color: transparent;
+}
+.pl-wave__bg { position: absolute; inset: 0; z-index: -1; }
+.pl-wave__bg i {
+  position: absolute; width: 70%; aspect-ratio: 1; border-radius: 50%;
+  filter: blur(28px); opacity: .75; animation: plWaveDrift 9s ease-in-out infinite alternate;
+}
+.pl-wave__bg i:nth-child(1) { background: #7c4dff; left: -15%; top: -60%; }
+.pl-wave__bg i:nth-child(2) { background: #ff4f8b; right: -20%; top: -30%; animation-duration: 11s; }
+.pl-wave__bg i:nth-child(3) { background: #2bb3ff; left: 25%; bottom: -80%; animation-duration: 13s; }
+@keyframes plWaveDrift {
+  from { transform: translate(0, 0) scale(1); }
+  to { transform: translate(12%, 10%) scale(1.15); }
+}
+.pl-wave__play {
+  flex: none; display: grid; place-items: center; width: 44px; height: 44px;
+  border-radius: 50%; background: rgba(255,255,255,.95); color: #15121f;
+  box-shadow: 0 6px 18px rgba(0,0,0,.25); transition: transform .15s ease;
+}
+.pl-wave:hover .pl-wave__play { transform: scale(1.06); }
+.pl-wave.is-loading .pl-wave__play { animation: plWavePulse 1s ease-in-out infinite; }
+@keyframes plWavePulse { 50% { transform: scale(.88); opacity: .7; } }
+.pl-wave__meta { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.pl-wave__title { font-size: 18px; font-weight: 700; letter-spacing: -.01em; }
+.pl-wave__sub { font-size: 12.5px; opacity: .85; }
+@media (prefers-reduced-motion: reduce) { .pl-wave__bg i { animation: none; } }

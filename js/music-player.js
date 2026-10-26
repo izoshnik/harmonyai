@@ -61,6 +61,7 @@
     volume: 1,
     muted: false,
     collection: null,
+    wave: null,         // «Моя волна»: { station, batchId, personal, loading }
     retrying: false,
     failStreak: 0,
     expanded: false,
@@ -1027,6 +1028,8 @@
     ensureDom();
     state.queue = (tracks || []).filter(function (t) { return t && t.trackId; });
     state.collection = collectionInfo || null;
+    // Любая другая очередь выключает «Мою волну».
+    if (!collectionInfo || collectionInfo.type !== 'wave') state.wave = null;
     if (!state.queue.length) return;
     show();
     syncLiked();
@@ -1064,6 +1067,7 @@
     }).then(function () {
       state.retrying = false;
       state.failStreak = 0;
+      if (state.wave) onWaveTrackStarted(track);
       prefetchNext();
       save();
     }).catch(function (err) {
@@ -1136,7 +1140,97 @@
       audio.play();
       return;
     }
+    if (state.wave) waveFeedback('trackFinished', current(), audio.duration || 0);
     next(false);
+  }
+
+  /* ------------------------------------------------------------ Моя волна
+     Бесконечное радио Яндекса: очередь подгружается порциями, когда до конца
+     остаётся пара треков. Яндексу уходит фидбэк (старт, дослушал, пропустил) —
+     с личным аккаунтом следующие порции точнее попадают во вкус. */
+  function waveSeeds() {
+    var ids = [];
+    if (state.liked) state.liked.forEach(function (id) { ids.push(String(id)); });
+    try {
+      var extra = global.MusicPlaylists && typeof global.MusicPlaylists.seedIds === 'function'
+        ? global.MusicPlaylists.seedIds() : [];
+      extra.forEach(function (id) { if (ids.indexOf(String(id)) < 0) ids.push(String(id)); });
+    } catch (e) { /* noop */ }
+    return ids.slice(0, 30);
+  }
+
+  function waveFeedback(type, track, played) {
+    var w = state.wave;
+    var c = client();
+    if (!w || !w.personal || !c || typeof c.waveFeedback !== 'function') return;
+    c.waveFeedback({
+      station: w.station, batchId: w.batchId, type: type,
+      trackId: track && track.trackId ? (track.albumId ? track.trackId + ':' + track.albumId : track.trackId) : '',
+      played: Math.round(played || 0)
+    });
+  }
+
+  function onWaveTrackStarted(track) {
+    waveFeedback('trackStarted', track, 0);
+    if (state.index >= state.queue.length - 2) loadMoreWave();
+  }
+
+  function loadMoreWave() {
+    var w = state.wave;
+    var c = client();
+    if (!w || w.loading || !c) return Promise.resolve(false);
+    w.loading = true;
+    var last = state.queue[state.queue.length - 1];
+    return c.wave({ station: w.station, queue: last ? last.trackId : '', seeds: waveSeeds() }).then(function (d) {
+      w.loading = false;
+      if (state.wave !== w) return false;
+      if (d && d.batchId) w.batchId = d.batchId;
+      var have = {};
+      state.queue.forEach(function (t) { have[String(t.trackId)] = true; });
+      var fresh = (d && Array.isArray(d.items) ? d.items : []).filter(function (t) { return t && t.trackId && !have[String(t.trackId)]; });
+      if (!fresh.length) return false;
+      state.queue = state.queue.concat(fresh);
+      // Старое из начала очереди не копим: хватит 40 последних треков.
+      if (state.queue.length > 60 && state.index > 20) {
+        var cut = state.index - 10;
+        state.queue = state.queue.slice(cut);
+        state.index -= cut;
+      }
+      renderQueue();
+      save();
+      emitChange();
+      return true;
+    }).catch(function () { w.loading = false; return false; });
+  }
+
+  function startWave(opts) {
+    var c = client();
+    if (!c || typeof c.wave !== 'function') { notify('Музыкальный сервис недоступен'); return Promise.resolve(false); }
+    ensureDom();
+    show();
+    el.bar.classList.add('is-loading');
+    return c.wave({ station: (opts && opts.station) || '', seeds: waveSeeds() }).then(function (d) {
+      el.bar.classList.remove('is-loading');
+      var items = d && Array.isArray(d.items) ? d.items : [];
+      if (!items.length) {
+        if (!state.queue.length) hide();
+        notify('Волна пока пустая: лайкните пару треков или подключите Яндекс Музыку');
+        return false;
+      }
+      state.wave = { station: d.station, batchId: d.batchId || '', personal: !!d.personal, loading: false };
+      state.shuffle = false;
+      if (state.repeat !== 'off') state.repeat = 'off';
+      renderModes();
+      setQueue(items, 0, null, { type: 'wave', title: 'Моя волна', station: d.station, personal: !!d.personal });
+      return true;
+    }).catch(function (e) {
+      el.bar.classList.remove('is-loading');
+      if (!state.queue.length) hide();
+      notify(e && e.type === 'music_auth_required'
+        ? 'Подключите Яндекс Музыку в настройках, чтобы включить волну'
+        : 'Не удалось запустить «Мою волну»');
+      return false;
+    });
   }
 
   /* ------------------------------------------------------------------ команды */
@@ -1161,6 +1255,12 @@
 
   function next(manual) {
     var ni = nextIndex();
+    if (state.wave && manual) waveFeedback('skip', current(), audio.currentTime || 0);
+    if (ni < 0 && state.wave) {
+      // Волна не кончается: дожидаемся следующей порции и играем дальше.
+      loadMoreWave().then(function (ok) { if (ok) playAt(state.index + 1); });
+      return true;
+    }
     if (ni < 0) {
       pause();
       audio.currentTime = 0;
@@ -1296,6 +1396,10 @@
     state.muted = Boolean(s.muted);
     loadPrefs(); // свежие настройки звука важнее снимка очереди
     state.collection = s.collection || null;
+    // После перезагрузки волна продолжается с той же станции.
+    if (state.collection && state.collection.type === 'wave') {
+      state.wave = { station: state.collection.station || '', batchId: '', personal: !!state.collection.personal, loading: false };
+    }
 
     audio.volume = state.volume;
     audio.muted = state.muted;
@@ -1424,6 +1528,8 @@
 
   global.MusicPlayer = {
     setQueue: setQueue,
+    startWave: startWave,
+    isWave: function () { return !!state.wave; },
     playAt: playAt,
     play: play,
     pause: pause,

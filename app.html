@@ -12220,10 +12220,16 @@ async function runMusicMessage(text){
   /* --- КОМАНДЫ ПЛЕЕРА: мгновенно, без сети и без токенов. --- */
   if(intent.type==='control'){
     const P=window.MusicPlayer;
-    if(!P.isActive()&&intent.command!=='resume_or_random')return backToChat();
+    if(!P.isActive()&&intent.command!=='resume_or_random'&&intent.command!=='wave')return backToChat();
 
     let reply='';
     switch(intent.command){
+      case 'wave': {
+        if(typeof P.startWave!=='function')return backToChat();
+        const ok=await P.startWave();
+        reply=ok?'Включил «Мою волну» — треки подбираются по вашему вкусу. Лайкайте и пропускайте: волна подстраивается.':'Не получилось запустить «Мою волну». Подключите Яндекс Музыку в настройках или лайкните пару треков.';
+        break;
+      }
       case 'pause':    reply=P.pause()?'Пауза.':'Сейчас ничего не играет.';break;
       case 'resume':
       case 'resume_or_random':
