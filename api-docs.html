@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>API — HarmonyAI</title>
-<meta name="description" content="Документация HarmonyAI API: адрес https://api.harmonyai.ru, модели dynatos и adanatos, совместимость с Anthropic Messages API, готовые инструкции для Claude Code, Cursor, OpenCode, Python, PowerShell и терминала.">
+<meta name="description" content="Документация HarmonyAI API: адрес https://api.harmonyai.ru, модели dynatos и adan, совместимость с Anthropic Messages API, готовые инструкции для Claude Code, Cursor, OpenCode, Python, PowerShell и терминала.">
 <link rel="canonical" href="https://harmonyai.ru/api">
 <meta property="og:type" content="website">
 <meta property="og:title" content="HarmonyAI API">
@@ -22,6 +22,7 @@
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="stylesheet" href="/css/site.css">
 <link rel="stylesheet" href="/css/docs-mobile.css">
+<link rel="stylesheet" href="/css/api-docs.css">
 <script src="/i18n.js"></script><script defer src="/js/i18n/common.js"></script><script defer src="/js/i18n/api-docs.js"></script>
 </head>
 <body>
@@ -55,22 +56,20 @@
 <main id="main">
 
   <!-- ===== ГЕРОЙ ===== -->
-  <section class="hero">
-    <div class="wrap">
-      <div class="hero-inner">
-        <p class="eyebrow" style="margin-bottom:16px;">API</p>
-        <h1>HarmonyAI API</h1>
+  <section class="hero api-hero">
+    <div class="wrap api-hero-grid">
+      <div class="api-hero-text">
+        <p class="eyebrow" style="margin-bottom:16px;">HarmonyAI API</p>
+        <h1>Модели HarmonyAI в вашем коде и&nbsp;инструментах</h1>
         <p class="lead">
-          Шлюз реализует ядро Anthropic Messages API: поля system, messages, tools, max_tokens,
-          temperature, stream и стриминг событий SSE. Claude Code, Cursor, OpenCode и любой клиент
-          с настраиваемым адресом сервера подключаются штатно — меняются только адрес и ключ.
-          Отдельные расширения протокола (например, серверные инструменты и кэширование промптов)
-          могут не поддерживаться; актуальный список возможностей — в справочнике ниже.
-          Оплата — по фактическому числу токенов с баланса API.
+          Шлюз совместим с Anthropic Messages API: те же поля, те же события потока,
+          те же SDK. Claude Code, Cursor, OpenCode и свои скрипты подключаются заменой
+          адреса и ключа. Платите только за фактические токены.
         </p>
 
-        <div class="code-block" style="max-width:520px;margin:0 auto 24px;text-align:left;">
-          <pre>https://api.harmonyai.ru</pre>
+        <div class="api-endpoint">
+          <span class="api-endpoint-label">Базовый адрес</span>
+          <div class="code-block"><pre>https://api.harmonyai.ru</pre></div>
         </div>
 
         <div class="btn-row">
@@ -78,9 +77,79 @@
           <a class="btn btn-outline btn-lg" href="/api/dashboard">Личный кабинет&nbsp;→</a>
         </div>
         <p class="hero-note" id="keyHint">Ключ показывается один раз — сразу после создания.</p>
+
+        <ul class="api-facts">
+          <li><strong>2</strong><span>модели: Adan и Dynatos</span></li>
+          <li><strong>200K</strong><span>токенов контекста</span></li>
+          <li><strong>SSE</strong><span>потоковые ответы</span></li>
+          <li><strong>$0.50</strong><span>от, за 1M входных</span></li>
+        </ul>
+      </div>
+
+      <div class="api-hero-code" data-tabs="hq">
+        <div class="api-term-head">
+          <span class="api-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+          <div class="api-pills" role="tablist" aria-label="Язык примера">
+            <button class="api-pill" type="button" role="tab" data-tab="curl" aria-controls="hq-curl" aria-selected="true">cURL</button>
+            <button class="api-pill" type="button" role="tab" data-tab="py" aria-controls="hq-py" aria-selected="false" tabindex="-1">Python</button>
+            <button class="api-pill" type="button" role="tab" data-tab="js" aria-controls="hq-js" aria-selected="false" tabindex="-1">Node.js</button>
+          </div>
+        </div>
+        <div class="code-block api-term" id="hq-curl" role="tabpanel"><pre>curl https://api.harmonyai.ru/v1/messages \
+  -H "Authorization: Bearer $HARMONY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "adan",
+    "max_tokens": 512,
+    "messages": [
+      {"role": "user", "content": "Что такое D7?"}
+    ]
+  }'</pre></div>
+        <div class="code-block api-term" id="hq-py" role="tabpanel" hidden><pre>import anthropic
+
+client = anthropic.Anthropic(
+    base_url="https://api.harmonyai.ru",
+    api_key=os.environ["HARMONY_API_KEY"],
+)
+
+msg = client.messages.create(
+    model="adan",
+    max_tokens=512,
+    messages=[{"role": "user", "content": "Привет!"}],
+)
+print(msg.content[0].text)</pre></div>
+        <div class="code-block api-term" id="hq-js" role="tabpanel" hidden><pre>import Anthropic from "@anthropic-ai/sdk";
+
+const client = new Anthropic({
+  baseURL: "https://api.harmonyai.ru",
+  apiKey: process.env.HARMONY_API_KEY,
+});
+
+const msg = await client.messages.create({
+  model: "adan",
+  max_tokens: 512,
+  messages: [{ role: "user", content: "Привет!" }],
+});
+console.log(msg.content[0].text);</pre></div>
       </div>
     </div>
   </section>
+
+  <!-- ===== НАВИГАЦИЯ ПО СТРАНИЦЕ ===== -->
+  <nav class="api-subnav" aria-label="Разделы документации">
+    <div class="wrap">
+      <a href="#start">Старт</a>
+      <a href="#models-cards">Модели</a>
+      <a href="#connect">Подключение</a>
+      <a href="#examples">Примеры</a>
+      <a href="#reference">Справочник</a>
+      <a href="#calc">Калькулятор</a>
+      <a href="#limits">Лимиты</a>
+      <a href="#billing">Оплата</a>
+      <a href="#security">Безопасность</a>
+      <a href="#api-faq">Вопросы</a>
+    </div>
+  </nav>
 
   <!-- ===== БЫСТРЫЙ СТАРТ ===== -->
   <section class="section section-soft" id="start">
@@ -111,7 +180,7 @@
   -H "Content-Type: application/json" \
   -H "anthropic-version: 2023-06-01" \
   -d '{
-    "model": "adanatos",
+    "model": "adan",
     "max_tokens": 1024,
     "messages": [
       { "role": "user", "content": "Привет! Объясни в двух предложениях, что такое SSE." }
@@ -125,15 +194,75 @@
     </div>
   </section>
 
+  <!-- ===== МОДЕЛИ ===== -->
+  <section class="section" id="models-cards">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Модели</p>
+        <h2>Две модели — под разные задачи</h2>
+        <p class="lead">Обе понимают текст и изображения, умеют вызывать инструменты и отвечать потоком.</p>
+      </div>
+
+      <div class="api-models">
+        <article class="api-model">
+          <div class="api-model-top">
+            <span class="api-model-badge">Быстрая</span>
+            <h3>Adan</h3>
+            <code>adan</code>
+          </div>
+          <p>Отвечает почти мгновенно и стоит дешевле. Чат-боты, классификация, перевод,
+            короткие тексты, подсказки в редакторе, автодополнение.</p>
+          <dl class="api-model-spec">
+            <div><dt>Вход</dt><dd data-price="in:adanatos">$0.50</dd></div>
+            <div><dt>Выход</dt><dd data-price="out:adanatos">$5.00</dd></div>
+            <div><dt>Контекст</dt><dd>200 000</dd></div>
+            <div><dt>Макс. ответ</dt><dd>32 000</dd></div>
+          </dl>
+          <p class="api-model-note">Прежнее имя <code>adanatos</code> продолжает работать.</p>
+        </article>
+
+        <article class="api-model api-model-pro">
+          <div class="api-model-top">
+            <span class="api-model-badge">Флагман</span>
+            <h3>Dynatos</h3>
+            <code>dynatos</code>
+          </div>
+          <p>Для сложного: длинные документы, код и рефакторинг, анализ, многошаговые
+            рассуждения и агентные сценарии с инструментами.</p>
+          <dl class="api-model-spec">
+            <div><dt>Вход</dt><dd data-price="in:dynatos">$0.60</dd></div>
+            <div><dt>Выход</dt><dd data-price="out:dynatos">$7.00</dd></div>
+            <div><dt>Контекст</dt><dd>200 000</dd></div>
+            <div><dt>Макс. ответ</dt><dd>64 000</dd></div>
+          </dl>
+          <p class="api-model-note">Доступна при активной подписке Pro. В Claude Code подставляется вместо Sonnet и Opus.</p>
+        </article>
+      </div>
+
+      <div class="table-wrap" style="margin-top:26px;">
+        <table class="tbl">
+          <thead><tr><th>Возможность</th><th>Adan</th><th>Dynatos</th></tr></thead>
+          <tbody>
+            <tr><td>Потоковый ответ (SSE)</td><td>Да</td><td>Да</td></tr>
+            <tr><td>Изображения во входе (<code>image</code>)</td><td>Да</td><td>Да</td></tr>
+            <tr><td>Инструменты (<code>tools</code>, <code>tool_choice</code>)</td><td>Да</td><td>Да</td></tr>
+            <tr><td>Режим размышления (<code>thinking</code>)</td><td>Да</td><td>Да, глубже</td></tr>
+            <tr><td>Лучше всего для</td><td>Скорость и объём</td><td>Качество и сложные задачи</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
   <!-- ===== ПОДКЛЮЧЕНИЕ ===== -->
-  <section class="section" id="connect">
+  <section class="section section-soft" id="connect">
     <div class="wrap">
       <div class="section-head">
         <p class="eyebrow">Подключение</p>
         <h2>Выберите свой инструмент</h2>
         <p class="lead">
           Везде принцип один: адрес сервера — <code>https://api.harmonyai.ru</code>,
-          ключ — <code>sk-h-…</code>, модель — <code>dynatos</code> или <code>adanatos</code>.
+          ключ — <code>sk-h-…</code>, модель — <code>dynatos</code> или <code>adan</code>.
           Ниже — точные шаги для каждого клиента.
         </p>
       </div>
@@ -249,7 +378,7 @@
 
             <div class="notice">
               <b>Оплата и модели.</b> Каждый ответ списывается с баланса API так же, как запрос к
-              <code>/v1/messages</code>. По умолчанию отвечает <code>adanatos</code>; попросите
+              <code>/v1/messages</code>. По умолчанию отвечает <code>adan</code>; попросите
               ChatGPT использовать <code>dynatos</code> для сложных задач (нужна Pro-подписка).
               Адрес с ключом — это пароль: не публикуйте его. Если он утёк, отзовите ключ в кабинете.
             </div>
@@ -279,12 +408,12 @@
                 <div class="code-block"><pre>export ANTHROPIC_BASE_URL="https://api.harmonyai.ru"
 export ANTHROPIC_AUTH_TOKEN="sk-h-ваш-ключ"
 export ANTHROPIC_MODEL="dynatos"
-export ANTHROPIC_DEFAULT_HAIKU_MODEL="adanatos"</pre></div>
+export ANTHROPIC_DEFAULT_HAIKU_MODEL="adan"</pre></div>
                 <p class="ig-os">Windows, PowerShell</p>
                 <div class="code-block"><pre>$env:ANTHROPIC_BASE_URL="https://api.harmonyai.ru"
 $env:ANTHROPIC_AUTH_TOKEN="sk-h-ваш-ключ"
 $env:ANTHROPIC_MODEL="dynatos"
-$env:ANTHROPIC_DEFAULT_HAIKU_MODEL="adanatos"</pre></div>
+$env:ANTHROPIC_DEFAULT_HAIKU_MODEL="adan"</pre></div>
               </li>
 
               <li>
@@ -301,7 +430,7 @@ $env:ANTHROPIC_DEFAULT_HAIKU_MODEL="adanatos"</pre></div>
     "ANTHROPIC_BASE_URL": "https://api.harmonyai.ru",
     "ANTHROPIC_AUTH_TOKEN": "sk-h-ваш-ключ",
     "ANTHROPIC_MODEL": "dynatos",
-    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "adanatos",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "adan",
     "ANTHROPIC_DEFAULT_SONNET_MODEL": "dynatos",
     "ANTHROPIC_DEFAULT_OPUS_MODEL": "dynatos"
   }
@@ -351,7 +480,7 @@ $env:ANTHROPIC_DEFAULT_HAIKU_MODEL="adanatos"</pre></div>
     "ANTHROPIC_BASE_URL": "https://api.harmonyai.ru",
     "ANTHROPIC_AUTH_TOKEN": "sk-h-ваш-ключ",
     "ANTHROPIC_MODEL": "dynatos",
-    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "adanatos",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "adan",
     "ANTHROPIC_DEFAULT_SONNET_MODEL": "dynatos",
     "ANTHROPIC_DEFAULT_OPUS_MODEL": "dynatos"
   }
@@ -417,7 +546,7 @@ $env:ANTHROPIC_DEFAULT_HAIKU_MODEL="adanatos"</pre></div>
               <li>
                 <span class="ig-step-t">Выберите модель</span>
                 <p>
-                  <code>dynatos</code> для сложных задач, <code>adanatos</code> для быстрых.
+                  <code>dynatos</code> для сложных задач, <code>adan</code> для быстрых.
                   Если список предлагает только официальные названия — введите идентификатор вручную.
                 </p>
               </li>
@@ -467,7 +596,7 @@ $env:ANTHROPIC_DEFAULT_HAIKU_MODEL="adanatos"</pre></div>
       },
       "models": {
         "dynatos":  { "name": "Dynatos" },
-        "adanatos": { "name": "Adan" }
+        "adan": { "name": "Adan" }
       }
     }
   }
@@ -507,7 +636,7 @@ $env:ANTHROPIC_DEFAULT_HAIKU_MODEL="adanatos"</pre></div>
                   <tr><td>Эндпоинты</td><td><code>/v1/messages</code>, <code>/v1/messages/count_tokens</code>, <code>/v1/models</code></td></tr>
                   <tr><td>Авторизация</td><td><code>Authorization: Bearer sk-h-…</code> или <code>x-api-key: sk-h-…</code></td></tr>
                   <tr><td>Версия</td><td><code>anthropic-version: 2023-06-01</code></td></tr>
-                  <tr><td>Модели</td><td><code>dynatos</code>, <code>adanatos</code></td></tr>
+                  <tr><td>Модели</td><td><code>dynatos</code>, <code>adan</code></td></tr>
                 </tbody>
               </table>
             </div>
@@ -520,7 +649,7 @@ $env:ANTHROPIC_DEFAULT_HAIKU_MODEL="adanatos"</pre></div>
   -H "Content-Type: application/json" \
   -H "anthropic-version: 2023-06-01" \
   -d '{
-    "model": "adanatos",
+    "model": "adan",
     "max_tokens": 1024,
     "messages": [
       { "role": "user", "content": "Объясни, что такое SSE" }
@@ -553,7 +682,7 @@ const client = new Anthropic({
 });
 
 const stream = await client.messages.stream({
-  model: 'adanatos',
+  model: 'adan',
   max_tokens: 1024,
   messages: [{ role: 'user', content: 'Напиши регулярку для e-mail' }],
 });
@@ -636,7 +765,7 @@ with client.messages.stream(
               <li>
                 <span class="ig-step-t">Обычный ответ и расход токенов</span>
                 <div class="code-block"><pre>msg = client.messages.create(
-    model="adanatos",
+    model="adan",
     max_tokens=512,
     messages=[{"role": "user", "content": "Привет!"}],
 )
@@ -676,7 +805,7 @@ print(msg.usage.input_tokens, msg.usage.output_tokens)</pre></div>
               <li>
                 <span class="ig-step-t">Отправьте запрос</span>
                 <div class="code-block"><pre>$body = @{
-  model      = "adanatos"
+  model      = "adan"
   max_tokens = 512
   messages   = @(@{ role = "user"; content = "Привет! Ответь одним предложением." })
 } | ConvertTo-Json -Depth 5
@@ -698,7 +827,7 @@ $res.content[0].text</pre></div>
                 <div class="code-block"><pre>$env:ANTHROPIC_BASE_URL = "https://api.harmonyai.ru"
 $env:ANTHROPIC_AUTH_TOKEN = "sk-h-ваш-ключ"
 $env:ANTHROPIC_MODEL = "dynatos"
-$env:ANTHROPIC_DEFAULT_HAIKU_MODEL = "adanatos"
+$env:ANTHROPIC_DEFAULT_HAIKU_MODEL = "adan"
 
 claude</pre></div>
               </li>
@@ -746,7 +875,7 @@ chmod 600 ~/.harmony-key</pre></div>
     -H "Content-Type: application/json" \
     -H "anthropic-version: 2023-06-01" \
     -d "$(jq -n --arg q "$*" '{
-          model: "adanatos",
+          model: "adan",
           max_tokens: 1024,
           messages: [{ role: "user", content: $q }]
         }')" | jq -r '.content[0].text'
@@ -760,7 +889,7 @@ ask "Чем tar отличается от zip?"</pre></div>
                 <div class="code-block"><pre>export ANTHROPIC_BASE_URL="https://api.harmonyai.ru"
 export ANTHROPIC_AUTH_TOKEN="$HARMONY_API_KEY"
 export ANTHROPIC_MODEL="dynatos"
-export ANTHROPIC_DEFAULT_HAIKU_MODEL="adanatos"
+export ANTHROPIC_DEFAULT_HAIKU_MODEL="adan"
 
 claude</pre></div>
               </li>
@@ -780,8 +909,184 @@ claude</pre></div>
       <p style="font-size:14px;color:var(--text-3);margin-top:16px;">
         Клиента нет в списке? Подойдёт любой, у которого есть провайдер <strong>Anthropic</strong>
         и возможность заменить адрес сервера: <code>https://api.harmonyai.ru</code>,
-        ключ <code>sk-h-…</code>, модель <code>dynatos</code> или <code>adanatos</code>.
+        ключ <code>sk-h-…</code>, модель <code>dynatos</code> или <code>adan</code>.
       </p>
+    </div>
+  </section>
+
+  <!-- ===== ПРИМЕРЫ ===== -->
+  <section class="section" id="examples">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Примеры</p>
+        <h2>Готовые рецепты</h2>
+        <p class="lead">Копируйте и запускайте: везде используется переменная окружения <code>HARMONY_API_KEY</code>.</p>
+      </div>
+
+      <div class="api-ex" data-tabs="ex">
+        <div class="api-pills api-pills-wide" role="tablist" aria-label="Примеры">
+          <button class="api-pill" type="button" role="tab" data-tab="stream" aria-controls="ex-stream" aria-selected="true">Стриминг</button>
+          <button class="api-pill" type="button" role="tab" data-tab="chat" aria-controls="ex-chat" aria-selected="false" tabindex="-1">Диалог</button>
+          <button class="api-pill" type="button" role="tab" data-tab="system" aria-controls="ex-system" aria-selected="false" tabindex="-1">Системная инструкция</button>
+          <button class="api-pill" type="button" role="tab" data-tab="vision" aria-controls="ex-vision" aria-selected="false" tabindex="-1">Изображения</button>
+          <button class="api-pill" type="button" role="tab" data-tab="tools" aria-controls="ex-tools" aria-selected="false" tabindex="-1">Инструменты</button>
+          <button class="api-pill" type="button" role="tab" data-tab="thinking" aria-controls="ex-thinking" aria-selected="false" tabindex="-1">Размышление</button>
+          <button class="api-pill" type="button" role="tab" data-tab="fetch" aria-controls="ex-fetch" aria-selected="false" tabindex="-1">Без SDK</button>
+        </div>
+
+        <div class="api-ex-panel" id="ex-stream" role="tabpanel">
+          <p>Текст приходит по мере генерации — пользователь видит ответ сразу, а не через десять секунд.</p>
+          <div class="code-block"><pre>import os, anthropic
+
+client = anthropic.Anthropic(base_url="https://api.harmonyai.ru",
+                             api_key=os.environ["HARMONY_API_KEY"])
+
+with client.messages.stream(
+    model="adan",
+    max_tokens=1024,
+    messages=[{"role": "user", "content": "Напиши короткое стихотворение про осень"}],
+) as stream:
+    for text in stream.text_stream:
+        print(text, end="", flush=True)
+
+print("\n", stream.get_final_message().usage)</pre></div>
+        </div>
+
+        <div class="api-ex-panel" id="ex-chat" role="tabpanel" hidden>
+          <p>Модель не помнит прошлые запросы: историю диалога вы передаёте целиком в <code>messages</code>, чередуя роли.</p>
+          <div class="code-block"><pre>history = [
+    {"role": "user", "content": "Меня зовут Аня, я учусь в музыкалке."},
+    {"role": "assistant", "content": "Приятно познакомиться, Аня! Чем помочь?"},
+    {"role": "user", "content": "Как меня зовут и где я учусь?"},
+]
+
+msg = client.messages.create(model="adan", max_tokens=300, messages=history)
+history.append({"role": "assistant", "content": msg.content[0].text})</pre></div>
+          <p class="api-ex-note">Чем длиннее история, тем больше входных токенов в каждом запросе. Старые реплики можно сокращать до краткого пересказа.</p>
+        </div>
+
+        <div class="api-ex-panel" id="ex-system" role="tabpanel" hidden>
+          <p>Поле <code>system</code> задаёт роль, тон и формат. <code>temperature</code> ниже — ответы стабильнее, выше — разнообразнее.</p>
+          <div class="code-block"><pre>msg = client.messages.create(
+    model="dynatos",
+    max_tokens=800,
+    temperature=0.3,
+    system="Ты преподаватель сольфеджио. Отвечай кратко, с примерами в нотах.",
+    messages=[{"role": "user", "content": "Как строится D7 в до мажоре?"}],
+    stop_sequences=["\n\n\n"],
+)</pre></div>
+        </div>
+
+        <div class="api-ex-panel" id="ex-vision" role="tabpanel" hidden>
+          <p>Картинка передаётся блоком <code>image</code> в base64. Подходят PNG, JPEG, WebP и GIF.</p>
+          <div class="code-block"><pre>import base64
+
+with open("score.png", "rb") as f:
+    data = base64.standard_b64encode(f.read()).decode()
+
+msg = client.messages.create(
+    model="adan",
+    max_tokens=1024,
+    messages=[{
+        "role": "user",
+        "content": [
+            {"type": "image",
+             "source": {"type": "base64", "media_type": "image/png", "data": data}},
+            {"type": "text", "text": "Какая тональность и размер у этого фрагмента?"},
+        ],
+    }],
+)</pre></div>
+          <p class="api-ex-note">Изображение тоже стоит токенов: перед отправкой уменьшайте снимки до 1500 px по длинной стороне.</p>
+        </div>
+
+        <div class="api-ex-panel" id="ex-tools" role="tabpanel" hidden>
+          <p>Модель сама решает, когда вызвать вашу функцию. Вы выполняете её и возвращаете результат блоком <code>tool_result</code>.</p>
+          <div class="code-block"><pre>tools = [{
+    "name": "get_weather",
+    "description": "Текущая погода в городе",
+    "input_schema": {
+        "type": "object",
+        "properties": {"city": {"type": "string"}},
+        "required": ["city"],
+    },
+}]
+
+messages = [{"role": "user", "content": "Нужен ли зонт в Казани?"}]
+msg = client.messages.create(model="dynatos", max_tokens=1024,
+                             tools=tools, messages=messages)
+
+if msg.stop_reason == "tool_use":
+    call = next(b for b in msg.content if b.type == "tool_use")
+    result = my_weather(call.input["city"])          # ваша функция
+    messages += [
+        {"role": "assistant", "content": msg.content},
+        {"role": "user", "content": [{"type": "tool_result",
+                                      "tool_use_id": call.id,
+                                      "content": result}]},
+    ]
+    msg = client.messages.create(model="dynatos", max_tokens=1024,
+                                 tools=tools, messages=messages)
+
+print(msg.content[0].text)</pre></div>
+        </div>
+
+        <div class="api-ex-panel" id="ex-thinking" role="tabpanel" hidden>
+          <p>Блок <code>thinking</code> включает режим размышления: модель дольше обдумывает задачу перед ответом. Чем больше <code>budget_tokens</code>, тем выше уровень усилий.</p>
+          <div class="code-block"><pre>msg = client.messages.create(
+    model="dynatos",
+    max_tokens=16000,
+    thinking={"type": "enabled", "budget_tokens": 8000},
+    messages=[{"role": "user", "content": "Найди ошибку в голосоведении: ..."}],
+)</pre></div>
+          <div class="table-wrap" style="margin-top:14px;">
+            <table class="tbl">
+              <thead><tr><th>budget_tokens</th><th>Уровень</th><th>Когда</th></tr></thead>
+              <tbody>
+                <tr><td class="num">до 4 095</td><td>Low</td><td>Простые вопросы, нужна скорость</td></tr>
+                <tr><td class="num">4 096 – 16 383</td><td>Medium</td><td>Задачи, код средней сложности</td></tr>
+                <tr><td class="num">от 16 384</td><td>High</td><td>Сложные рассуждения, анализ</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="api-ex-panel" id="ex-fetch" role="tabpanel" hidden>
+          <p>SDK не обязателен: это обычный HTTP. Пример для браузера или Node без зависимостей — с разбором потока событий.</p>
+          <div class="code-block"><pre>const res = await fetch("https://api.harmonyai.ru/v1/messages", {
+  method: "POST",
+  headers: {
+    "Authorization": `Bearer ${process.env.HARMONY_API_KEY}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    model: "adan",
+    max_tokens: 512,
+    stream: true,
+    messages: [{ role: "user", content: "Привет!" }],
+  }),
+});
+
+const reader = res.body.getReader();
+const decoder = new TextDecoder();
+let buf = "";
+for (;;) {
+  const { value, done } = await reader.read();
+  if (done) break;
+  buf += decoder.decode(value, { stream: true });
+  let i;
+  while ((i = buf.indexOf("\n\n")) >= 0) {
+    const chunk = buf.slice(0, i); buf = buf.slice(i + 2);
+    const data = chunk.split("\n").find(l => l.startsWith("data: "));
+    if (!data) continue;
+    const ev = JSON.parse(data.slice(6));
+    if (ev.type === "content_block_delta" && ev.delta.type === "text_delta") {
+      process.stdout.write(ev.delta.text);
+    }
+  }
+}</pre></div>
+          <p class="api-ex-note">Не вызывайте API прямо из браузера на публичном сайте: ключ окажется в коде страницы. Делайте запросы со своего сервера.</p>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -818,7 +1123,7 @@ claude</pre></div>
         <table class="tbl">
           <thead><tr><th>Поле</th><th>Тип</th><th>Описание</th></tr></thead>
           <tbody>
-            <tr><td><code>model</code></td><td>string</td><td>Обязательно. <code>dynatos</code> или <code>adanatos</code></td></tr>
+            <tr><td><code>model</code></td><td>string</td><td>Обязательно. <code>dynatos</code> или <code>adan</code></td></tr>
             <tr><td><code>max_tokens</code></td><td>integer</td><td>Обязательно. Ограничивается пределом модели (см. таблицу ниже)</td></tr>
             <tr><td><code>messages</code></td><td>array</td><td>Обязательно. Роли <code>user</code> и <code>assistant</code>; содержимое — строка или блоки <code>text</code>, <code>image</code>, <code>tool_use</code>, <code>tool_result</code></td></tr>
             <tr><td><code>system</code></td><td>string / array</td><td>Системная инструкция</td></tr>
@@ -839,7 +1144,7 @@ claude</pre></div>
   "id": "msg_…",
   "type": "message",
   "role": "assistant",
-  "model": "adanatos",
+  "model": "adan",
   "content": [ { "type": "text", "text": "…" } ],
   "stop_reason": "end_turn",
   "usage": { "input_tokens": 24, "output_tokens": 118 }
@@ -912,6 +1217,7 @@ event: message_stop</pre>
             <tr><td class="num">400</td><td><code>invalid_request_error</code></td><td>Нет обязательного поля, неверный JSON, пустой <code>messages</code></td></tr>
             <tr><td class="num">401</td><td><code>authentication_error</code></td><td>Ключ отсутствует, неверен или отозван</td></tr>
             <tr><td class="num">402</td><td><code>invalid_request_error</code></td><td>Недостаточно средств. В ответе — текущий баланс и требуемая сумма</td></tr>
+            <tr><td class="num">403</td><td><code>permission_error</code></td><td>Модель <code>dynatos</code> без активной подписки Pro</td></tr>
             <tr><td class="num">404</td><td><code>not_found_error</code></td><td>Неизвестная модель или несуществующий путь</td></tr>
             <tr><td class="num">405</td><td><code>invalid_request_error</code></td><td>Неподходящий HTTP-метод</td></tr>
             <tr><td class="num">429</td><td><code>rate_limit_error</code></td><td>Слишком много запросов</td></tr>
@@ -951,7 +1257,7 @@ event: message_stop</pre>
               <td class="num">64 000</td>
             </tr>
             <tr>
-              <td><code>adanatos</code><br><span style="color:var(--text-3);font-size:14px;">Быстрая и дешёвая</span></td>
+              <td><code>adan</code><br><span style="color:var(--text-3);font-size:14px;">Быстрая и дешёвая (он же <code>adanatos</code>)</span></td>
               <td class="num" data-price="in:adanatos">$0.50</td>
               <td class="num" data-price="out:adanatos">$5.00</td>
               <td class="num">200 000</td>
@@ -974,6 +1280,87 @@ event: message_stop</pre>
         без плавающей точки: округления «в свою пользу» в расчётах нет.
         Вход и выход тарифицируются отдельно, никакой «средней цены за токен» не существует.
       </p>
+    </div>
+  </section>
+
+  <!-- ===== КАЛЬКУЛЯТОР ===== -->
+  <section class="section section-soft" id="calc">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Калькулятор</p>
+        <h2>Сколько это будет стоить</h2>
+        <p class="lead">Прикиньте расход заранее. Тарифы берутся из той же конфигурации, что и биллинг.</p>
+      </div>
+
+      <div class="api-calc">
+        <div class="api-calc-form">
+          <label class="api-calc-field">
+            <span>Модель</span>
+            <select class="input" id="calcModel">
+              <option value="adanatos">Adan</option>
+              <option value="dynatos">Dynatos</option>
+            </select>
+          </label>
+          <label class="api-calc-field">
+            <span>Входных токенов в запросе</span>
+            <input class="input" id="calcIn" type="number" min="0" step="100" value="1500" inputmode="numeric">
+          </label>
+          <label class="api-calc-field">
+            <span>Выходных токенов в ответе</span>
+            <input class="input" id="calcOut" type="number" min="0" step="100" value="500" inputmode="numeric">
+          </label>
+          <label class="api-calc-field">
+            <span>Запросов в день</span>
+            <input class="input" id="calcN" type="number" min="1" step="10" value="200" inputmode="numeric">
+          </label>
+          <p class="api-calc-hint">Ориентир: 1 000 токенов ≈ 750 слов на английском или ≈ 400–500 слов на русском.</p>
+        </div>
+        <div class="api-calc-out" aria-live="polite">
+          <div class="api-calc-row"><span>Один запрос</span><strong id="calcOne">—</strong></div>
+          <div class="api-calc-row"><span>В день</span><strong id="calcDay">—</strong></div>
+          <div class="api-calc-row api-calc-total"><span>В месяц (30 дней)</span><strong id="calcMonth">—</strong></div>
+          <p class="api-calc-hint" id="calcRate">Курс: <span data-price="usd-rate">95,00</span> ₽ за $1</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== ЛИМИТЫ И НАДЁЖНОСТЬ ===== -->
+  <section class="section" id="limits">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Лимиты и надёжность</p>
+        <h2>Как писать устойчивый клиент</h2>
+      </div>
+
+      <div class="grid grid-3" style="margin-bottom:28px;">
+        <article class="card">
+          <h3>Таймаут — 120 секунд</h3>
+          <p>Столько шлюз ждёт модель. Для длинных ответов включайте <code>stream: true</code>:
+            текст пойдёт сразу, а <code>ping</code> раз в несколько секунд не даст прокси оборвать соединение.</p>
+        </article>
+        <article class="card">
+          <h3>Резерв по max_tokens</h3>
+          <p>Перед запросом баланс сверяется с худшим случаем — весь <code>max_tokens</code> по цене выхода.
+            Списывается же только фактический расход. Не ставьте <code>max_tokens</code> с большим запасом.</p>
+        </article>
+        <article class="card">
+          <h3>Повторы при 429 и 503</h3>
+          <p>Это временные ошибки: подождите и повторите с растущей паузой. 400, 401, 402 и 404
+            повторять бессмысленно — исправьте запрос, ключ или баланс.</p>
+        </article>
+      </div>
+
+      <p style="margin-bottom:12px;">Повтор с экспоненциальной паузой (официальные SDK делают это сами, параметр <code>max_retries</code>):</p>
+      <div class="code-block" style="margin-bottom:14px;"><pre>import time, random, anthropic
+
+def ask(client, **kw):
+    for attempt in range(5):
+        try:
+            return client.messages.create(**kw)
+        except (anthropic.RateLimitError, anthropic.InternalServerError):
+            time.sleep(min(30, 2 ** attempt) + random.random())
+    raise RuntimeError("Модель недоступна, попробуйте позже")</pre></div>
     </div>
   </section>
 
@@ -1054,6 +1441,62 @@ event: message_stop</pre>
       <div class="notice notice-warn" style="margin-top:24px;">
         Не публикуйте ключ в репозиториях, скриншотах и обращениях в поддержку.
         Если он мог утечь — <a href="/api/dashboard">перевыпустите его</a>, это занимает секунду.
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== ВОПРОСЫ ===== -->
+  <section class="section section-soft" id="api-faq">
+    <div class="wrap-narrow">
+      <div class="section-head">
+        <p class="eyebrow">Вопросы</p>
+        <h2>Частые вопросы об API</h2>
+      </div>
+
+      <div class="api-faq">
+        <details>
+          <summary>Нужна ли подписка Pro, чтобы пользоваться API?</summary>
+          <p>Для <code>adan</code> — нет, достаточно баланса API. Для <code>dynatos</code> нужна
+            активная подписка Pro, без неё вернётся ошибка 403. Сами запросы в обоих случаях
+            оплачиваются с баланса API.</p>
+        </details>
+        <details>
+          <summary>Чем отличаются adan и adanatos?</summary>
+          <p>Ничем: это одна модель. Её новое короткое имя — <code>adan</code>, прежнее
+            <code>adanatos</code> продолжает работать, чтобы не ломать готовые настройки.</p>
+        </details>
+        <details>
+          <summary>Подойдёт ли официальный SDK Anthropic?</summary>
+          <p>Да. Укажите <code>base_url</code> (Python) или <code>baseURL</code> (Node.js)
+            <code>https://api.harmonyai.ru</code> и ключ <code>sk-h-…</code>. Остальной код не меняется.</p>
+        </details>
+        <details>
+          <summary>Работает ли OpenAI-совместимый формат (/v1/chat/completions)?</summary>
+          <p>Шлюз говорит на протоколе Anthropic Messages. Если ваш инструмент умеет только
+            формат OpenAI, используйте его режим «Anthropic» или «Claude» — он есть в Cursor,
+            OpenCode, Cline и Roo Code.</p>
+        </details>
+        <details>
+          <summary>Хранятся ли мои запросы?</summary>
+          <p>Для биллинга сохраняется только расход: модель, число токенов, сумма и время.
+            Тексты запросов и ответов шлюз в базу не записывает.</p>
+        </details>
+        <details>
+          <summary>Почему число токенов в count_tokens отличается от usage?</summary>
+          <p><code>count_tokens</code> — быстрая оценка без обращения к модели. Точное значение
+            приходит в <code>usage</code> ответа, по нему и идёт списание.</p>
+        </details>
+        <details>
+          <summary>Что будет, если баланс закончится посреди ответа?</summary>
+          <p>Ответ не обрывается: начатый запрос доводится до конца и списывается по факту.
+            Следующие запросы вернут 402, пока баланс не пополнен.</p>
+        </details>
+        <details>
+          <summary>Можно ли выпустить несколько ключей?</summary>
+          <p>Да, в <a href="/api/dashboard" style="color:var(--link);">личном кабинете</a>.
+            Удобно держать отдельный ключ на каждый проект: утёкший ключ перевыпускается,
+            не задевая остальные.</p>
+        </details>
       </div>
     </div>
   </section>
@@ -1262,6 +1705,52 @@ document.addEventListener('DOMContentLoaded', function () {
     try { sessionStorage.removeItem(PENDING); } catch (e) {}
     if (window.hmAuth.user) createKey();
   })();
+});
+</script>
+
+<script>
+/* Калькулятор стоимости и подсветка текущего раздела в навигации. Цены берём
+   из элементов data-price: их обновляет hm.prices из серверной конфигурации,
+   поэтому расчёт не расходится с биллингом. */
+document.addEventListener('DOMContentLoaded', function () {
+  var $ = function (id) { return document.getElementById(id); };
+  function num(text) { var v = parseFloat(String(text || '').replace(/[^0-9,.]/g, '').replace(',', '.')); return isFinite(v) ? v : 0; }
+  function price(kind, model) { var el = document.querySelector('[data-price="' + kind + ':' + model + '"]'); return el ? num(el.textContent) : 0; }
+  function usd(v) { return '$' + (v < 0.01 ? v.toFixed(4) : v.toFixed(2)); }
+  function rub(v) { return v.toLocaleString('ru-RU', { maximumFractionDigits: v < 1 ? 3 : 0 }) + ' ₽'; }
+  function calc() {
+    if (!$('calcModel')) return;
+    var m = $('calcModel').value;
+    var rate = num((document.querySelector('[data-price="usd-rate"]') || {}).textContent) || 95;
+    var one = (Math.max(0, num($('calcIn').value)) * price('in', m) + Math.max(0, num($('calcOut').value)) * price('out', m)) / 1e6;
+    var n = Math.max(1, Math.round(num($('calcN').value)) || 1);
+    var cells = [[one, 'calcOne'], [one * n, 'calcDay'], [one * n * 30, 'calcMonth']];
+    cells.forEach(function (c) { $(c[1]).textContent = rub(c[0] * rate) + ' · ' + usd(c[0]); });
+  }
+  ['calcModel', 'calcIn', 'calcOut', 'calcN'].forEach(function (id) {
+    var el = $(id); if (el) { el.addEventListener('input', calc); el.addEventListener('change', calc); }
+  });
+  calc();
+  // Тарифы приходят с сервера чуть позже — пересчитываем, когда цифры обновятся.
+  var rateEl = document.querySelector('#calc [data-price="usd-rate"]');
+  if (rateEl && window.MutationObserver) new MutationObserver(calc).observe(rateEl, { childList: true, characterData: true, subtree: true });
+  setTimeout(calc, 1500);
+
+  var links = Array.prototype.slice.call(document.querySelectorAll('.api-subnav a'));
+  var secs = links.map(function (a) { return document.getElementById(a.getAttribute('href').slice(1)); });
+  var ticking = false;
+  function spy() {
+    ticking = false;
+    var cur = -1;
+    secs.forEach(function (sec, i) { if (sec && sec.getBoundingClientRect().top <= 140) cur = i; });
+    links.forEach(function (a, i) { a.classList.toggle('is-active', i === cur); });
+    var act = links[cur];
+    if (!act) return;
+    var bar = act.parentNode;
+    if (bar.scrollWidth > bar.clientWidth) bar.scrollLeft = act.offsetLeft - bar.clientWidth / 2 + act.offsetWidth / 2;
+  }
+  window.addEventListener('scroll', function () { if (!ticking) { ticking = true; requestAnimationFrame(spy); } }, { passive: true });
+  spy();
 });
 </script>
 
