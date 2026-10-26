@@ -256,7 +256,7 @@ async function isPromptAllowedByAI(prompt) {
 
 const MODERATION_REJECT_MESSAGE = 'Запрос отклонён: запрещённый контент. Сформулируйте описание иначе.';
 
-/* ---------- Генерация через Cloudflare Workers AI (бесплатные — Adanatos) ---------- */
+/* ---------- Генерация через Cloudflare Workers AI (бесплатные — Adan) ---------- */
 
 function bytesToBase64(bytes) {
   return Buffer.from(bytes).toString('base64');
@@ -330,7 +330,7 @@ async function fetchRemoteImageAsBase64(url) {
   return { base64: bytesToBase64(new Uint8Array(buf)), mime };
 }
 
-async function generateViaOpenAI(prompt) {
+async function generateViaOpenAI(prompt, modelOverride) {
   const apiKey = readEnv('OPENAI_IMAGE_API_KEY') || readEnv('OPENAI_API_KEY');
   if (!apiKey || isPlaceholderValue(apiKey)) {
     const err = new Error('OpenAI API key not configured for image generation');
@@ -339,7 +339,7 @@ async function generateViaOpenAI(prompt) {
   }
   const rawBase = readEnv('OPENAI_IMAGE_BASE_URL') || providerBaseUrl();
   const baseUrl = String(isPlaceholderValue(rawBase) ? 'https://api.pro-ai.online/v1' : rawBase).replace(/\/+$/, '');
-  const model = envModel('OPENAI_IMAGE_MODEL', PRO_IMAGE_MODEL);
+  const model = modelOverride || envModel('OPENAI_IMAGE_MODEL', PRO_IMAGE_MODEL);
   const response = await withTimeout(
     fetch(`${baseUrl}/images/generations`, {
       method: 'POST',
@@ -351,7 +351,7 @@ async function generateViaOpenAI(prompt) {
         size: '1024x1024'
       })
     }),
-    55000, 'OpenAI image request timed out'
+    40000, 'OpenAI image request timed out'
   );
   let data = {};
   try { data = await response.json(); } catch (e) { data = {}; }
@@ -376,6 +376,109 @@ async function generateViaOpenAI(prompt) {
   const err = new Error('OpenAI returned no image data');
   err.code = 'OAI_NO_IMAGE';
   throw err;
+}
+
+/* ---------- Pro: closerouter.dev (gpt-image-2.5-sunburst → flare) ----------
+   POST /v1/images/generations и /v1/images/edits (картинки — data:URL в JSON).
+   Ответ 200 — url или b64_json; 202 (object=image.request) — генерация ещё идёт,
+   статус по GET /v1/media/requests/{id}. Повторять POST при неясном исходе нельзя
+   (outcome_unknown) — это создало бы вторую платную генерацию. */
+const CLOSEROUTER_MODELS = ['openai/gpt-image-2.5-sunburst', 'openai/gpt-image-2.5-flare'];
+
+function findImageInResponse(obj, depth = 0) {
+  if (!obj || typeof obj !== 'object' || depth > 5) return null;
+  const list = Array.isArray(obj.data) ? obj.data : (Array.isArray(obj.output) ? obj.output : null);
+  if (list && list.length) {
+    const r = openAiImageFromResponse({ data: list });
+    if (r.base64 || r.url) return r;
+  }
+  if (typeof obj.b64_json === 'string') return openAiImageFromResponse({ data: [obj] });
+  if (typeof obj.url === 'string' && /^https?:/.test(obj.url) && !/\/media\/requests\//.test(obj.url)) return { url: obj.url };
+  for (const key of ['result', 'response', 'outputs', 'images', 'image']) {
+    const v = obj[key];
+    if (Array.isArray(v) && v.length) {
+      const first = v[0];
+      if (typeof first === 'string' && /^https?:/.test(first)) return { url: first };
+      const r = findImageInResponse(first, depth + 1);
+      if (r) return r;
+    } else if (v && typeof v === 'object') {
+      const r = findImageInResponse(v, depth + 1);
+      if (r) return r;
+    }
+  }
+  return null;
+}
+
+async function closeRouterImage(model, prompt, image, deadline) {
+  const apiKey = readEnv('CLOSEROUTER_API_KEY');
+  if (!apiKey || isPlaceholderValue(apiKey)) { const err = new Error('CLOSEROUTER_API_KEY not configured'); err.code = 'NO_CREDENTIALS'; throw err; }
+  const base = (readEnv('CLOSEROUTER_BASE_URL') || 'https://api.closerouter.dev/v1').replace(/\/+$/, '');
+  const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` };
+  const body = image
+    ? { model, prompt, n: 1, size: '1024x1024', images: [`data:${image.mime};base64,${Buffer.from(image.bytes).toString('base64')}`] }
+    : { model, prompt, n: 1, size: '1024x1024' };
+  const left = () => Math.max(3000, deadline - Date.now());
+  const response = await withTimeout(fetch(`${base}/images/${image ? 'edits' : 'generations'}`, { method: 'POST', headers, body: JSON.stringify(body) }), left(), 'closerouter timed out');
+  let data = {};
+  try { data = await response.json(); } catch (e) { data = {}; }
+  if (!response.ok && response.status !== 202) {
+    const err = new Error(data?.error?.message || data?.message || `closerouter error ${response.status}`);
+    err.code = 'CR_ERROR'; err.status = response.status; throw err;
+  }
+  let found = findImageInResponse(data);
+  const reqId = data?.id || data?.request_id || data?.request?.id;
+  // Генерация ещё идёт — опрашиваем статус, пока есть время.
+  while (!found && reqId && Date.now() < deadline - 3000) {
+    await new Promise((r) => setTimeout(r, 2500));
+    const st = await withTimeout(fetch(`${base}/media/requests/${encodeURIComponent(reqId)}`, { headers: { Authorization: `Bearer ${apiKey}` } }), 10000, 'closerouter poll timed out').catch(() => null);
+    if (!st) continue;
+    const sd = await st.json().catch(() => ({}));
+    if (/fail|error|cancel/i.test(String(sd?.status || ''))) { const err = new Error(sd?.error?.message || 'closerouter request failed'); err.code = 'CR_ERROR'; throw err; }
+    found = findImageInResponse(sd);
+  }
+  if (!found) { const err = new Error('closerouter returned no image'); err.code = 'CR_NO_IMAGE'; throw err; }
+  if (found.base64) return found;
+  return await fetchRemoteImageAsBase64(found.url);
+}
+
+/* Pro: sunburst → flare (closerouter) → gpt-image-2.5 → gpt-image-2 (pro-ai.online). */
+async function generatePro(prompt, image) {
+  const deadline = Date.now() + 52000; // функция живёт 60 с
+  const errors = [];
+  if (readEnv('CLOSEROUTER_API_KEY')) {
+    for (const model of CLOSEROUTER_MODELS) {
+      if (Date.now() > deadline - 8000) break;
+      try { return await closeRouterImage(model, prompt, image, deadline); }
+      catch (e) { errors.push(`${model}: ${e.message}`); console.warn('[generate-image] closerouter', model, 'failed:', compactErrorValue(e?.message, 200)); }
+    }
+  }
+  for (const model of [readEnv('OPENAI_IMAGE_MODEL') || 'gpt-image-2.5', PRO_IMAGE_MODEL]) {
+    if (Date.now() > deadline - 8000) break;
+    try { return image ? await editViaOpenAI(prompt, image, model) : await generateViaOpenAI(prompt, model); }
+    catch (e) { errors.push(`${model}: ${e.message}`); console.warn('[generate-image] pro-ai', model, 'failed:', compactErrorValue(e?.message, 200)); if (e.code === 'NO_CREDENTIALS') break; }
+  }
+  const err = new Error(errors.join(' | ') || 'no image provider'); err.code = 'ALL_FAILED'; throw err;
+}
+
+/* ---------- Free: запасной бесплатный генератор Pollinations ----------
+   Без ключа и регистрации; с POLLINATIONS_TOKEN — без водяного знака и выше лимиты. */
+async function generateViaPollinations(prompt) {
+  const token = readEnv('POLLINATIONS_TOKEN');
+  const seed = Math.floor(Math.random() * 1e9);
+  const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(String(prompt).slice(0, 800))}?width=1024&height=1024&model=flux&nologo=true&private=true&seed=${seed}`;
+  const response = await withTimeout(fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} }), 45000, 'Pollinations timed out');
+  if (!response.ok) { const err = new Error(`Pollinations error ${response.status}`); err.code = 'PL_ERROR'; throw err; }
+  const mime = (response.headers.get('content-type') || 'image/jpeg').split(';')[0];
+  if (!mime.startsWith('image/')) { const err = new Error('Pollinations returned no image'); err.code = 'PL_ERROR'; throw err; }
+  return { base64: bytesToBase64(new Uint8Array(await response.arrayBuffer())), mime };
+}
+
+async function generateFree(prompt) {
+  try { return await generateViaCloudflare(prompt); }
+  catch (e) {
+    console.warn('[generate-image] Cloudflare failed, trying Pollinations:', compactErrorValue(e?.message, 200));
+    return await generateViaPollinations(await toEnglishImagePrompt(prompt));
+  }
 }
 
 /* ---------- Редактирование загруженного фото ----------
@@ -422,13 +525,13 @@ function openAiImageFromResponse(data) {
   return { url: item.url || item.image_url || '' };
 }
 
-async function editViaOpenAI(prompt, image) {
+async function editViaOpenAI(prompt, image, modelOverride) {
   const apiKey = readEnv('OPENAI_IMAGE_API_KEY') || readEnv('OPENAI_API_KEY');
   if (!apiKey || isPlaceholderValue(apiKey)) { const err = new Error('OpenAI API key not configured'); err.code = 'NO_CREDENTIALS'; throw err; }
   const rawBase = readEnv('OPENAI_IMAGE_BASE_URL') || providerBaseUrl();
   const baseUrl = String(isPlaceholderValue(rawBase) ? 'https://api.pro-ai.online/v1' : rawBase).replace(/\/+$/, '');
   const form = new FormData();
-  form.append('model', envModel('OPENAI_IMAGE_MODEL', PRO_IMAGE_MODEL));
+  form.append('model', modelOverride || envModel('OPENAI_IMAGE_MODEL', PRO_IMAGE_MODEL));
   form.append('prompt', prompt);
   form.append('size', '1024x1024');
   form.append('image', new Blob([image.bytes], { type: image.mime }), 'image.' + (image.mime.split('/')[1] || 'png'));
@@ -551,7 +654,7 @@ export default async function handler(req, res) {
       }
     }
 
-    // КЛЮЧЕВАЯ ЛОГИКА: Pro (Dynatos) → OpenAI gpt-image-2, Free (Adanatos) → Cloudflare Workers AI
+    // КЛЮЧЕВАЯ ЛОГИКА: Pro (Dynatos) → closerouter gpt-image-2.5 (запасной — pro-ai.online), Free (Adan) → Cloudflare / Pollinations
     const userIsPro = isProUser(profile);
     const allowance = await checkImageAllowance(userId, profile, userIsPro);
     if (!allowance.ok) {
@@ -564,13 +667,13 @@ export default async function handler(req, res) {
     let generated;
     try {
       if (editImage) {
-        generated = userIsPro ? await editViaOpenAI(cleanPrompt, editImage) : await editViaCloudflare(cleanPrompt, editImage);
+        generated = userIsPro ? await generatePro(cleanPrompt, editImage) : await editViaCloudflare(cleanPrompt, editImage);
       } else if (userIsPro) {
-        // Pro: OpenAI gpt-image-2
-        generated = await generateViaOpenAI(cleanPrompt);
+        // Pro: closerouter gpt-image-2.5-sunburst → flare → pro-ai gpt-image-2.5 → gpt-image-2
+        generated = await generatePro(cleanPrompt, null);
       } else {
-        // Free: Cloudflare Workers AI (flux-1-schnell)
-        generated = await generateViaCloudflare(cleanPrompt);
+        // Free: Cloudflare Workers AI, при сбое или исчерпанной квоте — Pollinations
+        generated = await generateFree(cleanPrompt);
       }
     } catch (e) {
       if (e.code === 'NO_CREDENTIALS') {
@@ -578,7 +681,7 @@ export default async function handler(req, res) {
           ? 'Ключ OpenAI для генерации изображений не настроен. Обратитесь в поддержку.'
           : 'Cloudflare credentials not configured' } });
       }
-      const provider = userIsPro ? 'OpenAI' : 'Cloudflare';
+      const provider = userIsPro ? 'gpt-image' : 'бесплатный генератор';
       console.error(`[generate-image] ${provider} failed:`, compactErrorValue(e?.message, 300));
       return res.status(502).json({
         error: { message: `Не удалось сгенерировать изображение (${provider}).`, details: e.message }

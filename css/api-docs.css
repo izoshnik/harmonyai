@@ -1,0 +1,102 @@
+/* ===== Страница /api: первый экран, навигация, модели, примеры, калькулятор =====
+   Подключается после site.css и docs-mobile.css только на /api. */
+
+.api-hero{padding:72px 0 64px;}
+.api-hero-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:48px;align-items:center;}
+.api-hero h1{margin-bottom:18px;}
+.api-hero .lead{margin-bottom:22px;}
+.api-endpoint{margin-bottom:22px;max-width:440px;}
+.api-endpoint-label{display:block;font-size:13px;font-weight:600;color:var(--text-3);margin-bottom:6px;}
+.api-endpoint .code-block pre{margin:0;}
+
+.api-facts{list-style:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:28px 0 0;padding:0;}
+.api-facts li{border:1px solid var(--border);border-radius:14px;padding:12px 12px 10px;background:var(--bg);}
+.api-facts strong{display:block;font-size:20px;letter-spacing:-.01em;color:var(--text);}
+.api-facts span{display:block;font-size:12.5px;color:var(--text-3);line-height:1.35;margin-top:2px;}
+
+/* Окно «терминала» с примерами */
+.api-hero-code{border-radius:18px;background:#0f1115;color:#e8eaed;box-shadow:0 24px 60px -24px rgba(15,17,21,.45);overflow:hidden;min-width:0;}
+.api-term-head{display:flex;align-items:center;gap:14px;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.08);}
+.api-dots{display:inline-flex;gap:6px;flex:none;}
+.api-dots i{width:10px;height:10px;border-radius:50%;background:#3a3f47;}
+.api-dots i:nth-child(1){background:#ff5f57;}.api-dots i:nth-child(2){background:#febc2e;}.api-dots i:nth-child(3){background:#28c840;}
+.api-hero-code .api-pill{color:#aab0b8;}
+.api-hero-code .api-pill[aria-selected="true"]{background:rgba(255,255,255,.12);color:#fff;}
+.api-hero-code .code-block{margin:0;border:0;border-radius:0;background:transparent;}
+.api-hero-code .code-block pre{background:transparent;color:#e8eaed;border:0;margin:0;padding:18px 18px 20px;font-size:13px;line-height:1.6;max-height:360px;overflow:auto;}
+.api-hero-code .code-block .copy{background:rgba(255,255,255,.08);color:#e8eaed;border-color:rgba(255,255,255,.14);}
+
+/* Вкладки-«таблетки» */
+.api-pills{display:flex;flex-wrap:wrap;gap:4px;}
+.api-pill{border:0;background:transparent;font:inherit;font-size:13.5px;font-weight:600;color:var(--text-2);padding:6px 12px;border-radius:999px;cursor:pointer;transition:background .15s ease,color .15s ease;}
+.api-pill:hover{color:var(--text);}
+.api-pill[aria-selected="true"]{background:var(--text);color:var(--bg);}
+.api-pills-wide{margin-bottom:18px;padding:5px;border:1px solid var(--border);border-radius:999px;background:var(--bg);width:max-content;max-width:100%;}
+
+/* Навигация по разделам — липкая под шапкой */
+.api-subnav{position:sticky;top:64px;z-index:20;background:color-mix(in srgb,var(--bg) 96%,transparent);backdrop-filter:saturate(1.6) blur(12px);-webkit-backdrop-filter:saturate(1.6) blur(12px);border-bottom:1px solid var(--border);}
+.api-subnav .wrap{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;padding-top:8px;padding-bottom:8px;}
+.api-subnav .wrap::-webkit-scrollbar{display:none;}
+.api-subnav a{flex:none;font-size:14px;font-weight:560;color:var(--text-2);padding:6px 12px;border-radius:999px;white-space:nowrap;}
+.api-subnav a:hover{color:var(--text);background:var(--bg-soft);}
+.api-subnav a.is-active{color:var(--bg);background:var(--text);}
+#main section[id]{scroll-margin-top:120px;}
+
+/* Карточки моделей */
+.api-models{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.api-model{border:1px solid var(--border);border-radius:20px;padding:24px;background:var(--bg);display:flex;flex-direction:column;gap:14px;}
+.api-model-pro{background:linear-gradient(160deg,color-mix(in srgb,var(--accent,#1f5cff) 7%,var(--bg)),var(--bg) 60%);}
+.api-model-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.api-model-top h3{font-size:24px;margin:0;}
+.api-model-top code{font-size:13px;}
+.api-model-badge{font-size:12px;font-weight:650;padding:3px 9px;border-radius:999px;background:var(--bg-soft);border:1px solid var(--border);color:var(--text-2);}
+.api-model-pro .api-model-badge{background:var(--accent,#1f5cff);border-color:transparent;color:#fff;}
+.api-model p{margin:0;font-size:15px;line-height:1.55;}
+.api-model-spec{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0;}
+.api-model-spec div{background:var(--bg-soft);border-radius:12px;padding:10px;}
+.api-model-spec dt{font-size:12px;color:var(--text-3);}
+.api-model-spec dd{margin:2px 0 0;font-weight:650;font-size:15.5px;color:var(--text);}
+.api-model-note{font-size:13px!important;color:var(--text-3);}
+
+/* Примеры */
+.api-ex-panel > p{margin-bottom:14px;max-width:760px;}
+.api-ex-panel[hidden]{display:none;}
+.api-ex-note{font-size:14px!important;color:var(--text-3);margin-top:12px!important;}
+
+/* Калькулятор */
+.api-calc{display:grid;grid-template-columns:1.2fr 1fr;gap:16px;align-items:stretch;}
+.api-calc-form,.api-calc-out{border:1px solid var(--border);border-radius:20px;padding:22px;background:var(--bg);}
+.api-calc-form{display:grid;grid-template-columns:1fr 1fr;gap:14px 16px;}
+.api-calc-field{display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:560;}
+.api-calc-field .input{width:100%;box-sizing:border-box;}
+.api-calc-hint{grid-column:1/-1;margin:0;font-size:13px;color:var(--text-3);}
+.api-calc-out{display:flex;flex-direction:column;gap:12px;justify-content:center;}
+.api-calc-row{display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-size:15px;color:var(--text-2);}
+.api-calc-row strong{font-size:18px;color:var(--text);font-variant-numeric:tabular-nums;}
+.api-calc-total{border-top:1px solid var(--border);padding-top:12px;}
+.api-calc-total strong{font-size:26px;}
+
+/* Вопросы */
+.api-faq{display:grid;gap:10px;}
+.api-faq details{border:1px solid var(--border);border-radius:16px;background:var(--bg);padding:0 18px;}
+.api-faq summary{cursor:pointer;list-style:none;padding:16px 28px 16px 0;font-weight:600;position:relative;}
+.api-faq summary::-webkit-details-marker{display:none;}
+.api-faq summary::after{content:"+";position:absolute;right:0;top:50%;transform:translateY(-50%);font-size:20px;color:var(--text-3);transition:transform .2s ease;}
+.api-faq details[open] summary::after{transform:translateY(-50%) rotate(45deg);}
+.api-faq details p{margin:0 0 16px;font-size:15px;line-height:1.6;}
+
+@media (max-width:980px){
+  .api-hero-grid{grid-template-columns:1fr;gap:32px;}
+  .api-calc{grid-template-columns:1fr;}
+}
+@media (max-width:760px){
+  .api-hero{padding:44px 0 40px;}
+  .api-facts{grid-template-columns:1fr 1fr;}
+  .api-models{grid-template-columns:1fr;}
+  .api-model-spec{grid-template-columns:1fr 1fr;}
+  .api-calc-form{grid-template-columns:1fr;}
+  .api-pills-wide{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;width:100%;box-sizing:border-box;}
+  .api-pills-wide::-webkit-scrollbar{display:none;}
+  .api-pills-wide .api-pill{flex:none;}
+  .api-hero-code .code-block pre{font-size:12px;}
+}

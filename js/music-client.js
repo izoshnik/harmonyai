@@ -217,8 +217,19 @@
     return call('ai_playlist', { prompt: prompt, count: count, context: context || '' }, { timeout: 65000 });
   }
 
+  /** «Моя волна»: очередная порция треков радио (queue — id последнего трека). */
+  function wave(opts) {
+    var o = opts || {};
+    return call('wave', { station: o.station || '', queue: o.queue || '', seeds: o.seeds || [] }, { timeout: 25000 });
+  }
+  function waveFeedback(data) {
+    return call('wave_feedback', data || {}).catch(function () { return { ok: false }; });
+  }
+
   global.MusicClient = {
     call: call,
+    wave: wave,
+    waveFeedback: waveFeedback,
     aiPlaylist: aiPlaylist,
     streamUrl: streamUrl,
     resolve: resolve,

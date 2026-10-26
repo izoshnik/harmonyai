@@ -392,8 +392,21 @@
       (integrated
         ? '<div class="pl-inline-tools"><span>Ваши плейлисты</span><button type="button" class="pl-head-btn" id="plCreate" title="Создать плейлист" aria-label="Создать плейлист">' + ICON_PLUS + '</button></div>'
         : '<div class="sth"><button type="button" class="sth-back" id="plBack" aria-label="Назад">' + ICON_BACK + '</button><div class="sth-title">Плейлисты</div><button type="button" class="pl-head-btn" id="plCreate" title="Создать плейлист" aria-label="Создать плейлист">' + ICON_PLUS + '</button></div>') +
+      '<button type="button" class="pl-wave" id="plWave">' +
+      '  <span class="pl-wave__bg" aria-hidden="true"><i></i><i></i><i></i></span>' +
+      '  <span class="pl-wave__play" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg></span>' +
+      '  <span class="pl-wave__meta"><span class="pl-wave__title">Моя волна</span>' +
+      '  <span class="pl-wave__sub">Бесконечный поток треков по вашему вкусу</span></span>' +
+      '</button>' +
       '<div class="pl-rows">' + rows.join('') + '</div>' +
       '<div class="pl-note">«Найдено в HarmonyAi» пополняется автоматически: сюда попадают треки, которые нашлись в чате.</div>';
+
+    var waveBtn = el.querySelector('#plWave');
+    if (waveBtn) waveBtn.addEventListener('click', function () {
+      if (!global.MusicPlayer || typeof global.MusicPlayer.startWave !== 'function') return;
+      waveBtn.classList.add('is-loading');
+      global.MusicPlayer.startWave().then(function () { waveBtn.classList.remove('is-loading'); });
+    });
 
     var back = el.querySelector('#plBack');
     if (back) back.addEventListener('click', function () {
@@ -860,7 +873,20 @@
 
   /* ------------------------------------------------------------------ экспорт */
 
+  /* Треки, от которых «Моя волна» строит радио, если Яндекс не подключён:
+     найденное в чате и свои плейлисты. */
+  function seedIds() {
+    load();
+    var ids = [];
+    store.found.slice(0, 15).forEach(function (t) { ids.push(String(t.trackId)); });
+    store.custom.forEach(function (pl) {
+      pl.tracks.slice(0, 5).forEach(function (t) { if (ids.indexOf(String(t.trackId)) < 0) ids.push(String(t.trackId)); });
+    });
+    return ids.slice(0, 30);
+  }
+
   global.MusicPlaylists = {
+    seedIds: seedIds,
     renderList: renderList,
     renderDetail: renderDetail,
     remember: remember,

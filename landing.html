@@ -19,7 +19,6 @@
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="stylesheet" href="/css/site.css">
-<link rel="stylesheet" href="/css/showreel.css">
 <script>
 /* ===== АВТОВОЗВРАТ АВТОРИЗОВАННОГО ПОЛЬЗОВАТЕЛЯ В /chat =====
    Сессия Supabase хранится в localStorage (ключи вида sb-<id>-auth-token):
@@ -107,57 +106,6 @@
   </section>
 
   <!-- ===== ВОЗМОЖНОСТИ ===== -->
-  <!-- ===== Мини-презентация под трек «New Melody XLII» (Tomasz Szmajda) =====
-       Анимация: /js/showreel.js + /css/showreel.css. Аудиофайл положите в
-       /media/new-melody-xlii.mp3 (нужна лицензия). Без файла анимация
-       проигрывается беззвучно. -->
-  <section class="sr-section" aria-label="Мини-презентация HarmonyAI">
-    <div class="wrap">
-      <div class="showreel" id="showreel">
-        <div class="sr-stage" role="region" aria-label="Видео-презентация HarmonyAI">
-          <canvas class="sr-bgcanvas" aria-hidden="true"></canvas>
-          <div class="sr-vignette" aria-hidden="true"></div>
-
-          <div class="sr-scene" data-scene="intro">
-            <div class="sr-logo sr-in" aria-hidden="true">H</div>
-            <div class="sr-name sr-in">HarmonyAI</div>
-          </div>
-          <div class="sr-scene" data-scene="title">
-            <h3 class="sr-big sr-in">Музыкальная теория —<br><em>наконец понятно</em></h3>
-            <p class="sr-sub sr-in">ИИ-помощник для учеников музыкальной школы</p>
-          </div>
-          <div class="sr-scene sr-scene-chat" data-scene="chat">
-            <div class="sr-app sr-in">
-              <div class="sr-app-top"><i></i><i></i><i></i><span>HarmonyAI</span></div>
-              <div class="sr-feed"><div class="sr-msgs"></div></div>
-              <div class="sr-comp"><span class="sr-plus">+</span><span class="sr-comp-text"></span><span class="sr-comp-ph">Спросить HarmonyAI</span><span class="sr-send">→</span></div>
-            </div>
-          </div>
-          <div class="sr-scene" data-scene="words">
-            <div class="sr-word-flip sr-in" aria-label="Объясняет, показывает, рисует"><span>Объясняет.</span><span>Показывает.</span><span>Рисует.</span></div>
-          </div>
-          <div class="sr-scene" data-scene="cta">
-            <div class="sr-logo sr-logo-s sr-in" aria-hidden="true">H</div>
-            <h3 class="sr-big sr-in">Попробуйте <em>бесплатно</em></h3>
-            <a class="sr-cta sr-in" href="/login">Начать →</a>
-          </div>
-
-          <div class="sr-cover">
-            <button class="sr-play" type="button"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>Смотреть · 0:43</button>
-            <div class="sr-credit">Музыка: Tomasz Szmajda — «New Melody XLII»</div>
-          </div>
-          <div class="sr-ctrl">
-            <button class="sr-toggle" type="button" aria-label="Пауза / продолжить"><svg class="i-pause" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg><svg class="i-play" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg></button>
-            <div class="sr-progress" aria-label="Перемотка"><span><i></i></span></div>
-            <span class="sr-time">0:00 / 0:43</span>
-            <button class="sr-mute" type="button" aria-label="Звук"><svg class="i-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12"/></svg><svg class="i-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M17 9l5 6M22 9l-5 6"/></svg></button>
-          </div>
-          <audio preload="metadata" src="/media/new-melody-xlii.mp3"></audio>
-        </div>
-        <p class="sr-audio-note">Звук не найден: загрузите трек в репозиторий как <code>media/new-melody-xlii.mp3</code>.</p>
-      </div>
-    </div>
-  </section>
 
   <section class="section section-soft" id="features">
     <div class="wrap">
@@ -252,7 +200,7 @@
         </div>
         <div class="step">
           <h3>Опишите задачу</h3>
-          <p>Текстом или файлом. Выберите модель — быстрая Adanatos или флагманская Dynatos — и уровень размышления.</p>
+          <p>Текстом или файлом. Выберите модель — быстрая Adan или флагманская Dynatos — и уровень размышления.</p>
         </div>
         <div class="step">
           <h3>Заберите результат</h3>
@@ -277,7 +225,7 @@
           <h3 style="margin-top:14px;">Базовый доступ</h3>
           <p style="margin-bottom:18px;">0 ₽ — без карты и пробного периода.</p>
           <ul style="list-style:none;display:grid;gap:9px;font-size:15px;color:var(--text-2);">
-            <li>Модель Adanatos</li>
+            <li>Модель Adan</li>
             <li>Все уровни размышления: Low, Medium, High, Extra</li>
             <li>Веб-поиск, файлы, генерация изображений</li>
             <li>Музыка и плеер</li>
@@ -332,7 +280,7 @@
               <td class="num">200 000</td>
             </tr>
             <tr>
-              <td><code>adanatos</code> — Adanatos</td>
+              <td><code>adanatos</code> — Adan</td>
               <td class="num" data-price="in:adanatos">$0.50</td>
               <td class="num" data-price="out:adanatos">$5.00</td>
               <td class="num">200 000</td>
@@ -360,11 +308,11 @@
 
         <div class="faq-item">
           <button class="faq-q" type="button">
-            Чем отличаются Adanatos и Dynatos?
+            Чем отличаются Adan и Dynatos?
             <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
           <div class="faq-a"><div><p>
-            Adanatos — быстрая и недорогая модель для повседневных задач, доступна бесплатно.
+            Adan — быстрая и недорогая модель для повседневных задач, доступна бесплатно.
             Dynatos — флагман для сложных задач и кода: контекст 200 000 токенов и до 64 000 токенов
             в одном ответе. В чате Dynatos доступна по подписке Pro, в API — обеим моделям нужен
             только положительный баланс.
@@ -517,7 +465,6 @@
 </footer>
 
 <script src="/js/site.js" defer></script>
-<script src="/js/showreel.js" defer></script>
 <script>
 /* ===== ГЛАВНАЯ СТРАНИЦА =====
    Дизайн лендинга публичный и остаётся первым экраном для НОВЫХ посетителей.

@@ -739,3 +739,25 @@ html[data-theme="messenger"]{
  --theme-black:#111;
  --accent:#1697ff;
 }
+
+/* ===== Главная: живые подписи вместо тонких «AI-капсов» =====
+   Мелкие серые подписи капсом с разрядкой (HARMONYAI, ВОЗМОЖНОСТИ) читались
+   как шаблонный «AI-сайт». На главной это теперь плашки в духе Telegram
+   на iOS: системный шрифт (SF Pro / Segoe UI / Arial), обычный регистр,
+   плотное начертание. Заголовки — тот же стек, без сверхузкой разрядки. */
+.landing-page h1,.landing-page h2,.landing-page h3{
+  font-family:"SF Pro Display",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+  font-weight:700;letter-spacing:-0.015em;
+}
+.landing-page .eyebrow{
+  display:inline-flex;align-items:center;gap:7px;width:auto;
+  padding:5px 12px 5px 9px;border-radius:999px;
+  background:var(--bg);border:1px solid var(--border);box-shadow:0 1px 2px rgba(0,0,0,.04);
+  font-family:"SF Pro Text",-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+  font-size:14px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--text);
+}
+.landing-page .eyebrow::before{
+  content:"";width:8px;height:8px;border-radius:50%;flex:none;
+  background:linear-gradient(135deg,#1f5cff,#2bb3ff);
+}
+.landing-page .section-head .eyebrow{margin-bottom:14px;}

@@ -417,7 +417,7 @@ const MCP_TOOLS = [
       type: 'object',
       properties: {
         question: { type: 'string', description: 'Вопрос или задание для HarmonyAI' },
-        model: { type: 'string', enum: ['adanatos', 'dynatos'], description: 'adanatos — быстро (по умолчанию), dynatos — сложные задачи (нужна Pro-подписка)' }
+        model: { type: 'string', enum: ['adan', 'adanatos', 'dynatos'], description: 'adan (он же adanatos) — быстро (по умолчанию), dynatos — сложные задачи (нужна Pro-подписка)' }
       },
       required: ['question']
     },

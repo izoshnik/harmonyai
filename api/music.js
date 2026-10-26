@@ -38,6 +38,7 @@ import {
   YandexError,
   ensureUgcPlaylist, getUgcUploadTarget, uploadUgcBytes, UGC_PLAYLIST_TITLE, listUserPlaylists,
   createPlaylistWithTracks, playlistWebUrl, getListeningStats,
+  getWaveTracks, sendWaveFeedback, WAVE_STATION,
 } from '../lib/yandex.js';
 
 import {
@@ -478,6 +479,52 @@ export default async function handler(req, res) {
         if (!tracks.length) return fail(res, 400, 'bad_request', 'Нет треков');
         const out = await exportToYandex(resolved, token, String(body.title || 'HarmonyAI'), tracks);
         return res.status(200).json(out);
+      }
+
+      /* «Моя волна». С личным аккаунтом — персональная станция Яндекса
+         (история + лайки). Без него — радио «похожие на» трек, который человек
+         лайкнул или слушал у нас (seeds приходят от клиента). */
+      case 'wave': {
+        const personal = resolved.source === 'user';
+        const seeds = (Array.isArray(body.seeds) ? body.seeds : []).map(x => String(x || '').replace(/\D/g, '')).filter(Boolean).slice(0, 30);
+        let station = String(body.station || '');
+        if (!station) {
+          station = personal || !seeds.length ? WAVE_STATION : `track:${seeds[Math.floor(Math.random() * seeds.length)]}`;
+        }
+        let wave;
+        try {
+          wave = await getWaveTracks({ token, station, queue: body.queue });
+        } catch (e) {
+          wave = { station, batchId: '', items: [] };
+        }
+        // Радио ничего не дало (станция недоступна) — собираем по артистам из seeds.
+        if (!wave.items.length && seeds.length) {
+          const known = await getTracks(seeds.slice(0, 10), { token }).catch(() => []);
+          const artists = Array.from(new Set(known.map(t => String(t.artist || '').split(',')[0].trim()).filter(Boolean))).slice(0, 4);
+          const exclude = new Set(seeds);
+          for (const a of artists) {
+            const r = await searchTracks(a, { token, limit: 6 }).catch(() => ({ items: [] }));
+            for (const t of r.items) if (!exclude.has(String(t.trackId))) { exclude.add(String(t.trackId)); wave.items.push(t); }
+          }
+          wave.items.sort(() => Math.random() - 0.5);
+        }
+        if (personal && !body.queue && wave.batchId) {
+          // Без await функция Vercel может завершиться раньше запроса; ждём недолго.
+          await Promise.race([
+            sendWaveFeedback({ token, station: wave.station, batchId: wave.batchId, type: 'radioStarted' }),
+            new Promise(r => setTimeout(r, 1500))
+          ]);
+        }
+        return res.status(200).json({ ...wave, personal });
+      }
+
+      case 'wave_feedback': {
+        if (resolved.source !== 'user') return res.status(200).json({ ok: false });
+        const ok = await sendWaveFeedback({
+          token, station: body.station, batchId: body.batchId, type: String(body.type || ''),
+          trackId: body.trackId, played: body.played
+        });
+        return res.status(200).json({ ok });
       }
 
       case 'suggest': {
