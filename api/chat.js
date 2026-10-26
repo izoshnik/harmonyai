@@ -8,7 +8,7 @@ export const config = {
 import { FREE_TEXT_MODEL, PRO_TEXT_MODEL, envModel, providerForModel, providerBaseUrl, isOpenRouterModel, supportsReasoningEffort, noteUnaskedReasoning, responseHasReasoning, fastReasoningEffort } from '../lib/models.js';
 import { authenticateRequest } from '../lib/auth.js';
 
-// Adanatos (free) отвечает на claude-haiku-4-5, Dynatos (pro) — на gpt-5.6-luna (см. lib/models.js).
+// Adan (free) отвечает на claude-haiku-4-5, Dynatos (pro) — на gpt-5.6-luna (см. lib/models.js).
 // Режим low/max НЕ меняют модель, они меняют только таймаут/глубину (см. selectRoute/handler).
 /* ===== REASONING EFFORT ====================================================
    Четыре уровня, единые с интерфейсом: low | medium | max | extra.
@@ -70,7 +70,7 @@ function isUnsupportedReasoning(message) {
    старое значение (например gpt-5.4), оно будет отброшено, а не отправлено. */
 const MODEL_CHAINS = {
   // Точное имя у провайдера — claude-haiku-4-5-20251001. Ставим его первым, чтобы
-  // устаревшая/опечатанная переменная ADANATOS_MODEL в Vercel не ломала Adanatos.
+  // устаревшая/опечатанная переменная ADANATOS_MODEL в Vercel не ломала Adan.
   adanatos: [], // Adan: список строится на каждый запрос — см. adanChain()
   dynatos: [
     envModel('DYNATOS_MODEL', PRO_TEXT_MODEL),
@@ -1961,7 +1961,7 @@ function isProRole(profile){return hasProAccess(profile);
 
 function selectRoute(profile, requestedModel, messages) {
   const wantsPro = requestedModel === 'pro';
-  // Если запрошена Pro-модель, но роль не Pro — тихо откатываемся на Adanatos.
+  // Если запрошена Pro-модель, но роль не Pro — тихо откатываемся на Adan.
   const allowedPro = wantsPro && isProRole(profile);
   // С фото сначала модель со зрением: ни glm-5.3-flash (Pro), ни deepseek картинки не видят.
   const baseChain = allowedPro ? MODEL_CHAINS.dynatos.concat(adanChain()) : adanChain();

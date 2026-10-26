@@ -1319,7 +1319,7 @@ body:not(.has-music-bar) .pl-toast{bottom:24px;}
   position: absolute; width: 70%; aspect-ratio: 1; border-radius: 50%;
   filter: blur(28px); opacity: .75; animation: plWaveDrift 9s ease-in-out infinite alternate;
 }
-.pl-wave__bg i:nth-child(1) { background: #7c4dff; left: -15%; top: -60%; }
+.pl-wave__bg i:nth-child(1) { background: #1f5cff; left: -15%; top: -60%; }
 .pl-wave__bg i:nth-child(2) { background: #ff4f8b; right: -20%; top: -30%; animation-duration: 11s; }
 .pl-wave__bg i:nth-child(3) { background: #2bb3ff; left: 25%; bottom: -80%; animation-duration: 13s; }
 @keyframes plWaveDrift {

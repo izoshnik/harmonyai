@@ -256,7 +256,7 @@ async function isPromptAllowedByAI(prompt) {
 
 const MODERATION_REJECT_MESSAGE = 'Запрос отклонён: запрещённый контент. Сформулируйте описание иначе.';
 
-/* ---------- Генерация через Cloudflare Workers AI (бесплатные — Adanatos) ---------- */
+/* ---------- Генерация через Cloudflare Workers AI (бесплатные — Adan) ---------- */
 
 function bytesToBase64(bytes) {
   return Buffer.from(bytes).toString('base64');

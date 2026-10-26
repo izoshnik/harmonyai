@@ -1,6 +1,6 @@
 /* ===== ЕДИНЫЙ РЕЕСТР МОДЕЛЕЙ =================================================
    Продуктовая матрица:
-     Free  — Adanatos: текст/файлы/нотация → claude-haiku-4-5, картинки → Cloudflare Workers AI
+     Free  — Adan: текст/файлы/нотация → claude-haiku-4-5, картинки → Cloudflare Workers AI
      Pro   — Dynatos:  текст/файлы/нотация → gpt-5.6-luna,          картинки → gpt-image-2
    Служебные вызовы (классификаторы интента, заголовки чатов, модерация промптов)
    идут на UTILITY_MODEL — она самая дешёвая и в матрице уже оплачена.
@@ -73,7 +73,7 @@ export const PUBLIC_MODELS = {
   },
   adanatos: {
     id: 'adanatos',
-    label: 'Adanatos',
+    label: 'Adan',
     description: 'Быстрая и дешёвая модель для повседневных задач',
     envNames: ['ADANATOS_MODEL', 'ADANATOS_MODEL_FALLBACK'],
     internalFallback: FREE_TEXT_MODEL,
