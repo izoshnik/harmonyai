@@ -482,7 +482,8 @@ self.onmessage=function(ev){
     startWorkerAnalysis(myToken);
   }
 
-  function mixToMono(buf) {
+  function mixToMono(buf, S) {
+    S = S || st;
     var n = buf.length, ch = buf.numberOfChannels;
     var out = new Float32Array(n);
     for (var c = 0; c < ch; c++) {
@@ -492,7 +493,7 @@ self.onmessage=function(ev){
     var k = 1 / Math.max(1, ch);
     for (var i2 = 0; i2 < n; i2++) out[i2] *= k;
     var factor = Math.max(1, Math.round(buf.sampleRate / SR_TARGET));
-    st.aSr = Math.round(buf.sampleRate / factor);
+    S.aSr = Math.round(buf.sampleRate / factor);
     if (factor === 1) return out;
     var m = Math.floor(n / factor);
     var res = new Float32Array(m);
@@ -506,15 +507,16 @@ self.onmessage=function(ev){
 
   /* ==================== быстрые метрики и waveform (main thread) ==================== */
 
-  function computeQuick() {
-    var mono = st.mono, sr = st.aSr;
+  function computeQuick(S) {
+    S = S || st;
+    var mono = S.mono, sr = S.aSr;
     var peak = 0, sum = 0, i, j;
     for (i = 0; i < mono.length; i++) {
       var v = Math.abs(mono[i]);
       if (v > peak) peak = v;
       sum += mono[i] * mono[i];
     }
-    st.quick = { peak: peak, rms: Math.sqrt(sum / Math.max(1, mono.length)) };
+    S.quick = { peak: peak, rms: Math.sqrt(sum / Math.max(1, mono.length)) };
 
     var win = Math.max(1, Math.round(sr));
     var per = Math.ceil(mono.length / win);
@@ -528,7 +530,7 @@ self.onmessage=function(ev){
       if (energy[i] > maxE) maxE = energy[i];
     }
     for (i = 0; i < per; i++) energy[i] = maxE > 0 ? energy[i] / maxE : 0;
-    st.energy = energy;
+    S.energy = energy;
 
     var buckets = Math.min(480, Math.max(80, Math.round(mono.length / sr)));
     var bp = Math.max(1, Math.ceil(mono.length / buckets));
@@ -542,7 +544,7 @@ self.onmessage=function(ev){
       if (mx > wmax) wmax = mx;
     }
     if (wmax > 0) for (i = 0; i < buckets; i++) wave[i] /= wmax;
-    st.wave = wave;
+    S.wave = wave;
   }
 
   /* ==================== воркер ==================== */
@@ -773,10 +775,11 @@ self.onmessage=function(ev){
 
   /* ==================== отправка ИИ ==================== */
 
-  function buildPayload() {
-    var r = st.result || {};
-    var d = st.meta || {};
-    var energy = [], e = st.energy || [];
+  function buildPayload(S) {
+    S = S || st;
+    var r = S.result || {};
+    var d = S.meta || {};
+    var energy = [], e = S.energy || [];
     var step = Math.max(1, Math.ceil(e.length / 20));
     for (var i = 0; i < e.length; i += step) {
       var mx = 0;
@@ -786,13 +789,13 @@ self.onmessage=function(ev){
     var dur = d.duration || 0;
     var bounds = (r.boundaries && r.boundaries.length >= 2) ? r.boundaries : null;
     var sections = [];
-    if (bounds && st.energy) {
+    if (bounds && S.energy) {
       var starts = [0].concat(bounds.map(function (b) { return b.time; }));
       for (var s = 0; s < starts.length; s++) {
         var a = starts[s];
         var b2 = (s + 1 < starts.length) ? starts[s + 1] : dur;
         var sum = 0, cn = 0;
-        for (var i2 = Math.floor(a); i2 < Math.min(st.energy.length, Math.ceil(b2)); i2++) { sum += st.energy[i2]; cn++; }
+        for (var i2 = Math.floor(a); i2 < Math.min(S.energy.length, Math.ceil(b2)); i2++) { sum += S.energy[i2]; cn++; }
         sections.push({
           start: Math.round(a * 10) / 10,
           end: Math.round(b2 * 10) / 10,
@@ -802,12 +805,12 @@ self.onmessage=function(ev){
     }
     return {
       file: {
-        name: (st.file && st.file.name) || '',
+        name: (S.file && S.file.name) || '',
         durationSec: Math.round(dur * 10) / 10,
-        sampleRate: st.aSr || st.sr || 0,
+        sampleRate: S.aSr || S.sr || 0,
         channels: d.channels || 0
       },
-      loudness: { rmsDbfs: db(st.quick ? st.quick.rms : 0), peakDbfs: db(st.quick ? st.quick.peak : 0) },
+      loudness: { rmsDbfs: db(S.quick ? S.quick.rms : 0), peakDbfs: db(S.quick ? S.quick.peak : 0) },
       bpm: r.bpm || null,
       key: r.key || null,
       bandBalance: r.bands || null,
@@ -828,11 +831,123 @@ self.onmessage=function(ev){
     send(payload, name);
   }
 
+  /* ==================== анализ без окна (для чата) ====================
+     Файл прикрепили в чат и попросили «проанализируй» — считаем то же самое,
+     что и окно анализатора, но молча, и отдаём компактный отчёт для ИИ. */
+  function analyzeFile(file) {
+    return new Promise(function (resolve, reject) {
+      var S = { file: file };
+      var c = getCtx();
+      if (!c) { reject(new Error('Web Audio API недоступен')); return; }
+      file.arrayBuffer().then(function (ab) {
+        return new Promise(function (ok, no) {
+          var p = c.decodeAudioData(ab.slice(0), ok, no);
+          if (p && typeof p.then === 'function') p.then(ok, no);
+        });
+      }).then(function (buf) {
+        S.sr = buf.sampleRate;
+        S.meta = { channels: buf.numberOfChannels, duration: buf.duration };
+        S.mono = mixToMono(buf, S);
+        computeQuick(S);
+        var blob = new Blob([WORKER_SRC], { type: 'text/javascript' });
+        var url = URL.createObjectURL(blob);
+        var w = new Worker(url);
+        var finish = function () { try { w.terminate(); } catch (e) {} try { URL.revokeObjectURL(url); } catch (e) {} };
+        w.onmessage = function (ev) {
+          var d = ev.data || {};
+          if (d.type === 'progress') return;
+          finish();
+          if (d.type === 'error') { reject(new Error(d.message || 'Анализ не удался')); return; }
+          S.result = d.result;
+          resolve(buildPayload(S));
+        };
+        w.onerror = function () { finish(); reject(new Error('Анализ не удался')); };
+        var copy = new Float32Array(S.mono);
+        w.postMessage({ type: 'analyze', samples: copy, sampleRate: S.aSr }, [copy.buffer]);
+      }).catch(function (e) { reject(e && e.message ? e : new Error('Браузер не смог прочитать этот аудиофайл')); });
+    });
+  }
+
+  /* Фрагмент для распознавания трека: 20 секунд из середины, моно 16 кГц, WAV
+     (≈ 640 КБ) — целиком mp3 не пролез бы в лимит запроса. */
+  function clipForRecognition(file, seconds) {
+    var len = seconds || 20;
+    var c = getCtx();
+    if (!c) return Promise.reject(new Error('Web Audio API недоступен'));
+    return file.arrayBuffer().then(function (ab) {
+      return new Promise(function (ok, no) {
+        var p = c.decodeAudioData(ab.slice(0), ok, no);
+        if (p && typeof p.then === 'function') p.then(ok, no);
+      });
+    }).then(function (buf) {
+      var rate = 16000;
+      var dur = buf.duration;
+      var start = dur > len * 2 ? Math.min(dur * 0.3, dur - len) : 0;
+      var n = Math.floor(Math.min(len, dur - start) * rate);
+      var out = new Int16Array(n);
+      var step = buf.sampleRate / rate;
+      var chs = [];
+      for (var ch = 0; ch < buf.numberOfChannels; ch++) chs.push(buf.getChannelData(ch));
+      var off = Math.floor(start * buf.sampleRate);
+      for (var i = 0; i < n; i++) {
+        var idx = off + Math.floor(i * step), v = 0;
+        for (var k = 0; k < chs.length; k++) v += chs[k][idx] || 0;
+        v = Math.max(-1, Math.min(1, v / chs.length));
+        out[i] = v < 0 ? v * 0x8000 : v * 0x7fff;
+      }
+      var bytes = new ArrayBuffer(44 + out.length * 2);
+      var dv = new DataView(bytes);
+      var wr = function (o, str) { for (var j = 0; j < str.length; j++) dv.setUint8(o + j, str.charCodeAt(j)); };
+      wr(0, 'RIFF'); dv.setUint32(4, 36 + out.length * 2, true); wr(8, 'WAVE'); wr(12, 'fmt ');
+      dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 1, true);
+      dv.setUint32(24, rate, true); dv.setUint32(28, rate * 2, true); dv.setUint16(32, 2, true); dv.setUint16(34, 16, true);
+      wr(36, 'data'); dv.setUint32(40, out.length * 2, true);
+      new Int16Array(bytes, 44).set(out);
+      return { blob: new Blob([bytes], { type: 'audio/wav' }), duration: dur };
+    });
+  }
+
+  /* ID3v2: название, исполнитель, альбом прямо из файла — у скачанных mp3 они почти всегда есть. */
+  function readTags(file) {
+    return file.slice(0, 262144).arrayBuffer().then(function (ab) {
+      var b = new Uint8Array(ab);
+      if (b[0] !== 0x49 || b[1] !== 0x44 || b[2] !== 0x33) return {};
+      var ver = b[3];
+      var size = (b[6] << 21) | (b[7] << 14) | (b[8] << 7) | b[9];
+      var pos = 10, end = Math.min(b.length, 10 + size), tags = {};
+      var want = { TIT2: 'title', TPE1: 'artist', TALB: 'album', TYER: 'year', TDRC: 'year', TCON: 'genre' };
+      var dec = function (enc, bytes) {
+        try {
+          if (enc === 1 || enc === 2) return new TextDecoder(enc === 2 ? 'utf-16be' : 'utf-16').decode(bytes);
+          if (enc === 3) return new TextDecoder('utf-8').decode(bytes);
+          var t = new TextDecoder('windows-1251').decode(bytes);
+          return t;
+        } catch (e) { return ''; }
+      };
+      while (pos + 10 <= end) {
+        var id = String.fromCharCode(b[pos], b[pos + 1], b[pos + 2], b[pos + 3]);
+        if (!/^[A-Z0-9]{4}$/.test(id)) break;
+        var fs = ver === 4 ? ((b[pos + 4] << 21) | (b[pos + 5] << 14) | (b[pos + 6] << 7) | b[pos + 7])
+          : ((b[pos + 4] << 24) | (b[pos + 5] << 16) | (b[pos + 6] << 8) | b[pos + 7]);
+        if (fs <= 0 || pos + 10 + fs > b.length) break;
+        if (want[id]) {
+          var val = dec(b[pos + 10], b.subarray(pos + 11, pos + 10 + fs)).replace(/\u0000/g, ' ').trim();
+          if (val) tags[want[id]] = val.slice(0, 200);
+        }
+        pos += 10 + fs;
+      }
+      return tags;
+    }).catch(function () { return {}; });
+  }
+
   /* ==================== экспорт ==================== */
 
   global.AudioAnalyzer = {
     openPicker: openPicker,
     openWithFile: openWithFile,
+    analyzeFile: analyzeFile,
+    clipForRecognition: clipForRecognition,
+    readTags: readTags,
     isOpen: function () { return Boolean(ui.overlay && !ui.overlay.hidden); }
   };
 

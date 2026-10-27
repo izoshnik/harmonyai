@@ -31,6 +31,25 @@ function hmDialog(opts){
 }
 function hmAlert(text,title){return hmDialog({text:text,title:title||''});}
 function hmConfirm(text,opts){opts=opts||{};return hmDialog({text:text,title:opts.title||'',okText:opts.okText||'Да',cancelText:opts.cancelText||'Отмена',danger:opts.danger!==false});}
+/* Выбор из нескольких вариантов: на телефоне — лист снизу, на компьютере — окно. */
+function hmChoice(title,options){
+  return new Promise(function(resolve){
+    const prev=document.getElementById('hmDialog');if(prev)prev.remove();
+    const wrap=document.createElement('div');wrap.id='hmDialog';wrap.className='hm-dlg hm-sheet';
+    const card=document.createElement('div');card.className='hm-dlg-card';card.setAttribute('role','dialog');card.setAttribute('aria-modal','true');
+    if(title){const t=document.createElement('div');t.className='hm-dlg-title';t.textContent=hmT(title);card.appendChild(t);}
+    const list=document.createElement('div');list.className='hm-sheet-list';
+    const done=function(v){document.removeEventListener('keydown',onKey,true);wrap.classList.remove('open');setTimeout(function(){wrap.remove();},160);resolve(v);};
+    (options||[]).forEach(function(o){const b=document.createElement('button');b.type='button';b.className='hm-sheet-opt'+(o.danger?' is-danger':'');b.textContent=hmT(o.label);b.onclick=function(){done(o.id);};list.appendChild(b);});
+    const c=document.createElement('button');c.type='button';c.className='hm-sheet-opt hm-sheet-cancel';c.textContent=hmT('Отмена');c.onclick=function(){done(null);};
+    list.appendChild(c);card.appendChild(list);wrap.appendChild(card);
+    const onKey=function(e){if(e.key==='Escape'){e.preventDefault();done(null);}};
+    wrap.addEventListener('click',function(e){if(e.target===wrap)done(null);});
+    document.addEventListener('keydown',onKey,true);
+    document.body.appendChild(wrap);
+    requestAnimationFrame(function(){wrap.classList.add('open');});
+  });
+}
 </script>
 <script>
 /* ===== ВОССТАНОВЛЕНИЕ АДРЕСА (?boot=) =====
@@ -93,6 +112,19 @@ setTimeout(function(){
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#000000">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="HarmonyAI">
+<meta name="application-name" content="HarmonyAI">
+<script>
+/* Веб-приложение: service worker даёт установку на экран «Домой» и запуск без сети. */
+if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){
+  window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js',{scope:'/'}).catch(function(){});});
+}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://cqthnymltqpcxtpiryka.supabase.co">
@@ -270,6 +302,16 @@ html[data-theme="light"] .limit-reached{background:rgba(239,68,68,.07);border-co
 .hm-dlg-ok{background:var(--text,#fff);color:var(--bg,#000);}
 .hm-dlg-ok.is-danger{background:#e5484d;color:#fff;}
 .hm-dlg-btn:focus-visible{outline:2px solid color-mix(in srgb,var(--text,#fff) 50%,transparent);outline-offset:2px;}
+.hm-sheet-list{display:flex;flex-direction:column;gap:6px;margin-top:6px;}
+.hm-sheet-opt{border:0;border-radius:14px;padding:13px 16px;font:inherit;font-size:15.5px;font-weight:500;text-align:center;cursor:pointer;background:color-mix(in srgb,var(--text,#fff) 8%,transparent);color:var(--text,#fff);}
+.hm-sheet-opt:active{transform:scale(.99);}
+.hm-sheet-opt.is-danger{color:#ff453a;}
+.hm-sheet-cancel{margin-top:4px;font-weight:600;background:transparent;border:1px solid color-mix(in srgb,var(--text,#fff) 14%,transparent);}
+@media (max-width:768px){
+  .hm-dlg.hm-sheet{align-items:flex-end;padding:10px 10px calc(10px + env(safe-area-inset-bottom));}
+  .hm-dlg.hm-sheet .hm-dlg-card{width:100%;border-radius:24px;transform:translateY(30px);}
+  .hm-dlg.hm-sheet.open .hm-dlg-card{transform:none;}
+}
 </style>
 <style>
 /* Шрифты подключены через <link rel="stylesheet"> в <head> — быстрее, чем @import внутри CSS. */
@@ -3025,7 +3067,7 @@ html[data-theme="messenger"] .settings-overlay{
 .set-shell{display:flex!important;height:100%!important;min-height:0!important;padding:24px 10px 19px!important;gap:0!important;}
 .set-side{display:flex!important;width:331px!important;flex:0 0 331px!important;height:calc(100% - 46px)!important;margin-top:46px!important;padding:14px 12px 12px!important;background:var(--set-side)!important;border:0!important;border-radius:48px!important;overflow-y:auto!important;scrollbar-width:none!important;}
 .set-side::-webkit-scrollbar{display:none!important}.set-nav{gap:0!important;width:100%!important}.set-nav-logout{display:none!important}.set-nav-btn{min-height:43px!important;padding:7px 13px!important;border-radius:24px!important;gap:9px!important;font-size:20px!important;font-weight:400!important;line-height:1.05!important;color:var(--set-text)!important;background:transparent!important;white-space:nowrap!important;}
-.set-nav-btn svg{width:23px!important;height:23px!important;color:var(--set-text)!important;opacity:.96!important}.set-nav-btn:hover{background:color-mix(in srgb,var(--set-active) 58%,transparent)!important}.set-nav-btn.on{background:var(--set-active)!important;box-shadow:none!important}.set-nav-btn:last-child{font-weight:700!important}.set-main{position:relative!important;flex:1 1 auto!important;min-width:0!important;padding:0 43px 0 28px!important;background:transparent!important;overflow:hidden!important;display:flex!important;flex-direction:column!important;}
+.set-nav-btn svg{width:23px!important;height:23px!important;color:var(--set-text)!important;opacity:.96!important}.set-nav-btn:hover{background:color-mix(in srgb,var(--set-active) 28%,transparent)!important}.set-nav-btn.on{background:var(--set-active)!important;box-shadow:none!important}.set-nav-btn:last-child{font-weight:700!important}.set-main{position:relative!important;flex:1 1 auto!important;min-width:0!important;padding:0 43px 0 28px!important;background:transparent!important;overflow:hidden!important;display:flex!important;flex-direction:column!important;}
 .stp-head{position:relative!important;flex:0 0 64px!important;height:64px!important;margin:0!important;padding:0 0 11px!important;border-bottom:1px solid var(--set-line)!important;display:flex!important;align-items:flex-start!important;justify-content:center!important;}
 .stp-title{font-size:34px!important;font-weight:400!important;line-height:1.14!important;letter-spacing:0!important;color:var(--set-text)!important;white-space:nowrap!important}.stp-back{position:absolute!important;left:-315px!important;top:-1px!important;bottom:auto!important;width:auto!important;height:auto!important;padding:4px 7px!important;border:0!important;border-radius:12px!important;background:transparent!important;color:var(--set-text)!important;font-size:21px!important;font-weight:400!important;line-height:1.2!important;gap:7px!important;white-space:nowrap!important;z-index:6!important}.stp-back svg{width:23px!important;height:23px!important}.stp-back:hover{background:color-mix(in srgb,var(--set-active) 45%,transparent)!important}.stp-body{flex:1 1 auto!important;min-height:0!important;padding:14px 0 22px!important;overflow-y:auto!important;overflow-x:hidden!important;color:var(--set-text)!important;scrollbar-width:thin!important;position:relative!important;scrollbar-color:var(--set-active) transparent!important;}
 .stp-row{display:flex!important;align-items:center!important;justify-content:space-between!important;min-height:58px!important;padding:8px 2px!important;margin:0!important;border-radius:10px!important;background:transparent!important;color:var(--set-text)!important;gap:24px!important}.stp-row[role=button]:hover,.stp-row[role=link]:hover{background:color-mix(in srgb,var(--set-active) 20%,transparent)!important}.stp-row-label{min-width:0!important;flex:1 1 auto!important}.stp-row-title{font-size:20px!important;font-weight:400!important;line-height:1.24!important;color:var(--set-text)!important}.stp-row-desc{font-size:15px!important;line-height:1.35!important;color:var(--set-muted)!important;max-width:560px!important;margin-top:3px!important}.stp-sec-label{font-size:20px!important;font-weight:400!important;color:var(--set-text)!important;margin:0 0 11px!important}.stp-hr{border:0!important;border-top:1px solid var(--set-line)!important;margin:10px 0!important}.stp-link,.stp-dd-btn{font-size:17px!important;font-weight:400!important;color:var(--set-text)!important;background:transparent!important}.stp-link{display:inline-flex!important;align-items:center!important;gap:9px!important;border:0!important;white-space:nowrap!important}.stp-link:hover,.stp-dd-btn:hover{background:color-mix(in srgb,var(--set-active) 22%,transparent)!important}.stp-dd-menu{background:var(--set-side)!important;border:1px solid color-mix(in srgb,var(--set-line) 45%,transparent)!important;color:var(--set-text)!important}.stp-dd-opt{color:var(--set-text)!important}.stp-dd-opt:hover{background:var(--set-active)!important}.stp-dd-opt.on{background:color-mix(in srgb,var(--set-active) 72%,transparent)!important;color:var(--set-text)!important}.stp-toggle{width:48px!important;height:28px!important;border-radius:999px!important;background:#8c8c8c!important;box-shadow:none!important;flex:0 0 auto!important}.stp-toggle::after{width:24px!important;height:24px!important;top:2px!important;left:2px!important;background:#fff!important;box-shadow:none!important}.stp-toggle.on{background:var(--set-accent)!important}.stp-toggle.on::after{transform:translateX(20px)!important;background:#fff!important}.stp-toggle:active::after{width:24px!important}.stp-toggle.on:active::after{transform:translateX(20px)!important}.stp-btn{min-height:37px!important;padding:7px 18px!important;border-radius:999px!important;font-size:16px!important;font-weight:600!important;line-height:1!important;box-shadow:none!important}.stp-btn-white{background:#fff!important;color:#111!important;border:0!important}.stp-btn-accent{background:#4f72ff!important;color:#fff!important;border:0!important}.stp-btn-danger{background:var(--set-danger)!important;color:#fff!important;border:0!important}.stp-btn-green{background:transparent!important;border:2px solid #0bcf72!important;color:#0bd879!important}.stp-btn:hover{filter:brightness(1.04)!important;box-shadow:none!important}.stp-card{background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important;margin:0 0 2px!important}.stp-plan-line{display:flex!important;align-items:flex-start!important;justify-content:space-between!important;gap:20px!important;padding:2px 0 5px!important}.stp-card-label{font-size:20px!important;font-weight:400!important;color:var(--set-text)!important}.stp-card-label strong{font-weight:700!important}.stp-plan-status{display:flex!important;flex-direction:column!important;align-items:flex-end!important;gap:5px!important}.stp-badge{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:184px!important;padding:7px 20px!important;border-radius:999px!important;background:#fff!important;color:#111!important;font-size:14px!important;line-height:1!important}.stp-plan-date{font-size:12px!important;color:var(--set-text)!important;white-space:nowrap!important}.stp-upgrade-btn{display:inline-flex!important;align-items:center!important;gap:8px!important;min-width:176px!important;justify-content:center!important}.stp-plan-hr{margin:6px 0 12px!important}.stp-perks-box{margin-top:0!important}.stp-perks-label{font-size:19px!important;margin:0 0 8px!important;color:var(--set-text)!important}.stp-perks{max-width:374px!important;padding:9px 15px!important;border:2px solid color-mix(in srgb,var(--set-line) 78%,transparent)!important;border-radius:24px!important;background:transparent!important;box-shadow:none!important}.stp-perk{display:flex!important;align-items:flex-start!important;gap:8px!important;font-size:14px!important;line-height:1.55!important;color:var(--set-text)!important}.stp-perk-dot{display:inline-block!important;width:5px!important;height:5px!important;border-radius:50%!important;background:currentColor!important;color:var(--set-text)!important;flex:0 0 5px!important;margin-top:.55em!important}.stp-usage-card{min-height:94px!important;padding:13px 17px!important;margin:0 0 18px!important;border-radius:28px!important;background:var(--set-soft2)!important;border:0!important;box-shadow:none!important}.stp-usage-top{align-items:center!important}.stp-usage-title{font-size:20px!important;font-weight:700!important;color:var(--set-text)!important}.stp-usage-sub{font-size:13px!important;color:color-mix(in srgb,var(--set-text) 80%,transparent)!important}.stp-usage-pct{font-size:15px!important;color:var(--set-text)!important}.stp-bar{height:9px!important;border-radius:999px!important;background:color-mix(in srgb,#fff 90%,transparent)!important;overflow:hidden!important}.stp-bar-fill{height:100%!important;border-radius:999px!important;background:#2d2d2d!important}html[data-theme="light"] .stp-bar-fill,html[data-theme="messenger"] .stp-bar-fill{background:var(--set-text)!important}.stp-store-head{font-size:15px!important;font-weight:700!important;color:var(--set-text)!important;margin:0 0 11px!important}.stp-store-bar{margin-bottom:18px!important}.stp-store-row{display:block!important;padding:7px 0!important}.stp-store-name{display:block!important;font-size:20px!important;color:var(--set-text)!important}.stp-store-val{display:block!important;font-size:12px!important;color:var(--set-text)!important;margin-top:2px!important}.stp-storage-clean{padding-top:5px!important}.stp-conn{margin:0!important}.stp-conn-row{display:flex!important;align-items:center!important;gap:12px!important;min-height:55px!important}.stp-conn-logo{width:38px!important;height:38px!important;border-radius:0!important;display:flex!important;align-items:center!important;justify-content:center!important;flex:0 0 auto!important;background:transparent!important}.stp-conn-logo.ym svg{width:36px!important;height:36px!important}.stp-conn-logo.api{color:var(--set-text)!important}.stp-conn-logo.api svg{width:34px!important;height:26px!important}.stp-conn-meta{min-width:0!important;flex:1!important}.stp-conn-state{font-size:12px!important;line-height:1.2!important;color:var(--set-muted)!important;margin-top:2px!important}.stp-conn-state.ok{display:none!important}.stp-conn-slot,.conn-slot{margin:8px 0 10px 50px!important}.stp-about-hero{text-align:center!important;padding:14px 0 20px!important}.stp-about-logo{margin:0 auto!important;width:64px!important;height:64px!important;border-radius:18px!important;background:var(--set-text)!important;color:var(--set-panel)!important}.stp-about-name{font-size:24px!important;color:var(--set-text)!important}.stp-about-ver,.stp-aboutme-foot{font-size:12px!important;color:var(--set-muted)!important}.stp-aboutme-foot{text-align:center!important}.stp-created-at{position:absolute!important;left:0!important;right:0!important;bottom:5px!important;text-align:center!important;font-size:12px!important;color:var(--set-text)!important}.report-textarea,.auth-input{max-width:100%!important}
@@ -3119,6 +3161,8 @@ html[data-theme="messenger"] .rec-overlay{background:rgba(23,33,43,.34);}
 @media(prefers-reduced-motion:reduce){.thp-card,.thp-check{transition:none;}}
 </style>
 <link rel="stylesheet" href="/css/mobile-chat.css">
+<link rel="stylesheet" href="/css/hm-settings.css">
+<link rel="stylesheet" href="/css/hm-attach.css">
 <style id="settings-extra-v3">
 .stp-clean-row{display:flex!important;align-items:center!important;gap:12px;cursor:pointer;}
 .stp-clean-val{font-size:13px;opacity:.65;white-space:nowrap;}
@@ -4197,10 +4241,40 @@ const IMAGE_QUALITY=0.82;
 // документ «без ограничений» — это раздувало токены и замедляло ответ, а при больших файлах
 // переполняло лимит тела запроса. Теперь даём начало текста с пометкой об обрезке, остальное
 // модель при необходимости уточняет у пользователя (см. инструкцию про «ДОКУМЕНТ ОБРЕЗАН»).
-const INLINE_DOC_CHAR_LIMIT_PRO=60000;
+const INLINE_DOC_CHAR_LIMIT_PRO=120000;
 // Adan: 30 000 символов ≈ 7 500 токенов — остаётся запас на уточняющие вопросы
 // в рамках бесплатного окна (20 000 токенов за 5 часов).
-const INLINE_DOC_CHAR_LIMIT_FREE=30000;
+const INLINE_DOC_CHAR_LIMIT_FREE=36000;
+/* Книга на 150 страниц (≈400 тыс. символов) целиком в запрос не помещается —
+   ни по лимиту тела запроса, ни по лимитам токенов. Поэтому ИИ получает
+   начало документа (оглавление, введение) и самые подходящие к вопросу
+   фрагменты из любой его части — по совпадению слов. Порядок фрагментов
+   сохраняется, рядом номер места в документе. */
+function hmPickDocFragments(chunks,question,limit){
+  const stem=w=>w.toLowerCase().replace(/ё/g,'е').slice(0,Math.max(4,Math.min(7,w.length-2)));
+  const words=Array.from(new Set(String(question||'').toLowerCase().replace(/ё/g,'е').match(/[a-zа-я0-9]{3,}/g)||[])).filter(w=>!HM_STOP_WORDS.has(w)).map(stem);
+  const total=chunks.length;
+  const scored=chunks.map((c,i)=>{
+    const low=c.toLowerCase().replace(/ё/g,'е');
+    let sc=0;
+    for(const w of words){let k=0,pos=low.indexOf(w);while(pos>=0&&k<12){k++;pos=low.indexOf(w,pos+w.length);}sc+=k?1+Math.log(1+k):0;}
+    return {i,sc};
+  });
+  const pick=new Set([0]);
+  let used=chunks[0].length;
+  scored.filter(x=>x.sc>0).sort((a,b)=>b.sc-a.sc).forEach(x=>{
+    if(used+chunks[x.i].length>limit)return;
+    pick.add(x.i);used+=chunks[x.i].length;
+  });
+  // Вопрос общий («о чём книга», «перескажи») — равномерная выборка по всей книге.
+  if(pick.size<3){
+    const step=Math.max(1,Math.floor(total/Math.max(1,Math.floor(limit/(chunks[0].length||6000)))));
+    for(let i=step;i<total&&used<limit;i+=step){if(!pick.has(i)&&used+chunks[i].length<=limit){pick.add(i);used+=chunks[i].length;}}
+  }
+  const parts=Array.from(pick).sort((a,b)=>a-b).map(i=>`— фрагмент ${i+1} из ${total} —\n${chunks[i]}`);
+  return parts.join('\n\n')+`\n\n[Документ большой (${total} фрагментов). Здесь его начало и части, подходящие к вопросу. Если нужного раздела не видно — скажи, что именно найти, и попроси пользователя уточнить.]`;
+}
+const HM_STOP_WORDS=new Set('что как это где когда какой какая какие кто почему зачем про для или его она они оно мне меня мой моя тебя тебе твой при над под без так там тут все всё уже еще ещё был была были быть есть нет надо можно нужно the and for with this that what how from are you расскажи объясни найди скажи покажи напиши книге книги книга файле файла файл документе документа'.split(' '));
 function inlineDocCharLimit(){return curModel==='pro'?INLINE_DOC_CHAR_LIMIT_PRO:INLINE_DOC_CHAR_LIMIT_FREE;}
 /* ===== НИК ПОЛЬЗОВАТЕЛЯ: валидация, проверка занятости, сохранение в БД =====
    Разрешаем латиницу, кириллицу, французские/испанские акценты (À-ÿ),
@@ -4846,6 +4920,7 @@ function ensureSignedInShell(session){
     curUser.settings=curUser.settings||{};
   }
   try{window.__hmUserId=uid;}catch(e){}
+  hmRememberAuthMeta(session.user);
   document.getElementById('authWrap').classList.add('gone');
   document.documentElement.setAttribute('data-boot','app');
   window.__appShown=false;
@@ -5593,10 +5668,9 @@ window.addEventListener('hai-lang-change',function(){
 });
 function updateUserUI(){
   if(!curUser)return;
-  const ch=(curUser.email||'?').charAt(0).toUpperCase();
   const av=document.getElementById('sbAvatar');
   const un=document.getElementById('sbUsername');
-  if(av)av.textContent=ch;
+  if(av)hmPaintAvatar(av);
   if(un)un.textContent=curUser.nickname||curUser.email;
   const gt=document.getElementById('greetingTitle');
   if(gt)gt.textContent=greetingTitleText();
@@ -6007,7 +6081,11 @@ function attachmentFileIcon(name){
     </svg>
   `;
 }
+const HM_AUDIO_ICON='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 18V6l11-2v12" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="6.5" cy="18" r="2.5" stroke="currentColor" stroke-width="1.8"/><circle cx="17.5" cy="16" r="2.5" stroke="currentColor" stroke-width="1.8"/></svg>';
 function cloneAttachmentForHistory(item){
+  if(item.kind==='audio'){
+    return {kind:'audio',source:'user',name:item.name||'Аудио',mime:item.mime||'audio/mpeg',size:item.size||0,duration:item.duration||0,key:item._key||null,createdAt:item.createdAt||messageNow()};
+  }
   if(item.kind==='image'){
     return {
       id:item.id||null,kind:'image',source:'user',
@@ -6031,7 +6109,7 @@ function renderUserAttachmentsMarkup(attachments=[]){
       const imageSrc=item.url||item.dataUrl;
       if(imageSrc){
         return `
-          <div class="msg-user-attachment image">
+          <div class="msg-user-attachment image" role="button" tabindex="0" data-view-image="${escapeHtml(imageSrc)}" data-view-name="${escapeHtml(item.name||'Изображение')}">
             <img src="${escapeHtml(imageSrc)}" alt="${escapeHtml(item.name||'Изображение')}">
             <div class="msg-user-attachment-name" title="${escapeHtml(item.name||'Изображение')}">${escapeHtml(item.name||'Изображение')}</div>
           </div>
@@ -6046,8 +6124,18 @@ function renderUserAttachmentsMarkup(attachments=[]){
         </div>
       `;
     }
+    if(item.kind==='audio'){
+      const akey=item.key||item._key;const src=(akey&&hmAudioUrls.get(akey))||'';
+      const meta=`Аудио${item.duration?` · ${formatVoiceTime(item.duration)}`:''}${item.size?` · ${formatBytes(item.size)}`:''}`;
+      return `
+        <div class="msg-user-attachment audio hm-att-audio">
+          <div class="hm-att-audio-head"><span class="hm-att-audio-ic">${HM_AUDIO_ICON}</span><span class="hm-att-audio-meta"><span class="msg-user-attachment-name" title="${escapeHtml(item.name||'Аудио')}">${escapeHtml(item.name||'Аудио')}</span><span class="msg-user-attachment-meta">${escapeHtml(meta)}</span></span></div>
+          ${src?`<audio controls preload="metadata" src="${escapeHtml(src)}"></audio>`:''}
+        </div>
+      `;
+    }
     const meta=`${item.ext||fileExtLabel(item.name)}${item.size?` · ${formatBytes(item.size)}`:''}`;
-    const openAttrs=item.url?` role="link" tabindex="0" onclick="window.open('${escapeHtml(item.url)}','_blank','noopener')" onkeydown="if(event.key==='Enter')window.open('${escapeHtml(item.url)}','_blank','noopener')"`:'';
+    const openAttrs=(item.url||item.doc)?` role="button" tabindex="0" data-view-doc="1"`:'';
     return `
       <div class="msg-user-attachment document"${openAttrs}>
         <div class="msg-user-file-icon">${attachmentFileIcon(item.name)}</div>
@@ -6066,15 +6154,18 @@ function renderComposerAttachments(){
   document.getElementById('inputBox')?.classList.toggle('has-attachments',pendingAttachments.length>0);
   pendingAttachments.forEach((item,index)=>{
     const card=document.createElement('div');
-    card.className='composer-attachment '+(item.kind==='image'?'image':'document');
+    card.className='composer-attachment '+(item.kind==='image'?'image':(item.kind==='audio'?'document audio':'document'))+(item.loading?' is-loading':'');
     const removeLabel=item.kind==='image'?'Удалить фото':'Удалить файл';
-    const meta=item.kind==='image'
+    const meta=item.loading?'Читаю…'
+      : item.kind==='audio' ? `Аудио${item.duration?` · ${formatVoiceTime(item.duration)}`:''}${item.size?` · ${formatBytes(item.size)}`:''}`
+      : item.kind==='image'
       ? (item.meta||fileExtLabel(item.name))
       : `${fileExtLabel(item.name)}${item.size?` · ${formatBytes(item.size)}`:''}`;
     card.innerHTML=`
       <button class="composer-attachment-remove" type="button" aria-label="${removeLabel}" title="${removeLabel}" onclick="removeAttachment(${index})">×</button>
-      ${item.kind==='image'
+      ${item.kind==='image'&&item.previewUrl
         ? `<img class="composer-thumb" src="${item.previewUrl}" alt="${escapeHtml(item.name||'Изображение')}">`
+        : item.kind==='audio' ? `<div class="composer-file-icon hm-audio-ic">${HM_AUDIO_ICON}</div>`
         : `<div class="composer-file-icon">${attachmentFileIcon(item.name)}</div>`}
       <div class="composer-attachment-name" title="${escapeHtml(item.name||'Файл')}">${escapeHtml(item.name||'Файл')}</div>
       <div class="composer-attachment-meta">${escapeHtml(meta)}</div>
@@ -6107,8 +6198,11 @@ async function parsePdfFile(file){
 }
 /* OCR сканированного PDF: Tesseract.js (русский + английский), страница за страницей,
    с прогрессом над строкой ввода. Больше HM_OCR_MAX_PAGES не распознаём — это минуты. */
-const HM_OCR_MAX_PAGES=60;
+const HM_OCR_MAX_PAGES=150;
+/* Плашку «страница N из M» убрали: пользователь видит только «Читаю…» на
+   карточке файла. Функция оставлена пустой, чтобы не трогать вызовы. */
 function hmOcrStatus(text){
+  return;
   let el=document.getElementById('hmOcrStatus');
   if(!text){if(el)el.remove();return;}
   if(!el){
@@ -6145,7 +6239,7 @@ async function hmOcrPdf(pdf,name){
     try{await worker.terminate();}catch(e){}
     hmOcrStatus('');
   }
-  if(pdf.numPages>total)out.push('[Распознаны первые '+total+' страниц из '+pdf.numPages+'. Чтобы ИИ прочитал остальное, загрузите нужные страницы отдельным файлом.]');
+  if(pdf.numPages>total)out.push('[Распознаны первые '+total+' страниц из '+pdf.numPages+'. Если нужен раздел дальше — попроси пользователя прислать эти страницы отдельным файлом.]');
   return out.join('\n\n');
 }
 async function parseDocxFile(file){
@@ -7496,7 +7590,82 @@ function attachChoose(kind,e){
    точка входа и отправка ОТЧЁТА (не файла) в обычный путь /api/chat. */
 function triggerAudioAnalyzer(){
   closePlusDrop();
-  try{ if(window.AudioAnalyzer&&typeof window.AudioAnalyzer.openPicker==='function')window.AudioAnalyzer.openPicker(); }catch(e){}
+  // Трек прикрепляется к сообщению, как любой файл; что с ним сделать, ИИ решит по тексту.
+  const inp=document.createElement('input');
+  inp.type='file';inp.accept='audio/*,.mp3,.wav,.m4a,.ogg,.flac,.aac,.opus';inp.multiple=true;
+  inp.onchange=()=>{if(inp.files&&inp.files.length)handleFiles(inp.files);};
+  inp.click();
+}
+/* ===== АУДИО В ЧАТЕ =====
+   Прикрепили трек и написали, что нужно:
+     «загрузи в Яндекс Музыку» → загрузка (карточка с прогрессом в чате);
+     «что за трек», «кто поёт», «как называется» → теги файла + распознавание
+       по звуку (Pro) → ИИ отвечает;
+     всё остальное (или пустое сообщение) → анализ в браузере (темп,
+       тональность, структура) → ИИ разбирает трек и отвечает на вопрос. */
+const HM_IDENTIFY_RE=/(что\s+(это\s+)?за\s+(трек|песн|музык|композиц|мелоди|произведени)|как\s+(он[ао]?\s+)?называ|кто\s+(это\s+)?(поёт|поет|исполня|автор|написал|играет)|узнай|распознай|определи\s+(трек|песн|исполнител|название)|шазам|shazam|чья\s+(это\s+)?(песня|музыка)|what\s+song|identify)/i;
+const HM_ANALYZE_RE=/(анализ|разбер|разбор|тональн|темп|bpm|аккорд|структур|оцени|послушай|что\s+скажешь)/i;
+async function hmHandleAudioSend(text){
+  const atts=pendingAttachments.slice();
+  const audios=atts.filter(a=>a.kind==='audio');
+  const docs=atts.filter(a=>a.kind!=='audio');
+  const wantsYm=HM_YM_UPLOAD_RE.test(text||'');
+  const wantsId=HM_IDENTIFY_RE.test(text||'');
+  const wantsAnalysis=!wantsYm||HM_ANALYZE_RE.test(text||'')||wantsId;
+  const g=document.getElementById('greetingWrap');if(g)g.style.display='none';
+  addUserBubble(text,atts);
+  const histAtts=atts.map(cloneAttachmentForHistory);
+  clearPendingAttachments();
+  if(wantsYm&&!HM_ANALYZE_RE.test(text||'')&&!wantsId){
+    chatHistory.push({role:'user',content:text,attachments:histAtts,createdAt:messageNow()});
+    saveChat().catch(()=>{});
+    for(const a of audios)await hmSendTrackToYandex(a.file);
+    return;
+  }
+  showTyping('file');
+  const reports=[];
+  for(const a of audios){
+    const rep={file:a.name,durationSec:a.duration||null};
+    try{const tags=await window.AudioAnalyzer.readTags(a.file);if(tags&&Object.keys(tags).length)rep.tags=tags;}catch(e){}
+    if(wantsId){
+      if(isProUser()){
+        try{
+          const clip=await window.AudioAnalyzer.clipForRecognition(a.file,20);
+          const audioBase64=await blobToBase64(clip.blob);
+          const res=await withTimeout(fetch(getRecognizeEndpoint(),{method:'POST',headers:await hmAuthHeaders(),cache:'no-store',body:JSON.stringify({mode:'identify',audioBase64})}),60000,'распознавание заняло слишком много времени');
+          const data=await res.json().catch(()=>null);
+          if(res.ok&&data){
+            const r={};
+            if(data.source==='fingerprint')r.match='точное совпадение по звуку';
+            ['workGuess','composerGuess','periodGuess','confidence'].forEach(k=>{if(data[k])r[k]=data[k];});
+            if(data.raw)r.found=data.raw;
+            rep.recognition=r;
+          }else rep.recognition={error:(data&&data.error&&data.error.message)||'сервис распознавания не ответил'};
+        }catch(e){rep.recognition={error:String(e&&e.message||e).slice(0,160)};}
+      }else{
+        rep.recognition={unavailable:'распознавание по звуку доступно в Pro; есть только теги файла и его название'};
+      }
+    }
+    if(wantsAnalysis){
+      try{rep.analysis=await window.AudioAnalyzer.analyzeFile(a.file);}
+      catch(e){rep.analysis={error:'браузер не смог разобрать этот аудиофайл: '+String(e&&e.message||e).slice(0,120)};}
+    }
+    reports.push(rep);
+  }
+  hideTyping();
+  const ask=(text||'').trim()||'Разбери этот трек.';
+  const guide=wantsId
+    ?'Пользователь спрашивает, что это за трек. Ответь по данным ниже: сначала распознавание по звуку (если есть), затем теги файла (title/artist), затем название файла. Если данных не хватает — честно скажи, что точно не определить, и назови самую вероятную версию по названию файла, если оно осмысленное.'
+    :'Ниже — технический разбор аудио, выполненный в браузере (сам файл не передавался). Ответь на просьбу пользователя как музыкант: темп и характер, тональность и лад, динамика, структура, что выделяется. Приблизительные метрики так и называй.';
+  const content=[
+    {type:'text',text:ask},
+    {type:'text',text:guide+(wantsYm?' После ответа трек будет загружен в Яндекс Музыку — можешь коротко это упомянуть.':'')+'\n\n[АУДИОФАЙЛЫ]\n'+JSON.stringify(reports)}
+  ];
+  docs.forEach((d,i)=>{if(d.doc&&d.doc.chunks)content.push({type:'text',text:`[ФАЙЛ ${i+1}: ${d.name}]\n`+d.doc.chunks.join('\n\n').slice(0,inlineDocCharLimit())});});
+  chatHistory.push({role:'user',content,attachments:histAtts,createdAt:messageNow()});
+  saveChat().catch(()=>{});
+  await runAssistantReply(ask);
+  if(wantsYm)for(const a of audios)await hmSendTrackToYandex(a.file);
 }
 function sendAudioAnalysisToAI(payload,fileName){
   const label='Анализ аудио: '+String(fileName||'файл');
@@ -7671,9 +7840,10 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ===== SYSTEM PROMPT ===== */
-const BASE_SYSTEM=`Ты HarmonyAI — музыкальный ИИ-помощник для учеников и учителей музыкальных школ и всех, кто любит музыку. Ты мужского пола — говори о себе в мужском роде. Отвечай на языке последнего сообщения пользователя (по умолчанию русский) — и сам ответ, и рассуждения в режиме «Думать» на этом же языке.
-ХАРАКТЕР: ты живой, тёплый и внимательный собеседник, а не справочная. На «привет» отвечай как человек: «Привет, <имя>! Чем сегодня займёмся?» — без самопредставления и без списка своих возможностей; на «как дела» — коротко и с интересом к собеседнику. Не повторяй, кто ты, если об этом не спрашивали. Если просьба неясна — задай один короткий уточняющий вопрос.
-Ты знаешь: сольфеджио, нотную грамоту, интервалы, аккорды (T53, S64, D7, VII7, II7 и др.), лады, ритм, размеры, музыкальные термины. Помогаешь и с другими предметами.
+const BASE_SYSTEM=`Ты HarmonyAI — универсальный ИИ-помощник: учёба, работа, тексты, код, анализ данных и файлов, идеи, творчество, картинки. Особенно силён в музыке (теория, сольфеджио, гармония, ноты, треки), но музыка — лишь одна из тем. Ты мужского пола — говори о себе в мужском роде. Отвечай на языке последнего сообщения пользователя (по умолчанию русский) — и сам ответ, и рассуждения в режиме «Думать» на этом же языке. Пиши только этим языком: никаких случайных иероглифов и слов из других алфавитов (кроме кода, формул, названий и терминов, которые так пишутся).
+ХАРАКТЕР: ты живой, тёплый и внимательный собеседник, а не справочная. На «привет» отвечай как человек: «Привет, <имя>! Чем сегодня займёмся?» — без самопредставления и без списка своих возможностей; на «как дела» — коротко и с интересом к собеседнику. Не повторяй, кто ты, если об этом не спрашивали. Не своди разговор к музыке, если о ней не спрашивали: предлагая идеи или темы, давай разнообразные варианты из разных областей.
+ДЕЛАЙ, А НЕ ПЕРЕСПРАШИВАЙ: если просьба понятна в целом — выполняй сразу, недостающие детали выбирай сам (разумно и красиво) и в конце коротко предложи, что можно поменять. Уточняй только когда без ответа на вопрос задачу выполнить невозможно. Грубость в сообщении не повод отказывать — спокойно сделай, что просят.
+Ты знаешь: сольфеджио, нотную грамоту, интервалы, аккорды (T53, S64, D7, VII7, II7 и др.), лады, ритм, размеры, музыкальные термины — и так же уверенно помогаешь с любыми другими предметами и задачами.
 ФОРМАТИРОВАНИЕ: Всегда используй Markdown — **жирный**, # заголовки, списки, > цитаты, \`код\`.
 ОБОЗНАЧЕНИЯ АККОРДОВ И ФУНКЦИЙ: пиши их только обычным текстом (интерфейс сам превратит цифры в подстрочные). Верно: T53, T6, T64, S53, S6, S64, D53, D6, D64, D7, D65, D43, D2, K64, VII7, II7, I53, IV53, V53, V6, V64, Б53, М53, Ум53, Ув53, ББ7, БМ7, МБ7, ММ7. Неверно: $T_{53}$, \\(D_{65}\\), T_{53}, D₆₅ (не используй Unicode-подстрочные сам — только обычные цифры).
 РАБОТА С ФАЙЛАМИ: если пользователь загружает учебник или документ, ты получаешь его содержимое прямо в контексте — ЧИТАЙ и ИСПОЛЬЗУЙ его. Если документ помечен ⚠️ ДОКУМЕНТ ОБРЕЗАН — честно скажи что видишь только часть: "Я вижу первую часть учебника до [темы]. Для вопроса о [другой теме] уточни раздел — я поищу в контексте." НИКОГДА не выдумывай содержимое разделов которых не видишь. Когда просят "обучись по учебнику" — перечисли темы которые РЕАЛЬНО видишь в документе.
@@ -8011,102 +8181,93 @@ async function handleFile(inp){
   await handleFiles(files);
 }
 /* Общий вход для файлов: кнопка «+», перетаскивание в чат и вставка из буфера. */
+/* Файлы читаются в фоне: карточка появляется сразу с пометкой «Читаю…»,
+   можно писать вопрос и отправлять — ответ подождёт, пока файл дочитается.
+   Никаких окон и счётчиков страниц: всё делает ИИ. Аудио не открывает
+   анализатор — ИИ сам решит по сообщению: проанализировать, узнать трек
+   или загрузить в Яндекс Музыку. */
+window.__hmAttachWork=Promise.resolve();
+function hmAttachmentsBusy(){return pendingAttachments.some(a=>a&&a.loading);}
+async function hmWaitAttachments(){
+  if(!hmAttachmentsBusy())return;
+  try{await window.__hmAttachWork;}catch(e){}
+}
 async function handleFiles(fileList){
   let files=Array.from(fileList||[]).filter(Boolean);
   if(!files.length)return;
-  // Аудио — в анализатор (BPM, тональность, структура → «Анализировать с помощью ИИ»).
-  // Раньше любой MP3/WAV молча уходил в загрузку в Яндекс Музыку и до ИИ не доходил.
-  const tracks=files.filter(hmIsAudioFile);
-  if(tracks.length){
-    files=files.filter(f=>!hmIsAudioFile(f));
-    window.__hmLastAudio=tracks;window.__hmLastAudioAt=Date.now();
-    /* Уже написано «добавь в Яндекс Музыку / в плейлист» — загружаем сразу, без анализатора. */
-    const ta=document.getElementById('msgTa');
-    if(ta&&HM_YM_UPLOAD_RE.test(ta.value||'')){
-      ta.value='';try{ta.dispatchEvent(new Event('input',{bubbles:true}));}catch(e){}
-      for(const f of tracks)await hmSendTrackToYandex(f);
-      if(!files.length)return;
-    }else{
-    try{
-      if(window.AudioAnalyzer&&typeof window.AudioAnalyzer.openWithFile==='function'){
-        window.AudioAnalyzer.openWithFile(tracks[0]);
-        if(tracks.length>1)toast('Аудио анализируется по одному файлу — открыт «'+tracks[0].name+'»');
-      }else toast('Анализ аудио сейчас недоступен — обновите страницу');
-    }catch(e){console.warn(e);}
-    }
-    if(!files.length)return;
-  }
   // Тот же файл повторно не прикрепляем.
   const sameKey=f=>(f.name||'')+'|'+(f.size||0);
   const have=new Set(pendingAttachments.map(a=>(a.name||'')+'|'+(a.size||0)));
   const dupes=files.filter(f=>have.has(sameKey(f)));
   files=files.filter((f,i,arr)=>!have.has(sameKey(f))&&arr.findIndex(x=>sameKey(x)===sameKey(f))===i);
   if(dupes.length&&!files.length){toast('Этот файл уже прикреплён');return;}
-  // Лимит: не больше MAX_ATTACHMENTS_PER_SEND (20) файлов/фото за один раз.
   if(pendingAttachments.length+files.length>MAX_ATTACHMENTS_PER_SEND){
-    hmAlert(`Можно прикрепить не больше ${MAX_ATTACHMENTS_PER_SEND} файлов или фото за один раз`);
-    return;
+    toast(`Можно прикрепить не больше ${MAX_ATTACHMENTS_PER_SEND} файлов за раз`);
+    files=files.slice(0,Math.max(0,MAX_ATTACHMENTS_PER_SEND-pendingAttachments.length));
+    if(!files.length)return;
   }
-  const inp={value:''};
-  const ta=document.getElementById('msgTa');
-  const prevPlaceholder=ta?ta.placeholder:'';
-  if(ta&&files.length)ta.placeholder=files.length>1?`Обрабатываю файлы (0/${files.length})…`:'Читаю файл…';
-  const failed=[];
-  let done=0;
-  // Каждый файл обрабатываем изолированно: ошибка на одном файле не должна
-  // «сносить» весь пакет из 20 файлов — остальные всё равно прикрепятся.
-  for(const f of files){
-    try{
-      if(!f.size)throw new Error('файл пустой');
-      const parsed=await parseGenericFile(f);
-      const stored=await uploadAttachmentFileSafe(f);
-      if(parsed.kind==='image'){
-        const {dataUrl,mime}=await compressImageFile(f);
-        pendingAttachments.push({
-          kind:'image',
-          name:f.name||'Изображение',
-          mime:mime||'image/jpeg',
-          size:f.size||0,
-          dataUrl,
-          base64:dataUrl.split(',')[1]||'',
-          previewUrl:URL.createObjectURL(f),
-          id:stored?.id||null,url:stored?.url||'',storagePath:stored?.storagePath||null,createdAt:messageNow(),
-          meta:fileExtLabel(f.name||f.type||'image')
-        });
-      }else if(parsed.kind==='document'){
-        const doc=makeKnowledgeDoc(f.name,parsed.text,f.name.split('.').pop().toLowerCase());
-        if(!doc.chunks.length)throw new Error('в файле не найден читаемый текст');
-        // Файл целиком уходит в базу знаний (RAG): текст режется на чанки и сохраняется в Supabase,
-        // поэтому ИИ «помнит» его и в следующих чатах, а не только в текущем сообщении.
-        if(trainingMode&&hasTrainingAccess())hmIngestFileText(f.name,parsed.text,doc);
-        else storeKnowledgeDoc(doc,hasTrainingAccess()?'global':'user');
-        pendingAttachments.push({
-          kind:'document',
-          name:f.name,
-          size:f.size||0,
-          mime:f.type||'application/octet-stream',
-          id:stored?.id||null,url:stored?.url||'',storagePath:stored?.storagePath||null,createdAt:messageNow(),
-          doc
-        });
-        window.HmStats?.file();
-      }else{
-        throw new Error('не удалось прочитать файл');
-      }
-    }catch(e){
-      let why=String(e&&e.message?e.message:e);
-      if(/invalid pdf|corrupted zip|central directory|end of data|unexpected|password/i.test(why))why=/password/i.test(why)?'файл защищён паролем':'файл повреждён или сохранён не до конца';
-      failed.push((f.name||'файл')+': '+why);
-    }finally{
-      done++;
-      if(ta&&files.length>1)ta.placeholder=`Обрабатываю файлы (${done}/${files.length})…`;
+  const slots=files.map(f=>{
+    const kind=hmIsAudioFile(f)?'audio':((f.type||'').startsWith('image/')?'image':'document');
+    const slot={kind,name:f.name||'Файл',size:f.size||0,mime:f.type||'',loading:kind!=='audio',createdAt:messageNow(),_key:'att_'+Math.random().toString(36).slice(2)};
+    if(kind==='audio'){
+      slot.file=f;slot.previewUrl=URL.createObjectURL(f);slot.mime=f.type||'audio/mpeg';
+      hmAudioUrls.set(slot._key,slot.previewUrl);
+      hmAudioDuration(slot.previewUrl).then(d=>{if(d){slot.duration=d;renderComposerAttachments();}});
     }
-  }
-  if(ta)ta.placeholder=prevPlaceholder;
+    if(kind==='image')slot.previewUrl=URL.createObjectURL(f);
+    pendingAttachments.push(slot);
+    return {f,slot};
+  });
   renderComposerAttachments();
   updateComposerPlaceholder();
-  if(failed.length){
-    hmAlert('Не удалось загрузить часть файлов:\n'+failed.join('\n'));
-  }
+  const work=(async()=>{
+    for(const {f,slot} of slots){
+      if(slot.kind==='audio')continue;
+      if(!pendingAttachments.includes(slot))continue; // успели убрать крестиком
+      try{
+        if(!f.size)throw new Error('файл пустой');
+        const parsed=await parseGenericFile(f);
+        const stored=await uploadAttachmentFileSafe(f);
+        if(parsed.kind==='image'){
+          const {dataUrl,mime}=await compressImageFile(f);
+          Object.assign(slot,{kind:'image',name:f.name||'Изображение',mime:mime||'image/jpeg',dataUrl,base64:dataUrl.split(',')[1]||'',
+            id:stored?.id||null,url:stored?.url||'',storagePath:stored?.storagePath||null,meta:fileExtLabel(f.name||f.type||'image')});
+        }else{
+          const doc=makeKnowledgeDoc(f.name,parsed.text,f.name.split('.').pop().toLowerCase());
+          if(!doc.chunks.length)throw new Error('в файле не найден читаемый текст');
+          if(trainingMode&&hasTrainingAccess())hmIngestFileText(f.name,parsed.text,doc);
+          else storeKnowledgeDoc(doc,hasTrainingAccess()?'global':'user');
+          Object.assign(slot,{kind:'document',mime:f.type||'application/octet-stream',id:stored?.id||null,url:stored?.url||'',storagePath:stored?.storagePath||null,doc});
+          window.HmStats?.file();
+        }
+        slot.loading=false;
+      }catch(e){
+        let why=String(e&&e.message?e.message:e);
+        if(/invalid pdf|corrupted zip|central directory|end of data|unexpected|password/i.test(why))why=/password/i.test(why)?'файл защищён паролем':'файл повреждён или сохранён не до конца';
+        const i=pendingAttachments.indexOf(slot);
+        if(i>=0)pendingAttachments.splice(i,1);
+        if(slot.previewUrl)try{URL.revokeObjectURL(slot.previewUrl);}catch(_){}
+        toast('«'+(f.name||'файл')+'» не прочитался: '+why);
+      }
+      renderComposerAttachments();
+      updateComposerPlaceholder();
+    }
+  })();
+  window.__hmAttachWork=Promise.all([window.__hmAttachWork.catch(()=>{}),work]);
+  await work;
+}
+const hmAudioUrls=new Map();
+function hmAudioDuration(url){
+  return new Promise(res=>{
+    try{
+      const a=new Audio();a.preload='metadata';
+      const done=v=>{a.removeAttribute('src');res(v);};
+      a.onloadedmetadata=()=>done(isFinite(a.duration)?Math.round(a.duration):0);
+      a.onerror=()=>done(0);
+      setTimeout(()=>done(0),8000);
+      a.src=url;
+    }catch(e){res(0);}
+  });
 }
 
 /* ===== ПЕРЕТАСКИВАНИЕ И ВСТАВКА ФАЙЛОВ =====
@@ -8278,7 +8439,7 @@ function addUserBubble(text,attachments=[],opts={}){
   const inner=getChatInner();
   const wrap=document.createElement('div');wrap.className='msg-user-wrap';
   wrap.dataset.historyIndex=String(opts.historyIndex??chatHistory.length);
-  if(attachments.length)wrap.innerHTML=renderUserAttachmentsMarkup(attachments);
+  if(attachments.length){wrap.innerHTML=renderUserAttachmentsMarkup(attachments);wrap.__hmAtts=attachments;}
   if(text&&text.trim()){
     const d=document.createElement('div');d.className='msg-user';d.textContent=text;
     wrap.appendChild(d);
@@ -8287,6 +8448,61 @@ function addUserBubble(text,attachments=[],opts={}){
   inner.appendChild(wrap);scrollChat(true);
   refreshChatMenuAvailability();
   return wrap;
+}
+/* ===== Просмотр вложений прямо в чате =====
+   Фото — на весь экран, документ — его текст (и ссылка на оригинал, если он
+   сохранён), аудио играет в самом сообщении. */
+document.addEventListener('click',e=>{
+  const img=e.target.closest&&e.target.closest('[data-view-image]');
+  if(img){e.preventDefault();hmOpenViewer({type:'image',src:img.getAttribute('data-view-image'),name:img.getAttribute('data-view-name')||''});return;}
+  const docEl=e.target.closest&&e.target.closest('[data-view-doc]');
+  if(docEl){
+    e.preventDefault();
+    const wrap=docEl.closest('.msg-user-wrap');
+    const list=Array.from(wrap?wrap.querySelectorAll('.msg-user-attachment'):[]);
+    const idx=list.indexOf(docEl);
+    let atts=wrap&&wrap.__hmAtts;
+    if(!atts&&wrap){const h=chatHistory[Number(wrap.dataset.historyIndex)];atts=h&&h.attachments;}
+    const att=atts&&atts[idx];
+    if(att)hmOpenViewer({type:'doc',name:att.name||'Файл',text:(att.doc&&att.doc.chunks||[]).join('\n\n'),url:att.url||''});
+  }
+});
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Enter')return;
+  const t=e.target;
+  if(t&&t.matches&&t.matches('[data-view-image],[data-view-doc]')){e.preventDefault();t.click();}
+});
+function hmOpenViewer(v){
+  const prev=document.getElementById('hmViewer');if(prev)prev.remove();
+  const wrap=document.createElement('div');wrap.id='hmViewer';wrap.className='hm-viewer';
+  const close=()=>{wrap.classList.remove('open');document.removeEventListener('keydown',onKey,true);setTimeout(()=>wrap.remove(),160);};
+  const onKey=ev=>{if(ev.key==='Escape'){ev.preventDefault();close();}};
+  const head=document.createElement('div');head.className='hm-viewer-head';
+  const title=document.createElement('div');title.className='hm-viewer-title';title.textContent=v.name||'';
+  head.appendChild(title);
+  if(v.type==='image'||v.url){
+    const a=document.createElement('a');a.className='hm-viewer-btn';a.target='_blank';a.rel='noopener';
+    a.href=v.type==='image'?v.src:v.url;
+    if(v.type==='image')a.download=v.name||'image';
+    a.textContent=v.type==='image'?'Скачать':'Оригинал';
+    head.appendChild(a);
+  }
+  const x=document.createElement('button');x.type='button';x.className='hm-viewer-btn hm-viewer-x';x.setAttribute('aria-label','Закрыть');
+  x.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
+  x.onclick=close;head.appendChild(x);
+  const body=document.createElement('div');body.className='hm-viewer-body'+(v.type==='image'?' is-image':' is-doc');
+  if(v.type==='image'){
+    const img=document.createElement('img');img.src=v.src;img.alt=v.name||'';body.appendChild(img);
+    body.addEventListener('click',ev=>{if(ev.target===body)close();});
+  }else{
+    const pre=document.createElement('div');pre.className='hm-viewer-text';
+    pre.textContent=v.text||'Текст этого файла не сохранился — откройте оригинал.';
+    body.appendChild(pre);
+  }
+  wrap.appendChild(head);wrap.appendChild(body);
+  document.body.appendChild(wrap);
+  document.addEventListener('keydown',onKey,true);
+  requestAnimationFrame(()=>wrap.classList.add('open'));
 }
 let _userMsgPressTimer=null,_userMsgPressPoint=null,_userMsgPressFired=false;
 function attachUserMessageLongPress(el){
@@ -10161,6 +10377,7 @@ function slimAttachments(attachments){
   return attachments.map(att=>{
     const common={id:att.id||null,source:att.source||'user',name:att.name||'Файл',mime:att.mime||'application/octet-stream',size:att.size||0,url:att.url||'',storagePath:att.storagePath||null,createdAt:att.createdAt||messageNow()};
     if(att.kind==='image')return {...common,kind:'image',meta:att.meta||fileExtLabel(att.name||att.mime||'image')};
+    if(att.kind==='audio')return {...common,kind:'audio',mime:att.mime||'audio/mpeg',duration:att.duration||0,key:att.key||null};
     return {...common,kind:'document',ext:att.ext||fileExtLabel(att.name||'Файл')};
   });
 }
@@ -11524,7 +11741,18 @@ async function sendMsgInner(){
   // Поле чистим сразу, до всех await-ов: дальше идут сетевые вызовы (музыка,
   // intent-классификатор), и текст не должен оставаться в композере на это время.
   const text=takeComposerText();
+  // Файл ещё дочитывается — молча ждём (в чате индикатор «читаю файл»).
+  if(hmAttachmentsBusy()){
+    showTyping('file');
+    try{await hmWaitAttachments();}finally{hideTyping();}
+  }
   if(!text&&!pendingAttachments.length)return;
+  // Аудиофайл: ИИ сам решает по тексту — разбор, «что за трек» или загрузка в Яндекс Музыку.
+  if(pendingAttachments.some(a=>a.kind==='audio')){
+    resetChatScrollFollow();
+    await hmHandleAudioSend(text);
+    return;
+  }
   /* Новое сообщение — всегда возвращаем вид к низу: даже если человек отлистал
      вверх во время прошлой генерации, свой собственный вопрос он должен увидеть. */
   resetChatScrollFollow();
@@ -11602,14 +11830,6 @@ async function sendMsgInner(){
       // Классификатор решил, что генерация не нужна — показываем обычный текстовый ответ
       // ассистента (через стандартный путь), а не генерируем картинку.
       await runAssistantReply(text);
-      return;
-    }
-    if(intent.clarify&&intent.clarify_question){
-      // Деталей маловато — ассистент задаёт уточняющий вопрос вместо немедленной генерации.
-      const shell=createAiBubbleShell({showActions:true,hiddenActions:false});
-      renderMd(shell.msg,intent.clarify_question);
-      chatHistory.push({role:'assistant',content:intent.clarify_question,createdAt:messageNow()});
-      await saveChat();
       return;
     }
     // need_image=true, clarify=false — генерируем с развитым промптом из классификатора
@@ -12561,10 +12781,9 @@ async function handleTextReply(pendingText){
     // Ограничиваем объём вкладываемого текста, иначе большие документы раздували токены,
     // замедляли ответ и переполняли лимит тела запроса. Даём начало документа с пометкой об обрезке.
     const full=chunks.join('\n\n');
-    const limit=inlineDocCharLimit();
+    const limit=Math.max(8000,Math.floor(inlineDocCharLimit()/Math.max(1,docAttachments.length)));
     if(full.length<=limit)return `[ФАЙЛ ${idx+1}: ${att.name}]\n${full}`;
-    const head=full.slice(0,limit);
-    return `[ФАЙЛ ${idx+1}: ${att.name}]\n${head}\n\n⚠️ ДОКУМЕНТ ОБРЕЗАН — показана только первая часть (${limit} символов из ${full.length}). Для разделов вне этого фрагмента попроси пользователя уточнить раздел.`;
+    return `[ФАЙЛ ${idx+1}: ${att.name}]\n${hmPickDocFragments(chunks,text,limit)}`;
   }
   let userContent;
   if(imageAttachments.length){
@@ -12610,7 +12829,10 @@ function openSettings(){
   overlay.classList.add('open');
   overlay.setAttribute('aria-hidden','false');
   if(!routeNavigating&&route!=='/settings')setRoute('/settings',true);
-  try{openSettingsSection(settingsActiveSection||'general');}
+  try{
+    if(hmSettingsIsMobile())renderSettingsRoot();
+    else openSettingsSection(settingsActiveSection==='root'?'general':(settingsActiveSection||'general'));
+  }
   catch(err){
     console.error('Settings open failed',err);
     try{renderSettingsGeneral();}catch(inner){console.error('Settings fallback failed',inner);}
@@ -12766,7 +12988,7 @@ function setHead(title,backFn){return stpHead(title,backFn);}
 /* Возвращает ТЕКСТ обработчика для кнопки «← Настройки» (его подставляют в onclick).
    Раньше функция сразу вызывала closeSettings(), и каждое открытие настроек
    тут же само себя закрывало — кнопка с аватаром «не работала». */
-function stpBackMain(){return 'closeSettings()';}
+function stpBackMain(){return hmSettingsIsMobile()?'renderSettingsRoot()':'closeSettings()';}
 function stpShell(active,title,backFn,bodyHtml){
   return stpEnsure(active,title,backFn,bodyHtml);
 }
@@ -12808,9 +13030,143 @@ function settingsInitialsOf(u){
   if(name){const p=name.split(/\s+/).filter(Boolean);if(p.length>=2)return (p[0][0]+p[1][0]).toUpperCase();return p[0].slice(0,2).toUpperCase();}
   const e=(u?.email||'?');return e.charAt(0).toUpperCase();
 }
-/* ===== Мобильный корневой список настроек ===== */
+/* ===== Мобильный корневой список настроек =====
+   На телефоне вместо иконной рейки — список разделов в духе настроек iOS и
+   ChatGPT: сверху аватар, имя и почта, ниже предложение Pro (если его нет)
+   и сгруппированные строки. Раздел открывается на весь экран, «назад» —
+   снова к списку. */
+function hmSettingsIsMobile(){try{return window.matchMedia('(max-width:768px)').matches;}catch(e){return false;}}
 function renderSettingsMain(){
-  openSettingsSection(settingsActiveSection||'general');
+  if(hmSettingsIsMobile())renderSettingsRoot();
+  else openSettingsSection(settingsActiveSection==='root'?'general':(settingsActiveSection||'general'));
+}
+const HM_ROOT_GROUPS=[
+  ['general','pers','music','plugins'],
+  ['subscription','usage','stats'],
+  ['account','privacy','data','storage'],
+  ['help','about','install']
+];
+function renderSettingsRoot(){
+  const root=document.getElementById('settingsContent');
+  if(!root)return;
+  stpEnsure('root','Настройки','closeSettings()','');
+  window.__setScreen='root';
+  settingsActiveSection='root';
+  const pane=settingsPane();
+  if(!pane)return;
+  const byId=Object.fromEntries(STP_SECTIONS.map(s=>[s.id,s]));
+  const pro=isProUser();
+  const hint={subscription:pro?'Pro':'Free',account:hmProviderName()};
+  const chev='<svg class="hm-mroot-chev" width="8" height="14" viewBox="0 0 8 14" fill="none" aria-hidden="true"><path d="M1 1l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const row=id=>{
+    if(id==='install'){
+      if(hmIsStandalone())return '';
+      return '<button type="button" class="hm-mroot-row" onclick="hmInstallApp()"><span class="hm-mroot-ico"><svg width="21" height="21" viewBox="0 0 24 24" fill="none"><rect x="6" y="2.5" width="12" height="19" rx="3" stroke="currentColor" stroke-width="1.7"/><path d="M12 7v7m0 0l-3-3m3 3l3-3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="hm-mroot-label">Установить приложение</span>'+chev+'</button>';
+    }
+    const s=byId[id];if(!s)return '';return '<button type="button" class="hm-mroot-row" onclick="openSettingsSection(\''+s.id+'\',event)"><span class="hm-mroot-ico">'+(STP_ICONS[s.icon]||'')+'</span><span class="hm-mroot-label">'+escapeHtml(s.label)+'</span>'+(hint[id]?'<span class="hm-mroot-hint">'+escapeHtml(hint[id])+'</span>':'')+chev+'</button>';};
+  const upsell=pro?'':'<button type="button" class="hm-mroot-pro" onclick="openSettingsSection(\'subscription\',event)">'
+    +'<span class="hm-mroot-pro-ico">'+STP_ICONS.crown+'</span>'
+    +'<span class="hm-mroot-pro-text"><b>Перейти на Pro</b><span>Dynatos, лимиты ×25, картинки Pro и размышление на максимуме</span></span>'
+    +chev+'</button>';
+  pane.innerHTML='<div class="hm-mroot">'
+    +'<div class="hm-mroot-top"><span class="hm-mroot-title">Настройки</span><button type="button" class="hm-mroot-close" onclick="closeSettings()" aria-label="Закрыть"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button></div>'
+    +'<div class="hm-mroot-profile">'
+      +'<button type="button" class="hm-mroot-avatar" onclick="hmAvatarSheet()" aria-label="Изменить фото профиля"><span class="hm-avatar" id="hmRootAvatar"></span><span class="hm-mroot-avatar-edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 8h3l2-3h6l2 3h3v11H4z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.4" stroke="currentColor" stroke-width="1.8"/></svg></span></button>'
+      +'<div class="hm-mroot-name">'+escapeHtml(settingsDisplayName())+'</div>'
+      +'<div class="hm-mroot-mail">'+escapeHtml(curUser?.email||'')+'</div>'
+      +'<button type="button" class="hm-mroot-editbtn" onclick="openSettingsSection(\'account\',event)">Учетная запись</button>'
+    +'</div>'
+    +upsell
+    +HM_ROOT_GROUPS.map(g=>'<div class="hm-mroot-group">'+g.map(row).join('')+'</div>').join('')
+    +'<div class="hm-mroot-group"><button type="button" class="hm-mroot-row hm-mroot-danger" onclick="logOut()"><span class="hm-mroot-ico">'+STP_ICONS.logout+'</span><span class="hm-mroot-label">Выйти</span></button></div>'
+    +'<div class="hm-mroot-foot">HarmonyAI</div>'
+  +'</div>';
+  hmPaintAvatar(document.getElementById('hmRootAvatar'));
+  pane.scrollTop=0;
+}
+
+/* ===== Аватар: своё фото → фото из Google / Discord / GitHub → инициалы ===== */
+let hmAuthMeta={avatar:'',provider:'',name:''};
+function hmRememberAuthMeta(user){
+  try{
+    const m=user?.user_metadata||{};
+    const ids=Array.isArray(user?.identities)?user.identities:[];
+    let avatar=m.avatar_url||m.picture||'';
+    if(!avatar)for(const it of ids){const d=it?.identity_data||{};if(d.avatar_url||d.picture){avatar=d.avatar_url||d.picture;break;}}
+    hmAuthMeta={avatar:/^https:\/\//.test(String(avatar))?String(avatar):'',provider:String(user?.app_metadata?.provider||'email'),name:String(m.full_name||m.name||m.user_name||'')};
+    if(curUser)curUser.provider=hmAuthMeta.provider;
+  }catch(e){}
+}
+function hmAvatarSrc(){
+  const s=getSettings();
+  if(typeof s.avatarImg==='string'&&s.avatarImg.startsWith('data:image/'))return s.avatarImg;
+  if(s.avatarSource!=='initials'&&hmAuthMeta.avatar)return hmAuthMeta.avatar;
+  return '';
+}
+function hmPaintAvatar(el){
+  if(!el)return;
+  const src=hmAvatarSrc();
+  const c=hmPref('avatarColor','');
+  el.textContent='';
+  el.classList.toggle('has-img',!!src);
+  if(src){
+    const img=document.createElement('img');
+    img.alt='';img.referrerPolicy='no-referrer';img.decoding='async';img.src=src;
+    img.onerror=()=>{img.remove();el.classList.remove('has-img');el.textContent=avatarInitials();};
+    el.appendChild(img);
+    el.style.background='';el.style.color='';
+  }else{
+    el.textContent=avatarInitials();
+    el.style.background=c||'';el.style.color=c?'#fff':'';
+  }
+}
+function hmRefreshAvatars(){
+  ['sbAvatar','hmRootAvatar','hmAccAvatar'].forEach(id=>hmPaintAvatar(document.getElementById(id)));
+}
+async function hmAvatarSheet(){
+  const provider=hmAuthMeta.avatar?({google:'Google',github:'GitHub',discord:'Discord'}[hmAuthMeta.provider]||'аккаунта входа'):'';
+  const opts=[{id:'upload',label:'Загрузить фото'}];
+  if(provider)opts.push({id:'provider',label:'Фото из '+provider});
+  if(hmAvatarSrc())opts.push({id:'none',label:'Убрать фото',danger:true});
+  const pick=await hmChoice('Фото профиля',opts);
+  if(pick==='upload')hmPickAvatarFile();
+  else if(pick==='provider'){saveSetting('avatarImg','');saveSetting('avatarSource','provider');hmRefreshAvatars();}
+  else if(pick==='none'){saveSetting('avatarImg','');saveSetting('avatarSource','initials');hmRefreshAvatars();}
+}
+function hmPickAvatarFile(){
+  const inp=document.createElement('input');
+  inp.type='file';inp.accept='image/*';
+  inp.onchange=async()=>{
+    const f=inp.files&&inp.files[0];
+    if(!f)return;
+    try{
+      const url=await hmSquareAvatar(f,256);
+      await saveSetting('avatarImg',url);
+      saveSetting('avatarSource','upload');
+      hmRefreshAvatars();
+      showSettingsToast&&showSettingsToast('Фото обновлено');
+    }catch(e){hmAlert('Не получилось открыть это изображение. Попробуйте другое фото (JPG или PNG).');}
+  };
+  inp.click();
+}
+/* Квадрат 256×256 по центру, JPEG ≈ 15–30 КБ: помещается в настройки профиля
+   и одинаково показывается на всех устройствах. */
+function hmSquareAvatar(file,size){
+  return new Promise((resolve,reject)=>{
+    const url=URL.createObjectURL(file);
+    const img=new Image();
+    img.onload=()=>{
+      try{
+        const side=Math.min(img.naturalWidth,img.naturalHeight);
+        const c=document.createElement('canvas');c.width=size;c.height=size;
+        c.getContext('2d').drawImage(img,(img.naturalWidth-side)/2,(img.naturalHeight-side)/2,side,side,0,0,size,size);
+        URL.revokeObjectURL(url);
+        resolve(c.toDataURL('image/jpeg',.86));
+      }catch(e){URL.revokeObjectURL(url);reject(e);}
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('bad image'));};
+    img.src=url;
+  });
 }
 
 function goToDynatos(){
@@ -13269,8 +13625,52 @@ function renderSettingsGeneral(){
         <div class="stp-row-label"><div class="stp-row-title">Звук, когда ответ готов</div><div class="stp-row-desc">Короткий мягкий сигнал — удобно, если вы переключились на другую вкладку.</div></div>
         ${stpToggleCtrl('doneSound',s.doneSound===true,'hmApplyPrefs()')}
       </div>
+      ${hmIsStandalone()?'':`<div class="stp-row" onclick="hmInstallApp()" role="button" tabindex="0">
+        <div class="stp-row-label"><div class="stp-row-title">Установить приложение</div><div class="stp-row-desc">HarmonyAI на экране «Домой»: открывается как приложение, без строки браузера.</div></div>
+        <button type="button" class="stp-btn">Установить</button>
+      </div>`}
     </div>`);
 }
+
+/* ===== Веб-приложение: установка на экран «Домой» =====
+   Chrome / Edge / Android отдают системное окно установки (beforeinstallprompt);
+   Safari на iPhone такого окна не даёт — показываем, куда нажать. */
+let hmInstallEvent=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();hmInstallEvent=e;});
+window.addEventListener('appinstalled',()=>{hmInstallEvent=null;try{toast('HarmonyAI установлен');}catch(e){}});
+function hmIsStandalone(){
+  try{return window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;}catch(e){return false;}
+}
+async function hmInstallApp(){
+  if(hmIsStandalone()){toast('Приложение уже установлено');return;}
+  if(hmInstallEvent){
+    const ev=hmInstallEvent;hmInstallEvent=null;
+    try{ev.prompt();await ev.userChoice;}catch(e){}
+    return;
+  }
+  const ua=navigator.userAgent||'';
+  const ios=/iphone|ipad|ipod/i.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  const text=ios
+    ?'1. Нажмите «Поделиться» (квадрат со стрелкой) внизу Safari.\n2. Выберите «На экран Домой».\n3. Нажмите «Добавить».\n\nHarmonyAI появится рядом с другими приложениями и будет открываться на весь экран.'
+    :/android/i.test(ua)
+      ?'Откройте меню браузера (⋮) и выберите «Установить приложение» или «Добавить на главный экран».'
+      :'В адресной строке Chrome или Edge нажмите значок установки (монитор со стрелкой) или откройте меню браузера → «Установить HarmonyAI».';
+  hmAlert(text,'Установить HarmonyAI');
+}
+/* Ярлык «Моя волна» из меню иконки приложения: /chat?wave=1 */
+(function(){
+  try{
+    const p=new URLSearchParams(location.search);
+    if(p.get('wave')!=='1')return;
+    history.replaceState(null,'',location.pathname);
+    let tries=0;
+    (function go(){
+      const app=document.getElementById('app');
+      if(window.MusicPlayer&&typeof window.MusicPlayer.startWave==='function'&&app&&app.classList.contains('show')){window.MusicPlayer.startWave();return;}
+      if(tries++<80)setTimeout(go,250);
+    })();
+  }catch(e){}
+})();
 
 function pickLang(lang){
   if(window.i18n&&window.i18n.set)window.i18n.set(lang);
@@ -14044,6 +14444,10 @@ function renderSettingsAccount(){
         <div class="stp-row-label"><div class="stp-row-title">Способ входа</div></div>
         <span class="stp-link">${hmProviderName()}</span>
       </div>
+      <div class="stp-row" onclick="hmAvatarSheet()" role="button" tabindex="0">
+        <div class="stp-row-label"><div class="stp-row-title">Фото профиля</div><div class="stp-row-desc">Своё фото или из Google, Discord, GitHub</div></div>
+        <span class="hm-avatar hm-avatar-sm" id="hmAccAvatar"></span>
+      </div>
       <div class="stp-row">
         <div class="stp-row-label"><div class="stp-row-title">Цвет аватара</div></div>
         <div class="stp-swatches">${HM_AVATAR_COLORS.map(c=>`<button type="button" class="stp-swatch${(getSettings().avatarColor||'')===c?' on':''}" style="--c:${c||'var(--set-text)'}" aria-label="Цвет ${c||'по умолчанию'}" onclick="hmSetPref('avatarColor','${c}');renderSettingsAccount()"></button>`).join('')}</div>
@@ -14584,8 +14988,7 @@ function hmApplyPrefs(){
   h.style.setProperty('--hm-accent',ac.c);h.style.setProperty('--hm-accent-ink',ac.ink);
   h.setAttribute('data-accent',ac.id);
   const av=document.getElementById('sbAvatar');
-  const c=hmPref('avatarColor','');
-  if(av){av.style.background=c||'';av.style.color=c?'#fff':'';}
+  if(av)hmPaintAvatar(av);
 }
 let hmAudioCtx=null;
 function hmPlayDoneSound(){

@@ -18,6 +18,18 @@
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="HarmonyAI">
+<meta name="application-name" content="HarmonyAI">
+<script>
+/* Веб-приложение: service worker даёт установку на экран «Домой» и запуск без сети. */
+if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){
+  window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js',{scope:'/'}).catch(function(){});});
+}
+</script>
 <link rel="stylesheet" href="/css/site.css">
 <script>
 /* ===== АВТОВОЗВРАТ АВТОРИЗОВАННОГО ПОЛЬЗОВАТЕЛЯ В /chat =====
