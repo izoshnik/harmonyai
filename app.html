@@ -112,6 +112,19 @@ setTimeout(function(){
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#000000">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="HarmonyAI">
+<meta name="application-name" content="HarmonyAI">
+<script>
+/* Веб-приложение: service worker даёт установку на экран «Домой» и запуск без сети. */
+if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){
+  window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js',{scope:'/'}).catch(function(){});});
+}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://cqthnymltqpcxtpiryka.supabase.co">
@@ -13031,7 +13044,7 @@ const HM_ROOT_GROUPS=[
   ['general','pers','music','plugins'],
   ['subscription','usage','stats'],
   ['account','privacy','data','storage'],
-  ['help','about']
+  ['help','about','install']
 ];
 function renderSettingsRoot(){
   const root=document.getElementById('settingsContent');
@@ -13045,7 +13058,12 @@ function renderSettingsRoot(){
   const pro=isProUser();
   const hint={subscription:pro?'Pro':'Free',account:hmProviderName()};
   const chev='<svg class="hm-mroot-chev" width="8" height="14" viewBox="0 0 8 14" fill="none" aria-hidden="true"><path d="M1 1l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  const row=id=>{const s=byId[id];if(!s)return '';return '<button type="button" class="hm-mroot-row" onclick="openSettingsSection(\''+s.id+'\',event)"><span class="hm-mroot-ico">'+(STP_ICONS[s.icon]||'')+'</span><span class="hm-mroot-label">'+escapeHtml(s.label)+'</span>'+(hint[id]?'<span class="hm-mroot-hint">'+escapeHtml(hint[id])+'</span>':'')+chev+'</button>';};
+  const row=id=>{
+    if(id==='install'){
+      if(hmIsStandalone())return '';
+      return '<button type="button" class="hm-mroot-row" onclick="hmInstallApp()"><span class="hm-mroot-ico"><svg width="21" height="21" viewBox="0 0 24 24" fill="none"><rect x="6" y="2.5" width="12" height="19" rx="3" stroke="currentColor" stroke-width="1.7"/><path d="M12 7v7m0 0l-3-3m3 3l3-3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="hm-mroot-label">Установить приложение</span>'+chev+'</button>';
+    }
+    const s=byId[id];if(!s)return '';return '<button type="button" class="hm-mroot-row" onclick="openSettingsSection(\''+s.id+'\',event)"><span class="hm-mroot-ico">'+(STP_ICONS[s.icon]||'')+'</span><span class="hm-mroot-label">'+escapeHtml(s.label)+'</span>'+(hint[id]?'<span class="hm-mroot-hint">'+escapeHtml(hint[id])+'</span>':'')+chev+'</button>';};
   const upsell=pro?'':'<button type="button" class="hm-mroot-pro" onclick="openSettingsSection(\'subscription\',event)">'
     +'<span class="hm-mroot-pro-ico">'+STP_ICONS.crown+'</span>'
     +'<span class="hm-mroot-pro-text"><b>Перейти на Pro</b><span>Dynatos, лимиты ×25, картинки Pro и размышление на максимуме</span></span>'
@@ -13607,8 +13625,52 @@ function renderSettingsGeneral(){
         <div class="stp-row-label"><div class="stp-row-title">Звук, когда ответ готов</div><div class="stp-row-desc">Короткий мягкий сигнал — удобно, если вы переключились на другую вкладку.</div></div>
         ${stpToggleCtrl('doneSound',s.doneSound===true,'hmApplyPrefs()')}
       </div>
+      ${hmIsStandalone()?'':`<div class="stp-row" onclick="hmInstallApp()" role="button" tabindex="0">
+        <div class="stp-row-label"><div class="stp-row-title">Установить приложение</div><div class="stp-row-desc">HarmonyAI на экране «Домой»: открывается как приложение, без строки браузера.</div></div>
+        <button type="button" class="stp-btn">Установить</button>
+      </div>`}
     </div>`);
 }
+
+/* ===== Веб-приложение: установка на экран «Домой» =====
+   Chrome / Edge / Android отдают системное окно установки (beforeinstallprompt);
+   Safari на iPhone такого окна не даёт — показываем, куда нажать. */
+let hmInstallEvent=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();hmInstallEvent=e;});
+window.addEventListener('appinstalled',()=>{hmInstallEvent=null;try{toast('HarmonyAI установлен');}catch(e){}});
+function hmIsStandalone(){
+  try{return window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;}catch(e){return false;}
+}
+async function hmInstallApp(){
+  if(hmIsStandalone()){toast('Приложение уже установлено');return;}
+  if(hmInstallEvent){
+    const ev=hmInstallEvent;hmInstallEvent=null;
+    try{ev.prompt();await ev.userChoice;}catch(e){}
+    return;
+  }
+  const ua=navigator.userAgent||'';
+  const ios=/iphone|ipad|ipod/i.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  const text=ios
+    ?'1. Нажмите «Поделиться» (квадрат со стрелкой) внизу Safari.\n2. Выберите «На экран Домой».\n3. Нажмите «Добавить».\n\nHarmonyAI появится рядом с другими приложениями и будет открываться на весь экран.'
+    :/android/i.test(ua)
+      ?'Откройте меню браузера (⋮) и выберите «Установить приложение» или «Добавить на главный экран».'
+      :'В адресной строке Chrome или Edge нажмите значок установки (монитор со стрелкой) или откройте меню браузера → «Установить HarmonyAI».';
+  hmAlert(text,'Установить HarmonyAI');
+}
+/* Ярлык «Моя волна» из меню иконки приложения: /chat?wave=1 */
+(function(){
+  try{
+    const p=new URLSearchParams(location.search);
+    if(p.get('wave')!=='1')return;
+    history.replaceState(null,'',location.pathname);
+    let tries=0;
+    (function go(){
+      const app=document.getElementById('app');
+      if(window.MusicPlayer&&typeof window.MusicPlayer.startWave==='function'&&app&&app.classList.contains('show')){window.MusicPlayer.startWave();return;}
+      if(tries++<80)setTimeout(go,250);
+    })();
+  }catch(e){}
+})();
 
 function pickLang(lang){
   if(window.i18n&&window.i18n.set)window.i18n.set(lang);
