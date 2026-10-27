@@ -1306,35 +1306,45 @@ body:not(.has-music-bar) .pl-toast{bottom:24px;}
   .music-bar { margin-top: calc(60px + env(safe-area-inset-top, 0px)); }
 }
 
-/* ------------------------------------------------------------ Моя волна */
+/* ------------------------------------------------------------ Моя волна
+   Живое переливание: под карточкой медленно перетекает градиент, сверху
+   плывут три размытых пятна, а оттенок всей сцены плавно гуляет по кругу. */
 .pl-wave {
   position: relative; overflow: hidden; isolation: isolate;
-  display: flex; align-items: center; gap: 14px; width: 100%;
-  margin: 0 0 14px; padding: 18px 16px; border: 0; border-radius: 18px;
-  background: #15121f; color: #fff; text-align: left; cursor: pointer;
-  font: inherit; -webkit-tap-highlight-color: transparent;
+  display: flex !important; align-items: center; gap: 14px; width: 100% !important;
+  margin: 0 0 14px !important; padding: 18px 16px !important; border: 0 !important; border-radius: 20px !important;
+  background: linear-gradient(120deg, #0d1b4d, #1f5cff, #12b5c9, #ff4f8b, #1f5cff) !important;
+  background-size: 300% 300% !important;
+  animation: plWaveFlow 12s ease-in-out infinite;
+  color: #fff !important; text-align: left; cursor: pointer; min-height: 76px;
+  font: inherit; -webkit-tap-highlight-color: transparent; box-shadow: 0 10px 30px -12px rgba(31, 92, 255, .55);
 }
-.pl-wave__bg { position: absolute; inset: 0; z-index: -1; }
+.pl-wave__bg { position: absolute; inset: 0; z-index: -1; animation: plWaveHue 16s linear infinite; }
 .pl-wave__bg i {
-  position: absolute; width: 70%; aspect-ratio: 1; border-radius: 50%;
-  filter: blur(28px); opacity: .75; animation: plWaveDrift 9s ease-in-out infinite alternate;
+  position: absolute; width: 65%; aspect-ratio: 1; border-radius: 50%;
+  filter: blur(26px); opacity: .7; mix-blend-mode: screen;
+  animation: plWaveDrift 7s ease-in-out infinite alternate;
 }
-.pl-wave__bg i:nth-child(1) { background: #1f5cff; left: -15%; top: -60%; }
-.pl-wave__bg i:nth-child(2) { background: #ff4f8b; right: -20%; top: -30%; animation-duration: 11s; }
-.pl-wave__bg i:nth-child(3) { background: #2bb3ff; left: 25%; bottom: -80%; animation-duration: 13s; }
+.pl-wave__bg i:nth-child(1) { background: #3d7bff; left: -18%; top: -70%; }
+.pl-wave__bg i:nth-child(2) { background: #ff5e9a; right: -22%; top: -40%; animation-duration: 9s; animation-delay: -3s; }
+.pl-wave__bg i:nth-child(3) { background: #22d3ee; left: 22%; bottom: -85%; animation-duration: 11s; animation-delay: -6s; }
+@keyframes plWaveFlow { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+@keyframes plWaveHue { from { filter: hue-rotate(0deg); } to { filter: hue-rotate(360deg); } }
 @keyframes plWaveDrift {
-  from { transform: translate(0, 0) scale(1); }
-  to { transform: translate(12%, 10%) scale(1.15); }
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(18%, 12%) scale(1.2); }
+  100% { transform: translate(-10%, 18%) scale(.95); }
 }
 .pl-wave__play {
-  flex: none; display: grid; place-items: center; width: 44px; height: 44px;
-  border-radius: 50%; background: rgba(255,255,255,.95); color: #15121f;
+  flex: none; display: grid; place-items: center; width: 46px; height: 46px;
+  border-radius: 50%; background: rgba(255,255,255,.96); color: #0d1b4d;
   box-shadow: 0 6px 18px rgba(0,0,0,.25); transition: transform .15s ease;
 }
+.pl-wave__play svg { margin-left: 2px; }
 .pl-wave:hover .pl-wave__play { transform: scale(1.06); }
 .pl-wave.is-loading .pl-wave__play { animation: plWavePulse 1s ease-in-out infinite; }
 @keyframes plWavePulse { 50% { transform: scale(.88); opacity: .7; } }
 .pl-wave__meta { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.pl-wave__title { font-size: 18px; font-weight: 700; letter-spacing: -.01em; }
-.pl-wave__sub { font-size: 12.5px; opacity: .85; }
-@media (prefers-reduced-motion: reduce) { .pl-wave__bg i { animation: none; } }
+.pl-wave__title { font-size: 18px; font-weight: 700; letter-spacing: -.01em; color: #fff; }
+.pl-wave__sub { font-size: 12.5px; opacity: .9; color: #fff; line-height: 1.3; }
+@media (prefers-reduced-motion: reduce) { .pl-wave, .pl-wave__bg, .pl-wave__bg i { animation: none; } }
