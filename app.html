@@ -3149,6 +3149,7 @@ html[data-theme="messenger"] .rec-overlay{background:rgba(23,33,43,.34);}
 </style>
 <link rel="stylesheet" href="/css/mobile-chat.css">
 <link rel="stylesheet" href="/css/hm-settings.css">
+<link rel="stylesheet" href="/css/hm-attach.css">
 <style id="settings-extra-v3">
 .stp-clean-row{display:flex!important;align-items:center!important;gap:12px;cursor:pointer;}
 .stp-clean-val{font-size:13px;opacity:.65;white-space:nowrap;}
@@ -4227,10 +4228,40 @@ const IMAGE_QUALITY=0.82;
 // документ «без ограничений» — это раздувало токены и замедляло ответ, а при больших файлах
 // переполняло лимит тела запроса. Теперь даём начало текста с пометкой об обрезке, остальное
 // модель при необходимости уточняет у пользователя (см. инструкцию про «ДОКУМЕНТ ОБРЕЗАН»).
-const INLINE_DOC_CHAR_LIMIT_PRO=60000;
+const INLINE_DOC_CHAR_LIMIT_PRO=120000;
 // Adan: 30 000 символов ≈ 7 500 токенов — остаётся запас на уточняющие вопросы
 // в рамках бесплатного окна (20 000 токенов за 5 часов).
-const INLINE_DOC_CHAR_LIMIT_FREE=30000;
+const INLINE_DOC_CHAR_LIMIT_FREE=36000;
+/* Книга на 150 страниц (≈400 тыс. символов) целиком в запрос не помещается —
+   ни по лимиту тела запроса, ни по лимитам токенов. Поэтому ИИ получает
+   начало документа (оглавление, введение) и самые подходящие к вопросу
+   фрагменты из любой его части — по совпадению слов. Порядок фрагментов
+   сохраняется, рядом номер места в документе. */
+function hmPickDocFragments(chunks,question,limit){
+  const stem=w=>w.toLowerCase().replace(/ё/g,'е').slice(0,Math.max(4,Math.min(7,w.length-2)));
+  const words=Array.from(new Set(String(question||'').toLowerCase().replace(/ё/g,'е').match(/[a-zа-я0-9]{3,}/g)||[])).filter(w=>!HM_STOP_WORDS.has(w)).map(stem);
+  const total=chunks.length;
+  const scored=chunks.map((c,i)=>{
+    const low=c.toLowerCase().replace(/ё/g,'е');
+    let sc=0;
+    for(const w of words){let k=0,pos=low.indexOf(w);while(pos>=0&&k<12){k++;pos=low.indexOf(w,pos+w.length);}sc+=k?1+Math.log(1+k):0;}
+    return {i,sc};
+  });
+  const pick=new Set([0]);
+  let used=chunks[0].length;
+  scored.filter(x=>x.sc>0).sort((a,b)=>b.sc-a.sc).forEach(x=>{
+    if(used+chunks[x.i].length>limit)return;
+    pick.add(x.i);used+=chunks[x.i].length;
+  });
+  // Вопрос общий («о чём книга», «перескажи») — равномерная выборка по всей книге.
+  if(pick.size<3){
+    const step=Math.max(1,Math.floor(total/Math.max(1,Math.floor(limit/(chunks[0].length||6000)))));
+    for(let i=step;i<total&&used<limit;i+=step){if(!pick.has(i)&&used+chunks[i].length<=limit){pick.add(i);used+=chunks[i].length;}}
+  }
+  const parts=Array.from(pick).sort((a,b)=>a-b).map(i=>`— фрагмент ${i+1} из ${total} —\n${chunks[i]}`);
+  return parts.join('\n\n')+`\n\n[Документ большой (${total} фрагментов). Здесь его начало и части, подходящие к вопросу. Если нужного раздела не видно — скажи, что именно найти, и попроси пользователя уточнить.]`;
+}
+const HM_STOP_WORDS=new Set('что как это где когда какой какая какие кто почему зачем про для или его она они оно мне меня мой моя тебя тебе твой при над под без так там тут все всё уже еще ещё был была были быть есть нет надо можно нужно the and for with this that what how from are you расскажи объясни найди скажи покажи напиши книге книги книга файле файла файл документе документа'.split(' '));
 function inlineDocCharLimit(){return curModel==='pro'?INLINE_DOC_CHAR_LIMIT_PRO:INLINE_DOC_CHAR_LIMIT_FREE;}
 /* ===== НИК ПОЛЬЗОВАТЕЛЯ: валидация, проверка занятости, сохранение в БД =====
    Разрешаем латиницу, кириллицу, французские/испанские акценты (À-ÿ),
@@ -6037,7 +6068,11 @@ function attachmentFileIcon(name){
     </svg>
   `;
 }
+const HM_AUDIO_ICON='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 18V6l11-2v12" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="6.5" cy="18" r="2.5" stroke="currentColor" stroke-width="1.8"/><circle cx="17.5" cy="16" r="2.5" stroke="currentColor" stroke-width="1.8"/></svg>';
 function cloneAttachmentForHistory(item){
+  if(item.kind==='audio'){
+    return {kind:'audio',source:'user',name:item.name||'Аудио',mime:item.mime||'audio/mpeg',size:item.size||0,duration:item.duration||0,key:item._key||null,createdAt:item.createdAt||messageNow()};
+  }
   if(item.kind==='image'){
     return {
       id:item.id||null,kind:'image',source:'user',
@@ -6061,7 +6096,7 @@ function renderUserAttachmentsMarkup(attachments=[]){
       const imageSrc=item.url||item.dataUrl;
       if(imageSrc){
         return `
-          <div class="msg-user-attachment image">
+          <div class="msg-user-attachment image" role="button" tabindex="0" data-view-image="${escapeHtml(imageSrc)}" data-view-name="${escapeHtml(item.name||'Изображение')}">
             <img src="${escapeHtml(imageSrc)}" alt="${escapeHtml(item.name||'Изображение')}">
             <div class="msg-user-attachment-name" title="${escapeHtml(item.name||'Изображение')}">${escapeHtml(item.name||'Изображение')}</div>
           </div>
@@ -6076,8 +6111,18 @@ function renderUserAttachmentsMarkup(attachments=[]){
         </div>
       `;
     }
+    if(item.kind==='audio'){
+      const akey=item.key||item._key;const src=(akey&&hmAudioUrls.get(akey))||'';
+      const meta=`Аудио${item.duration?` · ${formatVoiceTime(item.duration)}`:''}${item.size?` · ${formatBytes(item.size)}`:''}`;
+      return `
+        <div class="msg-user-attachment audio hm-att-audio">
+          <div class="hm-att-audio-head"><span class="hm-att-audio-ic">${HM_AUDIO_ICON}</span><span class="hm-att-audio-meta"><span class="msg-user-attachment-name" title="${escapeHtml(item.name||'Аудио')}">${escapeHtml(item.name||'Аудио')}</span><span class="msg-user-attachment-meta">${escapeHtml(meta)}</span></span></div>
+          ${src?`<audio controls preload="metadata" src="${escapeHtml(src)}"></audio>`:''}
+        </div>
+      `;
+    }
     const meta=`${item.ext||fileExtLabel(item.name)}${item.size?` · ${formatBytes(item.size)}`:''}`;
-    const openAttrs=item.url?` role="link" tabindex="0" onclick="window.open('${escapeHtml(item.url)}','_blank','noopener')" onkeydown="if(event.key==='Enter')window.open('${escapeHtml(item.url)}','_blank','noopener')"`:'';
+    const openAttrs=(item.url||item.doc)?` role="button" tabindex="0" data-view-doc="1"`:'';
     return `
       <div class="msg-user-attachment document"${openAttrs}>
         <div class="msg-user-file-icon">${attachmentFileIcon(item.name)}</div>
@@ -6096,15 +6141,18 @@ function renderComposerAttachments(){
   document.getElementById('inputBox')?.classList.toggle('has-attachments',pendingAttachments.length>0);
   pendingAttachments.forEach((item,index)=>{
     const card=document.createElement('div');
-    card.className='composer-attachment '+(item.kind==='image'?'image':'document');
+    card.className='composer-attachment '+(item.kind==='image'?'image':(item.kind==='audio'?'document audio':'document'))+(item.loading?' is-loading':'');
     const removeLabel=item.kind==='image'?'Удалить фото':'Удалить файл';
-    const meta=item.kind==='image'
+    const meta=item.loading?'Читаю…'
+      : item.kind==='audio' ? `Аудио${item.duration?` · ${formatVoiceTime(item.duration)}`:''}${item.size?` · ${formatBytes(item.size)}`:''}`
+      : item.kind==='image'
       ? (item.meta||fileExtLabel(item.name))
       : `${fileExtLabel(item.name)}${item.size?` · ${formatBytes(item.size)}`:''}`;
     card.innerHTML=`
       <button class="composer-attachment-remove" type="button" aria-label="${removeLabel}" title="${removeLabel}" onclick="removeAttachment(${index})">×</button>
-      ${item.kind==='image'
+      ${item.kind==='image'&&item.previewUrl
         ? `<img class="composer-thumb" src="${item.previewUrl}" alt="${escapeHtml(item.name||'Изображение')}">`
+        : item.kind==='audio' ? `<div class="composer-file-icon hm-audio-ic">${HM_AUDIO_ICON}</div>`
         : `<div class="composer-file-icon">${attachmentFileIcon(item.name)}</div>`}
       <div class="composer-attachment-name" title="${escapeHtml(item.name||'Файл')}">${escapeHtml(item.name||'Файл')}</div>
       <div class="composer-attachment-meta">${escapeHtml(meta)}</div>
@@ -6137,8 +6185,11 @@ async function parsePdfFile(file){
 }
 /* OCR сканированного PDF: Tesseract.js (русский + английский), страница за страницей,
    с прогрессом над строкой ввода. Больше HM_OCR_MAX_PAGES не распознаём — это минуты. */
-const HM_OCR_MAX_PAGES=60;
+const HM_OCR_MAX_PAGES=150;
+/* Плашку «страница N из M» убрали: пользователь видит только «Читаю…» на
+   карточке файла. Функция оставлена пустой, чтобы не трогать вызовы. */
 function hmOcrStatus(text){
+  return;
   let el=document.getElementById('hmOcrStatus');
   if(!text){if(el)el.remove();return;}
   if(!el){
@@ -6175,7 +6226,7 @@ async function hmOcrPdf(pdf,name){
     try{await worker.terminate();}catch(e){}
     hmOcrStatus('');
   }
-  if(pdf.numPages>total)out.push('[Распознаны первые '+total+' страниц из '+pdf.numPages+'. Чтобы ИИ прочитал остальное, загрузите нужные страницы отдельным файлом.]');
+  if(pdf.numPages>total)out.push('[Распознаны первые '+total+' страниц из '+pdf.numPages+'. Если нужен раздел дальше — попроси пользователя прислать эти страницы отдельным файлом.]');
   return out.join('\n\n');
 }
 async function parseDocxFile(file){
@@ -7526,7 +7577,82 @@ function attachChoose(kind,e){
    точка входа и отправка ОТЧЁТА (не файла) в обычный путь /api/chat. */
 function triggerAudioAnalyzer(){
   closePlusDrop();
-  try{ if(window.AudioAnalyzer&&typeof window.AudioAnalyzer.openPicker==='function')window.AudioAnalyzer.openPicker(); }catch(e){}
+  // Трек прикрепляется к сообщению, как любой файл; что с ним сделать, ИИ решит по тексту.
+  const inp=document.createElement('input');
+  inp.type='file';inp.accept='audio/*,.mp3,.wav,.m4a,.ogg,.flac,.aac,.opus';inp.multiple=true;
+  inp.onchange=()=>{if(inp.files&&inp.files.length)handleFiles(inp.files);};
+  inp.click();
+}
+/* ===== АУДИО В ЧАТЕ =====
+   Прикрепили трек и написали, что нужно:
+     «загрузи в Яндекс Музыку» → загрузка (карточка с прогрессом в чате);
+     «что за трек», «кто поёт», «как называется» → теги файла + распознавание
+       по звуку (Pro) → ИИ отвечает;
+     всё остальное (или пустое сообщение) → анализ в браузере (темп,
+       тональность, структура) → ИИ разбирает трек и отвечает на вопрос. */
+const HM_IDENTIFY_RE=/(что\s+(это\s+)?за\s+(трек|песн|музык|композиц|мелоди|произведени)|как\s+(он[ао]?\s+)?называ|кто\s+(это\s+)?(поёт|поет|исполня|автор|написал|играет)|узнай|распознай|определи\s+(трек|песн|исполнител|название)|шазам|shazam|чья\s+(это\s+)?(песня|музыка)|what\s+song|identify)/i;
+const HM_ANALYZE_RE=/(анализ|разбер|разбор|тональн|темп|bpm|аккорд|структур|оцени|послушай|что\s+скажешь)/i;
+async function hmHandleAudioSend(text){
+  const atts=pendingAttachments.slice();
+  const audios=atts.filter(a=>a.kind==='audio');
+  const docs=atts.filter(a=>a.kind!=='audio');
+  const wantsYm=HM_YM_UPLOAD_RE.test(text||'');
+  const wantsId=HM_IDENTIFY_RE.test(text||'');
+  const wantsAnalysis=!wantsYm||HM_ANALYZE_RE.test(text||'')||wantsId;
+  const g=document.getElementById('greetingWrap');if(g)g.style.display='none';
+  addUserBubble(text,atts);
+  const histAtts=atts.map(cloneAttachmentForHistory);
+  clearPendingAttachments();
+  if(wantsYm&&!HM_ANALYZE_RE.test(text||'')&&!wantsId){
+    chatHistory.push({role:'user',content:text,attachments:histAtts,createdAt:messageNow()});
+    saveChat().catch(()=>{});
+    for(const a of audios)await hmSendTrackToYandex(a.file);
+    return;
+  }
+  showTyping('file');
+  const reports=[];
+  for(const a of audios){
+    const rep={file:a.name,durationSec:a.duration||null};
+    try{const tags=await window.AudioAnalyzer.readTags(a.file);if(tags&&Object.keys(tags).length)rep.tags=tags;}catch(e){}
+    if(wantsId){
+      if(isProUser()){
+        try{
+          const clip=await window.AudioAnalyzer.clipForRecognition(a.file,20);
+          const audioBase64=await blobToBase64(clip.blob);
+          const res=await withTimeout(fetch(getRecognizeEndpoint(),{method:'POST',headers:await hmAuthHeaders(),cache:'no-store',body:JSON.stringify({mode:'identify',audioBase64})}),60000,'распознавание заняло слишком много времени');
+          const data=await res.json().catch(()=>null);
+          if(res.ok&&data){
+            const r={};
+            if(data.source==='fingerprint')r.match='точное совпадение по звуку';
+            ['workGuess','composerGuess','periodGuess','confidence'].forEach(k=>{if(data[k])r[k]=data[k];});
+            if(data.raw)r.found=data.raw;
+            rep.recognition=r;
+          }else rep.recognition={error:(data&&data.error&&data.error.message)||'сервис распознавания не ответил'};
+        }catch(e){rep.recognition={error:String(e&&e.message||e).slice(0,160)};}
+      }else{
+        rep.recognition={unavailable:'распознавание по звуку доступно в Pro; есть только теги файла и его название'};
+      }
+    }
+    if(wantsAnalysis){
+      try{rep.analysis=await window.AudioAnalyzer.analyzeFile(a.file);}
+      catch(e){rep.analysis={error:'браузер не смог разобрать этот аудиофайл: '+String(e&&e.message||e).slice(0,120)};}
+    }
+    reports.push(rep);
+  }
+  hideTyping();
+  const ask=(text||'').trim()||'Разбери этот трек.';
+  const guide=wantsId
+    ?'Пользователь спрашивает, что это за трек. Ответь по данным ниже: сначала распознавание по звуку (если есть), затем теги файла (title/artist), затем название файла. Если данных не хватает — честно скажи, что точно не определить, и назови самую вероятную версию по названию файла, если оно осмысленное.'
+    :'Ниже — технический разбор аудио, выполненный в браузере (сам файл не передавался). Ответь на просьбу пользователя как музыкант: темп и характер, тональность и лад, динамика, структура, что выделяется. Приблизительные метрики так и называй.';
+  const content=[
+    {type:'text',text:ask},
+    {type:'text',text:guide+(wantsYm?' После ответа трек будет загружен в Яндекс Музыку — можешь коротко это упомянуть.':'')+'\n\n[АУДИОФАЙЛЫ]\n'+JSON.stringify(reports)}
+  ];
+  docs.forEach((d,i)=>{if(d.doc&&d.doc.chunks)content.push({type:'text',text:`[ФАЙЛ ${i+1}: ${d.name}]\n`+d.doc.chunks.join('\n\n').slice(0,inlineDocCharLimit())});});
+  chatHistory.push({role:'user',content,attachments:histAtts,createdAt:messageNow()});
+  saveChat().catch(()=>{});
+  await runAssistantReply(ask);
+  if(wantsYm)for(const a of audios)await hmSendTrackToYandex(a.file);
 }
 function sendAudioAnalysisToAI(payload,fileName){
   const label='Анализ аудио: '+String(fileName||'файл');
@@ -8042,102 +8168,93 @@ async function handleFile(inp){
   await handleFiles(files);
 }
 /* Общий вход для файлов: кнопка «+», перетаскивание в чат и вставка из буфера. */
+/* Файлы читаются в фоне: карточка появляется сразу с пометкой «Читаю…»,
+   можно писать вопрос и отправлять — ответ подождёт, пока файл дочитается.
+   Никаких окон и счётчиков страниц: всё делает ИИ. Аудио не открывает
+   анализатор — ИИ сам решит по сообщению: проанализировать, узнать трек
+   или загрузить в Яндекс Музыку. */
+window.__hmAttachWork=Promise.resolve();
+function hmAttachmentsBusy(){return pendingAttachments.some(a=>a&&a.loading);}
+async function hmWaitAttachments(){
+  if(!hmAttachmentsBusy())return;
+  try{await window.__hmAttachWork;}catch(e){}
+}
 async function handleFiles(fileList){
   let files=Array.from(fileList||[]).filter(Boolean);
   if(!files.length)return;
-  // Аудио — в анализатор (BPM, тональность, структура → «Анализировать с помощью ИИ»).
-  // Раньше любой MP3/WAV молча уходил в загрузку в Яндекс Музыку и до ИИ не доходил.
-  const tracks=files.filter(hmIsAudioFile);
-  if(tracks.length){
-    files=files.filter(f=>!hmIsAudioFile(f));
-    window.__hmLastAudio=tracks;window.__hmLastAudioAt=Date.now();
-    /* Уже написано «добавь в Яндекс Музыку / в плейлист» — загружаем сразу, без анализатора. */
-    const ta=document.getElementById('msgTa');
-    if(ta&&HM_YM_UPLOAD_RE.test(ta.value||'')){
-      ta.value='';try{ta.dispatchEvent(new Event('input',{bubbles:true}));}catch(e){}
-      for(const f of tracks)await hmSendTrackToYandex(f);
-      if(!files.length)return;
-    }else{
-    try{
-      if(window.AudioAnalyzer&&typeof window.AudioAnalyzer.openWithFile==='function'){
-        window.AudioAnalyzer.openWithFile(tracks[0]);
-        if(tracks.length>1)toast('Аудио анализируется по одному файлу — открыт «'+tracks[0].name+'»');
-      }else toast('Анализ аудио сейчас недоступен — обновите страницу');
-    }catch(e){console.warn(e);}
-    }
-    if(!files.length)return;
-  }
   // Тот же файл повторно не прикрепляем.
   const sameKey=f=>(f.name||'')+'|'+(f.size||0);
   const have=new Set(pendingAttachments.map(a=>(a.name||'')+'|'+(a.size||0)));
   const dupes=files.filter(f=>have.has(sameKey(f)));
   files=files.filter((f,i,arr)=>!have.has(sameKey(f))&&arr.findIndex(x=>sameKey(x)===sameKey(f))===i);
   if(dupes.length&&!files.length){toast('Этот файл уже прикреплён');return;}
-  // Лимит: не больше MAX_ATTACHMENTS_PER_SEND (20) файлов/фото за один раз.
   if(pendingAttachments.length+files.length>MAX_ATTACHMENTS_PER_SEND){
-    hmAlert(`Можно прикрепить не больше ${MAX_ATTACHMENTS_PER_SEND} файлов или фото за один раз`);
-    return;
+    toast(`Можно прикрепить не больше ${MAX_ATTACHMENTS_PER_SEND} файлов за раз`);
+    files=files.slice(0,Math.max(0,MAX_ATTACHMENTS_PER_SEND-pendingAttachments.length));
+    if(!files.length)return;
   }
-  const inp={value:''};
-  const ta=document.getElementById('msgTa');
-  const prevPlaceholder=ta?ta.placeholder:'';
-  if(ta&&files.length)ta.placeholder=files.length>1?`Обрабатываю файлы (0/${files.length})…`:'Читаю файл…';
-  const failed=[];
-  let done=0;
-  // Каждый файл обрабатываем изолированно: ошибка на одном файле не должна
-  // «сносить» весь пакет из 20 файлов — остальные всё равно прикрепятся.
-  for(const f of files){
-    try{
-      if(!f.size)throw new Error('файл пустой');
-      const parsed=await parseGenericFile(f);
-      const stored=await uploadAttachmentFileSafe(f);
-      if(parsed.kind==='image'){
-        const {dataUrl,mime}=await compressImageFile(f);
-        pendingAttachments.push({
-          kind:'image',
-          name:f.name||'Изображение',
-          mime:mime||'image/jpeg',
-          size:f.size||0,
-          dataUrl,
-          base64:dataUrl.split(',')[1]||'',
-          previewUrl:URL.createObjectURL(f),
-          id:stored?.id||null,url:stored?.url||'',storagePath:stored?.storagePath||null,createdAt:messageNow(),
-          meta:fileExtLabel(f.name||f.type||'image')
-        });
-      }else if(parsed.kind==='document'){
-        const doc=makeKnowledgeDoc(f.name,parsed.text,f.name.split('.').pop().toLowerCase());
-        if(!doc.chunks.length)throw new Error('в файле не найден читаемый текст');
-        // Файл целиком уходит в базу знаний (RAG): текст режется на чанки и сохраняется в Supabase,
-        // поэтому ИИ «помнит» его и в следующих чатах, а не только в текущем сообщении.
-        if(trainingMode&&hasTrainingAccess())hmIngestFileText(f.name,parsed.text,doc);
-        else storeKnowledgeDoc(doc,hasTrainingAccess()?'global':'user');
-        pendingAttachments.push({
-          kind:'document',
-          name:f.name,
-          size:f.size||0,
-          mime:f.type||'application/octet-stream',
-          id:stored?.id||null,url:stored?.url||'',storagePath:stored?.storagePath||null,createdAt:messageNow(),
-          doc
-        });
-        window.HmStats?.file();
-      }else{
-        throw new Error('не удалось прочитать файл');
-      }
-    }catch(e){
-      let why=String(e&&e.message?e.message:e);
-      if(/invalid pdf|corrupted zip|central directory|end of data|unexpected|password/i.test(why))why=/password/i.test(why)?'файл защищён паролем':'файл повреждён или сохранён не до конца';
-      failed.push((f.name||'файл')+': '+why);
-    }finally{
-      done++;
-      if(ta&&files.length>1)ta.placeholder=`Обрабатываю файлы (${done}/${files.length})…`;
+  const slots=files.map(f=>{
+    const kind=hmIsAudioFile(f)?'audio':((f.type||'').startsWith('image/')?'image':'document');
+    const slot={kind,name:f.name||'Файл',size:f.size||0,mime:f.type||'',loading:kind!=='audio',createdAt:messageNow(),_key:'att_'+Math.random().toString(36).slice(2)};
+    if(kind==='audio'){
+      slot.file=f;slot.previewUrl=URL.createObjectURL(f);slot.mime=f.type||'audio/mpeg';
+      hmAudioUrls.set(slot._key,slot.previewUrl);
+      hmAudioDuration(slot.previewUrl).then(d=>{if(d){slot.duration=d;renderComposerAttachments();}});
     }
-  }
-  if(ta)ta.placeholder=prevPlaceholder;
+    if(kind==='image')slot.previewUrl=URL.createObjectURL(f);
+    pendingAttachments.push(slot);
+    return {f,slot};
+  });
   renderComposerAttachments();
   updateComposerPlaceholder();
-  if(failed.length){
-    hmAlert('Не удалось загрузить часть файлов:\n'+failed.join('\n'));
-  }
+  const work=(async()=>{
+    for(const {f,slot} of slots){
+      if(slot.kind==='audio')continue;
+      if(!pendingAttachments.includes(slot))continue; // успели убрать крестиком
+      try{
+        if(!f.size)throw new Error('файл пустой');
+        const parsed=await parseGenericFile(f);
+        const stored=await uploadAttachmentFileSafe(f);
+        if(parsed.kind==='image'){
+          const {dataUrl,mime}=await compressImageFile(f);
+          Object.assign(slot,{kind:'image',name:f.name||'Изображение',mime:mime||'image/jpeg',dataUrl,base64:dataUrl.split(',')[1]||'',
+            id:stored?.id||null,url:stored?.url||'',storagePath:stored?.storagePath||null,meta:fileExtLabel(f.name||f.type||'image')});
+        }else{
+          const doc=makeKnowledgeDoc(f.name,parsed.text,f.name.split('.').pop().toLowerCase());
+          if(!doc.chunks.length)throw new Error('в файле не найден читаемый текст');
+          if(trainingMode&&hasTrainingAccess())hmIngestFileText(f.name,parsed.text,doc);
+          else storeKnowledgeDoc(doc,hasTrainingAccess()?'global':'user');
+          Object.assign(slot,{kind:'document',mime:f.type||'application/octet-stream',id:stored?.id||null,url:stored?.url||'',storagePath:stored?.storagePath||null,doc});
+          window.HmStats?.file();
+        }
+        slot.loading=false;
+      }catch(e){
+        let why=String(e&&e.message?e.message:e);
+        if(/invalid pdf|corrupted zip|central directory|end of data|unexpected|password/i.test(why))why=/password/i.test(why)?'файл защищён паролем':'файл повреждён или сохранён не до конца';
+        const i=pendingAttachments.indexOf(slot);
+        if(i>=0)pendingAttachments.splice(i,1);
+        if(slot.previewUrl)try{URL.revokeObjectURL(slot.previewUrl);}catch(_){}
+        toast('«'+(f.name||'файл')+'» не прочитался: '+why);
+      }
+      renderComposerAttachments();
+      updateComposerPlaceholder();
+    }
+  })();
+  window.__hmAttachWork=Promise.all([window.__hmAttachWork.catch(()=>{}),work]);
+  await work;
+}
+const hmAudioUrls=new Map();
+function hmAudioDuration(url){
+  return new Promise(res=>{
+    try{
+      const a=new Audio();a.preload='metadata';
+      const done=v=>{a.removeAttribute('src');res(v);};
+      a.onloadedmetadata=()=>done(isFinite(a.duration)?Math.round(a.duration):0);
+      a.onerror=()=>done(0);
+      setTimeout(()=>done(0),8000);
+      a.src=url;
+    }catch(e){res(0);}
+  });
 }
 
 /* ===== ПЕРЕТАСКИВАНИЕ И ВСТАВКА ФАЙЛОВ =====
@@ -8309,7 +8426,7 @@ function addUserBubble(text,attachments=[],opts={}){
   const inner=getChatInner();
   const wrap=document.createElement('div');wrap.className='msg-user-wrap';
   wrap.dataset.historyIndex=String(opts.historyIndex??chatHistory.length);
-  if(attachments.length)wrap.innerHTML=renderUserAttachmentsMarkup(attachments);
+  if(attachments.length){wrap.innerHTML=renderUserAttachmentsMarkup(attachments);wrap.__hmAtts=attachments;}
   if(text&&text.trim()){
     const d=document.createElement('div');d.className='msg-user';d.textContent=text;
     wrap.appendChild(d);
@@ -8318,6 +8435,61 @@ function addUserBubble(text,attachments=[],opts={}){
   inner.appendChild(wrap);scrollChat(true);
   refreshChatMenuAvailability();
   return wrap;
+}
+/* ===== Просмотр вложений прямо в чате =====
+   Фото — на весь экран, документ — его текст (и ссылка на оригинал, если он
+   сохранён), аудио играет в самом сообщении. */
+document.addEventListener('click',e=>{
+  const img=e.target.closest&&e.target.closest('[data-view-image]');
+  if(img){e.preventDefault();hmOpenViewer({type:'image',src:img.getAttribute('data-view-image'),name:img.getAttribute('data-view-name')||''});return;}
+  const docEl=e.target.closest&&e.target.closest('[data-view-doc]');
+  if(docEl){
+    e.preventDefault();
+    const wrap=docEl.closest('.msg-user-wrap');
+    const list=Array.from(wrap?wrap.querySelectorAll('.msg-user-attachment'):[]);
+    const idx=list.indexOf(docEl);
+    let atts=wrap&&wrap.__hmAtts;
+    if(!atts&&wrap){const h=chatHistory[Number(wrap.dataset.historyIndex)];atts=h&&h.attachments;}
+    const att=atts&&atts[idx];
+    if(att)hmOpenViewer({type:'doc',name:att.name||'Файл',text:(att.doc&&att.doc.chunks||[]).join('\n\n'),url:att.url||''});
+  }
+});
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Enter')return;
+  const t=e.target;
+  if(t&&t.matches&&t.matches('[data-view-image],[data-view-doc]')){e.preventDefault();t.click();}
+});
+function hmOpenViewer(v){
+  const prev=document.getElementById('hmViewer');if(prev)prev.remove();
+  const wrap=document.createElement('div');wrap.id='hmViewer';wrap.className='hm-viewer';
+  const close=()=>{wrap.classList.remove('open');document.removeEventListener('keydown',onKey,true);setTimeout(()=>wrap.remove(),160);};
+  const onKey=ev=>{if(ev.key==='Escape'){ev.preventDefault();close();}};
+  const head=document.createElement('div');head.className='hm-viewer-head';
+  const title=document.createElement('div');title.className='hm-viewer-title';title.textContent=v.name||'';
+  head.appendChild(title);
+  if(v.type==='image'||v.url){
+    const a=document.createElement('a');a.className='hm-viewer-btn';a.target='_blank';a.rel='noopener';
+    a.href=v.type==='image'?v.src:v.url;
+    if(v.type==='image')a.download=v.name||'image';
+    a.textContent=v.type==='image'?'Скачать':'Оригинал';
+    head.appendChild(a);
+  }
+  const x=document.createElement('button');x.type='button';x.className='hm-viewer-btn hm-viewer-x';x.setAttribute('aria-label','Закрыть');
+  x.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
+  x.onclick=close;head.appendChild(x);
+  const body=document.createElement('div');body.className='hm-viewer-body'+(v.type==='image'?' is-image':' is-doc');
+  if(v.type==='image'){
+    const img=document.createElement('img');img.src=v.src;img.alt=v.name||'';body.appendChild(img);
+    body.addEventListener('click',ev=>{if(ev.target===body)close();});
+  }else{
+    const pre=document.createElement('div');pre.className='hm-viewer-text';
+    pre.textContent=v.text||'Текст этого файла не сохранился — откройте оригинал.';
+    body.appendChild(pre);
+  }
+  wrap.appendChild(head);wrap.appendChild(body);
+  document.body.appendChild(wrap);
+  document.addEventListener('keydown',onKey,true);
+  requestAnimationFrame(()=>wrap.classList.add('open'));
 }
 let _userMsgPressTimer=null,_userMsgPressPoint=null,_userMsgPressFired=false;
 function attachUserMessageLongPress(el){
@@ -10192,6 +10364,7 @@ function slimAttachments(attachments){
   return attachments.map(att=>{
     const common={id:att.id||null,source:att.source||'user',name:att.name||'Файл',mime:att.mime||'application/octet-stream',size:att.size||0,url:att.url||'',storagePath:att.storagePath||null,createdAt:att.createdAt||messageNow()};
     if(att.kind==='image')return {...common,kind:'image',meta:att.meta||fileExtLabel(att.name||att.mime||'image')};
+    if(att.kind==='audio')return {...common,kind:'audio',mime:att.mime||'audio/mpeg',duration:att.duration||0,key:att.key||null};
     return {...common,kind:'document',ext:att.ext||fileExtLabel(att.name||'Файл')};
   });
 }
@@ -11555,7 +11728,18 @@ async function sendMsgInner(){
   // Поле чистим сразу, до всех await-ов: дальше идут сетевые вызовы (музыка,
   // intent-классификатор), и текст не должен оставаться в композере на это время.
   const text=takeComposerText();
+  // Файл ещё дочитывается — молча ждём (в чате индикатор «читаю файл»).
+  if(hmAttachmentsBusy()){
+    showTyping('file');
+    try{await hmWaitAttachments();}finally{hideTyping();}
+  }
   if(!text&&!pendingAttachments.length)return;
+  // Аудиофайл: ИИ сам решает по тексту — разбор, «что за трек» или загрузка в Яндекс Музыку.
+  if(pendingAttachments.some(a=>a.kind==='audio')){
+    resetChatScrollFollow();
+    await hmHandleAudioSend(text);
+    return;
+  }
   /* Новое сообщение — всегда возвращаем вид к низу: даже если человек отлистал
      вверх во время прошлой генерации, свой собственный вопрос он должен увидеть. */
   resetChatScrollFollow();
@@ -12584,10 +12768,9 @@ async function handleTextReply(pendingText){
     // Ограничиваем объём вкладываемого текста, иначе большие документы раздували токены,
     // замедляли ответ и переполняли лимит тела запроса. Даём начало документа с пометкой об обрезке.
     const full=chunks.join('\n\n');
-    const limit=inlineDocCharLimit();
+    const limit=Math.max(8000,Math.floor(inlineDocCharLimit()/Math.max(1,docAttachments.length)));
     if(full.length<=limit)return `[ФАЙЛ ${idx+1}: ${att.name}]\n${full}`;
-    const head=full.slice(0,limit);
-    return `[ФАЙЛ ${idx+1}: ${att.name}]\n${head}\n\n⚠️ ДОКУМЕНТ ОБРЕЗАН — показана только первая часть (${limit} символов из ${full.length}). Для разделов вне этого фрагмента попроси пользователя уточнить раздел.`;
+    return `[ФАЙЛ ${idx+1}: ${att.name}]\n${hmPickDocFragments(chunks,text,limit)}`;
   }
   let userContent;
   if(imageAttachments.length){
