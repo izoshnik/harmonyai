@@ -18,6 +18,16 @@
 .hm-att-audio-meta .msg-user-attachment-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .hm-att-audio audio{width:100%;height:36px;display:block;}
 
+/* Светлая тема на ПК: карточка вложения светлая — подпись тёмная (раньше было только для телефона) */
+html[data-theme="light"] .msg-user-attachment{background:rgba(255,255,255,.85);border:1px solid rgba(20,18,12,.07);box-shadow:0 10px 20px rgba(20,18,12,.08);}
+html[data-theme="light"] .msg-user-attachment-name{color:#26241f;}
+html[data-theme="light"] .msg-user-attachment-meta{color:rgba(38,36,31,.6);}
+@media(min-width:769px){
+  html:not([data-theme]) .msg-user-attachment{background:rgba(255,255,255,.85);border:1px solid rgba(20,18,12,.07);box-shadow:0 10px 20px rgba(20,18,12,.08);}
+  html:not([data-theme]) .msg-user-attachment-name{color:#26241f;}
+  html:not([data-theme]) .msg-user-attachment-meta{color:rgba(38,36,31,.6);}
+}
+
 /* Фото и документы в сообщении открываются по нажатию */
 .msg-user-attachment[data-view-image],.msg-user-attachment[data-view-doc]{cursor:pointer;transition:transform .15s ease;}
 .msg-user-attachment[data-view-image]:active,.msg-user-attachment[data-view-doc]:active{transform:scale(.98);}
@@ -35,3 +45,25 @@
 .hm-viewer-body.is-doc{padding:0 16px calc(24px + env(safe-area-inset-bottom));}
 .hm-viewer-text{max-width:760px;margin:0 auto;padding:18px 20px;border-radius:16px;background:#141416;color:#eceef1;font-size:15px;line-height:1.6;white-space:pre-wrap;word-break:break-word;}
 html:not([data-theme="light"]):not([data-theme="messenger"]) .hm-att-audio audio{color-scheme:dark;}
+
+/* ===== «Плагин» ИИ: фраза, тонкая черта и переливающийся статус ===== */
+.hm-plug{display:flex;flex-direction:column;gap:9px;max-width:560px;}
+.hm-plug-intro p{margin:0;}
+.hm-plug-line{height:1px;background:color-mix(in srgb,currentColor 22%,transparent);margin-top:2px;}
+.hm-plug-status{font-size:15px;line-height:1.4;min-height:21px;}
+.hm-plug-status{--hm-sh:var(--text,#fff);color:var(--hm-sh);}
+.hm-shimmer{display:inline-block;color:transparent;
+  background:linear-gradient(90deg,color-mix(in srgb,var(--hm-sh) 40%,transparent) 0%,color-mix(in srgb,var(--hm-sh) 40%,transparent) 35%,var(--hm-sh) 50%,color-mix(in srgb,var(--hm-sh) 40%,transparent) 65%,color-mix(in srgb,var(--hm-sh) 40%,transparent) 100%);
+  background-size:220% 100%;-webkit-background-clip:text;background-clip:text;
+  animation:hmShimmer 1.8s linear infinite;}
+.hm-shimmer.in{animation:hmShimmer 1.8s linear infinite,hmWordIn .35s ease;}
+@keyframes hmShimmer{from{background-position:110% 0}to{background-position:-110% 0}}
+@keyframes hmWordIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+.hm-plug-slot:empty{display:none;}
+.hm-plug-slot{margin-top:4px;}
+@media (prefers-reduced-motion:reduce){.hm-shimmer{animation:none;color:var(--hm-sh);background:none;opacity:.7}}
+
+/* Запись с микрофона */
+.mic-btn.recording,.main .mic-btn.recording{color:#ff3b30!important;animation:hmRecPulse 1.2s ease-in-out infinite;}
+@keyframes hmRecPulse{0%,100%{opacity:1}50%{opacity:.45}}
+@media (prefers-reduced-motion:reduce){.mic-btn.recording{animation:none}}
