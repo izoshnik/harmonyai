@@ -8596,6 +8596,24 @@ function hmNormalizeAbcNotes(line){
 function hmEnsureClef(abc){
   return String(abc||'').replace(/clef\s*=\s*(?:none|perc(?:ussion)?)\b/gi,'clef=treble');
 }
+/* Функциональные подписи аккордов в нотах («I53», "^V65", «умVII7», «K64», «T53»)
+   — как в учебнике: под аккордом, цифровка маленькими цифрами (I₅₃, V₆₅, K₆₄).
+   Обычные буквенные аккорды над нотами (Am, C7) не трогаем; «D7/T53/S64» считаем
+   функциями, только если в блоке уже есть римские цифры или T/S/K-обозначения. */
+const HM_FIG_SUB={'0':'₀','1':'₁','2':'₂','3':'₃','4':'₄','5':'₅','6':'₆','7':'₇','8':'₈','9':'₉'};
+const HM_ROMAN_LABEL=/^(?:ум|ув|м|б|Ум|Ув|М|Б)?(?:VII|VI|IV|V|III|II|I)(?:53|64|65|43|6|7|2)?(?:\([^)]*\))?$/;
+const HM_FUNC_LABEL=/^(?:DD|ДД|K|К|N|T|S|D|t|s|d|Т|С|Д|т|с|д)(?:53|64|65|43|6|7|2)$/;
+function hmFigureLabels(abc){
+  const quotes=[...String(abc).matchAll(/"([_^<>@]?)([^"]{1,24})"/g)];
+  const isLabel=q=>q.split('=').every(x=>HM_ROMAN_LABEL.test(x.trim())||HM_FUNC_LABEL.test(x.trim()));
+  const functional=quotes.some(m=>m[2].split('=').some(x=>HM_ROMAN_LABEL.test(x.trim())||/^(?:K|К|T|S|Т|С|DD)\d/.test(x.trim())));
+  if(!functional)return abc;
+  return String(abc).replace(/"([_^<>@]?)([^"]{1,24})"/g,(m,pos,q)=>{
+    if(!isLabel(q))return m;
+    const sub=q.replace(/(\d+)(?=\)|=|$)/g,d=>d.split('').map(c=>HM_FIG_SUB[c]).join(''));
+    return '"_'+sub+'"';
+  });
+}
 function normalizeAbcBlock(src,index){
   // Нотный пример, построенный музыкальным ядром (%hm:exact), уже точный — не трогаем.
   if(/^%hm:exact\s*$/m.test(String(src||'')))return hmEnsureClef(String(src).replace(/\r/g,'').trim());
@@ -8605,7 +8623,7 @@ function normalizeAbcBlock(src,index){
     if(/^%%/.test(line)||/^[A-Za-z]:/.test(line))return line.trim();
     return normalizeAbcMusicLine(line);
   }).filter(Boolean);
-  const text=normalized.join('\n').trim();
+  const text=hmFigureLabels(normalized.join('\n').trim());
   if(!text)return '';
   const prefix=[];
   if(!/^X:/m.test(text))prefix.push(`X:${index}`);
