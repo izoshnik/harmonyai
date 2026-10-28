@@ -21,7 +21,7 @@ try{
 </head>
 <body>
 <div class="legal-topbar">
-  <button class="legal-back" onclick="if(window.history.length>1){history.back();}else{location.href='/';}" aria-label="Назад">
+  <button class="legal-back" onclick="if(/[?&]from=settings\b/.test(location.search)){location.replace('/settings');}else if(window.history.length>1){history.back();}else{location.href='/';}" aria-label="Назад">
     <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M9 1L1 8L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
   </button>
   <div class="legal-topbar-title">HarmonyAI</div>

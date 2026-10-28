@@ -425,6 +425,8 @@ searchInput.addEventListener("input", function(){
   var btn = document.getElementById('backBtn');
   if(!btn) return;
   btn.addEventListener('click', function(e){
+    // Пришли из настроек приложения — возвращаемся прямо в них, а не в снимок истории.
+    if(/[?&]from=settings\b/.test(location.search)){ e.preventDefault(); location.replace('/settings'); return; }
     if(history.length > 1){ e.preventDefault(); history.back(); }
   });
 })();
