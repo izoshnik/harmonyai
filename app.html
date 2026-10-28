@@ -3688,7 +3688,7 @@ body.hm-dragging #chatInner::after{content:'Отпустите файлы, чт�
               </div>
             </div>
             <!-- Кнопка «Распознать музыку» — слева от отправки. Для не-Pro — апселл. -->
-            <button type="button" class="mic-btn" id="micBtn" title="Распознать музыку" aria-label="Распознать музыку">
+            <button type="button" class="mic-btn" id="micBtn" title="Записать звук (нажмите ещё раз, чтобы остановить)" aria-label="Записать звук">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="9" y="3" width="6" height="12" rx="3" stroke="currentColor" stroke-width="1.9"/><path d="M5 11a7 7 0 0014 0M12 18v3M8 21h8" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
             </button>
             <button class="send-btn" id="sendBtn" onclick="sendMsg()" title="Отправить">
@@ -3986,8 +3986,8 @@ body.hm-dragging #chatInner::after{content:'Отпустите файлы, чт�
       </div>
       <div class="attach-opt" id="attachAudio" onclick="attachChoose('audio',event)">
         <span class="attach-opt-ic" style="background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M3 10v4h4l5 4V6l-5 4H3z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg></span>
-        <span class="attach-opt-txt">Анализ аудио</span>
-        <span class="attach-opt-hint">BPM, тональность, энергия, waveform</span>
+        <span class="attach-opt-txt">Добавить аудио</span>
+        <span class="attach-opt-hint">ИИ разберёт, узнает трек или загрузит в Яндекс Музыку</span>
       </div>
     </div>
   </div>
@@ -5471,7 +5471,7 @@ function bindPrimaryUiActions(){
   const micBtn=document.getElementById('micBtn');
   if(micBtn&&!micBtn.dataset.hmBound){
     micBtn.dataset.hmBound='1';
-    micBtn.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();openRecognizeModal();});
+    micBtn.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();hmMicToggle();});
   }
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bindPrimaryUiActions,{once:true});
@@ -7597,77 +7597,6 @@ function triggerAudioAnalyzer(){
   inp.onchange=()=>{if(inp.files&&inp.files.length)handleFiles(inp.files);};
   inp.click();
 }
-/* ===== АУДИО В ЧАТЕ =====
-   Прикрепили трек и написали, что нужно:
-     «загрузи в Яндекс Музыку» → загрузка (карточка с прогрессом в чате);
-     «что за трек», «кто поёт», «как называется» → теги файла + распознавание
-       по звуку (Pro) → ИИ отвечает;
-     всё остальное (или пустое сообщение) → анализ в браузере (темп,
-       тональность, структура) → ИИ разбирает трек и отвечает на вопрос. */
-const HM_IDENTIFY_RE=/(что\s+(это\s+)?за\s+(трек|песн|музык|композиц|мелоди|произведени)|как\s+(он[ао]?\s+)?называ|кто\s+(это\s+)?(поёт|поет|исполня|автор|написал|играет)|узнай|распознай|определи\s+(трек|песн|исполнител|название)|шазам|shazam|чья\s+(это\s+)?(песня|музыка)|what\s+song|identify)/i;
-const HM_ANALYZE_RE=/(анализ|разбер|разбор|тональн|темп|bpm|аккорд|структур|оцени|послушай|что\s+скажешь)/i;
-async function hmHandleAudioSend(text){
-  const atts=pendingAttachments.slice();
-  const audios=atts.filter(a=>a.kind==='audio');
-  const docs=atts.filter(a=>a.kind!=='audio');
-  const wantsYm=HM_YM_UPLOAD_RE.test(text||'');
-  const wantsId=HM_IDENTIFY_RE.test(text||'');
-  const wantsAnalysis=!wantsYm||HM_ANALYZE_RE.test(text||'')||wantsId;
-  const g=document.getElementById('greetingWrap');if(g)g.style.display='none';
-  addUserBubble(text,atts);
-  const histAtts=atts.map(cloneAttachmentForHistory);
-  clearPendingAttachments();
-  if(wantsYm&&!HM_ANALYZE_RE.test(text||'')&&!wantsId){
-    chatHistory.push({role:'user',content:text,attachments:histAtts,createdAt:messageNow()});
-    saveChat().catch(()=>{});
-    for(const a of audios)await hmSendTrackToYandex(a.file);
-    return;
-  }
-  showTyping('file');
-  const reports=[];
-  for(const a of audios){
-    const rep={file:a.name,durationSec:a.duration||null};
-    try{const tags=await window.AudioAnalyzer.readTags(a.file);if(tags&&Object.keys(tags).length)rep.tags=tags;}catch(e){}
-    if(wantsId){
-      if(isProUser()){
-        try{
-          const clip=await window.AudioAnalyzer.clipForRecognition(a.file,20);
-          const audioBase64=await blobToBase64(clip.blob);
-          const res=await withTimeout(fetch(getRecognizeEndpoint(),{method:'POST',headers:await hmAuthHeaders(),cache:'no-store',body:JSON.stringify({mode:'identify',audioBase64})}),60000,'распознавание заняло слишком много времени');
-          const data=await res.json().catch(()=>null);
-          if(res.ok&&data){
-            const r={};
-            if(data.source==='fingerprint')r.match='точное совпадение по звуку';
-            ['workGuess','composerGuess','periodGuess','confidence'].forEach(k=>{if(data[k])r[k]=data[k];});
-            if(data.raw)r.found=data.raw;
-            rep.recognition=r;
-          }else rep.recognition={error:(data&&data.error&&data.error.message)||'сервис распознавания не ответил'};
-        }catch(e){rep.recognition={error:String(e&&e.message||e).slice(0,160)};}
-      }else{
-        rep.recognition={unavailable:'распознавание по звуку доступно в Pro; есть только теги файла и его название'};
-      }
-    }
-    if(wantsAnalysis){
-      try{rep.analysis=await window.AudioAnalyzer.analyzeFile(a.file);}
-      catch(e){rep.analysis={error:'браузер не смог разобрать этот аудиофайл: '+String(e&&e.message||e).slice(0,120)};}
-    }
-    reports.push(rep);
-  }
-  hideTyping();
-  const ask=(text||'').trim()||'Разбери этот трек.';
-  const guide=wantsId
-    ?'Пользователь спрашивает, что это за трек. Ответь по данным ниже: сначала распознавание по звуку (если есть), затем теги файла (title/artist), затем название файла. Если данных не хватает — честно скажи, что точно не определить, и назови самую вероятную версию по названию файла, если оно осмысленное.'
-    :'Ниже — технический разбор аудио, выполненный в браузере (сам файл не передавался). Ответь на просьбу пользователя как музыкант: темп и характер, тональность и лад, динамика, структура, что выделяется. Приблизительные метрики так и называй.';
-  const content=[
-    {type:'text',text:ask},
-    {type:'text',text:guide+(wantsYm?' После ответа трек будет загружен в Яндекс Музыку — можешь коротко это упомянуть.':'')+'\n\n[АУДИОФАЙЛЫ]\n'+JSON.stringify(reports)}
-  ];
-  docs.forEach((d,i)=>{if(d.doc&&d.doc.chunks)content.push({type:'text',text:`[ФАЙЛ ${i+1}: ${d.name}]\n`+d.doc.chunks.join('\n\n').slice(0,inlineDocCharLimit())});});
-  chatHistory.push({role:'user',content,attachments:histAtts,createdAt:messageNow()});
-  saveChat().catch(()=>{});
-  await runAssistantReply(ask);
-  if(wantsYm)for(const a of audios)await hmSendTrackToYandex(a.file);
-}
 function sendAudioAnalysisToAI(payload,fileName){
   const label='Анализ аудио: '+String(fileName||'файл');
   addUserBubble(label,[],{createdAt:messageNow()});
@@ -7844,6 +7773,8 @@ document.addEventListener('keydown',e=>{
 const BASE_SYSTEM=`Ты HarmonyAI — универсальный ИИ-помощник: учёба, работа, тексты, код, анализ данных и файлов, идеи, творчество, картинки. Особенно силён в музыке (теория, сольфеджио, гармония, ноты, треки), но музыка — лишь одна из тем. Ты мужского пола — говори о себе в мужском роде. Отвечай на языке последнего сообщения пользователя (по умолчанию русский) — и сам ответ, и рассуждения в режиме «Думать» на этом же языке. Пиши только этим языком: никаких случайных иероглифов и слов из других алфавитов (кроме кода, формул, названий и терминов, которые так пишутся).
 ХАРАКТЕР: ты живой, тёплый и внимательный собеседник, а не справочная. На «привет» отвечай как человек: «Привет, <имя>! Чем сегодня займёмся?» — без самопредставления и без списка своих возможностей; на «как дела» — коротко и с интересом к собеседнику. Не повторяй, кто ты, если об этом не спрашивали. Не своди разговор к музыке, если о ней не спрашивали: предлагая идеи или темы, давай разнообразные варианты из разных областей.
 ДЕЛАЙ, А НЕ ПЕРЕСПРАШИВАЙ: если просьба понятна в целом — выполняй сразу, недостающие детали выбирай сам (разумно и красиво) и в конце коротко предложи, что можно поменять. Уточняй только когда без ответа на вопрос задачу выполнить невозможно. Грубость в сообщении не повод отказывать — спокойно сделай, что просят.
+ТВОИ ВОЗМОЖНОСТИ В ПРИЛОЖЕНИИ (это делаешь именно ты, никогда не говори «не могу» или «у меня нет доступа»): загружаешь треки пользователя в его Яндекс Музыку (плейлист HarmonyAI) — для этого пользователь присылает файл и просит загрузить; подключаешь Яндекс Музыку; включаешь музыку, собираешь плейлисты и «Мою волну»; читаешь файлы до 150 страниц (PDF, DOCX, сканы, таблицы, презентации, код); разбираешь треки (темп, тональность, лад, структура), узнаёшь, что за трек, записываешь ноты мелодии из записи; строишь нотные станы, сочиняешь мелодии в ABC; рисуешь и редактируешь картинки; делаешь файлы PDF/DOCX/PPTX; рассказываешь, сколько осталось лимитов. Если просят то, для чего нужен файл, а его нет — коротко попроси прислать.
+Никогда не пиши про «уверенность», «confidence», проценты точности распознавания и названия внутренних полей — говори по-человечески.
 Ты знаешь: сольфеджио, нотную грамоту, интервалы, аккорды (T53, S64, D7, VII7, II7 и др.), лады, ритм, размеры, музыкальные термины — и так же уверенно помогаешь с любыми другими предметами и задачами.
 ФОРМАТИРОВАНИЕ: Всегда используй Markdown — **жирный**, # заголовки, списки, > цитаты, \`код\`.
 ОБОЗНАЧЕНИЯ АККОРДОВ И ФУНКЦИЙ: пиши их только обычным текстом (интерфейс сам превратит цифры в подстрочные). Верно: T53, T6, T64, S53, S6, S64, D53, D6, D64, D7, D65, D43, D2, K64, VII7, II7, I53, IV53, V53, V6, V64, Б53, М53, Ум53, Ув53, ББ7, БМ7, МБ7, ММ7. Неверно: $T_{53}$, \\(D_{65}\\), T_{53}, D₆₅ (не используй Unicode-подстрочные сам — только обычные цифры).
@@ -9028,6 +8959,9 @@ function createLiveTypingController(el,prefixText=''){
     },
     complete(text){
       if(typeof text==='string'&&text.length>pendingText.length){pendingText=text;finalText=text;}
+      // Финальный текст той же длины или короче — это вычитанная сервером версия
+      // (исправлены опечатки): показываем её вместо напечатанной.
+      else if(typeof text==='string'&&text.trim()&&text!==pendingText){finalText=text;}
       else{finalText=pendingText;}
       if(timer==null)finishIfReady();
       return done;
@@ -10129,8 +10063,18 @@ function showTyping(kind='text',steps=[]){
     if(typeof scrollChat==='function')scrollChat();
     return;
   }
-  const wantOrb=kind!=='text'||label!=='';
-  const orb=wantOrb&&window.hmThinkLoader?window.hmThinkLoader.mount(d):null;
+  /* Облако-сферу из частиц больше не показываем нигде: файлы, фото и прочие
+     ожидания идут с той же анимацией, что «Думаю», но с ровной подписью. */
+  if(label&&window.HmThinkStaff){
+    const staff=window.HmThinkStaff.create(trReadLastUserText(),{label});
+    d.classList.add('think-staff');
+    d.appendChild(staff.el);
+    d._staff=staff;
+    inner.appendChild(d);
+    if(typeof scrollChat==='function')scrollChat();
+    return;
+  }
+  const orb=null;
 
   if(!orb){
     // Точки: либо простой запрос, либо модуль анимации не загрузился.
@@ -11591,7 +11535,7 @@ function describeMelody(events){
   if(!events.length)return 'пустая запись';
   const pcNames=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
   const seq=events.slice(0,60).map(e=>pcNames[e.pitchMidi%12]+Math.floor(e.pitchMidi/12-1)).join(' ');
-  return `Ноты (по времени): ${seq}. Всего ${events.length} нот.`;
+  return `Ноты (по времени): ${seq}. Всего нот: ${events.length}.`;
 }
 
 /* --- Рендер результата в существующий пузырёк ИИ (естественный ответ, без упоминания источников) --- */
@@ -11748,11 +11692,17 @@ async function sendMsgInner(){
     try{await hmWaitAttachments();}finally{hideTyping();}
   }
   if(!text&&!pendingAttachments.length)return;
-  // Аудиофайл: ИИ сам решает по тексту — разбор, «что за трек» или загрузка в Яндекс Музыку.
-  if(pendingAttachments.some(a=>a.kind==='audio')){
-    resetChatScrollFollow();
-    await hmHandleAudioSend(text);
-    return;
+  /* ИИ-агент: трек, Яндекс Музыка, лимиты, подключение — ИИ по смыслу
+     решает, что сделать. Явные команды плеера («включи…», «пауза») идут
+     своим быстрым путём ниже, без лишнего похода к модели. */
+  {
+    const hasAudio=pendingAttachments.some(a=>a.kind==='audio');
+    let plainMusic=false;
+    try{plainMusic=!hasAudio&&!hmRecentAudioList().length&&Boolean(window.MusicIntents&&window.MusicIntents.detect(text));}catch(e){}
+    if(!plainMusic){
+      resetChatScrollFollow();
+      if(await hmAgentRoute(text))return;
+    }
   }
   /* Новое сообщение — всегда возвращаем вид к низу: даже если человек отлистал
      вверх во время прошлой генерации, свой собственный вопрос он должен увидеть. */
@@ -15176,51 +15126,381 @@ async function hmMusicCall(action,payload){
   if(!res.ok){const e=new Error(data?.error?.message||('HTTP '+res.status));e.status=res.status;e.type=data.type||data?.error?.type;throw e;}
   return data;
 }
-async function hmSendTrackToYandex(file){
-  const inner=document.getElementById('chatInner');if(!inner)return;
-  const g=document.getElementById('greetingWrap');if(g)g.style.display='none';
-  const card=document.createElement('div');
-  card.className='hm-ytrack';
-  card.innerHTML=`<div class="hm-ytrack-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M9 18V6l11-2v12" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="6.5" cy="18" r="2.5" stroke="currentColor" stroke-width="1.8"/><circle cx="17.5" cy="16" r="2.5" stroke="currentColor" stroke-width="1.8"/></svg></div>
-    <div class="hm-ytrack-info"><div class="hm-ytrack-name">${escapeHtml(file.name)}</div><div class="hm-ytrack-sub">${hmFmtMb(file.size)} · Яндекс Музыка</div><div class="hm-ytrack-bar"><i></i></div></div>`;
-  inner.appendChild(card);scrollChat();
-  const sub=card.querySelector('.hm-ytrack-sub'),bar=card.querySelector('.hm-ytrack-bar');
-  const set=(t,state)=>{sub.textContent=t;card.dataset.state=state||'';};
-  set(hmFmtMb(file.size)+' · загружаем…','busy');
-  try{
-    if(file.size>50*1024*1024)throw new Error('Файл больше 50 МБ — такой не загрузить');
-    /* Через наш сервер, а не напрямую из браузера: прямая отправка шла «вслепую»
-       (ответ Яндекса браузеру не виден), и при отказе трек молча не появлялся.
-       Большой файл сначала кладём в хранилище — так обходим лимит запроса Vercel. */
-    let r=null;
-    // 1) Подписанная ссылка в свой бакет ym-uploads; 2) файл — прямо в хранилище; 3) сервер отправляет в Яндекс.
-    const prep=await window.MusicClient.call('ugc_prepare',{filename:file.name},{timeout:20000});
-    const up=await sb.storage.from(prep.bucket).uploadToSignedUrl(prep.path,prep.token,file,{contentType:file.type||'audio/mpeg'});
-    if(up.error){
-      if(file.size>3.2*1024*1024)throw new Error('Хранилище не приняло файл: '+(up.error.message||'ошибка'));
-      const b64=await new Promise((ok,no)=>{const fr=new FileReader();fr.onload=()=>ok(String(fr.result).split(',')[1]||'');fr.onerror=()=>no(new Error('Не удалось прочитать файл'));fr.readAsDataURL(file);});
-      r=await hmMusicCall('ugc_upload',{filename:file.name,mime:file.type||'audio/mpeg',data:b64});
-    }else{
-      set('Отправляем в Яндекс Музыку…','busy');
-      r=await window.MusicClient.call('ugc_from_storage',{bucket:prep.bucket,storagePath:prep.path,filename:file.name,mime:file.type||'audio/mpeg'},{timeout:90000});
-    }
-    const title=r.playlistTitle||'HarmonyAI';
-    set('Яндекс обрабатывает трек — обычно меньше минуты…','busy');
-    /* Ждём, пока трек действительно появится в плейлисте, вместо обещания «1–3 минуты». */
-    if(r&&r.kind!=null&&r.before!=null){
-      let ok=false;
-      for(let i=0;i<30&&!ok;i++){
-        await new Promise(res=>setTimeout(res,i<3?5000:8000));
-        try{const c=await window.MusicClient.call('ugc_check',{kind:r.kind},{timeout:15000});ok=c&&c.trackCount!=null&&c.trackCount>r.before;}catch(e){}
-      }
-      set(ok?'Готово — трек в плейлисте «'+title+'» в Яндекс Музыке.':'Яндекс принял файл, но ещё обрабатывает его — трек появится в плейлисте «'+title+'» позже.',ok?'ok':'busy');
-    }else set('Отправлено — трек появится в плейлисте «'+title+'», когда Яндекс его обработает.','ok');
-  }catch(e){
-    const needAuth=e.status===401||e.type==='need_auth'||/подключите/i.test(e.message||'');
-    set(needAuth?'Подключите свой аккаунт Яндекса: Настройки → Плагины.':('Не получилось: '+(e.message||'ошибка')),'err');
-    if(needAuth){const b=document.createElement('button');b.type='button';b.className='hm-ytrack-btn';b.textContent='Подключить';b.onclick=()=>{openSettings();setTimeout(()=>openSettingsSection('plugins'),80);};card.appendChild(b);}
+/* ===== Загрузка трека в Яндекс Музыку (ядро без интерфейса) =====
+   Через наш сервер: подписанная ссылка в бакет ym-uploads → файл в хранилище →
+   сервер отправляет в Яндекс. Затем ждём, пока трек появится в плейлисте.
+   onStatus(key) сообщает этапы: 'upload' | 'send' | 'wait'. */
+async function hmUploadTrackCore(file,onStatus){
+  const say=k=>{try{onStatus&&onStatus(k);}catch(e){}};
+  if(file.size>50*1024*1024)throw new Error('файл больше 50 МБ — такой Яндекс не примет');
+  let r=null;
+  say('upload');
+  const prep=await window.MusicClient.call('ugc_prepare',{filename:file.name},{timeout:20000});
+  const up=await sb.storage.from(prep.bucket).uploadToSignedUrl(prep.path,prep.token,file,{contentType:file.type||'audio/mpeg'});
+  if(up.error){
+    if(file.size>3.2*1024*1024)throw new Error('хранилище не приняло файл');
+    const b64=await new Promise((ok,no)=>{const fr=new FileReader();fr.onload=()=>ok(String(fr.result).split(',')[1]||'');fr.onerror=()=>no(new Error('не удалось прочитать файл'));fr.readAsDataURL(file);});
+    say('send');
+    r=await hmMusicCall('ugc_upload',{filename:file.name,mime:file.type||'audio/mpeg',data:b64});
+  }else{
+    say('send');
+    r=await window.MusicClient.call('ugc_from_storage',{bucket:prep.bucket,storagePath:prep.path,filename:file.name,mime:file.type||'audio/mpeg'},{timeout:90000});
   }
-  scrollChat();
+  const title=(r&&r.playlistTitle)||'HarmonyAI';
+  if(r&&r.kind!=null&&r.before!=null){
+    say('wait');
+    for(let i=0;i<30;i++){
+      await new Promise(res=>setTimeout(res,i<3?5000:8000));
+      try{const c=await window.MusicClient.call('ugc_check',{kind:r.kind},{timeout:15000});if(c&&c.trackCount!=null&&c.trackCount>r.before)return {state:'ok',title};}catch(e){}
+    }
+    return {state:'pending',title};
+  }
+  return {state:'sent',title};
+}
+function hmIsNeedAuth(e){return Boolean(e&&(e.status===401||e.type==='need_auth'||e.type==='music_auth_required'||/подключите|авториз|auth/i.test(e.message||'')));}
+/* Старый вход (вызов из других мест) — теперь тоже через «плагин» ИИ. */
+async function hmSendTrackToYandex(file){
+  return hmAgentRun('upload_track',{files:[file],intro:''});
+}
+
+/* ===== Микрофон: запись звука прямо в сообщение =====
+   Окна «Распознать музыку» больше нет. Нажал — идёт запись (кнопка мигает),
+   нажал ещё раз — запись прикрепляется к сообщению как аудио. Дальше ИИ сам
+   решает по тексту: узнать трек, записать ноты, разобрать — или спросит. */
+let hmMicRec=null;
+async function hmMicToggle(){
+  const btn=document.getElementById('micBtn');
+  if(hmMicRec){try{hmMicRec.stop();}catch(e){}return;}
+  let stream;
+  try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false}});}
+  catch(e){toast('Нет доступа к микрофону — разрешите его в настройках браузера');return;}
+  const mime=['audio/webm;codecs=opus','audio/mp4','audio/webm'].find(t=>window.MediaRecorder&&MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(t))||'';
+  let mr;
+  try{mr=new MediaRecorder(stream,mime?{mimeType:mime}:undefined);}catch(e){stream.getTracks().forEach(t=>t.stop());toast('Запись звука в этом браузере не поддерживается');return;}
+  const chunks=[];const startedAt=Date.now();
+  mr.ondataavailable=ev=>{if(ev.data&&ev.data.size)chunks.push(ev.data);};
+  mr.onstop=()=>{
+    stream.getTracks().forEach(t=>t.stop());
+    btn&&btn.classList.remove('recording');
+    clearTimeout(mr._limit);hmMicRec=null;
+    const type=mr.mimeType||mime||'audio/webm';
+    const blob=new Blob(chunks,{type});
+    if(blob.size<2000){toast('Запись получилась слишком короткой');return;}
+    const secs=Math.max(1,Math.round((Date.now()-startedAt)/1000));
+    const ext=/mp4/.test(type)?'m4a':'webm';
+    const file=new File([blob],'Запись '+formatVoiceTime(secs)+'.'+ext,{type});
+    handleFiles([file]);
+    try{document.getElementById('msgTa').focus();}catch(e){}
+  };
+  hmMicRec=mr;
+  mr.start(250);
+  btn&&btn.classList.add('recording');
+  // Пока идёт запись — таймер в поле ввода, чтобы было видно, что микрофон слушает.
+  const ta=document.getElementById('msgTa');const ph=ta?ta.placeholder:'';
+  const tick=()=>{if(ta)ta.placeholder='● Идёт запись '+formatVoiceTime(Math.round((Date.now()-startedAt)/1000));};
+  tick();const timer=setInterval(tick,500);
+  mr.addEventListener('stop',()=>{clearInterval(timer);if(ta)ta.placeholder=ph;});
+  mr._limit=setTimeout(()=>{try{mr.stop();}catch(e){}},3*60*1000); // не дольше 3 минут
+}
+
+/* ======================================================================
+   ИИ-АГЕНТ: действия приложения по смыслу сообщения
+   Сервер (/api/util?op=agent) решает, что сделать: загрузить трек, разобрать,
+   узнать, записать ноты, показать лимиты, подключить Яндекс Музыку — или
+   ответить как обычно. Действия идут «плагином»: фраза ИИ, тонкая черта и
+   переливающийся статус, затем итог с кнопками действий под сообщением.
+   ====================================================================== */
+const hmRecentAudio=new Map(); // chatId → [{file,name,at}]
+function hmRememberAudio(files){
+  const key=curChatId||'new';
+  const list=(hmRecentAudio.get(key)||[]).filter(x=>!files.some(f=>f===x.file));
+  files.forEach(f=>list.unshift({file:f,name:f.name||'трек',at:Date.now()}));
+  hmRecentAudio.set(key,list.slice(0,3));
+}
+function hmRecentAudioList(){
+  const list=hmRecentAudio.get(curChatId||'new')||hmRecentAudio.get('new')||[];
+  return list.filter(x=>Date.now()-x.at<6*60*60*1000);
+}
+/* Сообщения, где агенту есть что решать: про трек, Яндекс, лимиты, аккаунт.
+   Это лишь фильтр «стоит ли спросить ИИ», само решение принимает модель. */
+const HM_AGENT_HINT=/(я\.?\s?муз|яндекс|yandex|плейлист|трек|песн|мелоди|загруз|закин|залей|скин|сохрани|добав|лимит|остал|сколько.{0,25}(сообщени|запрос|можно|ещё|еще)|сброс|обнов(ят|ит)ся|подключ|аккаунт|ноты|нотам|партитур|расшифр|тональн|темп\b|bpm|шазам|shazam|узна|что за|кто (это )?(поёт|поет|исполня)|называ|аудио|запис)/i;
+function hmAgentNick(){
+  const n=(curUser?.nickname||'').trim();
+  return n&&n.indexOf('@')<0?n:'';
+}
+function hmAgentHistory(){
+  return chatHistory.slice(-6).map(m=>({role:m.role,text:typeof m.content==='string'?m.content:(Array.isArray(m.content)?(m.content.find(p=>p.type==='text')||{}).text||'':'')}));
+}
+async function hmYandexConnected(){
+  try{const st=await withTimeout(window.MusicClient.status(),6000,'status');return Boolean(st&&st.connected);}catch(e){return false;}
+}
+/* Вызывается из sendMsgInner. true — сообщение обработано агентом. */
+async function hmAgentRoute(text){
+  const audios=pendingAttachments.filter(a=>a.kind==='audio');
+  const recent=hmRecentAudioList();
+  const hasText=Boolean((text||'').trim());
+  if(!audios.length&&!(hasText&&(recent.length||HM_AGENT_HINT.test(text))))return false;
+  if(!window.MusicClient&&!audios.length&&!/лимит|остал|сброс/i.test(text||''))return false;
+  // Трек без слов — сразу спрашиваем, что с ним сделать (без похода к модели).
+  if(audios.length&&!hasText){
+    const nick=hmAgentNick();
+    await hmAgentRun('ask_audio',{text,atts:pendingAttachments.slice(),intro:(nick?nick+', к':'К')+'лассный трек! Что с ним сделать?'});
+    return true;
+  }
+  let decision=null;
+  showTyping('text');
+  try{
+    decision=await withTimeout(hmUtil('agent',{body:{message:text,history:hmAgentHistory(),context:{
+      audioAttached:audios.length,recentAudio:recent.map(x=>x.name),
+      yandexConnected:window.__hmYmConnected===true,nickname:hmAgentNick(),plan:isProUser()?'pro':'free'
+    }}}),14000,'agent');
+  }catch(e){decision=null;}
+  finally{hideTyping();}
+  let action=decision&&decision.action||'chat';
+  if(action==='chat'){
+    // Трек приложен, а просьба — просто вопрос о нём: это разбор.
+    if(audios.length){action='analyze_track';}
+    else return false;
+  }
+  if(action==='ask_audio'&&!audios.length&&!recent.length)return false;
+  await hmAgentRun(action,{text,atts:pendingAttachments.slice(),intro:decision&&decision.reply||''});
+  return true;
+}
+
+const HM_PLUG_WORDS={
+  upload_track:['Подключаю Яндекс Музыку','Загружаю трек','Отправляю трек в Яндекс','Добавляю трек в плейлист','Жду, пока Яндекс обработает трек','Почти готово'],
+  connect_yandex:['Подключаю Яндекс Музыку','Открываю вход в Яндекс','Жду подтверждения'],
+  analyze_track:['Слушаю трек','Считаю темп','Определяю тональность','Разбираю структуру','Слушаю динамику'],
+  identify_track:['Слушаю трек','Ищу совпадения','Сверяю с каталогом Яндекс Музыки','Проверяю исполнителя'],
+  transcribe_track:['Слушаю мелодию','Расшифровываю ноты','Расставляю длительности','Записываю партитуру'],
+  limits:['Проверяю лимиты']
+};
+/* «Плагин» в сообщении ИИ: фраза, черта, переливающийся статус. */
+function hmPlugin(action,intro){
+  const g=document.getElementById('greetingWrap');if(g)g.style.display='none';
+  const shell=createAiBubbleShell({showActions:true,hiddenActions:true});
+  const box=document.createElement('div');box.className='hm-plug';
+  if(intro){const p=document.createElement('div');p.className='hm-plug-intro';p.innerHTML=(window.HmRich?window.HmRich.mdToHtml(intro):escapeHtml(intro)).trim();box.appendChild(p);}
+  const line=document.createElement('div');line.className='hm-plug-line';box.appendChild(line);
+  const st=document.createElement('div');st.className='hm-plug-status';
+  const word=document.createElement('span');word.className='hm-shimmer';st.appendChild(word);box.appendChild(st);
+  const slot=document.createElement('div');slot.className='hm-plug-slot';box.appendChild(slot);
+  shell.msg.appendChild(box);scrollChat();
+  const words=HM_PLUG_WORDS[action]||['Работаю'];
+  let i=0,fixed=null;
+  const show=t=>{word.classList.remove('in');void word.offsetWidth;word.textContent=t;word.classList.add('in');};
+  show(words[0]);
+  const timer=setInterval(()=>{if(fixed)return;i=(i+1)%words.length;show(words[i]);},2600);
+  const api={
+    shell,slot,
+    set(t){fixed=t;show(t);},
+    free(){fixed=null;},
+    finish(md){
+      clearInterval(timer);
+      renderMd(shell.msg,md);
+      setMessageActionsVisible(shell.actions,true);
+      chatHistory.push({role:'assistant',content:md,createdAt:messageNow()});
+      saveChat().catch(()=>{});
+      scrollChat();
+    },
+    // Остаётся только фраза ИИ — дальше потоком отвечает модель.
+    settle(){
+      clearInterval(timer);line.remove();st.remove();slot.remove();
+      if(!intro)shell.wrap.remove();
+    }
+  };
+  return api;
+}
+function hmAudioFilesFor(atts){
+  const now=(atts||[]).filter(a=>a.kind==='audio'&&a.file).map(a=>a.file);
+  if(now.length)return now;
+  const r=hmRecentAudioList();
+  return r.length?[r[0].file]:[];
+}
+function hmLimitsText(){
+  if(hasTrainingAccess())return 'У тебя служебная роль — лимитов нет, пиши сколько угодно.';
+  const u=getUsage(),L=planLimits(),iu=getImgUsage(),IL=imgPlanLimits();
+  const left=p=>Math.max(0,100-p);
+  const rolling=combinedLimitPercent(u.dayTokens,u.dayMessages,L.rolling.tokens,L.rolling.messages);
+  const week=combinedLimitPercent(u.weekTokens||0,u.weekMessages||0,L.weekly.tokens,L.weekly.messages);
+  const img=Math.min(100,Math.round(Math.max(iu.dayImages/IL.daily,iu.weekImages/IL.weekly,iu.monthImages/IL.monthly)*100));
+  const imgReset=iu.monthImages>=IL.monthly?nextMonthlyReset():(iu.weekImages>=IL.weekly?nextCalendarWeekReset():nextDailyReset());
+  const pro=isProUser();
+  return `Тариф **${pro?'Pro':'Free'}**:\n\n`
+    +`- **На ближайшие 5 часов** осталось ${left(rolling)}% — обновится ${fmtResetHuman(nextFiveHourReset())}\n`
+    +`- **На неделю** осталось ${left(week)}% — обновится ${fmtResetHuman(nextWeeklyReset())}\n`
+    +`- **Картинки** — осталось ${left(img)}%, обновятся ${fmtResetHuman(imgReset)}\n\n`
+    +(pro?'В Pro лимиты в 25 раз выше, чем в Free.':'Если не хватает — в **Pro** лимиты в 25 раз больше.');
+}
+const HM_AUDIO_BUTTONS='\n\n```buttons\n'+JSON.stringify([
+  {label:'Загрузить в Яндекс Музыку',prompt:'Загрузи этот трек в мою Яндекс Музыку'},
+  {label:'Разобрать трек',prompt:'Разбери этот трек: тональность, темп, структура'},
+  {label:'Что это за трек?',prompt:'Что это за трек? Кто исполняет?'},
+  {label:'Записать ноты',prompt:'Запиши ноты мелодии этого трека'}
+])+'\n```';
+
+async function hmAgentRun(action,{text='',atts=[],intro='',files=null}={}){
+  const userAtts=(atts||[]).slice();
+  const audioNow=userAtts.filter(a=>a.kind==='audio'&&a.file).map(a=>a.file);
+  if(text||userAtts.length){
+    addUserBubble(text,userAtts);
+    chatHistory.push({role:'user',content:text||'',attachments:userAtts.map(cloneAttachmentForHistory),createdAt:messageNow()});
+    saveChat().catch(()=>{});
+  }
+  if(userAtts.length){clearPendingAttachments();}
+  if(audioNow.length)hmRememberAudio(audioNow);
+  const tracks=files||hmAudioFilesFor(userAtts);
+  const nick=hmAgentNick();
+
+  if(action==='ask_audio'){
+    const p=hmPlugin('ask_audio','');
+    p.finish((intro||'Что сделать с этим треком?')+HM_AUDIO_BUTTONS);
+    return true;
+  }
+  if(action==='limits'){
+    const p=hmPlugin('limits',intro||'Сейчас посмотрю.');
+    await new Promise(r=>setTimeout(r,500));
+    p.finish((intro?intro+'\n\n':'')+hmLimitsText());
+    return true;
+  }
+  if(action==='connect_yandex'){
+    const p=hmPlugin('connect_yandex',intro||'Сейчас подключу Яндекс Музыку.');
+    if(await hmYandexConnected()){
+      window.__hmYmConnected=true;
+      p.finish((intro?intro+'\n\n':'')+'Яндекс Музыка уже подключена. Можешь присылать треки — загружу их в твой плейлист, а ещё могу включать музыку и собирать плейлисты.');
+      return true;
+    }
+    const started=await hmAgentConnect(p,async()=>{
+      window.__hmYmConnected=true;
+      p.finish('Готово! Яндекс Музыка подключена. Присылай треки — загружу их в плейлист HarmonyAI, или попроси что-нибудь включить.');
+    });
+    if(!started.ok)p.finish('Не получилось начать подключение к Яндекс Музыке'+(started.why?': '+started.why.toLowerCase():'')+'. Попробуй ещё раз чуть позже.');
+    return true;
+  }
+  if(!tracks.length){
+    const p=hmPlugin(action,'');
+    p.finish('Пришли мне трек файлом (mp3, m4a, wav, flac…) — '+({upload_track:'и я сразу загружу его в плейлист HarmonyAI в твоей Яндекс Музыке.',identify_track:'и я скажу, что это за трек.',transcribe_track:'и я запишу ноты мелодии.'}[action]||'и я его разберу.'));
+    return true;
+  }
+  if(action==='upload_track')return hmAgentUpload(tracks,intro||((nick?'Без проблем, '+nick+'. ':'Без проблем! ')+'Сейчас подключу плагин Яндекс Музыки и загружу твой трек в плейлист HarmonyAI.'));
+  return hmAgentAudioAnswer(action,tracks,text,intro);
+}
+
+/* Подключение Яндекс Музыки прямо в сообщении (тот же вход, что в «Плагинах»).
+   Не блокирует чат: пока человек входит в Яндекс, можно писать дальше;
+   после входа onOk продолжает начатое (например, загрузку трека). */
+async function hmAgentConnect(p,onOk){
+  p.set('Жду, пока ты войдёшь в Яндекс');
+  try{await renderMusicConnect(p.slot,async function(){p.slot.innerHTML='';p.free();await onOk();});}
+  catch(e){return {ok:false,why:e&&e.message||''};}
+  const txt=p.slot.textContent||'';
+  const m=txt.match(/Не удалось начать подключение:\s*(.+)$/)||txt.match(/(Некорректная ссылка авторизации)/);
+  if(m)return {ok:false,why:m[1]};
+  return {ok:true};
+}
+
+async function hmAgentUpload(tracks,intro){
+  const p=hmPlugin('upload_track',intro);
+  if(!(await hmYandexConnected())){
+    const started=await hmAgentConnect(p,async()=>{window.__hmYmConnected=true;await hmAgentUploadRun(p,tracks);});
+    if(!started.ok)p.finish('Чтобы загрузить трек, нужно подключить твою Яндекс Музыку, но подключение сейчас не запускается'+(started.why?' ('+started.why.toLowerCase()+')':'')+'. Попробуй чуть позже — трек можно будет просто прислать ещё раз.');
+    return true;
+  }
+  window.__hmYmConnected=true;
+  await hmAgentUploadRun(p,tracks);
+  return true;
+}
+async function hmAgentUploadRun(p,tracks){
+  p.free();
+  const done=[],fail=[];let title='HarmonyAI';
+  for(const f of tracks){
+    try{
+      const r=await hmUploadTrackCore(f,k=>{p.set({upload:'Загружаю трек',send:'Отправляю трек в Яндекс',wait:'Добавляю трек в плейлист'}[k]||'Загружаю трек');});
+      title=r.title||title;done.push({name:f.name,state:r.state});
+    }catch(e){
+      if(hmIsNeedAuth(e)){p.finish('Яндекс Музыка просит заново войти в аккаунт. Напиши «подключи Яндекс Музыку» — и я загружу трек.');return true;}
+      fail.push({name:f.name,why:e&&e.message||'ошибка'});
+    }
+  }
+  const names=done.map(d=>'«'+d.name.replace(/\.[a-z0-9]{2,5}$/i,'')+'»').join(', ');
+  let md='';
+  if(done.length&&done.every(d=>d.state==='ok'))md=`Готово! ${done.length>1?'Треки '+names+' — в плейлисте':'Твой трек '+names+' — в плейлисте'} «${title}» в Яндекс Музыке.\n\nЕсли хочешь загрузить ещё трек — пришли его в чат, и я загружу.`;
+  else if(done.length)md=`Яндекс принял ${done.length>1?'треки '+names:'трек '+names} и ещё обрабатывает — через минуту ${done.length>1?'они появятся':'он появится'} в плейлисте «${title}».\n\nЕсли хочешь загрузить ещё трек — пришли его в чат, и я загружу.`;
+  if(fail.length)md+=(md?'\n\n':'')+'Не получилось загрузить: '+fail.map(f=>'«'+f.name+'» ('+f.why+')').join(', ')+'. Попробуй прислать файл ещё раз.';
+  p.finish(md||'Что-то пошло не так — попробуй прислать трек ещё раз.');
+  return true;
+}
+
+/* Разбор, «что за трек» и ноты: данные собираем в браузере (и распознаём по
+   звуку на Pro), потом отвечает сама модель — живым текстом. */
+function hmStripConfidence(o){
+  if(Array.isArray(o))return o.map(hmStripConfidence);
+  if(o&&typeof o==='object'){const r={};Object.keys(o).forEach(k=>{if(/confidence|уверенн|strength|score/i.test(k))return;r[k]=hmStripConfidence(o[k]);});return r;}
+  return o;
+}
+// Имя файла годится для поиска в каталоге, только если это не «Запись 0:12», «audio_123», «voice note» и т. п.
+function hmTrackNameFromFile(name){
+  const n=String(name||'').replace(/\.[a-z0-9]{2,5}$/i,'').replace(/[_]+/g,' ').replace(/\(.*?\)|\[.*?\]/g,'').replace(/\s+/g,' ').trim();
+  if(n.length<3||!/\p{L}{2,}/u.test(n))return '';
+  if(/^(запись|record(ing)?|new recording|voice|голос|audio|аудио|track|трек|sound|звук|untitled|без названия|файл|file|rec|vid|video|ptt|vm|wa|aud)\b[\s\d:._-]*$/i.test(n))return '';
+  return n;
+}
+async function hmAgentAudioAnswer(action,tracks,text,intro){
+  const p=hmPlugin(action,intro);
+  const reports=[];
+  for(const f of tracks.slice(0,2)){
+    const rep={file:f.name};
+    try{const tags=await window.AudioAnalyzer.readTags(f);if(tags&&Object.keys(tags).length)rep.tags=tags;}catch(e){}
+    if(action==='identify_track'){
+      if(isProUser()){
+        try{
+          const clip=await window.AudioAnalyzer.clipForRecognition(f,20);
+          const audioBase64=await blobToBase64(clip.blob);
+          const res=await withTimeout(fetch(getRecognizeEndpoint(),{method:'POST',headers:await hmAuthHeaders(),cache:'no-store',body:JSON.stringify({mode:'identify',audioBase64})}),60000,'распознавание заняло слишком много времени');
+          const data=await res.json().catch(()=>null);
+          if(res.ok&&data){
+            if(data.source==='fingerprint'&&data.raw)rep.recognized=data.raw;
+            else if(data.workGuess)rep.guess={title:data.workGuess,artist:data.composerGuess||''};
+          }
+        }catch(e){}
+      }
+      // Сверка с каталогом Яндекс Музыки: по распознанному, по тегам или по имени файла.
+      const q=rep.recognized?((rep.recognized.artist||'')+' '+(rep.recognized.title||''))
+        :rep.tags&&rep.tags.title?((rep.tags.artist||'')+' '+rep.tags.title)
+        :rep.guess&&rep.guess.title?((rep.guess.artist||'')+' '+rep.guess.title)
+        :hmTrackNameFromFile(f.name);
+      if(q&&window.MusicClient){
+        try{const r=await withTimeout(window.MusicClient.search(q,3),10000,'search');const it=r&&(r.bestMatch||(r.items||[])[0]);
+          if(it)rep.catalog={title:it.title,artist:it.artist,album:it.album||'',trackId:it.trackId};}catch(e){}
+      }
+    }
+    if(action==='analyze_track'||action==='identify_track'){
+      try{rep.analysis=hmStripConfidence(await window.AudioAnalyzer.analyzeFile(f));}catch(e){rep.analysis={error:'браузер не смог разобрать этот файл'};}
+    }
+    if(action==='transcribe_track'){
+      try{
+        const clip=await window.AudioAnalyzer.clipForRecognition(f,30);
+        const t=await transcribeAudioToAbc(clip.blob);
+        rep.abc=t.abc;rep.melody=t.description||'';
+      }catch(e){rep.transcribeError='не удалось расшифровать мелодию из этого файла';}
+    }
+    reports.push(rep);
+  }
+  p.settle();
+  const ask=(text||'').trim()||({identify_track:'Что это за трек?',transcribe_track:'Запиши ноты мелодии этого трека.'}[action]||'Разбери этот трек.');
+  const guide={
+    analyze_track:'Ниже — разбор аудио, сделанный приложением в браузере. Расскажи о треке как живой музыкант: темп и характер, тональность и лад, динамика, структура, что выделяется. Числа давай естественно («около 128 ударов в минуту»). Никогда не пиши про «уверенность», «confidence», проценты точности и технические поля.',
+    identify_track:'Пользователь хочет узнать трек. Данные ниже: recognized — точное распознавание по звуку, catalog — найденное в каталоге Яндекс Музыки, tags — теги файла, file — имя файла. Сверь их и назови трек и исполнителя уверенно и по-человечески (без слов «уверенность», «вероятно 0.8» и т. п.). Если recognized нет, а catalog совпадает с тегами или именем файла — это он. Если данных совсем нет, честно скажи, что по звуку определить не вышло, и предложи прислать фрагмент почище. В конце дай кнопку включить трек.',
+    transcribe_track:'Ниже — ноты мелодии, расшифрованные приложением из записи (ABC). Покажи их блоком ```abc```, коротко опиши мелодию (лад, размер, характер) и предложи, что можно сделать дальше. Если расшифровки нет — честно скажи и предложи прислать запись почище, с одной мелодией.'
+  }[action];
+  const content=[{type:'text',text:ask},{type:'text',text:guide+'\n\n[ДАННЫЕ ПРИЛОЖЕНИЯ]\n'+JSON.stringify(reports)}];
+  // Пользовательский ход уже сохранён — дописываем к нему данные для модели.
+  const last=chatHistory.slice().reverse().find(m=>m.role==='user');
+  if(last)last.content=content;
+  else chatHistory.push({role:'user',content,createdAt:messageNow()});
+  saveChat().catch(()=>{});
+  await runAssistantReply(ask);
+  return true;
 }
 </script>
 <script>
@@ -15231,7 +15511,7 @@ async function hmSendTrackToYandex(file){
 })();
 </script>
 <script>
-/* ===== Меню «+» на компьютере: Добавить файлы · Веб-поиск · Определить музыку ===== */
+/* ===== Меню «+» на компьютере: Добавить файлы · Веб-поиск · Размышление · Картинка · Аудио ===== */
 function closeDesktopPlus(){const m=document.getElementById('hmPlusMenu');if(m){m.classList.remove('open');setTimeout(()=>{if(!m.classList.contains('open'))m.remove();},160);}}
 function toggleDesktopPlus(anchor){
   if(document.getElementById('hmPlusMenu')?.classList.contains('open')){closeDesktopPlus();return;}
@@ -15251,9 +15531,7 @@ function toggleDesktopPlus(anchor){
     <button type="button" role="menuitemcheckbox" aria-checked="${thinkOn}" data-k="think"><svg viewBox="0 0 24 24" fill="none"><path d="M9 18h6M10 21h4M12 3a6 6 0 00-3.6 10.8c.6.5 1 1.2 1 2V16h5.2v-.2c0-.8.4-1.5 1-2A6 6 0 0012 3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg><span>Размышление</span><i class="hm-plus-sw${thinkOn?' on':''}"></i></button>
     <div class="hm-plus-sep"></div>
     <button type="button" role="menuitem" data-k="image"${lim(imgLim)}><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="16" rx="2.5" stroke="currentColor" stroke-width="1.6"/><circle cx="9" cy="10" r="1.8" stroke="currentColor" stroke-width="1.5"/><path d="M4 17l5-4.5 4 3.5 3-2.5 4 3.5" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg><span class="hm-plus-lbl"><span>Сгенерировать изображение</span>${limHint(imgLim)}</span></button>
-    <button type="button" role="menuitem" data-k="audio"${lim(chatLim)}><svg viewBox="0 0 24 24" fill="none"><path d="M3 12h2M7 8v8M11 5v14M15 9v6M19 7v10M21 12h0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span class="hm-plus-lbl"><span>Анализ аудио</span>${limHint(chatLim)}</span></button>
-    <div class="hm-plus-sep"></div>
-    <button type="button" role="menuitem" data-k="music"><svg viewBox="0 0 24 24" fill="none"><path d="M9 18V5.5l10-2v12" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="6.5" cy="18" r="2.5" stroke="currentColor" stroke-width="1.7"/><circle cx="16.5" cy="15.5" r="2.5" stroke="currentColor" stroke-width="1.7"/><path d="M19.5 2.5l.5 1.3 1.3.5-1.3.5-.5 1.3-.5-1.3-1.3-.5 1.3-.5z" fill="currentColor"/></svg><span>Определить музыку</span></button>`;
+    <button type="button" role="menuitem" data-k="audio"${lim(chatLim)}><svg viewBox="0 0 24 24" fill="none"><path d="M3 12h2M7 8v8M11 5v14M15 9v6M19 7v10M21 12h0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span class="hm-plus-lbl"><span>Добавить аудио</span>${limHint(chatLim)}</span></button>`;
   document.body.appendChild(m);
   const r=anchor.getBoundingClientRect();
   m.style.left=Math.max(8,r.left-6)+'px';
@@ -15264,7 +15542,7 @@ function toggleDesktopPlus(anchor){
     const b=ev.target.closest('button');if(!b||b.disabled)return;
     const k=b.dataset.k;
     if(k==='files'){closeDesktopPlus();triggerFileInput();}
-    else if(k==='music'){closeDesktopPlus();openRecognizeModal();}
+    else if(k==='music'){closeDesktopPlus();hmMicToggle();}
     else if(k==='image'){closeDesktopPlus();setImageMode(true);document.getElementById('msgTa')?.focus();}
     else if(k==='audio'){closeDesktopPlus();triggerAudioAnalyzer();}
     else if(k==='think'){

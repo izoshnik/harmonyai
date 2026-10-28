@@ -1,3 +1,4 @@
+import { proofreadRussian, fixMarkdownSpacing } from '../lib/proofread.js';
 import { hasProAccess, requireUser } from '../lib/auth.js';
 import { buildMusicTheoryContext } from '../lib/music-theory-router.js';
 import { applyDevAccountProfile } from '../lib/dev-account.js';
@@ -1968,6 +1969,14 @@ async function streamOpenAIToClientInner(res, apiKey, modelName, messages, timeo
   // остаётся крутящийся индикатор «Думаю».
   endReasoning();
 
+  /* Вычитка русского: бесплатные модели теряют буквы и вставляют английские
+     слова. Текст пользователь уже видел потоком — исправленная версия придёт
+     в done и тихо заменит показанную (см. lib/proofread.js). */
+  if (isOpenRouterModel(modelName) && !stalled) {
+    try { finalText = await proofreadRussian(finalText, { timeoutMs: 7000 }); } catch (e) { /* остаётся исходный */ }
+  } else {
+    finalText = fixMarkdownSpacing(finalText);
+  }
   writeSseEvent(res, { type: 'done', text: finalText, truncated: stalled });
   res.end();
 
