@@ -5409,7 +5409,7 @@ async function syncSignedInRoute(){
 
   if(currentRoute()==='/settings'){
     routeNavigating=true;
-    try{openSettings();}finally{routeNavigating=false;}
+    try{openSettings();hmRestoreSettingsSection();}finally{routeNavigating=false;}
     return;
   }
 
@@ -13193,6 +13193,28 @@ function goToDynatos(){
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', openFromQuery);
   else openFromQuery();
 })();
+/* Документы из настроек (политика, условия, оферта, справка). На телефоне —
+   в той же вкладке с пометкой ?from=settings: кнопка «Назад» на странице
+   документа ведёт прямо в /settings и открывает тот же раздел. Раньше она
+   делала history.back(), и браузер телефона мог показать старый снимок
+   страницы с прежним дизайном настроек. На компьютере — новая вкладка. */
+function hmOpenDoc(path){
+  if(!hmSettingsIsMobile()){window.open(path,'_blank','noopener');return;}
+  try{sessionStorage.setItem('hm_settings_return',settingsActiveSection||'root');}catch(e){}
+  location.href=path+(path.indexOf('?')<0?'?':'&')+'from=settings';
+}
+/* Вернулись из документа: открываем тот раздел, из которого уходили. */
+function hmRestoreSettingsSection(){
+  let sec='';
+  try{sec=sessionStorage.getItem('hm_settings_return')||'';sessionStorage.removeItem('hm_settings_return');}catch(e){}
+  if(sec&&sec!=='root'&&STP_SECTIONS.some(s=>s.id===sec))openSettingsSection(sec);
+}
+/* Страница восстановлена из кэша «назад/вперёд» — перерисовываем настройки
+   текущей версией, а не показываем застывший снимок. */
+window.addEventListener('pageshow',e=>{
+  if(!e.persisted)return;
+  try{if(currentRoute()==='/settings'&&window.__appShown){routeNavigating=true;try{openSettings();hmRestoreSettingsSection();}finally{routeNavigating=false;}}}catch(err){}
+});
 function openHelpCenter(){
   // Справочный центр (FAQ).
   // В PWA/Telegram Mini App window.open('_blank') часто блокируется — используем прямой переход.
@@ -13733,7 +13755,7 @@ function renderSettingsSecurity(){
         <div class="stp-row-label"><div class="stp-row-title">Выйти на всех устройствах</div><div class="stp-row-desc">Завершит все сеансы, включая этот. Войти снова можно по коду на почту.</div></div>
         <button type="button" class="stp-btn stp-btn-danger" onclick="hmSignOutEverywhere()">Выйти везде</button>
       </div>
-      <div class="stp-row" onclick="window.open('/legal/privacy','_blank','noopener')" role="link" tabindex="0">
+      <div class="stp-row" onclick="hmOpenDoc('/legal/privacy.html')" role="link" tabindex="0">
         <div class="stp-row-label"><div class="stp-row-title">Политика конфиденциальности</div></div>
         <span class="stp-link">${chev}</span>
       </div>
@@ -14240,15 +14262,15 @@ function renderAbout(){
         <div class="stp-about-name">HarmonyAI</div>
         <div class="stp-about-ver">Beta 0.8.4</div>
       </div>
-      <div class="stp-row" onclick="window.open('/legal/privacy.html','_blank','noopener')" role="link" tabindex="0">
+      <div class="stp-row" onclick="hmOpenDoc('/legal/privacy.html')" role="link" tabindex="0">
         <div class="stp-row-label"><div class="stp-row-title">Политика конфиденциальности</div></div>
         <span class="stp-link">${chev}</span>
       </div>
-      <div class="stp-row" onclick="window.open('/legal/terms.html','_blank','noopener')" role="link" tabindex="0">
+      <div class="stp-row" onclick="hmOpenDoc('/legal/terms.html')" role="link" tabindex="0">
         <div class="stp-row-label"><div class="stp-row-title">Условия использования</div></div>
         <span class="stp-link">${chev}</span>
       </div>
-      <div class="stp-row" onclick="window.open('/legal/ofera.html','_blank','noopener')" role="link" tabindex="0">
+      <div class="stp-row" onclick="hmOpenDoc('/legal/ofera.html')" role="link" tabindex="0">
         <div class="stp-row-label"><div class="stp-row-title">Платёжная оферта</div></div>
         <span class="stp-link">${chev}</span>
       </div>
@@ -14505,7 +14527,7 @@ function renderSettingsHelp(){
   window.__setScreen='help';
   const chev='<svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
   stpEnsure('help','Помощь',stpBackMain(),`
-      <div class="stp-row" onclick="window.open('/help','_blank','noopener')" role="link" tabindex="0">
+      <div class="stp-row" onclick="hmOpenDoc('/help')" role="link" tabindex="0">
         <div class="stp-row-label"><div class="stp-row-title">Справочный центр</div></div>
         <span class="stp-link">${chev}</span>
       </div>
