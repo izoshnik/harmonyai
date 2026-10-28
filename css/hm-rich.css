@@ -206,3 +206,9 @@ html:not(#_) .code-block .code-pre,html:not(#_) .code-block .code-pre code.hljs{
 .music-answer p{margin:0 0 8px;}
 .music-answer p:last-child{margin-bottom:0;}
 .music-answer .hmr-host{margin-top:8px;}
+/* Запасная вёрстка формул до загрузки KaTeX: дробь столбиком, корень с чертой. */
+.hm-math:not([data-done]){font-style:normal;}
+.hm-tfrac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 .12em;font-size:.86em;line-height:1.15;}
+.hm-tfrac>span{padding:0 .15em;}
+.hm-tfrac>span:first-child{border-bottom:1px solid currentColor;}
+.hm-tsqrt{border-top:1px solid currentColor;padding:0 .1em;}

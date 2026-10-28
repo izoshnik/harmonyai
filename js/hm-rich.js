@@ -94,15 +94,92 @@
     }
     return {md:parts.join(''),maths:maths};
   }
+  /* Модели часто пишут LaTeX без долларов: «\frac{3}{4} + \sqrt{2}». Такие
+     куски сами оборачиваем в $…$, чтобы KaTeX их отрисовал. Код не трогаем. */
+  var LATEX_CMD=/\\(?:d?frac|tfrac|sqrt|cdot|times|div|pm|mp|leq?|geq?|neq|approx|equiv|infty|pi|alpha|beta|gamma|delta|Delta|theta|lambda|mu|sigma|Sigma|omega|varphi|phi|sum|prod|int|lim|log|ln|sin|cos|tan|cot|to|rightarrow|Rightarrow|circ|degree|angle|perp|parallel|in|notin|subset|cup|cap|forall|exists|overline|vec|hat|bar|binom|left|right|text|mathrm|quad)(?![A-Za-z])/;
+  function wrapBareLatex(md){
+    var parts=String(md||'').split(/(```[\s\S]*?(?:```|$)|`[^`\n]+`|\$\$[\s\S]+?\$\$|\$[^$\n]+?\$|\\\([\s\S]+?\\\)|\\\[[\s\S]+?\\\])/g);
+    for(var i=0;i<parts.length;i+=2){
+      var p=parts[i];if(!p||p.indexOf('\\')<0||!LATEX_CMD.test(p))continue;
+      parts[i]=p.replace(/[A-Za-z0-9\\{}^_()\[\]+\-*\/=<>.,|!'° ]*\\[A-Za-z]+[A-Za-z0-9\\{}^_()\[\]+\-*\/=<>.,|!'° ]*/g,function(run){
+        if(!LATEX_CMD.test(run))return run;
+        var lead=run.match(/^[\s.,]*/)[0],tail=run.match(/[\s.,;:!]*$/)[0];
+        var core=run.slice(lead.length,run.length-tail.length);
+        return core?lead+'$'+core+'$'+tail:run;
+      });
+    }
+    return parts.join('');
+  }
+  /* Обычный текст после Markdown: «x^2» → x², «10^-3» → 10⁻³ (через <sup>),
+     аккорды «F#m», «Bb7» → F♯m, B♭7. Код, формулы и ссылки не трогаем. */
+  function prettifyHtml(html){
+    if(typeof document==='undefined'||!/[\^#b]/.test(html))return html;
+    var box=document.createElement('div');box.innerHTML=html;
+    var walker=document.createTreeWalker(box,NodeFilter.SHOW_TEXT,{acceptNode:function(n){
+      for(var p=n.parentNode;p&&p!==box;p=p.parentNode){if(/^(CODE|PRE|A|SCRIPT|STYLE)$/.test(p.nodeName)||(p.classList&&p.classList.contains('hm-math')))return NodeFilter.FILTER_REJECT;}
+      return NodeFilter.FILTER_ACCEPT;}});
+    var list=[];while(walker.nextNode())list.push(walker.currentNode);
+    var POW=/([A-Za-zА-Яа-я0-9)\]π]+)\^(\{([^{}]{1,30})\}|\(([^()]{1,30})\)|(-?\d+(?:[.,]\d+)?|-?[A-Za-zπ][A-Za-z0-9]{0,3}))/g;
+    var CHORD=/(^|[\s(\[«"'\/,–—-])([A-G])(#|b)(?=(?:m(?!a[a-z])|maj|min|dim|aug|sus|add|\d|\/|[\s),.;:!?»"'\]]|$))/g;
+    list.forEach(function(n){
+      var t0=n.nodeValue;
+      // «C#» без продолжения может быть языком программирования — заменяем, только если рядом музыка.
+      var musicCtx=/аккорд|тональн|нот|гамм|лад|мажор|минор|диез|бемоль|chord|key|scale/i.test(t0);
+      var t1=t0.replace(CHORD,function(all,pre,note,acc,off,str){
+        var next=str.charAt(off+all.length);
+        if(acc==='#'&&!musicCtx&&!/[md\d\/as]/.test(next))return all;
+        return pre+note+(acc==='#'?'♯':'♭');
+      });
+      if(t1.indexOf('^')<0||!POW.test(t1)){if(t1!==t0)n.nodeValue=t1;return;}
+      POW.lastIndex=0;
+      var frag=document.createDocumentFragment(),last=0,m;
+      while((m=POW.exec(t1))){
+        frag.appendChild(document.createTextNode(t1.slice(last,m.index)+m[1]));
+        var sup=document.createElement('sup');sup.textContent=(m[3]||m[4]||m[5]).replace(/^-/,'−').replace(/\*/g,'·');
+        frag.appendChild(sup);last=POW.lastIndex;
+      }
+      frag.appendChild(document.createTextNode(t1.slice(last)));
+      n.parentNode.replaceChild(frag,n);
+    });
+    return box.innerHTML;
+  }
+  /* «**Структура.**По» — Markdown не включает жирный, если за закрывающими
+     звёздочками сразу идёт буква после знака препинания. Добавляем пробел. */
+  function fixEmphasis(md){
+    var parts=String(md||'').split(/(```[\s\S]*?(?:```|$)|`[^`\n]+`)/g);
+    for(var i=0;i<parts.length;i+=2){
+      if(parts[i]&&parts[i].indexOf('**')>=0)parts[i]=parts[i].replace(/(\*\*[^*\n]{1,160}?[.,:;!?»)…])\*\*(?=[A-Za-zА-Яа-яЁё0-9«(])/g,'$1** ');
+    }
+    return parts.join('');
+  }
+  /* Запасная отрисовка формулы, пока KaTeX не загрузился (или если сеть его не
+     отдала): дроби столбиком, степени и индексы, корень, знаки — вместо сырого
+     «\frac{3}{4}». KaTeX потом заменит её точной вёрсткой. */
+  var TEX_SYM={cdot:'·',times:'×',div:'÷',pm:'±',mp:'∓',le:'≤',leq:'≤',ge:'≥',geq:'≥',ne:'≠',neq:'≠',approx:'≈',equiv:'≡',infty:'∞',pi:'π',alpha:'α',beta:'β',gamma:'γ',delta:'δ',Delta:'Δ',theta:'θ',lambda:'λ',mu:'μ',sigma:'σ',Sigma:'Σ',omega:'ω',phi:'φ',varphi:'φ',sum:'∑',prod:'∏',int:'∫',to:'→',rightarrow:'→',Rightarrow:'⇒',circ:'°',degree:'°',angle:'∠',perp:'⊥',parallel:'∥',in:'∈',notin:'∉',cup:'∪',cap:'∩',forall:'∀',exists:'∃',quad:' ',sin:'sin',cos:'cos',tan:'tan',log:'log',ln:'ln',lim:'lim',sharp:'♯',flat:'♭',natural:'♮'};
+  function texLite(tex){
+    var s=esc(String(tex||''));
+    var grp='\\{((?:[^{}]|\\{[^{}]*\\})*)\\}';
+    for(var i=0;i<4;i++){
+      s=s.replace(new RegExp('\\\\[dt]?frac\\s*'+grp+'\\s*'+grp,'g'),'<span class="hm-tfrac"><span>$1</span><span>$2</span></span>');
+      s=s.replace(new RegExp('\\\\sqrt\\s*'+grp,'g'),'√<span class="hm-tsqrt">$1</span>');
+      s=s.replace(new RegExp('\\^'+grp,'g'),'<sup>$1</sup>').replace(new RegExp('_'+grp,'g'),'<sub>$1</sub>');
+    }
+    s=s.replace(/\^([A-Za-z0-9])/g,'<sup>$1</sup>').replace(/_([A-Za-z0-9])/g,'<sub>$1</sub>')
+     .replace(/\\(?:left|right|displaystyle|,|;|!)/g,'').replace(/\\text\{([^{}]*)\}|\\mathrm\{([^{}]*)\}/g,'$1$2')
+     .replace(/\\([A-Za-z]+)/g,function(m,w){return TEX_SYM[w]!=null?TEX_SYM[w]:w;})
+     .replace(/[{}]/g,'');
+    return s;
+  }
   function mdToHtml(md){
-    var pm=protectMath(md);
+    var pm=protectMath(wrapBareLatex(fixEmphasis(md)));
     var html=typeof window.marked!=='undefined'?window.marked.parse(pm.md):esc(pm.md);
+    html=prettifyHtml(html);
     if(!pm.maths.length)return html;
     return html.replace(/\u2063HMMATH(\d+)\u2063/g,function(_,i){
       var m=pm.maths[+i];if(!m)return '';
       return m.display
-        ?'<span class="hm-math hm-math-block" data-display="1" data-tex="'+esc(m.tex)+'">'+esc(m.tex)+'</span>'
-        :'<span class="hm-math" data-tex="'+esc(m.tex)+'">'+esc(m.tex)+'</span>';
+        ?'<span class="hm-math hm-math-block" data-display="1" data-tex="'+esc(m.tex)+'">'+texLite(m.tex)+'</span>'
+        :'<span class="hm-math" data-tex="'+esc(m.tex)+'">'+texLite(m.tex)+'</span>';
     });
   }
   var katexP=null;
@@ -324,21 +401,112 @@
   function fmtNum(v){if(!isFinite(v))return '—';var a=Math.abs(v);if(a!==0&&(a>=1e5||a<1e-3))return v.toExponential(1);return String(+v.toFixed(a<1?3:a<100?2:1)).replace('.',',');}
   var PALETTE=['#4f7cff','#f97316','#16a34a','#e11d48','#a855f7','#0ea5e9','#eab308','#14b8a6'];
 
+  /* Формула в любом виде → то, что понимает compileExpr:
+     LaTeX (\frac{1}{x}, \sqrt{x}, x^{2}, \cdot), надстрочные цифры (x²),
+     модуль |x|, «y =», «f(x) =», юникодные минусы и знаки умножения. */
+  var SUPS={'⁰':'0','¹':'1','²':'2','³':'3','⁴':'4','⁵':'5','⁶':'6','⁷':'7','⁸':'8','⁹':'9','⁻':'-','⁺':'+'};
+  function exprToPlain(src){
+    var s=String(src||'').trim().replace(/^\$+|\$+$/g,'');
+    s=s.replace(/^\s*(?:[a-zA-Z]\s*\(\s*x\s*\)|y)\s*=\s*/,'');
+    for(var i=0;i<4;i++)s=s.replace(/\\[dt]?frac\s*\{([^{}]*)\}\s*\{([^{}]*)\}/g,'(($1)/($2))');
+    s=s.replace(/\\sqrt\s*\[(\d+)\]\s*\{([^{}]*)\}/g,'(($2)^(1/$1))').replace(/\\sqrt\s*\{([^{}]*)\}/g,'sqrt($1)')
+     .replace(/\\left|\\right/g,'').replace(/\\cdot|\\times/g,'*').replace(/\\div/g,'/').replace(/\\pi/g,'pi')
+     .replace(/\\(sin|cos|tan|cot|ln|log|exp|arcsin|arccos|arctan)/g,'$1').replace(/\\,|\;|\\!/g,'')
+     .replace(/\^\{([^{}]*)\}/g,'^($1)').replace(/[{}]/g,function(c){return c==='{'?'(':')';});
+    s=s.replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹⁻⁺]+/g,function(m){return '^('+m.split('').map(function(c){return SUPS[c];}).join('')+')';});
+    s=s.replace(/√\s*\(/g,'sqrt(').replace(/√\s*([A-Za-z0-9.]+)/g,'sqrt($1)');
+    s=s.replace(/\|([^|]+)\|/g,'abs($1)');
+    return s;
+  }
+  function pickExpr(f){
+    if(f==null)return '';
+    if(typeof f==='string'||typeof f==='number')return String(f);
+    return String(f.expr||f.expression||f.y||f.f||f.fn||f.func||f.function||f.formula||f.equation||f.eq||'');
+  }
+  function rangeOf(v,dflt){
+    if(Array.isArray(v)&&v.length>=2&&isFinite(+v[0])&&isFinite(+v[1]))return [+v[0],+v[1]];
+    if(v&&typeof v==='object'&&isFinite(+v.min)&&isFinite(+v.max))return [+v.min,+v.max];
+    if(typeof v==='string'){var m=v.match(/(-?\d+(?:\.\d+)?)\s*(?:\.\.|…|;|,|to|до)\s*(-?\d+(?:\.\d+)?)/);if(m)return [+m[1],+m[2]];}
+    return dflt;
+  }
+  var KNOWN=/^(x|pi|e|tau|π)$/i;
+  function freeVars(expr){
+    var out=[];(String(expr).match(/[A-Za-z_][A-Za-z0-9_]*/g)||[]).forEach(function(w){
+      if(KNOWN.test(w)||FUNCS[w.toLowerCase()])return;
+      // «kx», «ab» без знака — несколько однобуквенных параметров подряд
+      var parts=w.length<=3&&/^[a-z]+$/i.test(w)&&!FUNCS[w.toLowerCase()]?w.split(''):[w];
+      parts.forEach(function(p){if(!KNOWN.test(p)&&out.indexOf(p)<0)out.push(p);});
+    });
+    return out;
+  }
+  /* Текст вместо JSON: «y = 2x + 1», «f(x)=x^2; -5..5» — по одной функции на строку. */
+  function chartFromText(raw){
+    var lines=String(raw||'').split(/\n|;(?![^(]*\))/).map(function(l){return l.trim();}).filter(Boolean);
+    var fns=[],x=null;
+    lines.forEach(function(l){
+      var r=rangeOf(l,null);if(r&&!/[a-wyzA-Z]{2,}|=/.test(l.replace(/x/g,''))){x=r;return;}
+      if(/(^|[^a-z])x([^a-z]|$)/i.test(l)&&/[=x]/.test(l))fns.push({expr:l});
+    });
+    return fns.length?{type:'function',functions:fns,x:x||undefined}:null;
+  }
+
   function normChart(raw){
-    var d=parseLoose(raw);if(!d||typeof d!=='object')return null;
-    var type=String(d.type||(d.functions||d.function||d.expr?'function':'line')).toLowerCase();
-    if(type==='function'||type==='functions'||type==='plot'){
-      var fns=d.functions||(d.function?[d.function]:d.expr?[d.expr]:[]);
-      fns=fns.map(function(f){return typeof f==='string'?{expr:f,label:'y = '+f}:{expr:f.expr||f.y||f.f||'',label:f.label||f.name||('y = '+(f.expr||f.y||''))};}).filter(function(f){return f.expr;});
+    var d=parseLoose(raw);
+    if(!d||typeof d!=='object'){d=chartFromText(raw);if(!d)return null;}
+    if(Array.isArray(d))d=d.length&&typeof d[0]==='object'&&(d[0].data||d[0].values)?{series:d}:{functions:d};
+    var fnSrc=d.functions||d.function||d.functions_list||d.expressions||d.expression||d.expr||d.equations||d.equation||d.formula||d.formulas||d.plots||d.graphs||d.fn||d.f;
+    if(!fnSrc&&Array.isArray(d.lines)&&d.lines.some(function(l){return pickExpr(l);}))fnSrc=d.lines;
+    if(!fnSrc&&Array.isArray(d.series)&&d.series.some(function(l){return l&&(l.expr||l.expression||l.formula);}))fnSrc=d.series;
+    var type=String(d.type||(fnSrc?'function':'line')).toLowerCase();
+    if(fnSrc||/function|plot|graph|функц/.test(type)){
+      var list=Array.isArray(fnSrc)?fnSrc:(fnSrc?[fnSrc]:[]);
+      var fns=list.map(function(f){
+        var e=pickExpr(f);
+        var lbl=(f&&typeof f==='object'&&(f.label||f.name||f.title))||('y = '+String(e).replace(/^\s*y\s*=\s*/i,''));
+        return {expr:e,label:String(lbl)};
+      }).filter(function(f){return String(f.expr).trim();});
       if(!fns.length)return null;
+      // Параметры: массив, объект {k:2} или {k:{min,max,value}}
+      var rawP=d.params||d.parameters||d.sliders||d.vars||d.variables||[];
+      if(!Array.isArray(rawP))rawP=Object.keys(rawP).map(function(k){var v=rawP[k];return v&&typeof v==='object'?Object.assign({name:k},v):{name:k,value:+v};});
+      var params=rawP.map(function(p){
+        var min=+p.min,max=+p.max,v=+(p.value!=null?p.value:p.default!=null?p.default:p.initial);
+        if(!isFinite(min))min=isFinite(v)?Math.min(-5,v-5):-5;
+        if(!isFinite(max))max=isFinite(v)?Math.max(5,v+5):5;
+        if(!isFinite(v))v=(min+max)/2;
+        return {name:String(p.name||p.id||'a'),label:p.label||p.title||p.name,min:min,max:max,step:+p.step||(max-min)/100,value:v};
+      });
+      // «kx», «ab» — произведение однобуквенных величин, если так не назван параметр.
+      var have={};params.forEach(function(p){have[p.name]=1;});
+      var plain=fns.map(function(f){
+        return exprToPlain(f.expr).replace(/[A-Za-z_][A-Za-z0-9_]*/g,function(w){
+          if(have[w]||FUNCS[w.toLowerCase()]||KNOWN.test(w)||w.length<2||w.length>3||!/^[a-z]+$/i.test(w))return w;
+          return w.split('').join('*');
+        });
+      });
       var compiled=[];
-      try{fns.forEach(function(f){compiled.push(compileExpr(f.expr.replace(/^\s*y\s*=\s*/i,'')));});}catch(e){return {error:e.message};}
-      var params=(d.params||d.parameters||[]).map(function(p){var min=+p.min,max=+p.max;if(!isFinite(min))min=-5;if(!isFinite(max))max=5;var v=isFinite(+p.value)?+p.value:(min+max)/2;return {name:String(p.name||'a'),label:p.label||p.name,min:min,max:max,step:+p.step||(max-min)/100,value:v};});
-      var x=d.x||d.xRange||d.domain||[-10,10];
-      return {kind:'fn',title:d.title||'',fns:fns,compiled:compiled,params:params,x:[+x[0],+x[1]],y:d.y||d.yRange||null,xLabel:d.xLabel||'x',yLabel:d.yLabel||'y'};
+      try{plain.forEach(function(e){compiled.push(compileExpr(e));});}catch(e){return {error:e.message};}
+      // Буквы в формуле без значения (y = kx + b) — сами делаем ползунки.
+      plain.forEach(function(e){freeVars(e).forEach(function(n){
+        if(have[n])return;have[n]=1;
+        params.push({name:n,label:n,min:-5,max:5,step:0.1,value:n==='b'||n==='c'?1:2});
+      });});
+      var x=rangeOf(d.x||d.xRange||d.x_range||d.domain||d.range,null)||(isFinite(+d.xMin)&&isFinite(+d.xMax)?[+d.xMin,+d.xMax]:[-10,10]);
+      var y=rangeOf(d.y||d.yRange||d.y_range,null)||(isFinite(+d.yMin)&&isFinite(+d.yMax)?[+d.yMin,+d.yMax]:null);
+      return {kind:'fn',title:d.title||'',fns:fns,compiled:compiled,params:params,x:x,y:y,xLabel:d.xLabel||'x',yLabel:d.yLabel||'y'};
     }
-    var labels=d.labels||d.x||[];var series=d.series||d.datasets||(d.data?[{name:d.name||'',data:d.data}]:[]);
-    series=series.map(function(s,i){return {name:s.name||s.label||'',data:(s.data||s.values||[]).map(Number),color:s.color||PALETTE[i%PALETTE.length]};}).filter(function(s){return s.data.length;});
+    var labels=d.labels||d.categories||(Array.isArray(d.x)?d.x:[])||[];
+    var series=d.series||d.datasets||(d.data?[{name:d.name||'',data:d.data}]:[]);
+    if(!Array.isArray(series))series=[series];
+    series=series.map(function(s,i){
+      var data=s.data||s.values||s.y||[];
+      // [{label:'Янв', value:10}] или [{x:1,y:2}]
+      if(data.length&&typeof data[0]==='object'){
+        if(!labels.length)labels=data.map(function(p){return p.label!=null?p.label:p.name!=null?p.name:p.x;});
+        data=data.map(function(p){return p.value!=null?p.value:p.y!=null?p.y:p.count;});
+      }
+      return {name:s.name||s.label||'',data:data.map(Number),color:s.color||PALETTE[i%PALETTE.length]};
+    }).filter(function(s){return s.data.length;});
     if(!series.length)return null;
     if(!labels.length)labels=series[0].data.map(function(_,i){return String(i+1);});
     return {kind:/bar|column|hist/.test(type)?'bar':/pie|donut/.test(type)?'pie':/scatter|point/.test(type)?'scatter':/area/.test(type)?'area':'line',
@@ -470,7 +638,7 @@
     svgWrap.addEventListener('mouseleave',function(){hoverX=null;readout.textContent='';draw();});
     // легенда
     var items=c.kind==='fn'?c.fns.map(function(f,i){return {name:f.label,color:PALETTE[i%PALETTE.length]};}):c.kind==='pie'?c.labels.map(function(l,i){return {name:l+' — '+fmtNum(c.series[0].data[i]),color:PALETTE[i%PALETTE.length]};}):c.series.filter(function(s){return s.name;}).map(function(s){return {name:s.name,color:s.color};});
-    if(items.length>1||c.kind==='fn'||c.kind==='pie'){var lg=el('div','hmr-legend');items.forEach(function(it){var sp=el('span');sp.innerHTML='<i style="background:'+it.color+'"></i>'+mdToHtml(it.name).replace(/^<p>|<\/p>\s*$/g,'');lg.appendChild(sp);});card.appendChild(lg);}
+    if(items.length>1||c.kind==='fn'||c.kind==='pie'){var lg=el('div','hmr-legend');items.forEach(function(it){var sp=el('span');sp.innerHTML='<i style="background:'+it.color+'"></i>'+mdToHtml(String(it.name).replace(/\s*\*\s*/g,'·')).replace(/^<p>|<\/p>\s*$/g,'');lg.appendChild(sp);});card.appendChild(lg);}
     // ползунки параметров
     if(c.kind==='fn'&&c.params.length){
       var box=el('div','hmr-params');
