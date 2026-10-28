@@ -60,10 +60,13 @@
   function sv(tag,attrs){var e=document.createElementNS(SVGNS,tag);for(var k in attrs)e.setAttribute(k,attrs[k]);return e;}
 
   function buildStaffSvg(){
-    var svg=sv('svg',{'class':'hts-staff',viewBox:'0 0 36 22','aria-hidden':'true',focusable:'false'});
+    // Слева — скрипичный ключ: ноты на стане без ключа не пишутся.
+    var svg=sv('svg',{'class':'hts-staff',viewBox:'-9 0 45 22','aria-hidden':'true',focusable:'false'});
     var g=sv('g',{'class':'hts-lines'});
-    [3,7,11,15,19].forEach(function(y){g.appendChild(sv('line',{x1:0,x2:36,y1:y,y2:y}));});
+    [3,7,11,15,19].forEach(function(y){g.appendChild(sv('line',{x1:-9,x2:36,y1:y,y2:y}));});
     svg.appendChild(g);
+    svg.appendChild(sv('path',{'class':'hts-clef',transform:'translate(-8.6 0)',
+      d:'M4.6 15.2C3.4 15.6 3 14 4.2 13.4C5.8 12.7 7 14.4 6.4 15.9C5.8 17.6 3 17.8 2.2 16C1.4 14.2 2.6 12 4.6 10.2C6.4 8.6 7 6 6.4 3.4C6 1.6 4.8 1.2 4.4 2.8C3.9 5 4.6 12 5 19.5C5.2 21.6 3.4 22.2 2.8 20.8'}));
     var ph=sv('line',{'class':'hts-playhead',x1:2,x2:2,y1:0,y2:22});svg.appendChild(ph);
     var notes=[];
     for(var i=0;i<5;i++){var n=sv('g',{'class':'hts-n'});n.appendChild(sv('ellipse',{rx:2.3,ry:1.6}));svg.appendChild(n);notes.push(n);}

@@ -1026,6 +1026,7 @@
    */
   function setQueue(tracks, startAt, playback, collectionInfo) {
     ensureDom();
+    var playing = current();
     state.queue = (tracks || []).filter(function (t) { return t && t.trackId; });
     state.collection = collectionInfo || null;
     // Любая другая очередь выключает «Мою волну».
@@ -1033,12 +1034,28 @@
     if (!state.queue.length) return;
     show();
     syncLiked();
-    playAt(typeof startAt === 'number' ? startAt : 0, playback);
+    var start = typeof startAt === 'number' ? startAt : 0;
+    var target = state.queue[start];
+    // Тот же трек уже звучит (например, его добавили в очередь волны, а теперь
+    // включают из плейлиста): меняем только контекст — дальше пойдёт новый
+    // список, а песня не начинается заново.
+    if (playing && target && String(playing.trackId) === String(target.trackId) && audio && audio.src) {
+      state.index = start;
+      renderTrack();
+      renderQueue();
+      if (audio.paused) audio.play().catch(function () { /* ждём клика */ });
+      prefetchNext();
+      save();
+      emitChange();
+      return;
+    }
+    playAt(start, playback);
   }
 
   function playAt(i, presetPlayback) {
     if (i < 0 || i >= state.queue.length) return;
     state.index = i;
+    if (state.wave) waveTopUp(); // следующий трек волны виден сразу, а не после старта звука
     renderTrack();
     show();
 
@@ -1170,9 +1187,31 @@
     });
   }
 
+  /* Волна выдаёт треки по одному, как в Яндекс Музыке: в очереди — только
+     текущий и следующий, остальные из порции Яндекса ждут в буфере. После
+     пропуска буфер сбрасывается — следующая порция уже учитывает реакцию. */
+  function waveTopUp() {
+    var w = state.wave;
+    if (!w) return false;
+    w.buffer = w.buffer || [];
+    var added = false;
+    var have = {};
+    state.queue.forEach(function (t) { have[String(t.trackId)] = true; });
+    while (state.queue.length - 1 - state.index < 1 && w.buffer.length) {
+      var t = w.buffer.shift();
+      if (!t || have[String(t.trackId)]) continue;
+      state.queue.push(t);
+      have[String(t.trackId)] = true;
+      added = true;
+    }
+    if (added) { renderQueue(); save(); emitChange(); }
+    if (!w.buffer.length) loadMoreWave();
+    return added;
+  }
+
   function onWaveTrackStarted(track) {
     waveFeedback('trackStarted', track, 0);
-    if (state.index >= state.queue.length - 2) loadMoreWave();
+    waveTopUp();
   }
 
   function loadMoreWave() {
@@ -1180,16 +1219,26 @@
     var c = client();
     if (!w || w.loading || !c) return Promise.resolve(false);
     w.loading = true;
-    var last = state.queue[state.queue.length - 1];
+    w.buffer = w.buffer || [];
+    var lastBuf = w.buffer[w.buffer.length - 1];
+    var last = lastBuf || state.queue[state.queue.length - 1];
     return c.wave({ station: w.station, queue: last ? last.trackId : '', seeds: waveSeeds() }).then(function (d) {
       w.loading = false;
       if (state.wave !== w) return false;
       if (d && d.batchId) w.batchId = d.batchId;
       var have = {};
       state.queue.forEach(function (t) { have[String(t.trackId)] = true; });
+      w.buffer.forEach(function (t) { have[String(t.trackId)] = true; });
       var fresh = (d && Array.isArray(d.items) ? d.items : []).filter(function (t) { return t && t.trackId && !have[String(t.trackId)]; });
       if (!fresh.length) return false;
-      state.queue = state.queue.concat(fresh);
+      w.buffer = w.buffer.concat(fresh);
+      // В очередь — только один следующий трек.
+      var have2 = {};
+      state.queue.forEach(function (t) { have2[String(t.trackId)] = true; });
+      while (state.queue.length - 1 - state.index < 1 && w.buffer.length) {
+        var t = w.buffer.shift();
+        if (t && !have2[String(t.trackId)]) { state.queue.push(t); have2[String(t.trackId)] = true; }
+      }
       // Старое из начала очереди не копим: хватит 40 последних треков.
       if (state.queue.length > 60 && state.index > 20) {
         var cut = state.index - 10;
@@ -1217,11 +1266,13 @@
         notify('Волна пока пустая: лайкните пару треков или подключите Яндекс Музыку');
         return false;
       }
-      state.wave = { station: d.station, batchId: d.batchId || '', personal: !!d.personal, loading: false };
+      state.wave = { station: d.station, batchId: d.batchId || '', personal: !!d.personal, loading: false, buffer: items.slice(2) };
       state.shuffle = false;
       if (state.repeat !== 'off') state.repeat = 'off';
       renderModes();
-      setQueue(items, 0, null, { type: 'wave', title: 'Моя волна', station: d.station, personal: !!d.personal });
+      var w0 = state.wave;
+      setQueue(items.slice(0, 2), 0, null, { type: 'wave', title: 'Моя волна', station: d.station, personal: !!d.personal });
+      state.wave = w0;
       return true;
     }).catch(function (e) {
       el.bar.classList.remove('is-loading');
@@ -1255,9 +1306,14 @@
 
   function next(manual) {
     var ni = nextIndex();
-    if (state.wave && manual) waveFeedback('skip', current(), audio.currentTime || 0);
+    if (state.wave && manual) {
+      waveFeedback('skip', current(), audio.currentTime || 0);
+      // Пропуск — сигнал вкуса: следующая порция придёт уже с его учётом.
+      if (state.wave.personal) state.wave.buffer = [];
+    }
     if (ni < 0 && state.wave) {
-      // Волна не кончается: дожидаемся следующей порции и играем дальше.
+      // Волна не кончается: берём трек из буфера или ждём следующую порцию.
+      if (waveTopUp()) { playAt(state.index + 1); return true; }
       loadMoreWave().then(function (ok) { if (ok) playAt(state.index + 1); });
       return true;
     }
@@ -1530,6 +1586,7 @@
     setQueue: setQueue,
     startWave: startWave,
     isWave: function () { return !!state.wave; },
+    currentCollection: function () { return state.collection ? JSON.parse(JSON.stringify(state.collection)) : null; },
     playAt: playAt,
     play: play,
     pause: pause,

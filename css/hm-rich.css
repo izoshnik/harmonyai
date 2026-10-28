@@ -212,3 +212,65 @@ html:not(#_) .code-block .code-pre,html:not(#_) .code-block .code-pre code.hljs{
 .hm-tfrac>span{padding:0 .15em;}
 .hm-tfrac>span:first-child{border-bottom:1px solid currentColor;}
 .hm-tsqrt{border-top:1px solid currentColor;padding:0 .1em;}
+
+/* ===== Визуальные блоки как в ChatGPT: шаги с картинками, сравнение, поток ===== */
+.hmr-blocks{margin:14px 0 16px;max-width:640px;color:var(--text);}
+.hmr-btitle{font-size:18px;font-weight:700;line-height:1.3;margin:0 0 6px;letter-spacing:-.01em;}
+.hmr-bintro{font-size:15.5px;line-height:1.55;color:var(--text);margin:0 0 12px;}
+.hmr-bnote{font-size:14px;line-height:1.5;color:var(--text2);margin-top:10px;}
+.hmr-gi{flex:none;display:block;}
+
+/* шаги */
+.hmr-blocks ol.hmr-step-list,.hmr-step-list{list-style:none;margin:6px 0 0!important;padding:0!important;display:flex;flex-direction:column;gap:14px;}
+.hmr-blocks .hmr-step{margin:0!important;padding:0!important;}
+.hmr-step{display:grid;grid-template-columns:92px 1fr;gap:14px;align-items:start;animation:hmrRise .45s ease both;animation-delay:calc(var(--i,0)*70ms);}
+.hmr-step-media{position:relative;width:92px;height:104px;border-radius:16px;overflow:hidden;
+  background:linear-gradient(150deg,hsl(var(--h,262) 70% 62% / .22),hsl(calc(var(--h,262) + 40) 70% 55% / .10)),var(--bg3);
+  display:flex;align-items:center;justify-content:center;color:hsl(var(--h,262) 75% 68%);}
+.hmr-step-media.is-loading::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 20%,rgba(255,255,255,.07) 50%,transparent 80%);background-size:220% 100%;animation:hmrShine 1.3s linear infinite;}
+.hmr-step-media img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transform:scale(1.04);transition:opacity .45s ease,transform .6s ease;}
+.hmr-step-media img.on{opacity:1;transform:none;}
+.hmr-step-media.has-img .hmr-step-ic{opacity:0;}
+.hmr-step-ic{transition:opacity .3s;}
+.hmr-step-title{font-size:16px;font-weight:700;line-height:1.35;margin:2px 0 4px;}
+.hmr-step-text{font-size:15px;line-height:1.5;color:var(--text);opacity:.88;}
+@media (max-width:600px){.hmr-step{grid-template-columns:78px 1fr;gap:12px;}.hmr-step-media{width:78px;height:92px;border-radius:14px;}}
+
+/* сравнение и шкала времени */
+.hmr-cgrid{display:grid;grid-template-columns:repeat(var(--n,2),minmax(0,1fr));gap:12px;border:1px solid var(--border);border-radius:22px;padding:12px;background:var(--bg2);}
+.hmr-ccol{display:flex;flex-direction:column;gap:8px;min-width:0;}
+.hmr-chead{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15.5px;padding:4px 6px 0;}
+.hmr-cpanel{border-radius:16px;background:var(--bg3);padding:6px 14px;flex:1;}
+.hmr-cpanel.is-muted{opacity:.92;}
+.hmr-crow{padding:9px 0;border-bottom:1px solid var(--border2,rgba(127,127,127,.15));}
+.hmr-crow:last-child{border-bottom:none;}
+.hmr-clabel{font-size:12.5px;color:var(--text2);margin-bottom:3px;font-variant-numeric:tabular-nums;}
+.hmr-ctext{font-size:15px;line-height:1.45;}
+.hmr-crow.is-good .hmr-ctext,.hmr-cres.is-good{color:#22c55e;}
+.hmr-crow.is-bad .hmr-ctext,.hmr-cres.is-bad{color:#ef4444;}
+.hmr-crow.is-warn .hmr-ctext,.hmr-cres.is-warn{color:#f59e0b;}
+.hmr-cres{font-size:14px;font-weight:600;padding:9px 0 6px;}
+.hmr-timeline .hmr-ccol{border:1px solid var(--border);border-radius:22px;padding:12px;background:var(--bg2);}
+@media (max-width:640px){.hmr-cgrid{grid-template-columns:1fr;}}
+
+/* поток / архитектура */
+.hmr-flow-col{display:flex;flex-direction:column;align-items:stretch;border:1px solid var(--border);border-radius:22px;padding:12px;background:var(--bg2);}
+.hmr-flow-node{display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;padding:14px 16px;border-radius:16px;background:var(--bg3);animation:hmrRise .4s ease both;}
+.hmr-flow-ic{color:var(--text);opacity:.9;margin-bottom:2px;}
+.hmr-flow-title{font-weight:700;font-size:15.5px;line-height:1.3;}
+.hmr-flow-text{font-size:13.5px;color:var(--text2);line-height:1.4;}
+.hmr-flow-node.is-good{box-shadow:inset 0 0 0 1px rgba(34,197,94,.45);}
+.hmr-flow-node.is-bad{box-shadow:inset 0 0 0 1px rgba(239,68,68,.45);}
+.hmr-flow-arrow{display:flex;align-items:center;justify-content:center;gap:6px;height:34px;color:var(--text2);font-size:12.5px;}
+
+/* скелетон, пока блок дописывается */
+.hmr-skel-blocks{display:flex;flex-direction:column;gap:14px;border:1px solid var(--border);border-radius:22px;padding:14px;background:var(--bg2);}
+.hmr-skel-row{display:flex;gap:14px;align-items:flex-start;}
+.hmr-skel-thumb{width:78px;height:88px;border-radius:14px;background:var(--bg3);flex:none;}
+.hmr-skel-lines{flex:1;display:flex;flex-direction:column;gap:8px;padding-top:4px;}
+.hmr-skel-lines i{display:block;height:11px;border-radius:6px;background:var(--bg3);}
+.hmr-skel-lines i:nth-child(2){width:86%;}.hmr-skel-lines i:nth-child(3){width:62%;}
+.hmr-skel-thumb,.hmr-skel-lines i{background:linear-gradient(100deg,var(--bg3) 30%,var(--hover,rgba(127,127,127,.18)) 50%,var(--bg3) 70%);background-size:220% 100%;animation:hmrShine 1.3s linear infinite;}
+@keyframes hmrShine{from{background-position:120% 0}to{background-position:-120% 0}}
+@keyframes hmrRise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.hmr-step,.hmr-flow-node{animation:none;}.hmr-step-media.is-loading::after,.hmr-skel-thumb,.hmr-skel-lines i{animation:none;}}

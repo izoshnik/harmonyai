@@ -693,9 +693,15 @@
     if (track.playable === false) { notify('Этот трек недоступен для прослушивания'); return; }
 
     var cur = typeof p.currentTrack === 'function' ? p.currentTrack() : null;
-    if (cur && String(cur.trackId) === String(track.trackId)) { p.toggle(); return; }
-
     var meta = view && view.meta ? view.meta : null;
+    if (cur && String(cur.trackId) === String(track.trackId)) {
+      // Пауза/продолжение — только если играет именно этот плейлист. Если трек
+      // звучит в другой очереди («Моя волна», чат), переключаемся на плейлист:
+      // песня не перезапускается, а дальше пойдут треки плейлиста.
+      var col = typeof p.currentCollection === 'function' ? p.currentCollection() : null;
+      var inWave = typeof p.isWave === 'function' && p.isWave();
+      if (!inWave && col && meta && col.title === meta.title) { p.toggle(); return; }
+    }
     p.setQueue(list.slice(), index, null, meta ? { title: meta.title, subtitle: tracksWord(list.length) } : null);
   }
 

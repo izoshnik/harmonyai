@@ -6,6 +6,10 @@
      ```diagram  — схема / карта понятий (синтаксис Mermaid)
      ```photo    — фото по теме (Википедия) или иллюстрация, нарисованная ИИ
      ```buttons  — кнопки следующих шагов: нажатие отправляет готовый запрос
+     ```steps    — шаги с картинками слева (фото по теме или иконка), как в ChatGPT
+     ```compare  — сравнение «было / стало»: колонки со строками и итогом
+     ```flow     — схема-поток: блоки с иконками и стрелками между ними
+     ```timeline — шкала времени: метки и события, итог цветом
 
    Формулы — LaTeX: $…$ в строке, $$…$$ отдельной строкой (KaTeX).
    Код JavaScript и Python запускается кнопкой «Запустить» прямо в браузере:
@@ -19,7 +23,7 @@
 (function(){
   'use strict';
 
-  var KINDS=['quiz','chart','diagram','mermaid','photo','image','buttons'];
+  var KINDS=['quiz','chart','diagram','mermaid','photo','image','buttons','steps','compare','flow','timeline'];
   var FENCE_SRC='```[ \\t]*('+KINDS.join('|')+')[ \\t]*\\r?\\n([\\s\\S]*?)```';
   var OPEN_RE=new RegExp('```[ \\t]*('+KINDS.join('|')+')[ \\t]*(?:\\r?\\n[\\s\\S]*)?$','i');
 
@@ -196,6 +200,23 @@
     });
     return katexP;
   }
+  /* Модели пишут в формулах «x₂», «x²», «−», «·» юникодом — KaTeX такие символы
+     не понимает и показывает формулу красным исходником. Переводим их в TeX. */
+  var SUB_MAP={'₀':'0','₁':'1','₂':'2','₃':'3','₄':'4','₅':'5','₆':'6','₇':'7','₈':'8','₉':'9','₊':'+','₋':'-','₌':'=','₍':'(','₎':')','ₐ':'a','ₑ':'e','ₒ':'o','ₓ':'x','ᵢ':'i','ⱼ':'j','ₖ':'k','ₗ':'l','ₘ':'m','ₙ':'n','ₚ':'p','ₛ':'s','ₜ':'t'};
+  var SUP_MAP={'⁰':'0','¹':'1','²':'2','³':'3','⁴':'4','⁵':'5','⁶':'6','⁷':'7','⁸':'8','⁹':'9','⁺':'+','⁻':'-','⁼':'=','⁽':'(','⁾':')','ⁿ':'n','ⁱ':'i'};
+  function normalizeTex(tex){
+    var s=String(tex||'');
+    s=s.replace(/[₀-ₜᵢⱼ]+/g,function(r){var o='';for(var i=0;i<r.length;i++)o+=SUB_MAP[r[i]]!=null?SUB_MAP[r[i]]:r[i];return '_{'+o+'}';});
+    s=s.replace(/[⁰¹²³⁴-⁹⁺⁻⁼⁽⁾ⁿⁱ]+/g,function(r){var o='';for(var i=0;i<r.length;i++)o+=SUP_MAP[r[i]]!=null?SUP_MAP[r[i]]:r[i];return '^{'+o+'}';});
+    s=s.replace(/−/g,'-').replace(/·/g,'\\cdot ').replace(/×/g,'\\times ').replace(/÷/g,'\\div ').replace(/≤/g,'\\le ').replace(/≥/g,'\\ge ').replace(/≠/g,'\\ne ').replace(/≈/g,'\\approx ').replace(/√/g,'\\sqrt ').replace(/π/g,'\\pi ').replace(/∞/g,'\\infty ').replace(/°/g,'^{\\circ}');
+    s=s.replace(/♯/g,'\\sharp ').replace(/♭/g,'\\flat ').replace(/♮/g,'\\natural ');
+    // Русский текст внутри формулы — в \text{}, иначе KaTeX ругается.
+    s=s.replace(/([А-Яа-яЁё][А-Яа-яЁё .,:;!?-]*[А-Яа-яЁё.]|[А-Яа-яЁё])/g,function(m,w,off,str){
+      var before=str.slice(Math.max(0,off-40),off);
+      return /\\(?:text|mathrm|textbf|operatorname)\{[^}]*$/.test(before)?m:'\\text{'+m+'}';
+    });
+    return s;
+  }
   function typeset(root){
     if(!root||!root.querySelector)return;
     var nodes=root.querySelectorAll('.hm-math:not([data-done])');
@@ -203,7 +224,14 @@
     loadKatex().then(function(k){
       nodes.forEach(function(n){
         if(n.dataset.done)return;
-        try{k.render(n.getAttribute('data-tex')||'',n,{displayMode:n.dataset.display==='1',throwOnError:false,strict:'ignore',output:'html'});n.dataset.done='1';}catch(e){}
+        var raw=n.getAttribute('data-tex')||'',opts={displayMode:n.dataset.display==='1',throwOnError:true,strict:'ignore',output:'html'};
+        // Сначала как есть, потом нормализованный вариант. Если KaTeX всё равно не
+        // справился — остаётся запасная вёрстка texLite (никакого красного исходника).
+        var tries=[normalizeTex(raw),raw];
+        for(var i=0;i<tries.length;i++){
+          try{var tmp=document.createElement('span');k.render(tries[i],tmp,opts);n.innerHTML=tmp.innerHTML;n.dataset.done='1';return;}catch(e){}
+        }
+        n.dataset.done='1';n.classList.add('hm-math-lite');
       });
     }).catch(function(){});
   }
@@ -771,6 +799,164 @@
   }
 
   /* ======================================================================
+     ШАГИ, СРАВНЕНИЕ, ПОТОК, ШКАЛА ВРЕМЕНИ — визуальные блоки как в ChatGPT
+     ====================================================================== */
+  var GI={ // иконки 24×24, линия currentColor
+    phone:'<rect x="7" y="2.5" width="10" height="19" rx="2.4"/><path d="M11 18.5h2"/>',
+    server:'<rect x="4" y="4" width="16" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="16" height="6.5" rx="1.8"/><path d="M8 7.2h.01M8 16.7h.01"/>',
+    brain:'<path d="M12 3.5l1.9 5 5.1 1.9-5.1 1.9-1.9 5-1.9-5-5.1-1.9 5.1-1.9z"/><path d="M18.5 15.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/>',
+    clock:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+    bolt:'<path d="M13 2.5L5 13.5h6l-1 8 8-11h-6l1-8z"/>',
+    user:'<circle cx="12" cy="8" r="3.6"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/>',
+    cloud:'<path d="M7 18.5h10a4 4 0 00.6-8A5.5 5.5 0 007 9.2 4.7 4.7 0 007 18.5z"/>',
+    database:'<ellipse cx="12" cy="5.5" rx="7" ry="2.8"/><path d="M5 5.5v13c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8v-13M5 12c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8"/>',
+    music:'<path d="M9 18V5.5l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="15.5" r="2.5"/>',
+    note:'<path d="M14 4v10.5"/><circle cx="10.5" cy="16" r="3.5"/><path d="M14 4c1.5 1.8 4 2.3 4 5"/>',
+    book:'<path d="M4.5 5.5A2 2 0 016.5 3.5H19v15H6.5a2 2 0 00-2 2v-15z"/><path d="M4.5 18.5a2 2 0 012-2H19"/>',
+    check:'<circle cx="12" cy="12" r="8.5"/><path d="M8 12.3l2.7 2.7L16 9.5"/>',
+    star:'<path d="M12 3.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"/>',
+    globe:'<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.4 2.6 3.5 5.5 3.5 8.5s-1.1 5.9-3.5 8.5c-2.4-2.6-3.5-5.5-3.5-8.5s1.1-5.9 3.5-8.5z"/>',
+    image:'<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M20.5 16l-5-5-8.5 8.5"/>',
+    file:'<path d="M14 3.5H7a2 2 0 00-2 2v13a2 2 0 002 2h10a2 2 0 002-2V8.5z"/><path d="M14 3.5v5h5M9 13h6M9 16.5h6"/>',
+    code:'<path d="M8.5 7L3.5 12l5 5M15.5 7l5 5-5 5M13.5 4.5l-3 15"/>',
+    chat:'<path d="M5 18.5l-1.5 3 4-1.5A8.5 8.5 0 105 18.5z"/>',
+    gear:'<circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/>',
+    key:'<circle cx="8" cy="15" r="4"/><path d="M11 12l8.5-8.5M16 7l2.5 2.5"/>',
+    heart:'<path d="M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0112 7.5 4.3 4.3 0 0119.5 10c0 5.4-7.5 10-7.5 10z"/>',
+    mic:'<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0013 0M12 17.5v3.5"/>',
+    piano:'<rect x="3" y="4.5" width="18" height="15" rx="2"/><path d="M8 4.5v15M12 4.5v15M16 4.5v15"/><path d="M6.5 4.5v8M10 4.5v8M14 4.5v8M17.5 4.5v8" stroke-width="2.6"/>',
+    bulb:'<path d="M9 18h6M10 21h4M12 3a6 6 0 00-3.6 10.8c.6.5 1 1.2 1 2V16h5.2v-.2c0-.8.4-1.5 1-2A6 6 0 0012 3z"/>',
+    target:'<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r=".8"/>',
+    chart:'<path d="M4 20V4M4 20h16"/><path d="M8 16l3.5-4.5 3 2.5L19 8"/>',
+    play:'<circle cx="12" cy="12" r="8.5"/><path d="M10 8.5l5.5 3.5-5.5 3.5z"/>',
+    headphones:'<path d="M4 15v-3a8 8 0 0116 0v3"/><rect x="3.5" y="14" width="4" height="6" rx="1.6"/><rect x="16.5" y="14" width="4" height="6" rx="1.6"/>',
+    eye:'<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>',
+    warn:'<path d="M12 4l9 15.5H3z"/><path d="M12 10v4M12 17h.01"/>',
+    arrowdown:'<path d="M12 4v15M6 13l6 6 6-6"/>',
+    updown:'<path d="M8 4v15M4.5 8L8 4.5 11.5 8M16 20V5M12.5 16l3.5 3.5 3.5-3.5"/>'
+  };
+  var GI_GUESS=[
+    [/телефон|смартфон|интерфейс|экран|приложени|фронтенд|frontend|клиент/i,'phone'],[/сервер|backend|бэкенд|vercel|прокси/i,'server'],
+    [/модел|нейро|ии\b|ai\b|llm|мозг|токен|думает|генерир/i,'brain'],[/врем|сек|минут|ожидан|ждать|час/i,'clock'],
+    [/быстр|скорост|мгновен|стрим|молни/i,'bolt'],[/пользоват|ученик|ты\b|человек|автор/i,'user'],[/облак|cloud/i,'cloud'],[/баз[аы]|данн|хранил/i,'database'],
+    [/музык|трек|песн|звук|аудио/i,'music'],[/нот|мелоди|гамм|аккорд|интервал/i,'note'],[/учеб|книг|урок|правил|теори/i,'book'],[/код|програм|функци|скрипт/i,'code'],
+    [/чат|сообщ|запрос|вопрос|диалог/i,'chat'],[/настро|параметр|режим/i,'gear'],[/ключ|пароль|доступ/i,'key'],[/фото|картин|изображ/i,'image'],
+    [/файл|документ|pdf/i,'file'],[/готов|итог|результат|провер|верно/i,'check'],[/сеть|интернет|сайт|мир/i,'globe'],[/идея|совет|подсказ/i,'bulb'],
+    [/цель|задач/i,'target'],[/график|рост|статист/i,'chart'],[/фортепиан|пианино|клавиш/i,'piano'],[/голос|пение|спой|микрофон/i,'mic'],[/слуш|слух|наушник/i,'headphones']
+  ];
+  function guessIcon(name,text){
+    if(name&&GI[String(name).toLowerCase()])return String(name).toLowerCase();
+    var s=String(name||'')+' '+String(text||'');
+    for(var i=0;i<GI_GUESS.length;i++)if(GI_GUESS[i][0].test(s))return GI_GUESS[i][1];
+    return 'star';
+  }
+  function gIcon(name,size){return '<svg class="hmr-gi" width="'+(size||22)+'" height="'+(size||22)+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(GI[name]||GI.star)+'</svg>';}
+  function inlineMd(s){return mdToHtml(String(s==null?'':s)).replace(/^\s*<p>|<\/p>\s*$/g,'');}
+  function blockTitle(card,d){
+    if(d&&d.title){var h=el('div','hmr-btitle');h.innerHTML=inlineMd(d.title);card.appendChild(h);}
+    if(d&&(d.intro||d.subtitle)){var p=el('div','hmr-bintro');p.innerHTML=inlineMd(d.intro||d.subtitle);card.appendChild(p);}
+  }
+  function blocksSkeleton(kind,host){
+    var card=el('div','hmr-blocks hmr-skel-blocks');
+    var n=kind==='flow'?3:kind==='steps'?3:2;
+    for(var i=0;i<n;i++){var r=el('div','hmr-skel-row');r.innerHTML=kind==='steps'?'<span class="hmr-skel-thumb"></span><span class="hmr-skel-lines"><i></i><i></i><i></i></span>':'<span class="hmr-skel-lines"><i></i><i></i></span>';card.appendChild(r);}
+    host.appendChild(card);return card;
+  }
+
+  /* ----- шаги с картинками ----- */
+  var stepImgCache={};
+  function stepImage(query){
+    if(!query)return Promise.resolve(null);
+    var key='hm_stepimg_'+hash(query);
+    var c=store(key);if(c&&c.url)return Promise.resolve(c);
+    if(stepImgCache[key])return stepImgCache[key];
+    return (stepImgCache[key]=findPhoto(query).then(function(r){if(r&&r.url)store(key,r);return r;}).catch(function(){return null;}));
+  }
+  function renderSteps(body,host,ctx){
+    var d=parseLoose(body);var items=Array.isArray(d)?d:(d&&(d.items||d.steps))||[];
+    items=items.map(function(it){return typeof it==='string'?{title:it}:it;}).filter(function(it){return it&&(it.title||it.text);}).slice(0,10);
+    if(!items.length)return renderBroken(host,'шаги',body);
+    var card=el('div','hmr-blocks hmr-steps');blockTitle(card,Array.isArray(d)?null:d);
+    var ol=el('ol','hmr-step-list');card.appendChild(ol);
+    items.forEach(function(it,i){
+      var li=el('li','hmr-step');li.style.setProperty('--i',i);
+      var media=el('div','hmr-step-media');
+      var ic=guessIcon(it.icon,(it.title||'')+' '+(it.text||''));
+      var hue=[262,210,150,28,330,190,95,0,45,280][i%10];
+      media.style.setProperty('--h',hue);
+      media.innerHTML='<span class="hmr-step-ic">'+gIcon(ic,30)+'</span>';
+      var q=it.image||it.photo||it.query||'';
+      if(q){
+        media.classList.add('is-loading');
+        stepImage(q).then(function(r){
+          media.classList.remove('is-loading');
+          if(!r||!r.url)return;
+          var img=new Image();img.alt=it.title||'';img.loading='lazy';img.decoding='async';
+          img.onload=function(){media.classList.add('has-img');media.appendChild(img);requestAnimationFrame(function(){img.classList.add('on');});};
+          img.src=r.url;
+        });
+      }
+      li.appendChild(media);
+      var tx=el('div','hmr-step-body');
+      tx.innerHTML='<div class="hmr-step-title">'+(i+1)+'. '+inlineMd(it.title||'')+'</div>'+(it.text?'<div class="hmr-step-text">'+inlineMd(it.text)+'</div>':'');
+      li.appendChild(tx);ol.appendChild(li);
+    });
+    host.appendChild(card);typeset(card);return card;
+  }
+
+  /* ----- сравнение ----- */
+  function toneCls(t){t=String(t||'').toLowerCase();return /good|ok|green|success|хорош|зел/.test(t)?' is-good':/bad|red|err|плох|крас/.test(t)?' is-bad':/warn|amber|yellow|жёлт|желт/.test(t)?' is-warn':'';}
+  function rowsHtml(rows,result){
+    var h='';
+    (rows||[]).forEach(function(r){
+      if(typeof r==='string')r={text:r};
+      h+='<div class="hmr-crow'+toneCls(r.tone)+'">'+(r.label||r.time?'<div class="hmr-clabel">'+inlineMd(r.label||r.time)+'</div>':'')+'<div class="hmr-ctext">'+inlineMd(r.text||r.value||'')+'</div></div>';
+    });
+    if(result){if(typeof result==='string')result={text:result,tone:'good'};h+='<div class="hmr-cres'+(toneCls(result.tone||'good')||' is-good')+'">'+inlineMd(result.text||'')+'</div>';}
+    return h;
+  }
+  function renderCompare(body,host){
+    var d=parseLoose(body);var cols=Array.isArray(d)?d:(d&&(d.columns||d.items||d.cols))||[];
+    cols=cols.filter(function(c){return c&&(c.title||c.rows||c.items);}).slice(0,4);
+    if(!cols.length)return renderBroken(host,'сравнение',body);
+    var card=el('div','hmr-blocks hmr-compare');blockTitle(card,Array.isArray(d)?null:d);
+    var grid=el('div','hmr-cgrid');grid.style.setProperty('--n',cols.length);card.appendChild(grid);
+    cols.forEach(function(c,i){
+      var col=el('div','hmr-ccol');
+      var ic=guessIcon(c.icon,c.title);
+      col.innerHTML='<div class="hmr-chead">'+gIcon(ic,18)+'<span>'+inlineMd(c.title||'')+'</span></div><div class="hmr-cpanel'+(i===0&&cols.length>1&&!c.tone?' is-muted':toneCls(c.tone))+'">'+rowsHtml(c.rows||c.items,c.result||c.footer)+'</div>';
+      grid.appendChild(col);
+    });
+    if(d&&!Array.isArray(d)&&d.note){var n=el('div','hmr-bnote');n.innerHTML=inlineMd(d.note);card.appendChild(n);}
+    host.appendChild(card);typeset(card);return card;
+  }
+  function renderTimeline(body,host){
+    var d=parseLoose(body);var rows=Array.isArray(d)?d:(d&&(d.items||d.rows||d.events))||[];
+    if(!rows.length)return renderBroken(host,'шкала',body);
+    var card=el('div','hmr-blocks hmr-compare hmr-timeline');blockTitle(card,Array.isArray(d)?null:d);
+    var col=el('div','hmr-ccol');
+    col.innerHTML=(d&&d.label?'<div class="hmr-chead">'+gIcon(guessIcon(d.icon,d.label),18)+'<span>'+inlineMd(d.label)+'</span></div>':'')+'<div class="hmr-cpanel">'+rowsHtml(rows,d&&!Array.isArray(d)?d.result:null)+'</div>';
+    card.appendChild(col);host.appendChild(card);typeset(card);return card;
+  }
+
+  /* ----- поток / архитектура ----- */
+  function renderFlow(body,host){
+    var d=parseLoose(body);var nodes=Array.isArray(d)?d:(d&&(d.nodes||d.items||d.steps))||[];
+    nodes=nodes.map(function(n){return typeof n==='string'?{title:n}:n;}).filter(function(n){return n&&n.title;}).slice(0,8);
+    if(!nodes.length)return renderBroken(host,'схема',body);
+    var both=d&&!Array.isArray(d)&&/both|two|двус|⇅|↕/i.test(String(d.arrows||d.direction||''));
+    var card=el('div','hmr-blocks hmr-flow');blockTitle(card,Array.isArray(d)?null:d);
+    var box=el('div','hmr-flow-col');card.appendChild(box);
+    nodes.forEach(function(n,i){
+      if(i){var a=el('div','hmr-flow-arrow');a.innerHTML=gIcon(both||n.both?'updown':'arrowdown',18);if(n.edge||n.label_edge){a.innerHTML+='<span>'+inlineMd(n.edge||n.label_edge)+'</span>';}box.appendChild(a);}
+      var node=el('div','hmr-flow-node'+toneCls(n.tone));
+      node.innerHTML='<span class="hmr-flow-ic">'+gIcon(guessIcon(n.icon,n.title+' '+(n.text||'')),22)+'</span><div class="hmr-flow-title">'+inlineMd(n.title)+'</div>'+(n.text?'<div class="hmr-flow-text">'+inlineMd(n.text)+'</div>':'');
+      box.appendChild(node);
+    });
+    host.appendChild(card);typeset(card);return card;
+  }
+
+  /* ======================================================================
      КНОПКИ СЛЕДУЮЩИХ ШАГОВ
      ====================================================================== */
   function renderButtons(body,host){
@@ -796,6 +982,10 @@
       if(kind==='diagram'||kind==='mermaid')return renderDiagram(body,host,ctx);
       if(kind==='photo'||kind==='image')return renderPhoto(body,host,ctx);
       if(kind==='buttons')return renderButtons(body,host,ctx);
+      if(kind==='steps')return renderSteps(body,host,ctx);
+      if(kind==='compare')return renderCompare(body,host,ctx);
+      if(kind==='timeline')return renderTimeline(body,host,ctx);
+      if(kind==='flow')return renderFlow(body,host,ctx);
     }catch(e){console.warn('[hm-rich]',kind,e);return renderBroken(host,'блок',body);}
     return null;
   }
@@ -803,6 +993,7 @@
     if(kind==='quiz')return quizSkeleton(host);
     if(kind==='buttons')return null;
     var card=el('div','hmr-card hmr-skel');
+    if(kind==='steps'||kind==='compare'||kind==='flow'||kind==='timeline')return blocksSkeleton(kind,host);
     var label={chart:'Строю график…',diagram:'Рисую схему…',mermaid:'Рисую схему…',photo:'Подбираю фото…',image:'Подбираю фото…'}[kind]||'Готовлю…';
     card.innerHTML='<div class="hmr-skel-label">'+ICON.spin+esc(t(label))+'</div><div class="hmr-bar" style="height:140px;border-radius:16px"></div>';
     host.appendChild(card);return card;
