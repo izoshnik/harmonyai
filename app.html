@@ -1507,6 +1507,18 @@ html[data-theme="light"] .attach-opt:hover{background:rgba(20,18,12,.05);}
 .ms-check{color:var(--check);font-size:14px;}
 /* Streaming cursor */
 .stream-cur{display:inline-block;width:.5em;animation:curBlink 1s step-end infinite;opacity:1;color:var(--text2);vertical-align:baseline;}
+/* ChatGPT-стриминг: новые слова проявляются, ожидание — одна пульсирующая точка */
+.hm-fade{animation:hmFadeIn .52s ease-out both;}
+@keyframes hmFadeIn{from{opacity:0;filter:blur(1.5px)}to{opacity:1;filter:none}}
+.hm-pulse-dot{width:13px;height:13px;border-radius:50%;background:var(--text);animation:hmPulseDot 1.3s ease-in-out infinite;margin:6px 2px;}
+@keyframes hmPulseDot{0%,100%{transform:scale(.72);opacity:.55}50%{transform:scale(1);opacity:1}}
+.stream-cur.hm-stall-dot{width:9px;height:9px;border-radius:50%;background:var(--text);margin-left:4px;vertical-align:middle;animation:hmPulseDot 1.3s ease-in-out infinite;}
+.hm-turn-spacer{flex:none;pointer-events:none;}
+.hm-to-bottom{position:absolute;left:50%;top:-50px;transform:translate(-50%,8px) scale(.9);width:38px;height:38px;border-radius:50%;
+  border:1px solid var(--border);background:var(--bg2);color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;
+  box-shadow:0 6px 18px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;z-index:5;}
+.hm-to-bottom.show{opacity:1;pointer-events:auto;transform:translate(-50%,0) scale(1);}
+@media(prefers-reduced-motion:reduce){.hm-fade{animation:none}.hm-pulse-dot,.stream-cur.hm-stall-dot{animation:none}}
 @keyframes curBlink{0%,100%{opacity:1}50%{opacity:0}}
 .stream-break>*:last-child{display:inline;}
 @media(max-width:768px){
@@ -3347,7 +3359,10 @@ html[data-accent="white"]:not([data-theme="dark"]) .model-pill b,html[data-accen
 @media(max-width:768px){
   html,body{overflow-x:hidden!important;max-width:100vw;overscroll-behavior:none;}
   body *{touch-action:manipulation;}
-  .chat-area,.chat-inner{overflow-x:hidden!important;max-width:100vw;}
+  .chat-area{overflow-x:hidden!important;max-width:100vw;}
+  /* clip, а не hidden: hidden делал .chat-inner отдельной прокручиваемой коробкой
+     (overflow-y тоже становился auto), и автопрокрутка/кнопка ↓ на телефоне не работали. */
+  .chat-inner{overflow-x:clip!important;overflow-y:visible!important;max-width:100vw;}
   /* Шапка с фоном — прокрученные сообщения не наезжают на ☰ и модель */
   html body .topbar{background:linear-gradient(var(--mc-bg,#000) 70%,transparent)!important;}
 }
@@ -7928,7 +7943,24 @@ expr — формула от x: + - * / ^, sin cos tan sqrt abs ln log exp, pi, 
 \`\`\`
 5) ФОРМУЛЫ — всегда LaTeX: $a^2+b^2=c^2$ в строке, $$…$$ отдельной строкой. Степени, дроби, корни, индексы и знаки пиши только так: $x^2$, $\\frac{3}{4}$, $\\sqrt{2}$, $a_n$, $\\le$, $\\ne$, $\\pm$, $\\pi$ — никогда не пиши «x^2» или «3/4» голым текстом в примерах. Примеры с дробями — через $\\frac{}{}$, вычисления по шагам — каждый шаг отдельной формулой. Музыкальные знаки — символами: ♯ (диез), ♭ (бемоль), ♮ (бекар), 𝄪, 𝄫, 𝄞; аккорды буквами — F♯m, B♭7. Функциональные обозначения (T53, D7) — обычным текстом.
 6) КОД на JavaScript, Python и HTML пользователь запускает кнопкой ▶ (HTML показывается живой страницей) — пиши законченные примеры с выводом (print / console.log); графики в Python — matplotlib.
-7) КНОПКИ — в конце содержательного ответа (не на приветствия и короткие реплики) 2–3 следующих шага:
+7) ВИЗУАЛЬНЫЕ ОБЪЯСНЕНИЯ (как в ChatGPT) — когда объясняешь процесс, сравнение или устройство чего-то в развёрнутом ответе; 1–2 блока на ответ, не на короткие вопросы:
+\`\`\`steps
+{"title":"Как строится D7","items":[{"title":"Находим V ступень","text":"В до мажоре это соль.","image":"запрос для фото по теме (необязательно)","icon":"note"}]}
+\`\`\`
+— шаги по порядку с картинкой слева (фото из Википедии по image или иконка: phone, server, brain, clock, bolt, user, music, note, book, piano, code, chat, check, globe, image, file, bulb, chart, mic, headphones).
+\`\`\`compare
+{"title":"Разница на практике","intro":"Короткая вводная","columns":[{"title":"Без стриминга","icon":"clock","rows":[{"label":"0–5 сек","text":"пустой экран"}]},{"title":"Со стримингом","icon":"bolt","rows":[{"label":"0,3 сек","text":"первые слова"}],"result":{"text":"5 сек — ответ готов","tone":"good"}}]}
+\`\`\`
+— сравнение «было/стало», «мажор/минор», «до/после».
+\`\`\`flow
+{"title":"Как устроено","arrows":"both","nodes":[{"icon":"phone","title":"Интерфейс","text":"показывает ответ"},{"icon":"server","title":"Сервер","text":"передаёт поток"}]}
+\`\`\`
+— схема из блоков со стрелками (arrows: "down" или "both").
+\`\`\`timeline
+{"label":"Со стримингом","items":[{"label":"1 сек","text":"…"}],"result":{"text":"готово","tone":"good"}}
+\`\`\`
+— события по времени. Текст вокруг блоков пиши как обычно: заголовки ###, жирные ключевые слова, короткие абзацы.
+8) КНОПКИ — в конце содержательного ответа (не на приветствия и короткие реплики) 2–3 следующих шага:
 \`\`\`buttons
 [{"label":"2–5 слов","prompt":"готовый запрос от первого лица пользователя"}]
 \`\`\`
@@ -8853,6 +8885,7 @@ function renderStreamingSegments(el,text){
       }
       if(window.HmRich){div.innerHTML=window.HmRich.mdToHtml(seg.raw);window.HmRich.typeset(div);}
       else div.innerHTML=typeof marked!=='undefined'?marked.parse(seg.raw):seg.raw;
+      if(isLast&&el.classList.contains('is-streaming'))hmFadeTail(el,div,i);
       cache[i]={hash:h,type:'text'};
     }
   });
@@ -8860,10 +8893,57 @@ function renderStreamingSegments(el,text){
   while(el.children.length>segs.length)el.removeChild(el.lastChild);
   cache.length=segs.length;
 }
+/* ===== ПЛАВНОЕ ПРОЯВЛЕНИЕ СЛОВ ПРИ СТРИМИНГЕ (как в ChatGPT) =====
+   Новые символы последнего абзаца оборачиваются в <span class="hm-fade"> с
+   отрицательной задержкой анимации, равной их «возрасту»: DOM перерисовывается
+   каждые 40 мс, но каждое слово продолжает проявляться с того места, где было,
+   а не мигает заново. Формулы и код не трогаем. */
+const HM_FADE_MS=520;
+function hmFadeTail(el,div,segIndex){
+  const now=performance.now();
+  const len=div.textContent.length;
+  let st=el._hmFade;
+  if(!st||st.seg!==segIndex){st=el._hmFade={seg:segIndex,end:0,marks:[]};}
+  if(len<st.end){st.marks.forEach(m=>{m.from=Math.min(m.from,len);m.to=Math.min(m.to,len);});st.end=len;}
+  if(len>st.end){st.marks.push({from:st.end,to:len,t:now});st.end=len;el._hmGrowAt=now;}
+  st.marks=st.marks.filter(m=>now-m.t<HM_FADE_MS&&m.to>m.from);
+  if(!st.marks.length)return;
+  const first=st.marks[0].from;
+  const walker=document.createTreeWalker(div,NodeFilter.SHOW_TEXT,{acceptNode(n){
+    for(let p=n.parentNode;p&&p!==div;p=p.parentNode){if(p.classList&&(p.classList.contains('hm-math')||p.classList.contains('katex'))||/^(CODE|PRE)$/.test(p.nodeName))return NodeFilter.FILTER_REJECT;}
+    return NodeFilter.FILTER_ACCEPT;}});
+  const nodes=[];let off=0;
+  // Смещения считаем по полному textContent, поэтому идём по всем текстовым узлам.
+  const all=document.createTreeWalker(div,NodeFilter.SHOW_TEXT);
+  const ok=new Set();let n;
+  while((n=walker.nextNode()))ok.add(n);
+  while((n=all.nextNode())){const L=n.nodeValue.length;if(off+L>first&&ok.has(n))nodes.push({n,start:off});off+=L;}
+  nodes.forEach(({n,start})=>{
+    const text=n.nodeValue,end=start+text.length;
+    const parts=[];let cur=start;
+    st.marks.forEach(m=>{
+      const a=Math.max(m.from,start),b=Math.min(m.to,end);
+      if(b<=a)return;
+      if(a>cur)parts.push({t:text.slice(cur-start,a-start)});
+      parts.push({t:text.slice(a-start,b-start),age:now-m.t});
+      cur=b;
+    });
+    if(!parts.length)return;
+    if(cur<end)parts.push({t:text.slice(cur-start)});
+    const frag=document.createDocumentFragment();
+    parts.forEach(p=>{
+      if(p.age==null){frag.appendChild(document.createTextNode(p.t));return;}
+      const sp=document.createElement('span');sp.className='hm-fade';sp.style.animationDelay=(-Math.round(p.age))+'ms';sp.textContent=p.t;frag.appendChild(sp);
+    });
+    n.parentNode.replaceChild(frag,n);
+  });
+}
 function updateStreamCursor(el,show){
   let cur=el.querySelector(':scope > .stream-cur');
+  // Вместо мигающего «▍» — тихая точка, и только если поток задумался.
+  if(show&&el._hmGrowAt&&performance.now()-el._hmGrowAt<700)show=false;
   if(show){
-    if(!cur){cur=document.createElement('span');cur.className='stream-cur';cur.textContent='▍';}
+    if(!cur){cur=document.createElement('span');cur.className='stream-cur hm-stall-dot';cur.textContent='';}
     const lastChild=el.lastElementChild;
     if(lastChild&&!lastChild.classList.contains('abc-block')&&!lastChild.classList.contains('hmr-host')){lastChild.appendChild(cur);}
     else{el.appendChild(cur);}
@@ -8961,6 +9041,10 @@ function createLiveTypingController(el,prefixText=''){
           updateStreamCursor(el,showCursor);
           el.dataset.raw=partial;
           scrollChat();
+          // Догнали сеть, а ответ ещё не закончен: через 0,75 с без новых слов
+          // в конце появится тихая пульсирующая точка.
+          clearTimeout(el._hmStallT);
+          if(shownLength>=pendingText.length&&finalText===null)el._hmStallT=setTimeout(()=>{if(!completed&&!stopped)updateStreamCursor(el,true);},760);
         }
         timer=requestAnimationFrame(tick);
         return;
@@ -9034,10 +9118,101 @@ function scrollChat(force){
   const a=document.getElementById('chatArea');
   if(!a)return;
   bindChatScrollGuard();
+  // Как в ChatGPT: пока идёт ответ на новый вопрос, вопрос прижат к верху, а
+  // ответ растёт под ним — вид не «едет» за текстом, вниз ведёт кнопка ↓.
+  if(hmPinActive()){hmPinUpdate(false);hmToBottomSync();return;}
   if(force)chatUserScrolled=false;
-  else if(chatUserScrolled||chatTouching)return;
+  else if(chatUserScrolled||chatTouching){hmToBottomSync();return;}
   a.scrollTop=a.scrollHeight;
   chatLastScrollTop=a.scrollTop;
+  hmToBottomSync();
+}
+
+/* ===== ВОПРОС ПРИЖАТ К ВЕРХУ + КНОПКА ↓ (поведение приложения ChatGPT) =====
+   После отправки последний вопрос пользователя поднимается к верху экрана, под
+   ним — пустое место (распорка), которое заполняет ответ. Распорка уменьшается
+   по мере роста ответа и остаётся до следующего вопроса, поэтому ничего не
+   прыгает. Если ответ ниже края экрана — появляется круглая кнопка ↓. */
+let hmPin=null;
+function hmPinActive(){
+  if(!hmPin)return false;
+  if(!hmPin.user.isConnected||!hmPin.spacer.isConnected){hmPin=null;return false;}
+  return true;
+}
+function hmChatView(a){
+  const ar=a.getBoundingClientRect();
+  const iw=document.querySelector('.input-wrap');
+  let bottom=ar.bottom;
+  if(iw){const r=iw.getBoundingClientRect();if(r.height&&r.top<bottom&&r.top>ar.top)bottom=r.top;}
+  return {top:ar.top,bottom,height:Math.max(80,bottom-ar.top)};
+}
+function hmPinTurn(){
+  const a=document.getElementById('chatArea'),inner=getChatInner();
+  if(!a||!inner)return;
+  const users=inner.querySelectorAll('.msg-user-wrap');
+  const u=users[users.length-1];
+  if(!u)return;
+  inner.querySelectorAll('.hm-turn-spacer').forEach(x=>x.remove());
+  const sp=document.createElement('div');sp.className='hm-turn-spacer';sp.setAttribute('aria-hidden','true');
+  inner.appendChild(sp);
+  hmPin={user:u,spacer:sp};
+  chatUserScrolled=false;
+  hmPinUpdate(true);
+}
+function hmPinUpdate(scroll){
+  if(!hmPinActive())return;
+  const a=document.getElementById('chatArea'),inner=getChatInner();
+  const {user,spacer}=hmPin;
+  if(spacer.nextElementSibling)inner.appendChild(spacer);
+  const v=hmChatView(a);
+  const ar=a.getBoundingClientRect();
+  const userTop=user.getBoundingClientRect().top-ar.top+a.scrollTop;
+  // Верх распорки не зависит от её высоты — меряем без обнуления, иначе
+  // браузер на миг укорачивает ленту и сбрасывает прокрутку.
+  const contentEnd=spacer.getBoundingClientRect().top-ar.top+a.scrollTop;
+  const gap=12;
+  const need=Math.max(0,Math.round(v.height-(contentEnd-userTop)-gap*2));
+  spacer.style.height=need+'px';
+  if(scroll){
+    const top=Math.max(0,userTop-gap);
+    try{a.scrollTo({top,behavior:'smooth'});}catch(e){a.scrollTop=top;}
+    chatLastScrollTop=top;
+  }
+}
+function hmContentEnd(a){
+  const inner=getChatInner();
+  const sp=inner&&inner.querySelector('.hm-turn-spacer');
+  const ar=a.getBoundingClientRect();
+  if(sp)return sp.getBoundingClientRect().top-ar.top+a.scrollTop;
+  return a.scrollHeight;
+}
+let hmToBottomBtn=null;
+function hmToBottomSync(){
+  const a=document.getElementById('chatArea');
+  if(!a)return;
+  if(!hmToBottomBtn){
+    const iw=document.querySelector('.input-wrap');
+    if(!iw)return;
+    hmToBottomBtn=document.createElement('button');
+    hmToBottomBtn.type='button';hmToBottomBtn.className='hm-to-bottom';
+    hmToBottomBtn.setAttribute('aria-label','Прокрутить вниз');hmToBottomBtn.title='Вниз';
+    hmToBottomBtn.innerHTML='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    hmToBottomBtn.addEventListener('click',()=>{
+      const v=hmChatView(a);
+      const end=hmContentEnd(a);
+      const top=Math.max(0,end-(v.height)+24);
+      try{a.scrollTo({top,behavior:'smooth'});}catch(e){a.scrollTop=top;}
+      // Догоняем ответ, пока он пишется.
+      if(!hmPinActive()){chatUserScrolled=false;}
+    });
+    iw.appendChild(hmToBottomBtn);
+    a.addEventListener('scroll',()=>{if(!hmToBottomBtn._raf)hmToBottomBtn._raf=requestAnimationFrame(()=>{hmToBottomBtn._raf=0;hmToBottomSync();});},{passive:true});
+  }
+  const v=hmChatView(a);
+  const ar=a.getBoundingClientRect();
+  const endOnScreen=hmContentEnd(a)-a.scrollTop+ar.top;
+  const show=endOnScreen>v.bottom+48&&!!getChatInner()?.querySelector('.msg-ai-wrap,.msg-user-wrap');
+  hmToBottomBtn.classList.toggle('show',Boolean(show));
 }
 function resetChatScrollFollow(){
   chatUserScrolled=false;
@@ -10099,9 +10274,10 @@ function showTyping(kind='text',steps=[]){
 
   if(!orb){
     // Точки: либо простой запрос, либо модуль анимации не загрузился.
+    // Как в ChatGPT: одна мягко пульсирующая точка, пока не пришло первое слово.
     const dots=document.createElement('div');
-    dots.className='think-dots';
-    dots.innerHTML='<span></span><span></span><span></span>';
+    dots.className='hm-pulse-dot';
+    dots.setAttribute('aria-label','Печатает');
     d.appendChild(dots);
   }else{
     d.classList.add('think-orb');
@@ -12654,6 +12830,7 @@ async function runAssistantReply(displayText){
   showTyping(typKind);
   setGeneratingState(true);
   const aiShell=createAiBubbleShell({showActions:true,hiddenActions:true});
+  try{hmPinTurn();}catch(_){}
   try{
     const result=await requestChatReplyLive(aiShell.msg,aiShell.actions);
     if(switchedAway()){
