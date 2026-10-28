@@ -196,6 +196,23 @@
     });
     return katexP;
   }
+  /* Модели пишут в формулах «x₂», «x²», «−», «·» юникодом — KaTeX такие символы
+     не понимает и показывает формулу красным исходником. Переводим их в TeX. */
+  var SUB_MAP={'₀':'0','₁':'1','₂':'2','₃':'3','₄':'4','₅':'5','₆':'6','₇':'7','₈':'8','₉':'9','₊':'+','₋':'-','₌':'=','₍':'(','₎':')','ₐ':'a','ₑ':'e','ₒ':'o','ₓ':'x','ᵢ':'i','ⱼ':'j','ₖ':'k','ₗ':'l','ₘ':'m','ₙ':'n','ₚ':'p','ₛ':'s','ₜ':'t'};
+  var SUP_MAP={'⁰':'0','¹':'1','²':'2','³':'3','⁴':'4','⁵':'5','⁶':'6','⁷':'7','⁸':'8','⁹':'9','⁺':'+','⁻':'-','⁼':'=','⁽':'(','⁾':')','ⁿ':'n','ⁱ':'i'};
+  function normalizeTex(tex){
+    var s=String(tex||'');
+    s=s.replace(/[₀-ₜᵢⱼ]+/g,function(r){var o='';for(var i=0;i<r.length;i++)o+=SUB_MAP[r[i]]!=null?SUB_MAP[r[i]]:r[i];return '_{'+o+'}';});
+    s=s.replace(/[⁰¹²³⁴-⁹⁺⁻⁼⁽⁾ⁿⁱ]+/g,function(r){var o='';for(var i=0;i<r.length;i++)o+=SUP_MAP[r[i]]!=null?SUP_MAP[r[i]]:r[i];return '^{'+o+'}';});
+    s=s.replace(/−/g,'-').replace(/·/g,'\\cdot ').replace(/×/g,'\\times ').replace(/÷/g,'\\div ').replace(/≤/g,'\\le ').replace(/≥/g,'\\ge ').replace(/≠/g,'\\ne ').replace(/≈/g,'\\approx ').replace(/√/g,'\\sqrt ').replace(/π/g,'\\pi ').replace(/∞/g,'\\infty ').replace(/°/g,'^{\\circ}');
+    s=s.replace(/♯/g,'\\sharp ').replace(/♭/g,'\\flat ').replace(/♮/g,'\\natural ');
+    // Русский текст внутри формулы — в \text{}, иначе KaTeX ругается.
+    s=s.replace(/([А-Яа-яЁё][А-Яа-яЁё .,:;!?-]*[А-Яа-яЁё.]|[А-Яа-яЁё])/g,function(m,w,off,str){
+      var before=str.slice(Math.max(0,off-40),off);
+      return /\\(?:text|mathrm|textbf|operatorname)\{[^}]*$/.test(before)?m:'\\text{'+m+'}';
+    });
+    return s;
+  }
   function typeset(root){
     if(!root||!root.querySelector)return;
     var nodes=root.querySelectorAll('.hm-math:not([data-done])');
@@ -203,7 +220,14 @@
     loadKatex().then(function(k){
       nodes.forEach(function(n){
         if(n.dataset.done)return;
-        try{k.render(n.getAttribute('data-tex')||'',n,{displayMode:n.dataset.display==='1',throwOnError:false,strict:'ignore',output:'html'});n.dataset.done='1';}catch(e){}
+        var raw=n.getAttribute('data-tex')||'',opts={displayMode:n.dataset.display==='1',throwOnError:true,strict:'ignore',output:'html'};
+        // Сначала как есть, потом нормализованный вариант. Если KaTeX всё равно не
+        // справился — остаётся запасная вёрстка texLite (никакого красного исходника).
+        var tries=[normalizeTex(raw),raw];
+        for(var i=0;i<tries.length;i++){
+          try{var tmp=document.createElement('span');k.render(tries[i],tmp,opts);n.innerHTML=tmp.innerHTML;n.dataset.done='1';return;}catch(e){}
+        }
+        n.dataset.done='1';n.classList.add('hm-math-lite');
       });
     }).catch(function(){});
   }

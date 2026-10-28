@@ -12,8 +12,9 @@
 html[data-theme="dark"] .hts{--ns:88%;--nl:70%;--nl-lit:82%;}
 @media(max-width:768px){html:not([data-theme="light"]):not([data-theme="messenger"]) .hts{--ns:88%;--nl:70%;--nl-lit:82%;}}
 
-.hts-staff{width:21px;height:13px;flex:none;overflow:visible;color:var(--hts-faint);}
+.hts-staff{width:26px;height:13px;flex:none;overflow:visible;color:var(--hts-faint);}
 .hts-lines line{stroke:currentColor;stroke-width:.8;}
+.hts-clef{fill:none;stroke:currentColor;stroke-width:1.15;stroke-linecap:round;stroke-linejoin:round;opacity:.95;}
 .hts-playhead{stroke:var(--hts-accent);stroke-width:1.2;opacity:.45;transition:opacity .4s;}
 .hts-n{transition:transform .38s cubic-bezier(.34,1.5,.5,1),opacity .35s;}
 .hts-n.swap{transition:transform .75s cubic-bezier(.65,0,.35,1),opacity .35s;}

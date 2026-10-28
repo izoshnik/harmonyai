@@ -7801,6 +7801,8 @@ const BASE_SYSTEM=`Ты HarmonyAI — универсальный ИИ-помощ
 12. Если пользователь просит подписи, буквенные обозначения аккордов, аппликатуру или подсказки, добавляй их кратко и читаемо рядом со станом.
 13. Для служебных подписей можно использовать строки комментариев %caption: текст и %annotation: текст внутри ABC-блока.
 14. Предпочитай русские подписи и не выводи лишние англоязычные системные заголовки, если они не нужны по смыслу.
+15. КЛЮЧ ОБЯЗАТЕЛЕН: если на стане есть хоть одна нота, у стана всегда есть скрипичный или басовый ключ. Пиши его явно: K:C clef=treble (по умолчанию) или K:C clef=bass для низкого регистра; для фортепиано — %%staves {1 2}, V:1 clef=treble, V:2 clef=bass. clef=none запрещён.
+16. ПОДПИСИ ПОД АККОРДАМИ (как в учебнике сольфеджио): перед аккордом ставь аннотацию в кавычках с подчёркиванием — "_I"[CEG] "_V₆"[B,DG] "_IV₆₄"[CFA]. Цифровку внутри аннотации пиши подстрочными цифрами (₆, ₆₄, ₅₃, ₇, ₆₅, ₄₃, ₂). Аккорды — целыми (L:1, M:none), положения оборота разделяй двойной чертой ||, заголовок оборота — строкой %caption: C-dur: T-D-T. Голоса веди плавно: общие звуки оставляй на месте. Если в разделе «МУЗЫКАЛЬНОЕ ЯДРО» уже есть готовый блок — вставь его без изменений.
 Пример гаммы в две октавы:
 \`\`\`abc
 X:1
@@ -7811,14 +7813,14 @@ K:G
 G A B c | d e f g | a b c' d' | e' f' g'4 |
 f' e' d' c' | b a g f | e d c B | A G4 ||
 \`\`\`
-Пример аккордов:
+Пример оборота с подписями (C-dur: T-S-D-T):
 \`\`\`abc
 X:2
-T:Chord progression
-M:4/4
-L:1/4
-K:C
-[CEG] z [DFA] z | [EGB] z [FAC] z ||
+%caption: C-dur: T-S-D-T
+M:none
+L:1
+K:C clef=treble
+"_I"[CEG] "_IV₆₄"[CFA] "_V₆"[B,DG] "_I"[CEG] || "_I₆"[EGc] "_IV"[FAc] "_V₆₄"[DGB] "_I₆"[EGc] ||
 \`\`\``;
 
 function getLastUserText(){
@@ -8528,6 +8530,16 @@ function scientificPitchToAbc(letter,accidental,octave){
   return abcAccidentalPrefix(accidental)+base+suffix;
 }
 function normalizeAbcMusicLine(line){
+  // Подписи в кавычках ("_D7", "^Am") не трогаем: иначе «D7» превратится в ноту.
+  if(/"[^"]*"/.test(line)){
+    const parts=String(line).split(/("[^"]*")/);
+    const outside=parts.filter((p,i)=>i%2===0).join(' \u2060 ');
+    const fixed=hmNormalizeAbcNotes(outside).split(/\s*\u2060\s*/);
+    return parts.map((p,i)=>i%2===0?(fixed[i/2]||'').trim():p).join(' ').replace(/("[^"]*") +/g,'$1').replace(/\s{2,}/g,' ').trim();
+  }
+  return hmNormalizeAbcNotes(line);
+}
+function hmNormalizeAbcNotes(line){
   let next=line
     .replace(/\u00A0/g,' ')
     .replace(/[–—]/g,'-')
@@ -8543,10 +8555,18 @@ function normalizeAbcMusicLine(line){
   }
   next=next.replace(/(^|[^_^=])([A-Ga-g])([#b♯♭]{1,2})(?=[,']?(?:\d+\/\d+|\d+|\/\d+)?(?:\s|[|\]\[]|$))/g,(_,lead,note,acc)=>lead+abcAccidentalPrefix(acc)+note);
   next=next.replace(/([([])\s+/g,'$1').replace(/\s+([)\]])/g,'$1');
-  next=next.replace(/\s*\|\s*/g,' | ').replace(/\s{2,}/g,' ').trim();
+  // Тактовые черты: «||», «|]», «[|», «:|», «|:» — целиком, иначе «||» распадается на два такта.
+  next=next.replace(/\s*(:\|\||\|\|:|\|\]|\[\||\|\||:\||\|:|\|)\s*/g,' $1 ').replace(/\s{2,}/g,' ').trim();
   return next;
 }
+/* Ноты на стане всегда с ключом: «clef=none»/«perc» → скрипичный, у K: без ключа
+   abcjs и так рисует скрипичный. */
+function hmEnsureClef(abc){
+  return String(abc||'').replace(/clef\s*=\s*(?:none|perc(?:ussion)?)\b/gi,'clef=treble');
+}
 function normalizeAbcBlock(src,index){
+  // Нотный пример, построенный музыкальным ядром (%hm:exact), уже точный — не трогаем.
+  if(/^%hm:exact\s*$/m.test(String(src||'')))return hmEnsureClef(String(src).replace(/\r/g,'').trim());
   const rawLines=String(src||'').replace(/\r/g,'').split('\n');
   const cleaned=rawLines.map(line=>line.trimEnd()).filter((line,idx,arr)=>line.trim()!==''||!(idx===0||idx===arr.length-1));
   const normalized=cleaned.map(line=>{
@@ -8658,7 +8678,8 @@ function getAbcRenderOptions(hostEl,abcText=''){
     paddingbottom:8,
     staffwidth:width,
     wrap:{
-      preferredMeasuresPerLine:mobile?(density.bars>10?1:2):(density.bars>16?3:4),
+      // Обороты от музыкального ядра (%hm:exact): на телефоне — по одному положению в строке.
+      preferredMeasuresPerLine:mobile?(density.bars>10||/%hm:exact/.test(abcText)?1:2):(density.bars>16?3:4),
       minSpacing:denseFactor<1?0.9:1.05,
       maxSpacing:denseFactor<0.9?1.5:2.1
     }
@@ -9952,7 +9973,7 @@ function hmRenderAbc(id,abcSrc,surface,cvs,delay){
   hmLoadLib('abcjs').catch(()=>{});
   const run=function(){
     if(window.ABCJS&&typeof window.ABCJS.renderAbc==='function'){
-      try{window.ABCJS.renderAbc(id,abcSrc,getAbcRenderOptions(surface,abcSrc));}
+      try{abcSrc=hmEnsureClef(abcSrc);window.ABCJS.renderAbc(id,abcSrc,getAbcRenderOptions(surface,abcSrc));}
       catch(e){try{cvs.textContent=abcSrc;}catch(e2){}}
       return;
     }
