@@ -132,8 +132,8 @@ if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127
      отвечают секунды/таймаутом, а раньше первый кадр ждал именно их.
      Первый кадр теперь отдаётся на системных шрифтах, Inter подгружается
      следом (display=swap уже в URL). -->
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Courier+Prime:wght@400;700&display=swap" media="print" onload="this.media='all';this.onload=null;">
-<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Courier+Prime:wght@400;700&display=swap"></noscript>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Courier+Prime:wght@400;700&family=Noto+Music&family=Noto+Sans+Math&display=swap" media="print" onload="this.media='all';this.onload=null;">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Courier+Prime:wght@400;700&family=Noto+Music&family=Noto+Sans+Math&display=swap"></noscript>
 <link rel="stylesheet" href="/css/highlight-dark.css" media="print" onload="this.media='all';this.onload=null;">
 <noscript><link rel="stylesheet" href="/css/highlight-dark.css"></noscript>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
@@ -317,7 +317,7 @@ html[data-theme="light"] .limit-reached{background:rgba(239,68,68,.07);border-co
 /* Шрифты подключены через <link rel="stylesheet"> в <head> — быстрее, чем @import внутри CSS. */
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 html,body{height:100%;height:100dvh;overflow:hidden;}
-body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Noto Sans Math','Noto Music',sans-serif;}
 /* Инлайновая <svg> сидит на текстовом baseline и оставляет несколько пикселей снизу —
    из-за этого иконки в круглых/квадратных кнопках выглядят смещёнными («криво»).
    Делаем svg блочными во всех иконочных кнопках, тогда flex-центрирование ставит их ровно. */
@@ -3429,6 +3429,7 @@ body.hm-dragging #chatInner::after{content:'Отпустите файлы, чт�
 .hm-step-live .hm-step-title{background:linear-gradient(90deg,var(--text2) 0%,var(--text2) 38%,var(--text) 50%,var(--text2) 62%,var(--text2) 100%);background-size:260% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:htsShimmer 2.2s linear infinite;}
 @media(prefers-reduced-motion:reduce){.hm-step-live .hm-step-title{animation:none;color:var(--text2);background:none;}}
 </style>
+<link rel="stylesheet" href="/css/hm-scrollbar.css">
 </head>
 <body>
 <div id="initialLoading" role="status" aria-live="polite"><span class="boot-spinner"></span><span>Загрузка HarmonyAI…</span></div>
@@ -7986,13 +7987,13 @@ const RICH_SYSTEM=`
 \`\`\`chart
 {"type":"function","title":"…","x":[-10,10],"functions":[{"expr":"a*sin(b*x)","label":"y = a·sin(bx)"}],"params":[{"name":"a","label":"Амплитуда","min":0,"max":5,"step":0.1,"value":1}]}
 \`\`\`
-expr: + - * / ^, sin cos tan sqrt abs ln log exp, pi, e; params дают ползунки. Данные: {"type":"bar|line|area|pie|scatter","title":"…","labels":["…"],"series":[{"name":"…","data":[1,2]}],"xLabel":"…","yLabel":"…"}
+expr — формула от x: + - * / ^, sin cos tan sqrt abs ln log exp, pi, e (2*x+1, x^2, 1/x); каждая буква кроме x — параметр с ползунком, опиши её в params (для y = kx + b — params k и b с примерными значениями). Данные: {"type":"bar|line|area|pie|scatter","title":"…","labels":["…"],"series":[{"name":"…","data":[1,2]}],"xLabel":"…","yLabel":"…"}
 3) СХЕМА или карта понятий — блок \`\`\`diagram с кодом Mermaid (flowchart TD или mindmap), подписи узлов в кавычках.
 4) ФОТО — когда реальное изображение полезно (композитор, инструмент, место, картина), не больше 2 на ответ, URL не выдумывай:
 \`\`\`photo
 {"query":"Иоганн Себастьян Бах портрет","caption":"И. С. Бах","prompt":"English description for an illustration if no real photo exists"}
 \`\`\`
-5) ФОРМУЛЫ — LaTeX: $a^2+b^2=c^2$ в строке, $$…$$ отдельной строкой. Обозначения аккордов (T53, D7) — обычным текстом.
+5) ФОРМУЛЫ — всегда LaTeX: $a^2+b^2=c^2$ в строке, $$…$$ отдельной строкой. Степени, дроби, корни, индексы и знаки пиши только так: $x^2$, $\\frac{3}{4}$, $\\sqrt{2}$, $a_n$, $\\le$, $\\ne$, $\\pm$, $\\pi$ — никогда не пиши «x^2» или «3/4» голым текстом в примерах. Примеры с дробями — через $\\frac{}{}$, вычисления по шагам — каждый шаг отдельной формулой. Музыкальные знаки — символами: ♯ (диез), ♭ (бемоль), ♮ (бекар), 𝄪, 𝄫, 𝄞; аккорды буквами — F♯m, B♭7. Функциональные обозначения (T53, D7) — обычным текстом.
 6) КОД на JavaScript, Python и HTML пользователь запускает кнопкой ▶ (HTML показывается живой страницей) — пиши законченные примеры с выводом (print / console.log); графики в Python — matplotlib.
 7) КНОПКИ — в конце содержательного ответа (не на приветствия и короткие реплики) 2–3 следующих шага:
 \`\`\`buttons
