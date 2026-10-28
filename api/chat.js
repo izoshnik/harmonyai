@@ -1,6 +1,7 @@
 import { proofreadRussian, fixMarkdownSpacing } from '../lib/proofread.js';
 import { hasProAccess, requireUser } from '../lib/auth.js';
 import { buildMusicTheoryContext } from '../lib/music-theory-router.js';
+import { readChatImages, withReading, isDocumentReading } from '../lib/image-read.js';
 import { applyDevAccountProfile } from '../lib/dev-account.js';
 export const config = {
   maxDuration: 300
@@ -2246,9 +2247,9 @@ export default async function handler(req, res) {
 
     /* Музыкальное ядро считается синхронно и без сети — сразу знаем, вопрос ли
        это по теории и решён ли он точным расчётом. */
-    const musicContext = buildMusicTheoryContext(query);
-    const isTheoryQuestion = Boolean(musicContext);
-    const theoryResolved = musicContext.includes('РАСЧЁТ:');
+    let musicContext = buildMusicTheoryContext(query);
+    let isTheoryQuestion = Boolean(musicContext);
+    let theoryResolved = musicContext.includes('РАСЧЁТ:');
 
     /* ВСЕ запросы к Supabase — параллельно (раньше шли цепочкой: профиль →
        лимиты → документы → чанки). Профиль и глобальная база знаний — из кэша.
@@ -2283,6 +2284,23 @@ export default async function handler(req, res) {
     if (!isProRole(profile) && model === 'pro') model = 'lite';
     // Все уровни усилия (Low / Medium / Max / Extra) открыты и в Free: тарифы
     // различаются моделью и лимитами, а не глубиной размышления.
+
+    /* ФОТО: сначала дословная расшифровка (печатный и рукописный текст, значки,
+       ноты на стане) отдельной моделью со зрением, затем ответ. Если на фото
+       документ, задание или ноты — отвечает сильная текстовая модель по
+       расшифровке, а музыкальное ядро заранее решает пункты задания. */
+    let imageReading = null;
+    if (allowance.ok && lastUserHasImage(messages)) {
+      try {
+        imageReading = await readChatImages(messages, { pro: isProRole(profile), userText: query });
+      } catch (e) { console.warn('[harmonyai] image read failed:', compactErrorValue(e?.message, 160)); }
+      if (imageReading) {
+        messages = withReading(messages, imageReading, { dropImages: isDocumentReading(imageReading) });
+        const fromPhoto = buildMusicTheoryContext([query, imageReading.text, imageReading.abc].filter(Boolean).join('\n'));
+        if (fromPhoto) { musicContext = fromPhoto; isTheoryQuestion = true; theoryResolved = fromPhoto.includes('РАСЧЁТ:'); }
+        console.log(`[harmonyai] photo read | model=${imageReading.model} | type=${imageReading.type} | chars=${String(imageReading.text || '').length} | theory=${theoryResolved}`);
+      }
+    }
 
     /* БЫСТРЫЙ ПУТЬ: приветствие, короткий вопрос по термину или задача, уже
        решённая музыкальным ядром, — без скрытых рассуждений модели, если
@@ -2366,6 +2384,12 @@ export default async function handler(req, res) {
       maxTokens = 800; // короткий быстрый ответ на простой вопрос
     } else {
       maxTokens = 2048;
+    }
+    // Билет или задание из нескольких пунктов: ответ длинный (решение каждого
+    // пункта + нотные примеры) — без короткого потолка и с запасом времени.
+    if (musicContext.includes('Это билет/задание из нескольких пунктов')) {
+      maxTokens = 0;
+      modelTimeoutMs = Math.max(modelTimeoutMs, 70000);
     }
     // Если поиск в интернете нужен — выполняем его ДО вызова модели и сразу стримим
     // клиенту события «размышления ИИ»: какой запрос ищу → какие сайты просмотрел →
