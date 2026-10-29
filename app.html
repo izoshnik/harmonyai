@@ -15827,7 +15827,17 @@ async function hmVkidStart(clientId){
     try{
       const r=await hmVideoCall({action:'vk-connect',...HM_VKID_RETURN},30000);
       if(r&&r.ok)showToast('VK Видео подключено к серверу');
-      else showToast('VK подключился, но поиск видео не работает: '+((r&&(r.error&&r.error.message||r.message||r.error))||'ошибка'));
+      else{
+        const err=(r&&(r.error&&r.error.message||r.message||r.error))||'ошибка';
+        const lines=['VK выдал ключ, но поиск видео с ним не работает.','',
+          'Данные для поддержки VK ID:',
+          '• ID приложения: '+((r&&r.clientId)||'—'),
+          '• Выданные доступы (scope): '+((r&&r.scope)||'VK не сообщил'),
+          '• Доступ «video» '+(r&&r.hasVideoScope?'выдан':'НЕ выдан'),
+          '• Метод: video.search',
+          '• Ответ VK: '+err+(r&&r.errorCode?' ('+r.errorCode+')':'')];
+        try{await hmAlert(lines.join('\n'),'VK Видео не подключено');}catch(e){showToast('VK подключился, но поиск видео не работает: '+err);}
+      }
     }catch(e){showToast('Не удалось подключить VK: '+(e.message||e));}
   };
   setTimeout(go,300);
