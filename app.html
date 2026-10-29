@@ -15709,9 +15709,15 @@ function hmVideoWanted(text){
   return Boolean(hmVideoRecent()&&text.length<90&&/следующ|предыдущ|дальше|другую|другой|оригинал|англ|русск|озвуч|серию|сезон/i.test(text));
 }
 async function hmVideoCall(body,timeoutMs){
-  const res=await withTimeout(fetch('/api/util?op=video',{method:'POST',headers:await hmAuthHeaders(),body:JSON.stringify(body),cache:'no-store'}),timeoutMs||25000,'video');
-  let data=null;try{data=await res.json();}catch(e){data=null;}
-  return data||{ok:false};
+  // Один повтор при сетевом сбое: иначе просьба найти видео молча уходила в обычный чат.
+  for(let attempt=0;attempt<2;attempt++){
+    try{
+      const res=await withTimeout(fetch('/api/util?op=video',{method:'POST',headers:await hmAuthHeaders(),body:JSON.stringify(body),cache:'no-store'}),timeoutMs||25000,'video');
+      let data=null;try{data=await res.json();}catch(e){data=null;}
+      if(data)return data;
+    }catch(e){if(attempt)throw e;}
+  }
+  return {ok:false};
 }
 function hmVideoHistory(){
   return chatHistory.slice(-6).map(m=>{

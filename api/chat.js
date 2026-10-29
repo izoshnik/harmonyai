@@ -4,6 +4,7 @@ import { buildMusicTheoryContext } from '../lib/music-theory-router.js';
 import { readChatImages, withReading, isDocumentReading } from '../lib/image-read.js';
 import { createReasoningRelay, isNativeReasoner } from '../lib/reasoning-relay.js';
 import { applyDevAccountProfile } from '../lib/dev-account.js';
+import { searchWeb } from '../lib/web-search.js';
 export const config = {
   maxDuration: 300
 };
@@ -646,11 +647,29 @@ function isDefinitelyOfflineQuery(query = '') {
   if (/^(а\s+)?(какое|какой|какая)\s+(сегодня|сейчас|завтра|вчера)?\s*(число|день|дата|год|месяц|день недели)\s*(сегодня|сейчас|завтра|вчера)?\s*\??$|^(который|сколько)\s+(сейчас\s+)?(час|времени)\s*\??$/.test(clean)) return true;
   // Музыкальная теория / творчество / ноты — всё это «домашние» знания ИИ
   if (wantsRenderedStaff(clean)) return true;
-  if (/(гамм|аккорд|тональност|интервал|сольфеджи|нот(ы|ный|ная|ное)|аппликатур|ритм|такт(ы)?|размер\s+\d|трезвучи|септаккорд|обращени|импровиз|аранжир|транспони|темп\b|динамик(а|и)|штрих\b|фразировк|слух|диктовк)/.test(clean)) return true;
+  if (/(гамм|аккорд|тональност|интервал|сольфеджи|нот(ы|ный|ная|ное)|аппликатур|ритм|такт(ы)?|размер\s+\d|трезвучи|септаккорд|обращени|импровиз|аранжир|транспони|темп\b|динамик(а|и)|штрих\b|фразировк|слух|диктовк|доминант|субдоминант|тоник|каденци|модуляци|отклонени|лад(а|ы|ов)?\b|мажор|минор|квинт|кварт|терци|секст|септим|обращени|голосоведени)/.test(clean)) return true;
   if (/(сочини|сгенерируй|придумай|напиши\s+(мелоди|пьес|песн|гамм|этюд)|создай\s+(мелоди|пьес|песн|гамм|этюд)|построй\s+гамм)/.test(clean)) return true;
   // Личный контекст пользователя
   if (/(помнишь|как обычно|мо[йяюе]\s|я говорил|я просил|настрой|профил|прикреп|загрузил)/.test(clean)) return true;
   return false;
+}
+
+// Нужна ли проверка фактов в интернете: вопрос о реальном мире, а не просьба
+// написать/переписать/посчитать/закодить и не разговор «за жизнь».
+function needsFreshFacts(query = '') {
+  const clean = normalizeText(query).toLowerCase();
+  if (!clean || clean.length < 6) return false;
+  if (/\[ФАЙЛ \d+:/.test(String(query))) return false;
+  // Задачи, где интернет не нужен: тексты, код, переводы, расчёты, советы «как лучше».
+  if (/^(напиши|сочини|придумай|составь|перепиши|переведи|исправь|сократи|перефразируй|отредактируй|посчитай|вычисли|реши|объясни\s+(код|формулу)|сделай\s+(код|сайт|страниц))/.test(clean)) return false;
+  if (/(код|функци[юя]|скрипт|html|css|javascript|python|sql|регулярн)/.test(clean) && !/(новост|верси[яи]\s+\d|выш(ел|ла|ло)|релиз)/.test(clean)) return false;
+  if (/^[\d\s+\-*/^().,=x×÷%]+$/.test(clean)) return false;
+  // Признаки фактического вопроса о мире.
+  const asks = /(^|[^а-яё])(кто|что\s+(такое|за|случил|произош|нового)|когда|где|сколько|какой|какая|какое|какие|чей|чья|почему|зачем|откуда|правда\s+ли|есть\s+ли|существует\s+ли|вышел|вышла|вышло|выйдет|сейчас|сегодня|последн|новый|новая|новое|новые|самый|самая|самое|самые|лучш|топ|рейтинг|рекорд|подписчик|просмотр|канал|компани|цен|стоит|курс|счёт|матч|выбор|президент|умер|жив|возраст|рост|зарплат|состояни|адрес|телефон|расписан|закон|правил)/;
+  // Имена собственные и бренды: слово с заглавной буквы не в начале фразы или латиница.
+  const raw = String(query);
+  const named = /[a-z]{3,}/i.test(raw) || /[^.!?\n]\s+[А-ЯЁ][а-яё]{2,}/.test(raw);
+  return asks.test(clean) || (named && clean.split(/\s+/).length >= 3);
 }
 
 // Финальное решение: нужен ли поиск. Учитывает явный запрос пользователя,
@@ -663,6 +682,9 @@ function decideWebSearch({ query = '', searchEnabled = 'auto' } = {}) {
   if (!query || !query.trim()) return false;
   if (isDefinitelyOfflineQuery(query)) return false;
   if (isExplicitWebRequest(query)) return true;
+  // Вопрос о фактах реального мира (люди, каналы, компании, события, числа) —
+  // ищем всегда: устаревшие или выдуманные факты хуже лишних пары секунд.
+  if (needsFreshFacts(query)) return true;
   // Промежуточный случай: длинный фактологический вопрос без признаков теории/творчества —
   // даём шанс поискать, если вопрос снаружи выходит за музыкальную базу знаний.
   const clean = normalizeText(query).toLowerCase();
@@ -716,27 +738,10 @@ function parseDuckDuckGoResults(html = '') {
 async function webSearchResults(query) {
   const cleanQuery = normalizeText(query);
   if (!cleanQuery) return [];
-  const ddgUrl = 'https://html.duckduckgo.com/html/?q=' + encodeURIComponent(cleanQuery);
-  try {
-    const resp = await withTimeout(
-      fetch(ddgUrl, {
-        method: 'GET',
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; HarmonyAIBot/1.4; +https://harmonyai.app)',
-          'Accept': 'text/html,application/xhtml+xml',
-          'Accept-Language': 'ru-RU,ru;q=0.9,en;q=0.8'
-        }
-      }),
-      6000,
-      'Web search timed out'
-    );
-    if (!resp.ok) return [];
-    const html = await resp.text();
-    return parseDuckDuckGoResults(html);
-  } catch (e) {
-    console.warn('[harmonyai] web search failed:', compactErrorValue(e?.message, 200));
-    return [];
-  }
+  const { provider, results } = await searchWeb(cleanQuery, { max: SEARCH_MAX_RESULTS });
+  if (!results.length) console.warn('[harmonyai] web search: no results from any provider');
+  else console.log('[harmonyai] web search via', provider, results.length);
+  return results;
 }
 
 // Вытягиваем читаемый текст со страницы результата (без скриптов/стилей), ограничивая объём.
@@ -796,7 +801,8 @@ async function buildWebSearchContext(query, res) {
     let host = '';
     try { host = new URL(r.url).hostname.replace(/^www\./, ''); } catch (e) { host = ''; }
     if (res && host) writeSseEvent(res, { type: 'search_browse', host });
-    const text = await fetchPageText(r.url);
+    // Tavily и Википедия сразу отдают текст страницы — второй раз её не качаем.
+    const text = (r.content && r.content.length > 400) ? r.content : (await fetchPageText(r.url)) || r.content || '';
     // Страница прочитана — гасим «читаю» именно у этого сайта, а не у всех сразу.
     if (res && host) writeSseEvent(res, { type: 'search_browse_done', host });
     return { url: r.url, title: r.title, text };
@@ -818,6 +824,13 @@ async function buildWebSearchContext(query, res) {
 }
 
 // Составляем «инструкцию про источники», чтобы модель вела себя как «посмотрел сайты — теперь думаю».
+const WEB_NOT_FOUND_NOTE = [
+  '',
+  'Поиск в интернете по этому вопросу НИЧЕГО не нашёл. Твои знания могут быть устаревшими.',
+  'Не называй конкретные текущие числа (подписчики, цены, курсы, счёт, рейтинги, возраст и т.п.) и свежие события по памяти как факт.',
+  'Ответь то, в чём уверен, и прямо скажи, что актуальные данные проверить не удалось.'
+].join('\n');
+
 function buildWebSearchInstruction(sources) {
   if (!sources || !sources.length) return '';
   const list = sources.slice(0, 6).map((s, i) => `${i + 1}. ${s.title} — ${s.url}`).join('\n');
@@ -825,7 +838,8 @@ function buildWebSearchInstruction(sources) {
     '',
     'Ты ТОЛЬКО ЧТО просмотрел сайты в интернете по запросу пользователя. Список просмотренных источников:',
     list,
-    'Опирайся на найденные данные. Если данные противоречат твоим знаниям — предпочти свежие данные из источников. Не выдумывай ссылки — используй только те, что даны выше.'
+    'Опирайся на найденные данные. Если данные противоречат твоим знаниям — предпочти свежие данные из источников. Не выдумывай ссылки — используй только те, что даны выше.',
+    'Числа, даты, имена и другие факты бери ТОЛЬКО из источников. Если источники расходятся — назови самое свежее значение и его дату. Чего нет в источниках — так и скажи, не дописывай по памяти. Не советуй «проверить самому», если ответ есть в источниках.'
   ].join('\n');
 }
 
@@ -2344,7 +2358,7 @@ export default async function handler(req, res) {
     // РЕШЕНИЕ О ПОИСКЕ В ИНТЕРНЕТЕ: ИИ сама определяет, нужен ли поиск, если webSearch='auto'.
     // Пользователь может принудительно включить ('on') или выключить ('off') через кнопку «Поиск».
     let shouldSearch = decideWebSearch({ query, searchEnabled: webSearch });
-    if (shouldSearch && fastPath && webSearch !== 'on' && !isExplicitWebRequest(query)) shouldSearch = false;
+    if (shouldSearch && fastPath && webSearch !== 'on' && !isExplicitWebRequest(query) && !needsFreshFacts(query)) shouldSearch = false;
 
     // СЕРВЕРНАЯ ПРОВЕРКА ЛИМИТОВ/ЗЛОУПОТРЕБЛЕНИЯ (нельзя обойти через localStorage).
     if (!allowance.ok) {
@@ -2431,6 +2445,7 @@ export default async function handler(req, res) {
     let webSources = [];
     let webBrowsed = 0;
     let webHeadersSent = false;
+    const webSearched = Boolean(shouldSearch);
     if (shouldSearch) {
       if (stream) {
         // Открываем SSE-поток заранее, чтобы отправлять события поиска до ответа модели.
@@ -2469,7 +2484,8 @@ export default async function handler(req, res) {
       buildFeedbackContext(feedbackRows, query),
       buildKnowledgeContext(documents, chunks, query, { deep: needPersonal }),
       webContext,
-      webSources.length ? buildWebSearchInstruction(webSources) : ''
+      webSources.length ? buildWebSearchInstruction(webSources) : '',
+      webSearched && !webSources.length ? WEB_NOT_FOUND_NOTE : ''
     ]);
 
     let lastError = null;
