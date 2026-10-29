@@ -145,6 +145,7 @@ if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127
 <!-- i18n.js / i18_dict.js / supabase-js / marked перенесены в конец body (перед
      главным инлайн-скриптом): первый кадр больше не ждёт их загрузку и парсинг. -->
 <link rel="stylesheet" href="/css/music-player.css">
+<link rel="stylesheet" href="/css/video-player.css">
 <link rel="stylesheet" href="/css/stats.css">
 <script defer src="/js/stats.js?ver=20260912"></script>
 <script defer src="/js/music-cache.js"></script>
@@ -152,6 +153,7 @@ if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127
 <script defer src="/js/music-client.js"></script>
 <script defer src="/js/music-player.js"></script>
 <script defer src="/js/music-playlists.js"></script>
+<script defer src="/js/video-player.js"></script>
 <script defer src="/js/hm-memory.js"></script>
 <script defer src="/js/audio-analyzer.js"></script>
 <script defer src="/js/hm-docgen.js"></script>
@@ -5654,6 +5656,7 @@ async function loadProfile(uid,email){
   try{window.__hmUserId=curUser&&curUser.id?curUser.id:null;}catch(e){}
   // Свои плейлисты и «Найдено в HarmonyAi» едут за пользователем между устройствами.
   try{ if(window.MusicPlaylists) window.MusicPlaylists.hydrate(curUser?.settings?.musicPlaylists); }catch(e){}
+  try{ if(window.HmVideo) window.HmVideo.library.hydrate(curUser?.settings?.videoLibrary); }catch(e){}
   if(curUser?.settings?.appearance)applyTheme(curUser.settings.appearance);
   // Применяем язык интерфейса из профиля (если задан и отличается от текущего).
   try{
@@ -7094,6 +7097,20 @@ async function openChat(id,opts){
   chatHistory.forEach((m,idx)=>{
     const txt=typeof m.content==='string'?m.content:(Array.isArray(m.content)?m.content.find(c=>c.type==='text')?.text:'[фото]');
     if(m.role==='user')addUserBubble(txt,m.attachments||[],{createdAt:m.createdAt,historyIndex:idx});
+    else if(m.video&&m.video.best){
+      // Плеер онлайн-кинотеатра — пересобираем из сохранённого результата поиска.
+      const shell=createAiBubbleShell({showActions:true,createdAt:m.createdAt,historyIndex:idx});
+      try{setMessageActionsVisible(shell.actions,true);}catch(e){}
+      const intro=m.videoLabel||txt||'';
+      const p=document.createElement('div');p.className='hv-msg-intro';
+      try{renderMd(p,intro);}catch(e){p.textContent=intro;}
+      shell.msg.appendChild(p);
+      try{hmVideoMount(shell.msg,m.video,{autoplay:false});}catch(e){}
+      if(m.videoLabel&&txt&&txt.length>m.videoLabel.length){
+        const ans=document.createElement('div');ans.className='music-answer';shell.msg.appendChild(ans);
+        try{renderMd(ans,normalizeReplyNotation(txt.slice(m.videoLabel.length).trim()));}catch(e){ans.textContent=txt;}
+      }
+    }
     else if(m.music){
       // Музыкальная карточка — пересобираем из сохранённого пейлоада.
       // Подписанной ссылки в истории нет, поэтому Play возьмёт свежую.
@@ -10746,6 +10763,8 @@ function toWireHistory(history,opts={}){
     if(forStorage)base.createdAt=m.createdAt||messageNow();
     if(forStorage&&m.generatedFile)base.generatedFile=m.generatedFile;
     if(forStorage&&m.music)base.music=m.music;
+    if(forStorage&&m.video)base.video=m.video;
+    if(forStorage&&m.videoLabel)base.videoLabel=m.videoLabel;
     // Размышления модели («Думал N с») — чтобы блок открывался и после перезагрузки.
     if(forStorage&&m.thinking&&m.thinking.text)base.thinking={text:String(m.thinking.text).slice(0,24000),ms:Number(m.thinking.ms)||0};
     // Без этого флага после перезагрузки чата служебная подпись «Включаю: …»
@@ -12119,6 +12138,13 @@ async function sendMsgInner(){
   /* Новое сообщение — всегда возвращаем вид к низу: даже если человек отлистал
      вверх во время прошлой генерации, свой собственный вопрос он должен увидеть. */
   resetChatScrollFollow();
+
+  // КИНО: фильм, сериал, серия, озвучка, ролик — плеер прямо в сообщении.
+  if(text&&!pendingAttachments.length&&typeof hmVideoRoute==='function'){
+    let videoHandled=false;
+    try{videoHandled=await hmVideoRoute(text);}catch(e){videoHandled=false;}
+    if(videoHandled)return;
+  }
 
   // МУЗЫКА — САМЫЙ ПЕРВЫЙ ПРОВЕРЯЕМЫЙ ПУТЬ.
   // «пауза» и «следующий» отрабатывают без единого сетевого запроса,
@@ -13871,6 +13897,7 @@ function renderSettingsConnections(){
   if(!el)return;
   window.__setScreen='plugins';
   const ymLogo='<svg width="36" height="36" viewBox="0 0 36 36" fill="none" aria-hidden="true"><g fill="#FFD400"><path d="M18 0l2.2 10.1L26.5 2l-2.9 10 9.1-5.1-7.5 7.1L36 14.7l-10.6 2.2L35 21.4l-10.8-1 7.4 7.9-9.2-5.7 3 10.4-6.4-8.7L18 36l-2.2-10.7L9.5 34l2.9-10.5-9.1 5.6 7.5-7.6L0 20.5l10.7-2.1L1 14l10.8.8-7.4-7.6 9.1 5.3L10.6 2l6.3 8.7L18 0z"/><circle cx="18" cy="18" r="5.2"/></g></svg>';
+  const vkLogo='<svg width="36" height="36" viewBox="0 0 36 36" aria-hidden="true"><rect width="36" height="36" rx="10" fill="#0077FF"/><path d="M19.2 25.6c-7.3 0-11.5-5-11.7-13.4h3.7c.1 6.1 2.8 8.7 4.9 9.3v-9.3h3.5v5.3c2.1-.2 4.3-2.6 5-5.3h3.4c-.6 3.2-2.9 5.6-4.6 6.6 1.7.8 4.3 2.8 5.3 6.8h-3.8c-.8-2.5-2.8-4.5-5.3-4.7v4.7h-.4z" fill="#fff"/></svg>';
   const apiLogo='<svg width="34" height="26" viewBox="0 0 34 26" fill="none" aria-hidden="true"><path d="M11 4L3 13l8 9M23 4l8 9-8 9M20 2l-6 22" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   const plugHtml=`
     <div class="stp-card stp-conn" id="connYm">
@@ -13881,6 +13908,17 @@ function renderSettingsConnections(){
           <div class="stp-conn-state">Проверяю подключение…</div>
         </div>
       </div>
+    </div>
+    <div class="stp-card stp-conn" id="connVk">
+      <div class="stp-conn-row">
+        <div class="stp-conn-logo vk">${vkLogo}</div>
+        <div class="stp-conn-meta">
+          <div class="stp-row-title">VK Video</div>
+          <div class="stp-conn-state">Проверяю подключение…</div>
+        </div>
+        <button type="button" class="stp-toggle" aria-label="Видео в чате"></button>
+      </div>
+      <div class="stp-conn-slot"></div>
     </div>
     <div class="stp-card stp-conn">
       <div class="stp-conn-row">
@@ -13897,6 +13935,7 @@ function renderSettingsConnections(){
     </div>`:''}`;
   stpEnsure('plugins','Плагины',stpBackMain(),plugHtml);
   refreshYandexConn();
+  refreshVkVideoConn();
 }
 
 async function refreshYandexConn(){
@@ -15653,6 +15692,171 @@ async function hmYandexConnected(){
   try{const st=await withTimeout(window.MusicClient.status(),6000,'status');return Boolean(st&&st.connected);}catch(e){return false;}
 }
 /* Вызывается из sendMsgInner. true — сообщение обработано агентом. */
+/* ===== ОНЛАЙН-КИНОТЕАТР В ЧАТЕ ==============================================
+   «включи Интерстеллар», «третья серия второго сезона Мандалорца в LostFilm»,
+   «а теперь в оригинале» — ИИ (op=video, action=find) понимает, что именно
+   хотят посмотреть, сервер ищет в VK Видео и YouTube, а в сообщении появляется
+   плеер (js/video-player.js). Запрос к ИИ уходит только если во фразе есть
+   «видео-слова» или прошлый ответ был видео — остальной чат не замедляется. */
+const HM_VIDEO_HINT=/(?:^|[^а-яёa-z])(?:фильм|кино|сериал|мульт|аниме|видео|ролик|трейлер|тизер|клип|серию|серия|серии|сезон|эпизод|озвучк|дубляж|субтитр|в оригинале|ютуб|youtube|vk ?video|вк ?видео|lostfilm|hdrezka|кубик в кубе)/i;
+function hmVideoRecent(){
+  for(let i=chatHistory.length-1,n=0;i>=0&&n<4;i--,n++){if(chatHistory[i].video)return chatHistory[i].video;}
+  return null;
+}
+function hmVideoWanted(text){
+  if(!window.HmVideo||!window.HmVideo.enabled()||!text)return false;
+  if(HM_VIDEO_HINT.test(text))return true;
+  return Boolean(hmVideoRecent()&&text.length<90&&/следующ|предыдущ|дальше|другую|другой|оригинал|англ|русск|озвуч|серию|сезон/i.test(text));
+}
+async function hmVideoCall(body,timeoutMs){
+  const res=await withTimeout(fetch('/api/util?op=video',{method:'POST',headers:await hmAuthHeaders(),body:JSON.stringify(body),cache:'no-store'}),timeoutMs||25000,'video');
+  let data=null;try{data=await res.json();}catch(e){data=null;}
+  return data||{ok:false};
+}
+function hmVideoHistory(){
+  return chatHistory.slice(-6).map(m=>{
+    let t=typeof m.content==='string'?m.content:'';
+    if(m.video&&m.video.best)t=(t?t+' ':'')+'[показано видео: '+m.video.best.title+']';
+    return {role:m.role,text:t.slice(0,300)};
+  });
+}
+function hmVideoSlim(it){
+  if(!it)return null;
+  const o={};['source','id','title','image','embed','duration','height','season','episode','voice','lang'].forEach(k=>{if(it[k]!=null&&it[k]!=='')o[k]=it[k];});
+  return o;
+}
+function hmVideoStored(d){
+  return {
+    intent:d.intent||{},best:hmVideoSlim(d.best),
+    items:(d.items||[]).slice(0,10).map(hmVideoSlim),
+    episodes:(d.episodes||[]).slice(0,60).map(hmVideoSlim),
+    voices:(d.voices||[]).slice(0,8).map(v=>({voice:v.voice,lang:v.lang,item:hmVideoSlim(v.item)}))
+  };
+}
+function hmVideoMount(msgEl,stored,opts){
+  if(!window.HmVideo||!stored||!stored.best)return null;
+  const p=window.HmVideo.create(stored,opts||{});
+  msgEl.appendChild(p.el);
+  return p;
+}
+function hmVideoFailText(d,query){
+  const what=query?'«'+query+'»':'это видео';
+  if(d&&d.error==='vk_not_configured'&&!d.youtube)return hasModeratorAccess()
+    ?'VK Видео ещё не подключено к серверу. Откройте **Настройки → Плагины → VK Video** и нажмите «Подключить VK к серверу» (или задайте `VK_USER_TOKEN` в Vercel).'
+    :'Онлайн-кинотеатр сейчас настраивается — загляните чуть позже.';
+  if(d&&d.error==='vk_error')return 'VK Видео сейчас не отвечает. Попробуйте ещё раз через минуту.';
+  return 'Не нашёл '+what+' в VK Видео'+(d&&d.youtube?' и на YouTube':'')+'. Попробуйте уточнить название или год.';
+}
+/* true — сообщение обработано как видео (ответ уже в чате). */
+async function hmVideoRoute(text){
+  if(!hmVideoWanted(text))return false;
+  let d=null;
+  showTyping('text');
+  try{d=await hmVideoCall({action:'find',message:text,history:hmVideoHistory()},25000);}
+  catch(e){d=null;}
+  finally{hideTyping();}
+  if(!d||!d.is_video)return false;
+  addUserBubble(text,[]);
+  chatHistory.push({role:'user',content:text,createdAt:messageNow()});
+  const g=document.getElementById('greetingWrap');if(g)g.style.display='none';
+  const shell=createAiBubbleShell({showActions:true});
+  const query=(d.intent&&(d.intent.title||d.intent.query))||'';
+  if(!d.ok||!d.best){
+    const md=hmVideoFailText(d,query);
+    renderMd(shell.msg,md);
+    chatHistory.push({role:'assistant',content:md,createdAt:messageNow()});
+    saveChat().catch(()=>{});scrollChat();
+    return true;
+  }
+  const stored=hmVideoStored(d);
+  const intro=d.reply||('Нашёл: '+(stored.intent.title||stored.best.title));
+  const p=document.createElement('div');p.className='hv-msg-intro';renderMd(p,intro);shell.msg.appendChild(p);
+  hmVideoMount(shell.msg,stored,{autoplay:true});
+  const note={role:'assistant',content:intro,video:stored,createdAt:messageNow()};
+  chatHistory.push(note);
+  saveChat().catch(()=>{});scrollChat();
+  // Вторая половина просьбы («и расскажи, о чём он») — обычным ответом модели.
+  if(d.want_answer&&d.answer_request){
+    const ans=document.createElement('div');ans.className='music-answer';shell.msg.appendChild(ans);
+    try{
+      const facts='«'+(stored.intent.title||stored.best.title)+'»'+(stored.intent.year?' ('+stored.intent.year+')':'');
+      const out=await requestMusicAnswer(facts,d.answer_request,
+        'Я попросил включить видео и задал вопрос. Видео '+facts+' уже открыто плеером в этом сообщении. Не пиши «вот видео», не давай ссылок и не описывай плеер — ответь только на вопрос: '+d.answer_request+'. Коротко и по делу.',
+        t=>{try{renderMd(ans,normalizeReplyNotation(t,{streaming:true}));}catch(e){ans.textContent=t;}});
+      renderMd(ans,normalizeReplyNotation(out));
+      note.content=intro+'\n\n'+out;note.videoLabel=intro;
+      saveChat().catch(()=>{});
+    }catch(e){ans.remove();}
+  }
+  return true;
+}
+
+/* --- VK ID: персонал подключает VK к серверу (один ключ на всех) --- */
+const HM_VKID_RETURN=(function(){
+  try{
+    const u=new URL(location.href);
+    let code=u.searchParams.get('code'),state=u.searchParams.get('state'),device=u.searchParams.get('device_id');
+    const payload=u.searchParams.get('payload');
+    if(payload){try{const j=JSON.parse(payload);code=code||j.code;state=state||j.state;device=device||j.device_id;}catch(e){}}
+    const saved=JSON.parse(sessionStorage.getItem('hm_vkid_pkce')||'null');
+    if(!code||!saved||saved.state!==state)return null;
+    u.searchParams.delete('code');u.searchParams.delete('state');u.searchParams.delete('device_id');u.searchParams.delete('payload');
+    u.searchParams.delete('expires_in');u.searchParams.delete('type');u.searchParams.delete('ext_id');
+    history.replaceState(null,'',u.pathname+(u.search?u.search:'')+u.hash);
+    return {code,state,device_id:device||'',code_verifier:saved.verifier,redirect_uri:saved.redirect};
+  }catch(e){return null;}
+})();
+function hmB64url(buf){let s='';new Uint8Array(buf).forEach(b=>{s+=String.fromCharCode(b);});return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
+async function hmVkidStart(clientId){
+  const rnd=new Uint8Array(48);crypto.getRandomValues(rnd);
+  const verifier=hmB64url(rnd);
+  const challenge=hmB64url(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(verifier)));
+  const st=new Uint8Array(16);crypto.getRandomValues(st);
+  const state=hmB64url(st);
+  const redirect=location.origin+'/chat';
+  sessionStorage.setItem('hm_vkid_pkce',JSON.stringify({verifier,state,redirect}));
+  const q=new URLSearchParams({response_type:'code',client_id:clientId,scope:'video',redirect_uri:redirect,state,code_challenge:challenge,code_challenge_method:'S256'});
+  location.href='https://id.vk.com/authorize?'+q.toString();
+}
+(function hmVkidFinish(){
+  if(!HM_VKID_RETURN)return;
+  let tries=0;
+  const go=async()=>{
+    if(!curUser){if(++tries<60)setTimeout(go,500);return;}
+    sessionStorage.removeItem('hm_vkid_pkce');
+    try{
+      const r=await hmVideoCall({action:'vk-connect',...HM_VKID_RETURN},30000);
+      if(r&&r.ok)showToast('VK Видео подключено к серверу');
+      else showToast('VK подключился, но поиск видео не работает: '+((r&&(r.error&&r.error.message||r.message||r.error))||'ошибка'));
+    }catch(e){showToast('Не удалось подключить VK: '+(e.message||e));}
+  };
+  setTimeout(go,300);
+})();
+async function refreshVkVideoConn(){
+  const card=document.getElementById('connVk');
+  if(!card||!window.HmVideo)return;
+  const state=card.querySelector('.stp-conn-state');
+  const tg=card.querySelector('.stp-toggle');
+  const extra=card.querySelector('.stp-conn-slot');
+  tg.classList.toggle('on',window.HmVideo.enabled());
+  tg.onclick=()=>{const on=!tg.classList.contains('on');tg.classList.toggle('on',on);window.HmVideo.setEnabled(on);state.textContent=on?'Фильмы, сериалы и видео прямо в чате':'Выключено — видео в чате не ищется';};
+  let st=null;
+  try{st=await hmVideoCall({action:'status'},12000);}catch(e){st=null;}
+  if(!document.body.contains(card))return;
+  if(!st||!st.ok){state.textContent='Не удалось проверить подключение';return;}
+  const src=[st.vk?'VK Видео':'',st.youtube?'YouTube':''].filter(Boolean).join(' и ');
+  state.textContent=!window.HmVideo.enabled()?'Выключено — видео в чате не ищется':(src?'Ищу фильмы и сериалы в '+src:'Сервер ещё не подключён к VK Видео');
+  if(st.staff&&extra){
+    if(st.vkid&&st.vkid.fixedToken){extra.innerHTML='<div class="stp-conn-state">Сервер использует VK_USER_TOKEN из Vercel.</div>';}
+    else if(st.vkid&&st.vkid.clientId){
+      extra.innerHTML='<button type="button" class="stp-btn stp-btn-white" id="vkidConnectBtn">'+(st.vk?'Переподключить VK к серверу':'Подключить VK к серверу')+'</button><div class="stp-conn-state" style="margin-top:6px">Видно только персоналу. Войдите в VK-аккаунт, от имени которого сервер будет искать видео.</div>';
+      extra.querySelector('#vkidConnectBtn').onclick=()=>hmVkidStart(st.vkid.clientId);
+    }else{
+      extra.innerHTML='<div class="stp-conn-state">Для подключения задайте в Vercel VK_ID_CLIENT_ID (приложение VK ID) или VK_USER_TOKEN.</div>';
+    }
+  }
+}
+
 async function hmAgentRoute(text){
   const audios=pendingAttachments.filter(a=>a.kind==='audio');
   const recent=hmRecentAudioList();

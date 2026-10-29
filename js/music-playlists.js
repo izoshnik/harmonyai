@@ -371,6 +371,21 @@
       '</button>'
     );
 
+    if (global.HmVideo) {
+      var vlib = global.HmVideo.library.all();
+      var vn = vlib.groups.length + vlib.singles.length;
+      rows.push(
+        '<button type="button" class="pl-row" data-open="video">' +
+        '  <span class="pl-row__cover pl-cover--video">' + global.HmVideo.icons.film + '</span>' +
+        '  <span class="pl-row__meta">' +
+        '    <span class="pl-row__title">Фильмы и Сериалы</span>' +
+        '    <span class="pl-row__sub">' + (vn ? esc(vlib.groups.length + ' ' + plural(vlib.groups.length, ['сериал', 'сериала', 'сериалов']) + ' и серий · ' + vlib.singles.length + ' ' + plural(vlib.singles.length, ['видео', 'видео', 'видео'])) : 'Всё, что смотрели в чате') + '</span>' +
+        '  </span>' +
+        '  <span class="pl-row__chev">' + ICON_CHEV + '</span>' +
+        '</button>'
+      );
+    }
+
     store.custom.forEach(function (pl) {
       var first = pl.tracks[0] || null;
       rows.push(
@@ -423,6 +438,10 @@
 
     Array.prototype.forEach.call(el.querySelectorAll('.pl-row'), function (row) {
       row.addEventListener('click', function () {
+        if (row.getAttribute('data-open') === 'video' && global.HmVideo) {
+          global.HmVideo.renderLibrary(el, function () { renderList(el); });
+          return;
+        }
         renderDetail(el, row.getAttribute('data-open'));
       });
     });

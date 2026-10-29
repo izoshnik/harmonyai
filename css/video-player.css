@@ -1,0 +1,170 @@
+/* ===== Видеоплеер онлайн-кинотеатра (js/video-player.js) =====
+   Минималистичный, всегда тёмный (кино смотрят на чёрном): кадр площадки,
+   под ним — полоса прогресса и строка кнопок, как в присланном макете. */
+.hv{--hv-bg:#000;--hv-fg:#fff;--hv-mute:#a3a3a3;--hv-track:#737373;--hv-panel:#161616;--hv-line:rgba(255,255,255,.1);
+  position:relative;width:100%;max-width:760px;margin:6px 0 4px;background:var(--hv-bg);color:var(--hv-fg);border-radius:18px;overflow:hidden;
+  font:14px/1.35 -apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Roboto,sans-serif;outline:none;
+  box-shadow:0 0 0 1px rgba(255,255,255,.06),0 10px 30px rgba(0,0,0,.18);-webkit-tap-highlight-color:transparent;}
+.hv:focus-visible{box-shadow:0 0 0 2px var(--accent,#2f8fff);}
+.hv *{box-sizing:border-box;}
+.hv-ib{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;flex:none;padding:0;border:0;border-radius:12px;background:transparent;color:var(--hv-fg);cursor:pointer;transition:background .15s,opacity .15s,transform .12s;}
+.hv-ib svg{width:23px;height:23px;display:block;}
+.hv-ib:hover{background:rgba(255,255,255,.1);}
+.hv-ib:active{transform:scale(.92);}
+.hv-ib:focus-visible{outline:2px solid var(--accent,#2f8fff);outline-offset:1px;}
+
+/* верхняя строка: стрелка «свернуть», название, «в плейлист» */
+.hv-top{display:flex;align-items:center;gap:6px;padding:8px 8px 6px 6px;}
+.hv-head{flex:1;min-width:0;}
+.hv-title{font-weight:650;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hv-meta{font-size:12.5px;color:var(--hv-mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;}
+.hv-collapse svg{transition:transform .22s ease;}
+.hv.is-collapsed .hv-collapse svg{transform:rotate(-90deg);}
+.hv-save.is-done{color:#4ade80;}
+
+/* кадр 16:9 */
+.hv-stage{position:relative;width:100%;aspect-ratio:16/9;background:#000;overflow:hidden;}
+.hv-frame,.hv-stage iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;}
+.hv-poster{position:absolute;inset:0;width:100%;height:100%;border:0;padding:0;margin:0;background:#0b0b0b center/cover no-repeat;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.hv-poster::after{content:'';position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.55),rgba(0,0,0,.05) 55%);}
+.hv-bigplay{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;width:72px;height:72px;border-radius:50%;background:rgba(255,255,255,.94);color:#000;box-shadow:0 8px 30px rgba(0,0,0,.35);transition:transform .18s ease;}
+.hv-bigplay svg{width:30px;height:30px;margin-left:3px;}
+.hv-poster:hover .hv-bigplay{transform:scale(1.06);}
+.hv-dur{position:absolute;z-index:1;right:12px;bottom:10px;font-size:12.5px;font-weight:600;padding:3px 8px;border-radius:8px;background:rgba(0,0,0,.6);color:#fff;font-variant-numeric:tabular-nums;}
+.hv-dur:empty{display:none;}
+.hv.is-on .hv-poster{display:none;}
+.hv-note{position:absolute;z-index:2;left:12px;right:12px;top:12px;padding:8px 12px;border-radius:12px;background:rgba(0,0,0,.72);font-size:13px;color:#e5e5e5;pointer-events:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
+.hv-note.is-err{pointer-events:auto;background:rgba(40,8,8,.85);color:#fecaca;}
+.hv.is-limited .hv-note:not(.is-err){animation:hvFadeOut 4s ease forwards;}
+@keyframes hvFadeOut{0%,75%{opacity:1}100%{opacity:0}}
+.hv-end{position:absolute;z-index:3;right:14px;bottom:14px;}
+.hv-next{display:inline-flex;align-items:center;gap:8px;height:42px;padding:0 16px 0 12px;border:0;border-radius:14px;background:#fff;color:#000;font-family:inherit;font-weight:600;font-size:14px;line-height:1;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.35);}
+.hv-next svg{width:18px;height:18px;}
+
+/* полоса прогресса — как в макете: толстая скруглённая серая дорожка */
+.hv-bar{padding:10px 12px 8px;}
+.hv-prog{position:relative;height:18px;display:flex;align-items:center;cursor:pointer;touch-action:none;outline:none;}
+.hv-track{position:relative;width:100%;height:6px;border-radius:99px;background:var(--hv-track);overflow:visible;transition:height .15s ease;}
+.hv-prog:hover .hv-track,.hv.is-seeking .hv-track,.hv-prog:focus-visible .hv-track{height:8px;}
+.hv-buf,.hv-played{position:absolute;left:0;top:0;bottom:0;border-radius:99px;}
+.hv-buf{background:rgba(255,255,255,.35);width:0;}
+.hv-played{background:#fff;width:0;}
+.hv-knob{position:absolute;top:50%;width:15px;height:15px;margin:-7.5px 0 0 -7.5px;border-radius:50%;background:#fff;box-shadow:0 1px 6px rgba(0,0,0,.5);transform:scale(0);transition:transform .15s ease;left:0;}
+.hv-prog:hover .hv-knob,.hv.is-seeking .hv-knob,.hv-prog:focus-visible .hv-knob{transform:scale(1);}
+.hv-tip{position:absolute;bottom:22px;transform:translateX(-50%);padding:3px 8px;border-radius:8px;background:#fff;color:#000;font-size:12px;font-weight:650;font-variant-numeric:tabular-nums;pointer-events:none;white-space:nowrap;}
+.hv-row{display:flex;align-items:center;gap:2px;margin-top:4px;}
+.hv-time{margin-left:6px;font-size:14px;font-weight:650;font-variant-numeric:tabular-nums;letter-spacing:.2px;white-space:nowrap;}
+.hv-sp{flex:1;}
+.hv-vol{display:flex;align-items:center;}
+.hv-volr{--v:100%;-webkit-appearance:none;appearance:none;width:0;opacity:0;height:5px;border-radius:99px;margin:0;cursor:pointer;
+  background:linear-gradient(to right,#fff var(--v),var(--hv-track) var(--v));transition:width .2s ease,opacity .2s ease,margin .2s ease;}
+.hv-vol:hover .hv-volr,.hv-volr:focus-visible{width:84px;opacity:1;margin:0 6px 0 2px;}
+.hv-volr::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:#fff;border:0;}
+.hv-volr::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:#fff;border:0;}
+.hv-gear svg{transition:transform .35s ease;}
+.hv.is-menu .hv-gear svg{transform:rotate(60deg);}
+.hv.is-ad .hv-prog{opacity:.35;pointer-events:none;}
+
+/* меню настроек */
+.hv-menu{position:absolute;z-index:20;right:10px;bottom:62px;width:min(300px,calc(100% - 20px));max-height:min(380px,calc(100% - 80px));overflow-y:auto;overscroll-behavior:contain;
+  padding:6px;border-radius:16px;background:rgba(22,22,22,.97);box-shadow:0 0 0 1px var(--hv-line),0 18px 40px rgba(0,0,0,.5);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);animation:hvMenu .16s ease;scrollbar-width:none;}
+.hv-menu::-webkit-scrollbar{display:none;}
+@keyframes hvMenu{from{opacity:0;transform:translateY(6px) scale(.98)}to{opacity:1;transform:none}}
+.hv-mi{display:flex;align-items:center;gap:10px;width:100%;min-height:42px;padding:8px 10px;border:0;border-radius:11px;background:transparent;color:#fff;font-family:inherit;font-weight:500;font-size:14px;line-height:1.2;text-align:left;cursor:pointer;}
+.hv-mi:hover:not([disabled]){background:rgba(255,255,255,.08);}
+.hv-mi[disabled]{cursor:default;color:#6b6b6b;}
+.hv-mi-l{flex:1;display:flex;align-items:center;gap:8px;min-width:0;}
+.hv-mi-l svg{width:18px;height:18px;flex:none;}
+.hv-ck{display:inline-block;width:18px;flex:none;}
+.hv-mi-v{display:inline-flex;align-items:center;gap:2px;color:var(--hv-mute);font-size:13.5px;white-space:nowrap;}
+.hv-mi-v svg{width:18px;height:18px;}
+.hv-mi.is-on{color:#fff;font-weight:650;}
+.hv-hd{font-size:10px;font-weight:800;padding:1px 4px;border-radius:4px;background:#fff;color:#000;letter-spacing:.3px;}
+.hv-mi[disabled] .hv-hd{background:#555;}
+.hv-pro{font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:99px;background:linear-gradient(135deg,#ffd76a,#ff9f43);color:#1a1100;}
+.hv-na{font-size:12px;color:#7a7a7a;}
+.hv-mh{display:flex;align-items:center;gap:4px;padding:2px 2px 6px;margin-bottom:4px;border-bottom:1px solid var(--hv-line);font-weight:650;}
+.hv-mh .hv-ib{width:32px;height:32px;}
+.hv-mh .hv-ib svg{width:19px;height:19px;}
+.hv-mnote{padding:10px 12px;font-size:13px;line-height:1.45;color:var(--hv-mute);}
+
+/* серии сезона */
+.hv-eps{padding:2px 12px 12px;}
+.hv-eps-h{font-size:12.5px;font-weight:650;color:var(--hv-mute);margin:2px 2px 8px;}
+.hv-eps-row{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;}
+.hv-eps-row::-webkit-scrollbar{display:none;}
+.hv-ep{flex:none;min-width:44px;height:36px;padding:0 12px;border:0;border-radius:11px;background:#1c1c1c;color:#e5e5e5;font-family:inherit;font-weight:650;font-size:14px;line-height:1;cursor:pointer;font-variant-numeric:tabular-nums;}
+.hv-ep:hover{background:#2a2a2a;}
+.hv-ep.is-on{background:#fff;color:#000;}
+
+/* другие варианты */
+.hv-more{border-top:1px solid var(--hv-line);}
+.hv-more>summary{list-style:none;cursor:pointer;padding:11px 14px;font-size:13.5px;font-weight:600;color:var(--hv-mute);display:flex;align-items:center;gap:6px;}
+.hv-more>summary::-webkit-details-marker{display:none;}
+.hv-more>summary::after{content:'';width:7px;height:7px;border-right:2.2px solid currentColor;border-bottom:2.2px solid currentColor;transform:rotate(45deg);margin:-3px 0 0 4px;transition:transform .2s;}
+.hv-more[open]>summary::after{transform:rotate(-135deg);margin-top:3px;}
+.hv-list{display:flex;flex-direction:column;gap:2px;padding:0 6px 8px;}
+.hv-li{display:flex;align-items:center;gap:10px;width:100%;padding:6px;border:0;border-radius:12px;background:transparent;color:#fff;text-align:left;cursor:pointer;font:inherit;}
+.hv-li:hover{background:rgba(255,255,255,.07);}
+.hv-li-img{position:relative;flex:none;width:96px;aspect-ratio:16/9;border-radius:8px;background:#1c1c1c center/cover no-repeat;}
+.hv-li-img i{position:absolute;right:4px;bottom:4px;font-style:normal;font-size:11px;font-weight:650;padding:1px 5px;border-radius:5px;background:rgba(0,0,0,.7);}
+.hv-li-m{min-width:0;display:flex;flex-direction:column;gap:2px;}
+.hv-li-m b{font-weight:600;font-size:13.5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.hv-li-m span{font-size:12px;color:var(--hv-mute);}
+
+/* свёрнутый плеер — одна строка */
+.hv.is-collapsed .hv-stage,.hv.is-collapsed .hv-bar,.hv.is-collapsed .hv-eps,.hv.is-collapsed .hv-more,.hv.is-collapsed .hv-menu{display:none;}
+
+/* весь экран */
+.hv:fullscreen,.hv.hv-fs{max-width:none;width:100%;height:100%;margin:0;border-radius:0;display:flex;flex-direction:column;}
+.hv:-webkit-full-screen{max-width:none;width:100%;height:100%;margin:0;border-radius:0;display:flex;flex-direction:column;}
+.hv.hv-fs{position:fixed;inset:0;z-index:10000;height:100dvh;}
+.hv.is-fs .hv-stage{flex:1;aspect-ratio:auto;height:auto;}
+.hv.is-fs .hv-eps,.hv.is-fs .hv-more,.hv.is-fs .hv-save{display:none;}
+.hv.is-fs .hv-bar{padding-bottom:max(10px,env(safe-area-inset-bottom));}
+html.hv-lock,html.hv-lock body{overflow:hidden;}
+
+/* окно плеера (запуск из плейлиста) */
+.hv-modal{position:fixed;inset:0;z-index:9000;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);animation:hvMenu .18s ease;}
+.hv-modal .hv{max-width:min(1100px,100%);max-height:calc(100dvh - 32px);overflow-y:auto;scrollbar-width:none;}
+
+/* «Фильмы и Сериалы» в плейлистах */
+.vl-head{display:flex;align-items:center;gap:6px;margin:0 0 6px;}
+.vl-head b{font-size:17px;font-weight:650;color:var(--set-text,var(--text));}
+.vl-back{width:36px;height:36px;border:0;border-radius:10px;background:transparent;color:var(--set-text,var(--text));cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.vl-back:hover{background:color-mix(in srgb,var(--set-text,var(--text)) 8%,transparent);}
+.vl-h{margin:16px 4px 8px;font-size:13px;font-weight:650;color:var(--set-muted,var(--text2));}
+.vl-list{display:flex;flex-direction:column;gap:2px;}
+.vl-row{display:flex;align-items:center;gap:4px;}
+.vl-open{flex:1;min-width:0;display:flex;align-items:center;gap:12px;padding:6px;border:0;border-radius:12px;background:transparent;color:var(--set-text,var(--text));text-align:left;cursor:pointer;font:inherit;}
+.vl-open:hover{background:color-mix(in srgb,var(--set-text,var(--text)) 6%,transparent);}
+.vl-img{position:relative;flex:none;width:104px;aspect-ratio:16/9;border-radius:9px;background:#1c1c1c center/cover no-repeat;overflow:hidden;}
+.vl-img i{position:absolute;left:0;bottom:0;height:3px;background:#e11d48;}
+.vl-m{min-width:0;display:flex;flex-direction:column;gap:3px;}
+.vl-m b{font-weight:600;font-size:14px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.vl-m b{color:var(--set-text,var(--text));}
+.vl-m span{font-size:12.5px;color:var(--set-muted,var(--text2));}
+.vl-del{flex:none;width:34px;height:34px;border:0;border-radius:10px;background:transparent;color:var(--set-muted,var(--text2));cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:.6;}
+.vl-del:hover{opacity:1;background:color-mix(in srgb,var(--text) 6%,transparent);}
+.vl-del svg{width:16px;height:16px;}
+.pl-cover--video{display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#111,#3a3a3a);color:#fff;}
+.pl-cover--video svg{width:24px;height:24px;}
+
+/* карточка в чате: фраза ИИ над плеером */
+.hv-msg-intro{margin:0 0 4px;}
+.hv-msg-err{padding:12px 14px;border-radius:14px;background:color-mix(in srgb,var(--text) 5%,transparent);color:var(--text2);font-size:14px;}
+
+@media(max-width:768px){
+  .hv{border-radius:16px;}
+  .hv-volr{display:none;}
+  .hv-bigplay{width:60px;height:60px;}
+  .hv-bigplay svg{width:26px;height:26px;}
+  .hv-li-img{width:84px;}
+  .hv-modal{padding:0;align-items:center;}
+  .hv-modal .hv{border-radius:0;max-height:100dvh;}
+}
+@media(prefers-reduced-motion:reduce){
+  .hv-menu,.hv-modal{animation:none;}
+  .hv-track,.hv-knob,.hv-ib,.hv-collapse svg,.hv-gear svg{transition:none;}
+}
+.stp-conn-logo.vk svg{width:34px;height:34px;}

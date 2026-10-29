@@ -31,6 +31,7 @@ import { handler as detectLocaleHandler } from '../lib/util-detect-locale.js';
 import { handler as profileSummaryHandler } from '../lib/util-profile-summary.js';
 import { handler as agentHandler } from '../lib/util-agent.js';
 import { handler as ocrHandler } from '../lib/util-ocr.js';
+import { handler as videoHandler } from '../lib/util-video.js';
 import { handleIngestUrl, handleIngestText, handleIngestProxy, handleIngestDistill } from '../lib/textbook-ingestor.js';
 
 const OPS = {
@@ -41,6 +42,7 @@ const OPS = {
   'profile-summary': profileSummaryHandler,
   'agent': agentHandler,
   'ocr': ocrHandler,
+  'video': videoHandler,
   'ingest-url': handleIngestUrl,
   'ingest-text': handleIngestText,
   'ingest-proxy': handleIngestProxy,

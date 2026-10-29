@@ -4,7 +4,7 @@
        на случай офлайна (так новая версия сайта видна сразу после выкладки);
      • библиотеки с CDN (версии зашиты в адрес) — из кэша, сеть только в первый раз;
      • /api, /v1, авторизация, Supabase, Яндекс — никогда не кэшируем. */
-const VERSION = 'hm-2026-10-27';
+const VERSION = 'hm-2026-10-29';
 const SHELL = ['/chat', '/manifest.webmanifest', '/icons/icon-192.png', '/favicon.svg'];
 const CDN = /^https:\/\/(cdn\.jsdelivr\.net|cdnjs\.cloudflare\.com|unpkg\.com|esm\.sh|fonts\.(googleapis|gstatic)\.com)\//;
 
