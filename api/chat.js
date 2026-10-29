@@ -2,6 +2,7 @@ import { proofreadRussian, fixMarkdownSpacing } from '../lib/proofread.js';
 import { hasProAccess, requireUser } from '../lib/auth.js';
 import { buildMusicTheoryContext } from '../lib/music-theory-router.js';
 import { readChatImages, withReading, isDocumentReading } from '../lib/image-read.js';
+import { createReasoningRelay, isNativeReasoner } from '../lib/reasoning-relay.js';
 import { applyDevAccountProfile } from '../lib/dev-account.js';
 export const config = {
   maxDuration: 300
@@ -891,6 +892,19 @@ function buildThinkInstruction() {
   ].join('\n');
 }
 
+/* «Думать» для моделей с настоящими рассуждениями (поток reasoning): мысли
+   пользователь видит в блоке «Думаю» живьём, поэтому ответ пишется сразу, без
+   сводки шагов и маркера. Заголовки абзацев **…** становятся шагами в блоке. */
+function buildNativeThinkInstruction() {
+  return [
+    '',
+    'РЕЖИМ ДУМАТЬ ВКЛЮЧЁН. Перед ответом подумай как следует: разбери условие, рассмотри варианты, проверь вычисления и себя.',
+    'Твои размышления пользователь видит в блоке «Думаю», поэтому размышляй на языке пользователя (по-русски, если он пишет по-русски), связно и по делу:',
+    'короткие абзацы, каждый начинай с короткого заголовка-действия в формате **Определяю тональность** (2–5 слов, глагол в настоящем времени).',
+    'В самом ответе черновик рассуждений не повторяй и на него не ссылайся: сразу дай полный, чистый, хорошо оформленный финальный ответ.'
+  ].join('\n');
+}
+
 function appendServerContext(systemText, additions) {
   return [systemText || '', ...additions.filter(Boolean)].join('\n');
 }
@@ -1555,18 +1569,18 @@ function raceFirstToken({ apiKey, primary, hedge, hedgeDelayMs, messages, deadli
   });
 }
 
-async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs, query, largeContext = false, captureReasoning = false, maxTokens = 0, headersAlreadySent = false, reasoningEffort = '', race = null) {
+async function streamOpenAIToClient(res, apiKey, modelName, messages, timeoutMs, query, largeContext = false, captureReasoning = false, maxTokens = 0, headersAlreadySent = false, reasoningEffort = '', race = null, nativeThink = false) {
   const heartbeat = setInterval(() => {
     try { if (res.headersSent && !res.writableEnded) res.write(': ping\n\n'); } catch (e) {}
   }, 15000);
   try {
-    return await streamOpenAIToClientInner(res, apiKey, modelName, messages, timeoutMs, query, largeContext, captureReasoning, maxTokens, headersAlreadySent, reasoningEffort, race);
+    return await streamOpenAIToClientInner(res, apiKey, modelName, messages, timeoutMs, query, largeContext, captureReasoning, maxTokens, headersAlreadySent, reasoningEffort, race, nativeThink);
   } finally {
     clearInterval(heartbeat);
   }
 }
 
-async function streamOpenAIToClientInner(res, apiKey, modelName, messages, timeoutMs, query, largeContext = false, captureReasoning = false, maxTokens = 0, headersAlreadySent = false, reasoningEffort = '', race = null) {
+async function streamOpenAIToClientInner(res, apiKey, modelName, messages, timeoutMs, query, largeContext = false, captureReasoning = false, maxTokens = 0, headersAlreadySent = false, reasoningEffort = '', race = null, nativeThink = false) {
   let fullText = '';
   let gotAnyDelta = false;
   let headersSent = Boolean(headersAlreadySent);
@@ -1585,6 +1599,10 @@ async function streamOpenAIToClientInner(res, apiKey, modelName, messages, timeo
   // Отправляли ли клиенту хоть одно событие `reasoning` — нужно, чтобы понять, есть ли что
   // убирать, если модель так и не выделила ответ маркером.
   let sentReasoningToClient = false;
+  /* Настоящие мысли модели — живьём в блок «Думаю» (с переводом на язык вопроса). */
+  const relay = (captureReasoning && nativeThink)
+    ? createReasoningRelay({ query, emit: (t) => { writeSseEvent(res, { type: 'reasoning', text: t }); sentReasoningToClient = true; } })
+    : null;
 
   /* ===== ЖИЗНЕННЫЙ ЦИКЛ БЛОКА РАЗМЫШЛЕНИЙ ==================================
      Порядок событий гарантируется здесь, а не догадками на клиенте:
@@ -1777,6 +1795,7 @@ async function streamOpenAIToClientInner(res, apiKey, modelName, messages, timeo
           if (captureReasoning && !switchedToAnswer && typeof reasoningDelta === 'string' && reasoningDelta) {
             beginReasoning();
             sawNativeReasoning = true;
+            if (relay) relay.push(reasoningDelta);
             // Пинг прогресса — не чаще раза в 700 мс, чтобы не засорять поток.
             const nowTick = Date.now();
             if (nowTick - lastProgressAt > 700) {
@@ -1793,6 +1812,18 @@ async function streamOpenAIToClientInner(res, apiKey, modelName, messages, timeo
             fullText += delta;
 
             if (!captureReasoning || switchedToAnswer) {
+              writeSseEvent(res, { type: 'delta', text: delta });
+              continue;
+            }
+
+            /* Настоящие рассуждения: первый же токен содержимого — это ответ.
+               Даём переводу мыслей чуть догнать (не дольше 2,5 с), закрываем блок
+               и печатаем ответ; недоперевёденный хвост допишется в свёрнутый блок. */
+            if (relay) {
+              beginReasoning();
+              await relay.flush(2500);
+              switchedToAnswer = true;
+              endReasoning();
               writeSseEvent(res, { type: 'delta', text: delta });
               continue;
             }
@@ -1962,7 +1993,9 @@ async function streamOpenAIToClientInner(res, apiKey, modelName, messages, timeo
      Исключение — скрытый поток рассуждений провайдера при пустой сводке: модель
      действительно думала, поэтому честное «Думал N» без текста оставляем,
      reasoning_end помечает это флагом hidden. */
-  if (captureReasoning && !switchedToAnswer && (sentReasoningToClient || !sawNativeReasoning)) {
+  // Мысли, которые ещё переводятся, успевают в блок до конца ответа.
+  if (relay) { try { await relay.flush(8000); } catch (e) { /* без хвоста */ } }
+  if (captureReasoning && !relay && !switchedToAnswer && (sentReasoningToClient || !sawNativeReasoning)) {
     writeSseEvent(res, { type: 'reasoning_reset' });
   }
   // Блок размышлений закрываем всегда: и когда он остался пустым (модель думала в скрытом
@@ -2432,7 +2465,6 @@ export default async function handler(req, res) {
       buildCurrentDateTimeContext(),
       // Музыкальное ядро: точный расчёт нот/интервалов/аккордов по вопросу (см. lib/music-theory.js).
       musicContext,
-      think ? buildThinkInstruction() : '',
       buildMemoryContext(memories, query),
       buildFeedbackContext(feedbackRows, query),
       buildKnowledgeContext(documents, chunks, query, { deep: needPersonal }),
@@ -2473,6 +2505,13 @@ export default async function handler(req, res) {
 Если пользователь пишет «Продолжить» — продолжай с того шага плана, на котором остановился, без повторов.
 Если задача небольшая — отвечай как обычно, без предупреждения и без маркера. Точные числа лимитов не называй.` : '';
       const openAiMessages = mapMessagesForOpenAI(messages, mergedSystem + limitNote);
+      /* «Думать»: моделям с настоящими рассуждениями — инструкция «думай вслух по-русски,
+         ответ сразу» (мысли идут в блок живьём); остальным — прежний журнал шагов ▸ и маркер. */
+      const thinkMessages = think ? {
+        native: mapMessagesForOpenAI(messages, mergedSystem + '\n' + buildNativeThinkInstruction() + limitNote),
+        marker: mapMessagesForOpenAI(messages, mergedSystem + '\n' + buildThinkInstruction() + limitNote)
+      } : null;
+      const messagesFor = (name) => (!thinkMessages ? openAiMessages : isNativeReasoner(name) ? thinkMessages.native : thinkMessages.marker);
       /* reasoning_effort отправляем ВСЕГДА, когда уровень его подразумевает —
          в том числе в режиме «Думать». Раньше в этом режиме параметр гасился,
          и «Размышление» было чистым оформлением: модель работала ровно с тем же
@@ -2489,7 +2528,8 @@ export default async function handler(req, res) {
          Включённое «Думать» поднимает уровень минимум до medium: показывать блок
          размышлений, не увеличив при этом усилие модели, — это и есть тот самый
          визуальный эффект без содержания. */
-      const reasoningParam = reasoningParamFor(think ? floorEffort(effort, 'medium') : (fastPath ? 'low' : effort));
+      // «Думать» — всегда полноценные рассуждения (high), как Thinking у ChatGPT и Claude.
+      const reasoningParam = reasoningParamFor(think ? floorEffort(effort, 'max') : (fastPath ? 'low' : effort));
       /* Рассуждающие модели (gpt-5*) без параметра думают на уровне по умолчанию
          (medium) — на быстром пути явно просим low. Остальным параметр не шлём:
          лишний 400 и повтор только замедлили бы ответ. */
@@ -2523,8 +2563,9 @@ export default async function handler(req, res) {
         if (triedModels.has(modelName)) continue; // уже участвовала в гонке как запасная
         if (stream) {
           const hedge = pickHedge(mi);
-          const streamResult = await streamOpenAIToClient(res, route.apiKey, modelName, openAiMessages, modelTimeoutMs, query, isLargeContext, Boolean(think), maxTokens, sseOpen, reasoningFor(modelName),
-            hedge ? { hedge, hedgeDelayMs, effortFor: reasoningFor } : null);
+          const streamResult = await streamOpenAIToClient(res, route.apiKey, modelName, messagesFor(modelName), modelTimeoutMs, query, isLargeContext, Boolean(think), maxTokens, sseOpen, reasoningFor(modelName),
+            hedge && (!think || isNativeReasoner(hedge) === isNativeReasoner(modelName)) ? { hedge, hedgeDelayMs, effortFor: reasoningFor } : null,
+            Boolean(think) && isNativeReasoner(modelName));
           triedModels.add(modelName);
           (streamResult.tried || []).forEach((m) => triedModels.add(m));
           if (streamResult.headersSent) sseOpen = true;
@@ -2556,7 +2597,7 @@ export default async function handler(req, res) {
           }
           continue;
         }
-        const { response, data } = await callOpenAI(route.apiKey, modelName, openAiMessages, modelTimeoutMs, maxTokens, reasoningFor(modelName));
+        const { response, data } = await callOpenAI(route.apiKey, modelName, thinkMessages ? thinkMessages.marker : openAiMessages, modelTimeoutMs, maxTokens, reasoningFor(modelName));
         const errorMessage = data?.error?.message || '';
         if (!response.ok || data.error) {
           lastError = { status: response.status || 500, message: errorMessage || `Ошибка модели ${modelName}`, model: modelName };

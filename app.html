@@ -2692,6 +2692,63 @@ html[data-theme="messenger"]{
 }
 /* === /HM-REASONING-V3 =================================================== */
 
+/* === HM-REASONING-V4: лента мыслей ======================================
+   Пока модель думает: под капсулой «Думаю» переливается заголовок текущего
+   шага (как у ChatGPT), ниже — окно с бегущими мыслями и затуханием сверху
+   (как у Claude). После ответа блок сворачивается в «Думал N с»; развёрнутый —
+   таймлайн шагов: точка, линия, заголовок, текст, в конце «Готово».
+   ------------------------------------------------------------------------ */
+.tr.tr4{width:100%;max-width:min(680px,100%);}
+.trNow{display:none;}
+.tr.tr4.is-live .trNow:not(:empty){display:block;margin:9px 0 0 6px;min-width:0;}
+/* Раскрытое окно уже показывает текущий шаг — заголовок нужен, когда окно свёрнуто. */
+.tr.tr4.is-live.is-open .trNow{display:none;}
+.trNowText{display:block;max-width:100%;font-size:14px;line-height:20px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  color:transparent;-webkit-text-fill-color:transparent;background:linear-gradient(90deg,var(--text2) 0%,var(--text2) 36%,var(--text) 50%,var(--text2) 64%,var(--text2) 100%);background-size:260% 100%;-webkit-background-clip:text;background-clip:text;
+  animation:htsShimmer 2.4s linear infinite,trNowIn .32s ease both;}
+@keyframes trNowIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+.tr.tr4 .trInner{padding:10px 2px 2px 4px;}
+.tr.tr4.is-open .trCollapsible{max-height:200px;}
+.tr.tr4 .trViewport{max-height:180px;}
+/* Окно «бегущих» мыслей: верх растворяется, когда текст уже не помещается. */
+.tr.tr4.is-live .trViewport.is-clipped{-webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 44px);mask-image:linear-gradient(to bottom,transparent 0,#000 44px);}
+/* Готово и раскрыто — весь ход мыслей целиком, без внутреннего скролла. */
+.tr.tr4.is-done.is-open .trCollapsible{max-height:none;}
+.tr.tr4.is-done .trViewport{max-height:none;overflow:visible;}
+.tr.tr4.is-empty .trChevron,.tr.tr4.is-empty .trCollapsible{display:none;}
+.tr.tr4.is-empty .trHeader{cursor:default;}
+
+.trTimeline{display:flex;flex-direction:column;gap:0;}
+.trStep{position:relative;display:grid;grid-template-columns:14px minmax(0,1fr);column-gap:11px;padding-bottom:14px;animation:trFadeIn .3s ease;}
+.trStep:last-child{padding-bottom:2px;}
+/* Линия связывает точки шагов; у последнего шага её нет. */
+.trStep::before{content:'';position:absolute;left:6.5px;top:17px;bottom:-1px;width:1px;background:var(--border);}
+.trStep:last-child::before{display:none;}
+.trDot{width:7px;height:7px;margin:7px 0 0 3.5px;border-radius:50%;background:var(--tr-ink);opacity:.75;}
+.trStep.is-live .trDot{background:var(--accent);opacity:1;animation:hmPulseDot 1.3s ease-in-out infinite;}
+.trStepMain{min-width:0;}
+.trStepTitle{font-size:14px;line-height:21px;font-weight:600;color:var(--text);overflow-wrap:anywhere;}
+.trStepTitle[hidden],.trStepBody[hidden]{display:none;}
+.trStepBody{font-size:13.5px;line-height:1.6;font-weight:400;color:var(--tr-ink);overflow-wrap:anywhere;}
+.trStepTitle+.trStepBody{margin-top:2px;}
+.trStepBody p{margin:0 0 7px;}
+.trStepBody p:last-child{margin-bottom:0;}
+.trStepBody b{font-weight:600;color:var(--text2);}
+.trStepBody code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;padding:0 4px;border-radius:5px;background:color-mix(in srgb,var(--text) 7%,transparent);}
+.trStepDone .trStepTitle{font-weight:500;color:var(--tr-ink);}
+.trDoneIc{display:flex;align-items:flex-start;justify-content:center;padding-top:3px;color:var(--tr-ink);}
+.trDoneIc svg{width:14px;height:14px;}
+@media(max-width:768px){
+  .tr.tr4{max-width:100%;}
+  .trNowText,.trStepTitle{font-size:13.5px;}
+  .trStepBody{font-size:13px;}
+}
+@media(prefers-reduced-motion:reduce){
+  .trNowText{animation:none;color:var(--text2);-webkit-text-fill-color:currentColor;background:none;}
+  .trStep,.trStep.is-live .trDot{animation:none;}
+}
+/* === /HM-REASONING-V4 =================================================== */
+
 /* === HM-WEBSEARCH ========================================================
    Встроенный раскрывающийся список веб-поиска — заменил модальное мини-окно.
    Два отличия от присланного CSS, обе вынужденные:
@@ -7068,6 +7125,7 @@ async function openChat(id,opts){
     }else{
       const result=addAiBubble(normalizeReplyNotation(txt||''),false,{createdAt:m.createdAt,historyIndex:idx});
       if(m.generatedFile)result.then(shell=>shell.msg.appendChild(buildFileCard(m.generatedFile,m.generatedFile.format)));
+      if(m.thinking&&m.thinking.text)result.then(shell=>hmRestoreThinking(shell.msg,m.thinking));
     }
   });
   updateTrainingPillUI();
@@ -9874,15 +9932,16 @@ function trAutoScroll(tr,force){
   vp.scrollTop=vp.scrollHeight;
 }
 
-function ensureReasoningBlock(msgEl){
+function ensureReasoningBlock(msgEl,opts){
   if(!msgEl||!msgEl.closest)return null;
   const wrap=msgEl.closest('.msg-ai-wrap');
   if(!wrap)return null;
   let tr=wrap.querySelector('.tr');
   if(tr)return tr;
+  const restored=Boolean(opts&&opts.restored);
 
   tr=document.createElement('div');
-  tr.className='tr is-live';
+  tr.className='tr tr4 '+(restored?'is-done':'is-live');
 
   const header=document.createElement('div');
   header.className='trHeader';
@@ -9923,7 +9982,7 @@ function ensureReasoningBlock(msgEl){
   if(window.HmThinkStaff){
     try{
       const t0=window.__hmThinkStartedAt;
-      const fresh=t0&&(performance.now()-t0)<10*60*1000;
+      const fresh=!restored&&t0&&(performance.now()-t0)<10*60*1000;
       const hts=window.HmThinkStaff.create(trReadLastUserText(),fresh?{startedAt:t0,label:window.__hmThinkVerb,anim:window.__hmThinkAnim}:{});
       glyph.classList.add('hts-host');
       glyph.innerHTML='';
@@ -9947,8 +10006,14 @@ function ensureReasoningBlock(msgEl){
   viewport.appendChild(stream);
   inner.appendChild(viewport);
   collapsible.appendChild(inner);
+  // Текущий шаг размышления (как у ChatGPT): заголовок мысли, над которой модель работает сейчас.
+  const now=document.createElement('div');
+  now.className='trNow';
+  now.setAttribute('aria-live','polite');
   tr.appendChild(header);
+  tr.appendChild(now);
   tr.appendChild(collapsible);
+  tr._now=now;
 
   tr._header=header;
   tr._verb=verb;
@@ -9985,6 +10050,7 @@ function ensureReasoningBlock(msgEl){
   if(searchLine&&searchLine.parentNode===wrap)searchLine.after(tr);
   else wrap.insertBefore(tr,msgEl);
 
+  if(restored){tr._done=true;tr.classList.add('is-in');return tr;}
   requestAnimationFrame(function(){
     tr.classList.add('is-in');
     /* Кадр мог не отрисоваться до конца размышления: rAF не выполняется, пока
@@ -10000,6 +10066,104 @@ function ensureReasoningBlock(msgEl){
 // Обратная совместимость со старым именем.
 function ensureReasoningLine(msgEl){return ensureReasoningBlock(msgEl);}
 
+/* ===== ЛЕНТА МЫСЛЕЙ (HM-REASONING-V4) =====================================
+   Настоящие рассуждения модели (сервер переводит их на язык вопроса) делятся на
+   шаги: абзац с заголовком «**Проверяю правило**» — новый шаг, абзацы без
+   заголовка дописываются к предыдущему. Пока модель думает: заголовок текущего
+   шага переливается под «Думаю», а лента бежит в окне с затуханием сверху
+   (как у Claude). После ответа блок сворачивается в «Думал N с», развёрнутый —
+   таймлайн шагов с точками и «Готово» в конце (как у ChatGPT). */
+function hmThoughtSteps(raw){
+  let t=stripAnswerMarkers(String(raw||'')).replace(/\r/g,'');
+  if(t.indexOf('▸')>=0)return hmParseSteps(formatReasoningText(t));
+  const steps=[];
+  t.split(/\n[ \t]*\n+/).forEach(p=>{
+    p=p.trim();if(!p)return;
+    let title='',body=p,m;
+    if((m=p.match(/^\*\*([^*\n]{2,90}?)\*\*[ \t]*[:.—-]?[ \t]*\n*([\s\S]*)$/))){title=m[1].trim();body=m[2].trim();}
+    else if((m=p.match(/^#{1,4}[ \t]+([^\n]{2,90})\n*([\s\S]*)$/))){title=m[1].replace(/\*+/g,'').trim();body=m[2].trim();}
+    else if(p.length<=70&&!/\n/.test(p)&&!/[.!?…:;,]$/.test(p)&&/^[A-ZА-ЯЁ]/.test(p)){title=p.replace(/\*+/g,'');body='';}
+    if(title||!steps.length)steps.push({title:title.replace(/[.:]+$/,''),body});
+    else{const last=steps[steps.length-1];last.body=last.body?last.body+'\n\n'+body:body;}
+  });
+  return steps;
+}
+function hmThoughtHtml(body){
+  return String(body||'').split(/\n[ \t]*\n+/).map(par=>{
+    const h=escapeHtml(par.trim())
+      .replace(/\*\*([^*\n]+)\*\*/g,'<b>$1</b>')
+      .replace(/`([^`\n]+)`/g,'<code>$1</code>')
+      .replace(/(^|[\s(])\*([^*\n]+)\*(?=[\s).,!?]|$)/g,'$1<i>$2</i>')
+      .replace(/^[ \t]*[-*•][ \t]+/gm,'• ')
+      .replace(/\n/g,'<br>');
+    return h?'<p>'+h+'</p>':'';
+  }).join('');
+}
+const HM_THOUGHT_DONE_IC='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M8 12.4l2.7 2.7L16.2 9.6" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+function hmRenderThoughts(tr){
+  const box=tr._stream;
+  const steps=hmThoughtSteps(tr._text||'');
+  if(!box._v4){box.innerHTML='';box.className='trStream trTimeline';box._v4=true;box._rows=[];}
+  const rows=box._rows;
+  const live=!tr._done;
+  steps.forEach((st,i)=>{
+    let row=rows[i];
+    if(!row){
+      row=document.createElement('div');row.className='trStep';
+      row.innerHTML='<span class="trDot" aria-hidden="true"></span><div class="trStepMain"><div class="trStepTitle"></div><div class="trStepBody"></div></div>';
+      const doneRow=box.querySelector('.trStepDone');
+      box.insertBefore(row,doneRow||null);rows[i]=row;
+    }
+    const tEl=row.querySelector('.trStepTitle'),bEl=row.querySelector('.trStepBody');
+    if(tEl.textContent!==st.title){tEl.textContent=st.title;}
+    tEl.hidden=!st.title;
+    const html=hmThoughtHtml(st.body);
+    if(bEl._html!==html){
+      bEl._html=html;bEl.innerHTML=html;
+      // Новые слова последнего шага проявляются так же, как текст ответа.
+      if(live&&i===steps.length-1&&typeof hmFadeTail==='function'){try{hmFadeTail(tr,bEl,'s'+i);}catch(e){}}
+    }
+    bEl.hidden=!html;
+    row.classList.toggle('is-live',live&&i===steps.length-1);
+  });
+  while(rows.length>steps.length){const r=rows.pop();r.remove();}
+  let doneRow=box.querySelector('.trStepDone');
+  if(tr._done&&steps.length&&!doneRow){
+    doneRow=document.createElement('div');doneRow.className='trStep trStepDone';
+    doneRow.innerHTML='<span class="trDoneIc">'+HM_THOUGHT_DONE_IC+'</span><div class="trStepMain"><div class="trStepTitle">Готово</div></div>';
+    box.appendChild(doneRow);
+  }
+  // Заголовок текущего шага под «Думаю».
+  if(tr._now&&live){
+    let title='';
+    for(let i=steps.length-1;i>=0&&!title;i--)title=steps[i].title||'';
+    if(!title)title=hmReasoningHeadline(tr._text||'');
+    if(title&&tr._now._t!==title){
+      tr._now._t=title;
+      const sp=document.createElement('span');sp.className='trNowText';sp.textContent=title;
+      tr._now.innerHTML='';tr._now.appendChild(sp);
+    }
+  }
+  trAutoScroll(tr);
+  const vp=tr._viewport;
+  if(vp&&live)vp.classList.toggle('is-clipped',vp.scrollHeight>vp.clientHeight+2);
+}
+/* Размышления из сохранённой истории: свёрнутый блок «Думал N с». */
+function hmRestoreThinking(msgEl,th){
+  if(!msgEl||!th||!th.text)return;
+  const tr=ensureReasoningBlock(msgEl,{restored:true});
+  if(!tr)return;
+  tr._text=String(th.text);
+  tr._durationMs=Number(th.ms)||0;
+  if(tr._hts)try{tr._hts.stop();}catch(e){}
+  const human='Думал '+fmtThinkDuration(tr._durationMs||1000);
+  if(tr._verb)tr._verb.textContent=human;
+  if(tr._hts)try{tr._hts.finish(tr._durationMs||1000,human);}catch(e){}
+  if(tr._header)tr._header.setAttribute('aria-label',human);
+  setReasoningOpen(tr,false);
+  hmRenderThoughts(tr);
+}
+
 function flushReasoning(tr){
   if(!tr)return;
   tr._raf=0;
@@ -10007,6 +10171,8 @@ function flushReasoning(tr){
   const stream=tr._stream;
   if(!stream)return;
 
+  // Лента мыслей как у ChatGPT/Claude: шаги с заголовками, точки и линия.
+  if(tr.classList.contains('tr4')){hmRenderThoughts(tr);return;}
   const clean=formatReasoningText(tr._text||'');
   // Новый формат: модель пишет шаги «▸ Название: пояснение» — показываем журнал шагов.
   if(clean.indexOf('▸')>=0){hmRenderReasoningSteps(tr,clean);return;}
@@ -10065,11 +10231,19 @@ function appendReasoningChunk(msgEl,text){
   const raw=String(text==null?'':text);
   if(!raw)return;
   const tr=ensureReasoningBlock(msgEl);
-  if(!tr||tr._done)return;
+  if(!tr)return;
+  if(tr._done){
+    // Перевод мыслей догоняет уже начавшийся ответ: дописываем в свёрнутый блок.
+    tr._text=(tr._text||'')+raw;
+    if(!tr.isConnected)return;
+    tr.classList.remove('is-empty');
+    if(!tr._raf)tr._raf=requestAnimationFrame(function(){flushReasoning(tr);});
+    return;
+  }
   tr._text=(tr._text||'')+raw;
   // Заголовок размышления: последняя законченная мысль из НАСТОЯЩЕГО текста
   // рассуждений (как «Сравниваю минорные гаммы» рядом с «Думаю»). Не чаще раза в 1,2 с.
-  if(tr._hts&&tr._hts.setHeadline&&!tr._hmStepHead){
+  if(tr._hts&&tr._hts.setHeadline&&!tr._hmStepHead&&!tr.classList.contains('tr4')){
     const now=Date.now();
     // Заголовок меняется не чаще раза в 20 с — иначе фразы мелькали каждую секунду.
     if(!tr._headAt||now-tr._headAt>20000){const h=hmReasoningHeadline(tr._text);if(h){tr._headAt=now;try{tr._hts.setHeadline(h);}catch(_){}}}
@@ -10101,6 +10275,8 @@ function finalizeReasoningBlock(tr){
   // честнее, чем убрать блок.
   if(!formatReasoningText(tr._text||'').trim()&&!tr._keepEmpty){if(tr._hts)try{tr._hts.stop();}catch(e){}tr.remove();return;}
 
+  if(tr._now)tr._now.textContent='';
+  if(!formatReasoningText(tr._text||'').trim())tr.classList.add('is-empty');
   const human='Думал '+fmtThinkDuration(tr._durationMs);
   if(tr._verb)tr._verb.textContent=human;
   if(tr._hts)try{tr._hts.finish(tr._durationMs,human);}catch(e){}
@@ -10570,6 +10746,8 @@ function toWireHistory(history,opts={}){
     if(forStorage)base.createdAt=m.createdAt||messageNow();
     if(forStorage&&m.generatedFile)base.generatedFile=m.generatedFile;
     if(forStorage&&m.music)base.music=m.music;
+    // Размышления модели («Думал N с») — чтобы блок открывался и после перезагрузки.
+    if(forStorage&&m.thinking&&m.thinking.text)base.thinking={text:String(m.thinking.text).slice(0,24000),ms:Number(m.thinking.ms)||0};
     // Без этого флага после перезагрузки чата служебная подпись «Включаю: …»
     // рисуется текстом под карточкой и выглядит как дубль сообщения.
     if(forStorage&&m.musicLabel)base.musicLabel=true;
@@ -12884,7 +13062,12 @@ async function runAssistantReply(displayText){
       hmPaused=true;result.text=result.text.replace(HM_LIMIT_MARK,'').trimEnd();
       try{renderMd(aiShell.msg,result.text);}catch(_){}
     }
-    if(result?.text){chatHistory.push({role:'assistant',content:result.text,createdAt:messageNow()});recordUsage(displayText,result.text);}
+    if(result?.text){
+      const trEl=aiShell.wrap.querySelector('.tr');
+      const thinking=trEl&&String(trEl._text||'').trim()?{text:String(trEl._text).slice(0,24000),ms:Math.round(trEl._durationMs||trEl._serverDurationMs||0)}:null;
+      chatHistory.push({role:'assistant',content:result.text,createdAt:messageNow(),...(thinking?{thinking}:{})});
+      recordUsage(displayText,result.text);
+    }
     if(hmPaused){const h=document.createElement('div');h.innerHTML=hmLimitPauseHtml();aiShell.wrap.appendChild(h.firstElementChild);scrollChat();}
     else if(window.__hmLimitLow&&result?.text){
       // Короткий ответ уместился, но лимиты на исходе — предупреждаем заранее.
