@@ -2399,10 +2399,15 @@ export default async function handler(req, res) {
           role: m.role, text: typeof m.content === 'string' ? m.content : (Array.isArray(m.content) ? m.content.map((p) => p.text || '').join(' ') : '')
         }));
         let started = false;
+        // Пока Gemini смотрит, шлём клиенту комментарий SSE раз в 10 с:
+        // иначе через 45 с тишины клиент решит, что сервер завис.
+        const ping = setInterval(() => { try { res.write(': ping\n\n'); } catch (e) { /* закрыто */ } }, 10000);
+        try {
         result = await watchVideo(videoLink, query, {
           pro, history,
           onDelta: (d) => { started = true; writeSseEvent(res, { type: 'delta', text: d }); }
         });
+        } finally { clearInterval(ping); }
         if (result.ok && !quota.seen) recordVideoWatch(userId, videoLink.key, result.meta && result.meta.duration).catch(() => {});
         if (!result.ok && started) result = { ok: true, text: '' };
       }
