@@ -168,3 +168,6 @@ html.hv-lock,html.hv-lock body{overflow:hidden;}
   .hv-track,.hv-knob,.hv-ib,.hv-collapse svg,.hv-gear svg{transition:none;}
 }
 .stp-conn-logo.vk svg{width:34px;height:34px;}
+
+/* YouTube — родным плеером YouTube: своя полоса и меню не нужны */
+.hv--native .hv-bar,.hv--native .hv-menu{display:none!important;}

@@ -1,4 +1,4 @@
-import { proofreadRussian, fixMarkdownSpacing } from '../lib/proofread.js';
+import { proofreadRussian, fixMarkdownSpacing, looksBroken } from '../lib/proofread.js';
 import { hasProAccess, requireUser } from '../lib/auth.js';
 import { buildMusicTheoryContext } from '../lib/music-theory-router.js';
 import { readChatImages, withReading, isDocumentReading } from '../lib/image-read.js';
@@ -1085,6 +1085,8 @@ function reasoningReserve(effort) {
   if (e === 'medium') return 12000;
   return 6000;
 }
+const RU_SAMPLING = { temperature: 0.55, top_p: 0.9, min_p: 0.05, repetition_penalty: 1, frequency_penalty: 0, presence_penalty: 0 };
+
 function providerBodyVariants(modelName, messages, maxTokens, reasoningEffort, stream) {
   const base = { model: modelName, messages: sanitizeMessagesForProvider(messages) };
   if (stream) base.stream = true;
@@ -1094,6 +1096,12 @@ function providerBodyVariants(modelName, messages, maxTokens, reasoningEffort, s
      ответа (на 800 токенах — до 600 на «мысли»), поэтому без «Думать» они
      выключены, а с ними к лимиту добавляется запас. */
   if (isOpenRouterModel(modelName)) {
+    /* Параметры под русский язык. По умолчанию у бесплатных провайдеров
+       temperature ≈ 1 — модель чаще срывается на английские слова и
+       склеивает слова; штраф за повторы бьёт по частым токенам (пробелам,
+       окончаниям) — отсюда «трекуотдельный». Поэтому температура ниже,
+       хвост распределения обрезан, штрафов за повторы нет. */
+    Object.assign(base, RU_SAMPLING);
     const v = { ...base, reasoning: reasoningEffort ? { effort: reasoningEffort === 'medium' ? 'medium' : 'high' } : { enabled: false } };
     if (maxTokens > 0) v.max_tokens = maxTokens + (reasoningEffort ? reasoningReserve(reasoningEffort) : 0);
     variants.push(v);
@@ -2020,7 +2028,7 @@ async function streamOpenAIToClientInner(res, apiKey, modelName, messages, timeo
   /* Вычитка русского: бесплатные модели теряют буквы и вставляют английские
      слова. Текст пользователь уже видел потоком — исправленная версия придёт
      в done и тихо заменит показанную (см. lib/proofread.js). */
-  if (isOpenRouterModel(modelName) && !stalled) {
+  if ((isOpenRouterModel(modelName) || looksBroken(finalText)) && !stalled) {
     try { finalText = await proofreadRussian(finalText, { timeoutMs: 7000 }); } catch (e) { /* остаётся исходный */ }
   } else {
     finalText = fixMarkdownSpacing(finalText);

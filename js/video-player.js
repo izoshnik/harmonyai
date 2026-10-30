@@ -5,7 +5,8 @@
      • VK Видео — официальный плеер video_ext.php + его JS API (videoplayer.js):
        play/pause/перемотка/громкость/события. Качество выбирается параметром
        hd (плеер перезагружается и продолжает с того же места).
-     • YouTube — IFrame API без родных кнопок (controls=0): скорость, субтитры.
+     • YouTube — родной плеер YouTube (controls=1): качество, субтитры, скорость и
+       автодубляж YouTube — в его же шестерёнке; наша полоса для YouTube скрыта.
 
    Наш интерфейс — полоса прогресса и кнопки ПОД кадром, а не поверх него:
    кадр остаётся плеером площадки, поэтому её реклама и кнопка «Пропустить»
@@ -174,7 +175,7 @@
       p = new YT.Player(host, {
         videoId: item.id,
         playerVars: {
-          autoplay: 1, controls: 0, rel: 0, playsinline: 1, iv_load_policy: 3, disablekb: 1, fs: 0,
+          autoplay: 1, controls: 1, rel: 0, playsinline: 1, iv_load_policy: 3, disablekb: 0, fs: 1,
           modestbranding: 1, hl: 'ru', cc_lang_pref: 'ru', start: Math.floor(opts.start || 0),
           origin: location.origin
         },
@@ -474,6 +475,9 @@
     }
 
     function head() {
+      // YouTube показываем его родным плеером: свои кнопки, качество, субтитры,
+      // скорость и автодубляж — всё в шестерёнке YouTube. Наши кнопки — только для VK.
+      el.classList.toggle('hv--native', cur.source === 'yt');
       $('.hv-title').textContent = (intent.title && (cur.episode || intent.kind === 'movie' || intent.kind === 'cartoon')) ? intent.title : cur.title;
       $('.hv-title').title = cur.title;
       $('.hv-meta').textContent = itemMeta(cur, intent);
