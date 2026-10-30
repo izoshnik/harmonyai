@@ -12481,7 +12481,8 @@ function startMusicQueue(payload){
    а любой сбой стриминга молча съедал ответ, и пользователь видел только
    карточку. Здесь — простой нестриминговый запрос, инструкция идёт обычным
    user-сообщением (его принимают все модели), а сбой виден пользователю. */
-async function requestMusicAnswer(facts,answerRequest,customInstruction,onText){
+async function requestMusicAnswer(facts,answerRequest,customInstruction,onText,opts){
+  opts=opts||{};
   const instruction=customInstruction||(
     'Одной фразой я попросил найти музыку и задал вопрос. '+
     'Трек уже найден и показан карточкой в этом же сообщении: '+facts+'. '+
@@ -12492,7 +12493,11 @@ async function requestMusicAnswer(facts,answerRequest,customInstruction,onText){
      путь (quick) — минимум скрытых рассуждений и подстраховка второй моделью.
      Раньше нестриминговый запрос ждал, пока модель «додумает», — до двух минут. */
   const payload={
-    messages:[{role:'system',content:buildSystem()},...toWireHistory(chatHistory),{role:'user',content:instruction}],
+    /* light — короткая подпись под треком: без длинного системного промпта и
+       всей истории чата. Модель читает в разы меньше и начинает отвечать сразу. */
+    messages:opts.light
+      ? [{role:'system',content:'Ты HarmonyAI — дружелюбный музыкальный помощник. Пиши грамотно по-русски, коротко и только проверенные факты.'},...toWireHistory(chatHistory).slice(-4,-1),{role:'user',content:instruction}]
+      : [{role:'system',content:buildSystem()},...toWireHistory(chatHistory),{role:'user',content:instruction}],
     model:curModel,
     effort:'low',
     think:false,
@@ -12504,11 +12509,18 @@ async function requestMusicAnswer(facts,answerRequest,customInstruction,onText){
     userEmail:curUser?.email||null
   };
   const endpoints=buildApiCandidates();
+  /* Кнопка «Стоп» обрывает и этот запрос: раньше она лишь перекрашивалась,
+     а текст под треком продолжал грузиться. */
+  const ctrl=new AbortController();
+  activeAbortController=ctrl;
+  if(typeof opts.onAbort==='function')ctrl.signal.addEventListener('abort',opts.onAbort);
+  let text='';
+  const release=function(){if(activeAbortController===ctrl)activeAbortController=null;};
   let lastError=null;
   for(let i=0;i<endpoints.length;i++){
     try{
       const res=await withTimeout(
-        fetch(endpoints[i],{method:'POST',headers:await hmAuthHeaders(),body:JSON.stringify(payload),cache:'no-store',credentials:'omit'}),
+        fetch(endpoints[i],{method:'POST',headers:await hmAuthHeaders(),body:JSON.stringify(payload),cache:'no-store',credentials:'omit',signal:ctrl.signal}),
         CHAT_TIMEOUT_MS,
         'Сервер слишком долго отвечает'
       );
@@ -12521,7 +12533,9 @@ async function requestMusicAnswer(facts,answerRequest,customInstruction,onText){
         return r0;
       }
       const reader=res.body.getReader(),dec=new TextDecoder();
-      let buf='',text='',done=false,lastPaint=0;
+      let buf='',done=false,lastPaint=0;
+      text='';
+      ctrl.signal.addEventListener('abort',function(){try{reader.cancel();}catch(e){}});
       while(!done){
         const chunk=await reader.read();
         if(chunk.done)break;
@@ -12543,14 +12557,18 @@ async function requestMusicAnswer(facts,answerRequest,customInstruction,onText){
       }
       try{reader.cancel();}catch(e){}
       text=String(text||'').trim();
+      if(ctrl.signal.aborted){release();return text;}
       if(!text)throw new Error('Модель вернула пустой ответ');
+      release();
       return text;
     }catch(e){
+      if(ctrl.signal.aborted){release();return String(text||'').trim();}
       lastError=e;
       const msg=String(e&&e.message||'').toLowerCase();
       if(i<endpoints.length-1&&(msg.includes('failed to fetch')||msg.includes('load failed')||msg.includes('network')))continue;
     }
   }
+  release();
   throw lastError||new Error('Не удалось получить ответ от сервера');
 }
 
@@ -12596,7 +12614,7 @@ async function runAiPlaylist(text,spec){
   const wait=document.createElement('div');wait.className='thinking think-staff';
   let hts=null;
   try{if(window.HmThinkStaff){hts=window.HmThinkStaff.create(text,{anim:'staff',label:'Собираю плейлист'});wait.appendChild(hts.el);}}catch(e){}
-  if(!hts)wait.innerHTML='<div class="think-dots"><span></span><span></span><span></span></div>';
+  if(!hts)wait.innerHTML='<div class="hm-pulse-dot" aria-label="Печатает"></div>';
   sh.msg.appendChild(wait);scrollChat();
   const finish=function(msg){
     try{hts&&hts.stop();}catch(e){}
@@ -12778,7 +12796,7 @@ async function runMusicMessage(text){
     const sh=createAiBubbleShell({showActions:true,hiddenActions:true});
     window.__hmLastMusicShell=sh;
     // Пока не ясно, музыка это или обычный вопрос, — те же три точки, что у обычного ответа.
-    sh.msg.innerHTML='<div class="thinking"><div class="think-dots"><span></span><span></span><span></span></div></div>';
+    sh.msg.innerHTML='<div class="thinking"><div class="hm-pulse-dot" aria-label="Ищу"></div></div>';
     scrollChat();
     shellState={shell:sh,userBub:bub};
     return shellState;
@@ -13038,18 +13056,31 @@ async function hmMusicBlurb(shell,intent,payload,note,userText,question){
     (artist?(' (например {"label":"Собрать плейлист","prompt":"Собери плейлист из популярных треков '+artist.replace(/"/g,'')+'"})'):'')+'.';
   const answerEl=document.createElement('div');
   answerEl.className='music-answer';
-  answerEl.innerHTML='<div class="thinking"><div class="think-dots"><span></span><span></span><span></span></div></div>';
+  answerEl.innerHTML='<div class="hm-pulse-dot" aria-label="Печатает"></div>';
   shell.msg.appendChild(answerEl);scrollChat();
-  let reply='';
+  let reply='',stopped=false;
   setGeneratingState(true);
   try{
     reply=await requestMusicAnswer('','',instruction,function(partial){
+      if(stopped)return;
       // Пока идёт поток — текст без незакрытого блока кнопок.
       const cut=partial.replace(/```[\s\S]*$/,'').trim();
       if(cut){try{renderMd(answerEl,normalizeReplyNotation(cut));}catch(e){answerEl.textContent=cut;}scrollChat();}
-    });
+    },{light:!question,onAbort:function(){stopped=true;}});
   }catch(e){reply='';}
-  finally{setGeneratingState(false);}
+  finally{
+    // «Стоп» нажали — генерация уже снята stopGeneration(); второй вызов не нужен.
+    if(isGenerating)setGeneratingState(false);
+  }
+  if(stopped){
+    // Остановили: оставляем уже написанное (без недописанных кнопок), иначе убираем пустой блок.
+    const part=String(reply||'').replace(/```[\s\S]*$/,'').trim();
+    if(!part){answerEl.remove();return;}
+    try{renderMd(answerEl,normalizeReplyNotation(part));}catch(e){answerEl.textContent=part;}
+    note.content=part;note.musicLabel=false;note.stopped=true;
+    saveChat().catch(function(){});
+    return;
+  }
   if(!reply){
     if(question){answerEl.textContent='Не удалось получить ответ. Спросите ещё раз — отвечу в чате.';return;}
     answerEl.remove();return;
@@ -13924,7 +13955,7 @@ function renderSettingsConnections(){
   const el=settingsPane();
   if(!el)return;
   window.__setScreen='plugins';
-  const ymLogo='<svg width="36" height="36" viewBox="0 0 36 36" fill="none" aria-hidden="true"><g fill="#FFD400"><path d="M18 0l2.2 10.1L26.5 2l-2.9 10 9.1-5.1-7.5 7.1L36 14.7l-10.6 2.2L35 21.4l-10.8-1 7.4 7.9-9.2-5.7 3 10.4-6.4-8.7L18 36l-2.2-10.7L9.5 34l2.9-10.5-9.1 5.6 7.5-7.6L0 20.5l10.7-2.1L1 14l10.8.8-7.4-7.6 9.1 5.3L10.6 2l6.3 8.7L18 0z"/><circle cx="18" cy="18" r="5.2"/></g></svg>';
+  const ymLogo=HM_PLUGIN_LOGOS.yandex;
   const apiLogo='<svg width="34" height="26" viewBox="0 0 34 26" fill="none" aria-hidden="true"><path d="M11 4L3 13l8 9M23 4l8 9-8 9M20 2l-6 22" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   const plugHtml=`
     <div class="stp-card stp-conn" id="connYm">
@@ -15559,7 +15590,7 @@ function hmPlural(n,f){const a=Math.abs(n)%100,b=a%10;return a>10&&a<20?f[2]:b>1
 async function hmRenderYandexStats(panel){
   const box=document.createElement('div');box.className='hm-ystats';
   const year=new Date().getFullYear();
-  box.innerHTML='<div class="hm-ystats-head"><span class="hm-ystats-logo" aria-hidden="true"></span><span>Яндекс Музыка · '+year+'</span></div><div class="hm-ystats-body"><div class="thinking"><div class="think-dots"><span></span><span></span><span></span></div></div></div>';
+  box.innerHTML='<div class="hm-ystats-head"><span class="hm-ystats-logo" aria-hidden="true"></span><span>Яндекс Музыка · '+year+'</span></div><div class="hm-ystats-body"><div class="thinking"><div class="hm-pulse-dot"></div></div></div>';
   panel.prepend(box);
   const body=box.querySelector('.hm-ystats-body');
   let d;
@@ -15839,9 +15870,10 @@ async function hmVideoRoute(text,opts){
 
 /* --- Плагины видео: Rutube и YouTube (включаются в «Плагинах») --- */
 const HM_PLUGIN_LOGOS={
-  yandex:'<svg viewBox="0 0 36 36" aria-hidden="true"><g fill="#FFD400"><path d="M18 0l2.2 10.1L26.5 2l-2.9 10 9.1-5.1-7.5 7.1L36 14.7l-10.6 2.2L35 21.4l-10.8-1 7.4 7.9-9.2-5.7 3 10.4-6.4-8.7L18 36l-2.2-10.7L9.5 34l2.9-10.5-9.1 5.6 7.5-7.6L0 20.5l10.7-2.1L1 14l10.8.8-7.4-7.6 9.1 5.3L10.6 2l6.3 8.7L18 0z"/><circle cx="18" cy="18" r="5.2"/></g></svg>',
-  youtube:'<svg viewBox="0 0 36 36" aria-hidden="true"><rect x="2" y="7" width="32" height="22" rx="7" fill="#FF0033"/><path d="M15 12.8v10.4c0 .6.7 1 1.2.7l8.2-5.2a.8.8 0 0 0 0-1.4l-8.2-5.2c-.5-.3-1.2.1-1.2.7z" fill="#fff"/></svg>',
-  rutube:'<svg viewBox="0 0 36 36" aria-hidden="true"><rect width="36" height="36" rx="9" fill="#100943"/><path d="M10 10h11.2c3.4 0 5.6 2 5.6 5s-2.2 5-5.6 5H20l5.4 6h-4.6l-5-6H14v6h-4V10zm4 3.6v3h7c1.1 0 1.8-.6 1.8-1.5s-.7-1.5-1.8-1.5h-7z" fill="#fff"/><circle cx="28" cy="9" r="3.4" fill="#ED143B"/></svg>'
+  // Официальные значки сервисов — те же, что в «@ Плагины» (js/hm-mentions.js).
+  yandex:'<svg viewBox="0 0 144 144" aria-hidden="true"><rect width="144" height="144" rx="41" fill="#110503"/><path fill="#FFEE00" d="m130.863 57.739-.468-2.327-19.788-3.457 11.498-15.557-1.337-1.462-16.913 8.11 2.139-21.54-1.738-.997-10.295 17.418L82.395 12H80.39l2.74 25.064-29.08-23.269-2.474.732 22.396 28.122-44.323-14.76-2.006 2.261L67.22 52.686l-54.618 4.521-.602 3.39 56.757 6.184-47.33 39.157 2.005 2.726 56.356-30.648-11.164 53.983h3.41l21.592-50.792 13.17 39.756 2.34-1.795-5.415-40.42 20.524 23.268 1.337-2.128-15.711-28.853 21.928 8.111.201-2.46-19.655-14.493 18.518-4.454Z"/></svg>',
+  youtube:'<svg viewBox="0 -4.3 28.57 28.57" aria-hidden="true"><path fill="#FF0000" d="M27.973 3.123A3.58 3.58 0 0 0 25.447.597C23.22 0 14.285 0 14.285 0S5.35 0 3.123.597A3.58 3.58 0 0 0 .597 3.123C0 5.35 0 10 0 10s0 4.65.597 6.877a3.58 3.58 0 0 0 2.526 2.526C5.35 20 14.285 20 14.285 20s8.935 0 11.162-.597a3.58 3.58 0 0 0 2.526-2.526C28.57 14.65 28.57 10 28.57 10s-.002-4.65-.597-6.877Z"/><path fill="#fff" d="M11.425 14.285 18.848 10l-7.423-4.285v8.57Z"/></svg>',
+  rutube:'<svg viewBox="0 0 132 132" aria-hidden="true" style="border-radius:24%"><path fill="#100943" d="M0 0h132v132H0z"/><path fill="#ED143B" d="M132 66c36.451 0 66-29.55 66-66s-29.549-66-66-66S66-36.45 66 0s29.55 66 66 66"/><path fill="#fff" d="M81.536 62.987H42.54V47.555h38.997c2.278 0 3.862.397 4.657 1.09s1.287 1.98 1.287 3.858v5.541c0 1.98-.492 3.265-1.287 3.959-.795.693-2.379.99-4.657.99zm2.675-29.981H26V99h16.539V77.53h30.479L87.48 99H106L90.055 77.429c5.878-.871 8.518-2.673 10.695-5.642s3.269-7.716 3.269-14.051v-4.948c0-3.758-.398-6.727-1.092-9.002s-1.88-4.255-3.565-6.033c-1.78-1.683-3.76-2.868-6.14-3.663-2.378-.693-5.35-1.09-9.01-1.09z"/></svg>'
 };
 function hmVideoPluginCard(name,title,logo){
   return `<div class="stp-card stp-conn" id="conn-${name}">

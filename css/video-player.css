@@ -167,7 +167,7 @@ html.hv-lock,html.hv-lock body{overflow:hidden;}
   .hv-menu,.hv-modal{animation:none;}
   .hv-track,.hv-knob,.hv-ib,.hv-collapse svg,.hv-gear svg{transition:none;}
 }
-.stp-conn-logo.vid svg{width:34px;height:34px;}
+.stp-conn-logo.vid svg,.stp-conn-logo.ym svg{width:28px;height:28px;display:block;}
 
 /* YouTube — родным плеером YouTube: своя полоса и меню не нужны */
 .hv--native .hv-bar,.hv--native .hv-menu{display:none!important;}

@@ -1176,6 +1176,22 @@
     return ids.slice(0, 30);
   }
 
+  /* Память волны: id треков, что уже звучали в «Моей волне» (последние 300).
+     Сервер их отсеивает — новая волна не начинается с тех же песен. */
+  var WAVE_RECENT_KEY = 'hm_wave_recent_v1';
+  function waveRecent() {
+    try { var a = JSON.parse(localStorage.getItem(WAVE_RECENT_KEY) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; }
+  }
+  function rememberWaveTrack(track) {
+    if (!track || !track.trackId) return;
+    try {
+      var id = String(track.trackId);
+      var a = waveRecent().filter(function (x) { return x !== id; });
+      a.push(id);
+      localStorage.setItem(WAVE_RECENT_KEY, JSON.stringify(a.slice(-300)));
+    } catch (e) { /* приватный режим — просто без памяти */ }
+  }
+
   function waveFeedback(type, track, played) {
     var w = state.wave;
     var c = client();
@@ -1210,6 +1226,7 @@
   }
 
   function onWaveTrackStarted(track) {
+    rememberWaveTrack(track);
     waveFeedback('trackStarted', track, 0);
     waveTopUp();
   }
@@ -1222,7 +1239,7 @@
     w.buffer = w.buffer || [];
     var lastBuf = w.buffer[w.buffer.length - 1];
     var last = lastBuf || state.queue[state.queue.length - 1];
-    return c.wave({ station: w.station, queue: last ? last.trackId : '', seeds: waveSeeds() }).then(function (d) {
+    return c.wave({ station: w.station, queue: last ? last.trackId : '', seeds: waveSeeds(), exclude: waveRecent() }).then(function (d) {
       w.loading = false;
       if (state.wave !== w) return false;
       if (d && d.batchId) w.batchId = d.batchId;
@@ -1258,9 +1275,12 @@
     ensureDom();
     show();
     el.bar.classList.add('is-loading');
-    return c.wave({ station: (opts && opts.station) || '', seeds: waveSeeds() }).then(function (d) {
+    return c.wave({ station: (opts && opts.station) || '', seeds: waveSeeds(), exclude: waveRecent() }).then(function (d) {
       el.bar.classList.remove('is-loading');
       var items = d && Array.isArray(d.items) ? d.items : [];
+      // Не начинаем волну с песни, которая звучит прямо сейчас.
+      var now = current();
+      if (now && items.length > 1) items = items.filter(function (t) { return String(t.trackId) !== String(now.trackId); });
       if (!items.length) {
         if (!state.queue.length) hide();
         notify('Волна пока пустая: лайкните пару треков или подключите Яндекс Музыку');
@@ -1467,9 +1487,14 @@
     // Ссылка берётся лениво — при первом нажатии Play. Позицию помним.
     var pos = Number(s.position) || 0;
     if (pos > 0) {
+      /* Позиция — только для того трека, что был сохранён. Раньше слушатель
+         ждал первую любую загрузку: включили после перезагрузки «Мою волну» —
+         и её первый трек стартовал с середины. */
+      var restoredId = String((state.queue[state.index] || {}).trackId || '');
       var once = function () {
-        audio.currentTime = pos;
         audio.removeEventListener('loadedmetadata', once);
+        var cur = current();
+        if (cur && String(cur.trackId) === restoredId) audio.currentTime = pos;
       };
       audio.addEventListener('loadedmetadata', once);
     }
