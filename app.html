@@ -10466,7 +10466,7 @@ function showTyping(kind='text',steps=[]){
   d.className='thinking';
   d.id='typEl';
 
-  const labelMap={file:'Читаю файл…',photo:'Смотрю фото…',image:'Рисую изображение…'};
+  const labelMap={file:'Читаю файл…',photo:'Смотрю фото…',image:'Рисую изображение…',video:'Смотрю видео…'};
   const label=kind==='text'
     ? (shouldShowThinkingLabel()?'Думаю':'')
     : (labelMap[kind]||'');
@@ -13094,7 +13094,8 @@ async function runAssistantReply(displayText){
   const switchedAway=()=>chatHistory!==ctxHistory;
   const hasImg=chatHistory.length>1&&Array.isArray(chatHistory[chatHistory.length-1]?.attachments)&&chatHistory[chatHistory.length-1].attachments.some(a=>a.kind==='image');
   const hasDoc=chatHistory.length>1&&Array.isArray(chatHistory[chatHistory.length-1]?.attachments)&&chatHistory[chatHistory.length-1].attachments.some(a=>a.kind==='document');
-  const typKind=hasImg&&hasDoc?'photo':hasImg?'photo':hasDoc?'file':'text';
+  const lastTxt=String(displayText||'');
+  const typKind=HM_VIDEO_LINK.test(lastTxt)?'video':hasImg&&hasDoc?'photo':hasImg?'photo':hasDoc?'file':'text';
   showTyping(typKind);
   setGeneratingState(true);
   const aiShell=createAiBubbleShell({showActions:true,hiddenActions:true});
@@ -15720,8 +15721,12 @@ function hmVideoRecent(){
   for(let i=chatHistory.length-1,n=0;i>=0&&n<4;i--,n++){if(chatHistory[i].video)return chatHistory[i].video;}
   return null;
 }
+/* Ссылка на ролик YouTube/TikTok — это просьба ПОСМОТРЕТЬ его (сервер, lib/video-watch.js),
+   а не найти фильм в кинотеатре. */
+const HM_VIDEO_LINK=/https?:\/\/(?:www\.|m\.|music\.|vm\.|vt\.)?(?:youtube\.com\/(?:watch|shorts|live|embed)|youtu\.be\/|tiktok\.com\/)/i;
 function hmVideoWanted(text){
   if(!window.HmVideo||!window.HmVideo.enabled()||!text)return false;
+  if(HM_VIDEO_LINK.test(text))return false;
   if(HM_VIDEO_HINT.test(text))return true;
   return Boolean(hmVideoRecent()&&text.length<90&&/следующ|предыдущ|дальше|другую|другой|оригинал|англ|русск|озвуч|серию|сезон/i.test(text));
 }
@@ -15873,6 +15878,8 @@ async function hmAgentRoute(text){
   const audios=pendingAttachments.filter(a=>a.kind==='audio');
   const recent=hmRecentAudioList();
   const hasText=Boolean((text||'').trim());
+  // Ссылка на YouTube/TikTok — ролик смотрит сервер в обычном ответе, агенту тут делать нечего.
+  if(!audios.length&&HM_VIDEO_LINK.test(text||''))return false;
   if(!audios.length&&!(hasText&&(recent.length||HM_AGENT_HINT.test(text))))return false;
   if(!window.MusicClient&&!audios.length&&!/лимит|остал|сброс/i.test(text||''))return false;
   // Трек без слов — сразу спрашиваем, что с ним сделать (без похода к модели).
