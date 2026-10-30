@@ -67,3 +67,33 @@ html:not([data-theme="light"]):not([data-theme="messenger"]) .hm-att-audio audio
 .mic-btn.recording,.main .mic-btn.recording{color:#ff3b30!important;animation:hmRecPulse 1.2s ease-in-out infinite;}
 @keyframes hmRecPulse{0%,100%{opacity:1}50%{opacity:.45}}
 @media (prefers-reduced-motion:reduce){.mic-btn.recording{animation:none}}
+
+/* ===== «@ Плагины» над строкой ввода (js/hm-mentions.js) ===== */
+.hm-mention{position:absolute;left:50%;bottom:calc(100% - 6px);transform:translateX(-50%);width:min(760px,calc(100% - 24px));z-index:30;
+  padding:8px;border-radius:22px;background:var(--hm-mention-bg,rgba(30,30,32,.97));border:1px solid rgba(255,255,255,.08);
+  box-shadow:0 18px 44px rgba(0,0,0,.35);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);animation:hmMentionIn .16s ease;}
+@keyframes hmMentionIn{from{opacity:0;transform:translate(-50%,6px)}to{opacity:1;transform:translate(-50%,0)}}
+.hm-mention-h{padding:8px 12px 6px;font-size:13px;font-weight:600;color:var(--text2);}
+.hm-mention-row{display:flex;align-items:center;gap:12px;width:100%;padding:9px 12px;border:0;border-radius:14px;background:transparent;color:var(--text);text-align:left;cursor:pointer;font-family:inherit;}
+.hm-mention-row:hover,.hm-mention-row.is-active{background:rgba(255,255,255,.08);}
+.hm-mention-logo{flex:none;width:28px;height:28px;display:flex;}
+.hm-mention-logo svg{width:28px;height:28px;}
+.hm-mention-meta{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;}
+.hm-mention-meta b{font-size:15px;font-weight:600;}
+.hm-mention-meta span{font-size:12.5px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hm-mention-tag{flex:none;font-size:12.5px;color:var(--text2);}
+html[data-theme="light"] .hm-mention,html[data-theme="messenger"] .hm-mention{--hm-mention-bg:rgba(255,255,255,.98);border-color:rgba(0,0,0,.08);box-shadow:0 18px 44px rgba(0,0,0,.14);}
+html[data-theme="light"] .hm-mention-row:hover,html[data-theme="light"] .hm-mention-row.is-active,html[data-theme="messenger"] .hm-mention-row.is-active{background:rgba(0,0,0,.05);}
+@media(min-width:769px){html:not([data-theme]) .hm-mention{--hm-mention-bg:rgba(255,255,255,.98);border-color:rgba(0,0,0,.08);box-shadow:0 18px 44px rgba(0,0,0,.14);}
+  html:not([data-theme]) .hm-mention-row.is-active,html:not([data-theme]) .hm-mention-row:hover{background:rgba(0,0,0,.05);}}
+
+/* Мобильное меню «+»: компактнее, веб-поиск — переключатель */
+@media(max-width:768px){
+  .attach-sheet{padding:6px 12px 18px;}
+  .attach-handle{margin:4px auto 8px;}
+  .attach-opt{gap:14px;padding:11px 10px;border-radius:12px;}
+  .attach-opt-txt{font-size:16px;}
+  .attach-opt-hint{display:none;}
+  .attach-opt.is-limited .attach-opt-hint{display:block;font-size:12px;}
+  .attach-opt-ic svg{width:20px;height:20px;}
+}

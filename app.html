@@ -154,6 +154,7 @@ if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127
 <script defer src="/js/music-player.js"></script>
 <script defer src="/js/music-playlists.js"></script>
 <script defer src="/js/video-player.js"></script>
+<script defer src="/js/hm-mentions.js"></script>
 <script defer src="/js/hm-memory.js"></script>
 <script defer src="/js/audio-analyzer.js"></script>
 <script defer src="/js/hm-docgen.js"></script>
@@ -4045,8 +4046,8 @@ body.hm-dragging #chatInner::after{content:'Отпустите файлы, чт�
       </div>
       <div class="attach-opt" id="attachSearch" onclick="attachChoose('search',event)">
         <span class="attach-opt-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M3 12h18M12 3a14 14 0 010 18M12 3a14 14 0 000 18" stroke="currentColor" stroke-width="1.8"/></svg></span>
-        <span class="attach-opt-txt">Поиск в сети</span>
-        <span class="attach-opt-state" id="attachSearchState">ИИ сам решит</span>
+        <span class="attach-opt-txt">Веб-поиск</span>
+        <span class="attach-opt-sw sw" id="attachSearchSw"></span>
       </div>
       <div class="attach-opt" id="attachFiles" onclick="attachChoose('files',event)">
         <span class="attach-opt-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M8 12l6-6a3 3 0 114 4l-8 8a5 5 0 01-7-7l8-8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
@@ -4058,10 +4059,10 @@ body.hm-dragging #chatInner::after{content:'Отпустите файлы, чт�
         <span class="attach-opt-txt">Сгенерировать изображение</span>
         <span class="attach-opt-hint">По вашему описанию</span>
       </div>
-      <div class="attach-opt" id="attachAudio" onclick="attachChoose('audio',event)">
-        <span class="attach-opt-ic" style="background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M3 10v4h4l5 4V6l-5 4H3z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg></span>
-        <span class="attach-opt-txt">Добавить аудио</span>
-        <span class="attach-opt-hint">ИИ разберёт, узнает трек или загрузит в Яндекс Музыку</span>
+      <div class="attach-opt" id="attachPlugins" onclick="attachChoose('plugins',event)">
+        <span class="attach-opt-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="attach-opt-txt">Плагины</span>
+        <span class="attach-opt-hint">Яндекс Музыка, YouTube, Rutube</span>
       </div>
     </div>
   </div>
@@ -7635,7 +7636,7 @@ function togglePlusDrop(e){
 function refreshAttachSheet(){
   // Лимиты: файлы и аудио — по лимиту сообщений, генерация — по лимиту изображений.
   const chatLim=checkLimit(),imgLim=checkImageLimit();
-  [['attachFiles',chatLim],['attachAudio',chatLim],['attachImage',imgLim]].forEach(([id,l])=>{
+  [['attachFiles',chatLim],['attachImage',imgLim]].forEach(([id,l])=>{
     const opt=document.getElementById(id);if(!opt)return;
     const hint=opt.querySelector('.attach-opt-hint');
     if(hint&&hint.dataset.base==null)hint.dataset.base=hint.textContent;
@@ -7645,29 +7646,26 @@ function refreshAttachSheet(){
   });
   const thinkSw=document.getElementById('attachThinkSw');
   if(thinkSw)thinkSw.classList.toggle('on',thinkOn);
-  const searchOpt=document.getElementById('attachSearch');
-  const searchState=document.getElementById('attachSearchState');
-  if(searchOpt)searchOpt.classList.toggle('on',webSearchMode==='on');
-  if(searchState){
-    searchState.textContent = webSearchMode==='on' ? 'Включён'
-      : webSearchMode==='off' ? 'Выключен'
-      : 'ИИ сам решит';
-  }
+  const searchSw=document.getElementById('attachSearchSw');
+  if(searchSw)searchSw.classList.toggle('on',webSearchMode==='on');
 }
 // Выбор пункта в bottom-sheet: 'think' | 'search' | 'files'.
 function attachChoose(kind,e){
   if(e)e.stopPropagation();
-  const optId={files:'attachFiles',audio:'attachAudio',image:'attachImage'}[kind];
+  const optId={files:'attachFiles',image:'attachImage'}[kind];
   if(optId&&document.getElementById(optId)?.classList.contains('is-limited'))return;
   if(kind==='think'){
     toggleThink({stopPropagation:()=>{}});
     refreshAttachSheet();
     // Переключатель — sheet не закрываем, можно включить/выключить и выбрать ещё.
   }else if(kind==='search'){
-    toggleWebSearchFromMenu(null);
+    // Переключатель, как на компьютере: включён ↔ ИИ решает сам.
+    webSearchMode=webSearchMode==='on'?'auto':'on';
+    refreshWebSearchUI();
     refreshAttachSheet();
-    // Поиск — тоже оставляем sheet открытым (цикл auto → on → off), чтобы видеть состояние.
-    if(webSearchMode==='on')closePlusDrop();
+  }else if(kind==='plugins'){
+    closePlusDrop();
+    if(window.HmMentions)window.HmMentions.open();
   }else if(kind==='files'){
     triggerFileInput();
   }else if(kind==='audio'){
@@ -7728,12 +7726,8 @@ function refreshWebSearchUI(){
   if(wrap)wrap.classList.toggle('open',webSearchMode==='on');
   const searchOpt=document.getElementById('attachSearch');
   if(searchOpt)searchOpt.classList.toggle('on',webSearchMode==='on');
-  const searchState=document.getElementById('attachSearchState');
-  if(searchState){
-    searchState.textContent = webSearchMode==='on' ? 'Включён'
-      : webSearchMode==='off' ? 'Выключен'
-      : 'ИИ сам решит';
-  }
+  const searchSw=document.getElementById('attachSearchSw');
+  if(searchSw)searchSw.classList.toggle('on',webSearchMode==='on');
 }
 /* ===== РЕЖИМ ГЕНЕРАЦИИ ИЗОБРАЖЕНИЯ ===== */
 // Включает/выключает режим. При включении закрываем меню «+» и показываем мини-окно над инпутом.
@@ -8491,7 +8485,7 @@ function hmDropPreBubble(){if(hmPre){try{hmPre.wrap.remove();}catch(e){}hmPre=nu
 function addUserBubble(text,attachments=[],opts={}){
   if(hmPre){
     const pre=hmPre;hmPre=null;
-    if(pre.wrap.isConnected&&String(text||'')===pre.text){
+    if(pre.wrap.isConnected&&(pre.keep||String(text||'')===pre.text)){
       pre.wrap.dataset.historyIndex=String(opts.historyIndex??chatHistory.length);
       if(attachments.length)pre.wrap.__hmAtts=attachments;
       return pre.wrap;
@@ -12145,6 +12139,17 @@ async function sendMsgInner(){
   }
   if(!text&&!pendingAttachments.length)return;
   hmPreBubble(text,pendingAttachments.slice());
+  /* «@Плагин …» — пользователь сам выбрал плагин: сразу туда, без угадывания. */
+  {
+    const mention=(window.HmMentions&&text)?window.HmMentions.parse(text):null;
+    if(mention){
+      if(hmPre)hmPre.keep=true;
+      resetChatScrollFollow();
+      let done=false;
+      try{done=await hmPluginRoute(mention,text);}catch(e){done=false;}
+      if(done)return;
+    }
+  }
   /* ИИ-агент: трек, Яндекс Музыка, лимиты, подключение — ИИ по смыслу
      решает, что сделать. Явные команды плеера («включи…», «пауза») идут
      своим быстрым путём ниже, без лишнего похода к модели. */
@@ -13919,7 +13924,6 @@ function renderSettingsConnections(){
   if(!el)return;
   window.__setScreen='plugins';
   const ymLogo='<svg width="36" height="36" viewBox="0 0 36 36" fill="none" aria-hidden="true"><g fill="#FFD400"><path d="M18 0l2.2 10.1L26.5 2l-2.9 10 9.1-5.1-7.5 7.1L36 14.7l-10.6 2.2L35 21.4l-10.8-1 7.4 7.9-9.2-5.7 3 10.4-6.4-8.7L18 36l-2.2-10.7L9.5 34l2.9-10.5-9.1 5.6 7.5-7.6L0 20.5l10.7-2.1L1 14l10.8.8-7.4-7.6 9.1 5.3L10.6 2l6.3 8.7L18 0z"/><circle cx="18" cy="18" r="5.2"/></g></svg>';
-  const vkLogo='<svg width="36" height="36" viewBox="0 0 36 36" aria-hidden="true"><rect width="36" height="36" rx="10" fill="#0077FF"/><path d="M19.2 25.6c-7.3 0-11.5-5-11.7-13.4h3.7c.1 6.1 2.8 8.7 4.9 9.3v-9.3h3.5v5.3c2.1-.2 4.3-2.6 5-5.3h3.4c-.6 3.2-2.9 5.6-4.6 6.6 1.7.8 4.3 2.8 5.3 6.8h-3.8c-.8-2.5-2.8-4.5-5.3-4.7v4.7h-.4z" fill="#fff"/></svg>';
   const apiLogo='<svg width="34" height="26" viewBox="0 0 34 26" fill="none" aria-hidden="true"><path d="M11 4L3 13l8 9M23 4l8 9-8 9M20 2l-6 22" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   const plugHtml=`
     <div class="stp-card stp-conn" id="connYm">
@@ -13931,17 +13935,8 @@ function renderSettingsConnections(){
         </div>
       </div>
     </div>
-    <div class="stp-card stp-conn" id="connVk">
-      <div class="stp-conn-row">
-        <div class="stp-conn-logo vk">${vkLogo}</div>
-        <div class="stp-conn-meta">
-          <div class="stp-row-title">VK Video</div>
-          <div class="stp-conn-state">Проверяю подключение…</div>
-        </div>
-        <button type="button" class="stp-toggle" aria-label="Видео в чате"></button>
-      </div>
-      <div class="stp-conn-slot"></div>
-    </div>
+    ${hmVideoPluginCard('rutube','Rutube',HM_PLUGIN_LOGOS.rutube)}
+    ${hmVideoPluginCard('youtube','YouTube',HM_PLUGIN_LOGOS.youtube)}
     <div class="stp-card stp-conn">
       <div class="stp-conn-row">
         <div class="stp-conn-logo api">${apiLogo}</div>
@@ -13957,7 +13952,7 @@ function renderSettingsConnections(){
     </div>`:''}`;
   stpEnsure('plugins','Плагины',stpBackMain(),plugHtml);
   refreshYandexConn();
-  refreshVkVideoConn();
+  refreshVideoPlugins();
 }
 
 async function refreshYandexConn(){
@@ -15717,10 +15712,10 @@ async function hmYandexConnected(){
 /* ===== ОНЛАЙН-КИНОТЕАТР В ЧАТЕ ==============================================
    «включи Интерстеллар», «третья серия второго сезона Мандалорца в LostFilm»,
    «а теперь в оригинале» — ИИ (op=video, action=find) понимает, что именно
-   хотят посмотреть, сервер ищет в VK Видео и YouTube, а в сообщении появляется
+   хотят посмотреть, сервер ищет на Rutube и YouTube, а в сообщении появляется
    плеер (js/video-player.js). Запрос к ИИ уходит только если во фразе есть
    «видео-слова» или прошлый ответ был видео — остальной чат не замедляется. */
-const HM_VIDEO_HINT=/(?:^|[^а-яёa-z])(?:фильм|кино|сериал|мульт|аниме|видео|ролик|трейлер|тизер|клип|серию|серия|серии|сезон|эпизод|озвучк|дубляж|субтитр|в оригинале|ютуб|youtube|vk ?video|вк ?видео|lostfilm|hdrezka|кубик в кубе)/i;
+const HM_VIDEO_HINT=/(?:^|[^а-яёa-z])(?:фильм|кино|сериал|мульт|аниме|видео|ролик|трейлер|тизер|клип|серию|серия|серии|сезон|эпизод|озвучк|дубляж|субтитр|в оригинале|ютуб|youtube|рутуб|rutube|lostfilm|hdrezka|кубик в кубе)/i;
 function hmVideoRecent(){
   for(let i=chatHistory.length-1,n=0;i>=0&&n<4;i--,n++){if(chatHistory[i].video)return chatHistory[i].video;}
   return null;
@@ -15769,23 +15764,41 @@ function hmVideoMount(msgEl,stored,opts){
 }
 function hmVideoFailText(d,query){
   const what=query?'«'+query+'»':'это видео';
-  if(d&&d.error==='vk_not_configured'&&!d.youtube)return hasModeratorAccess()
-    ?'VK Видео ещё не подключено к серверу. Откройте **Настройки → Плагины → VK Video** и нажмите «Подключить VK к серверу» (или задайте `VK_USER_TOKEN` в Vercel).'
-    :'Онлайн-кинотеатр сейчас настраивается — загляните чуть позже.';
-  if(d&&d.error==='vk_error')return 'VK Видео сейчас не отвечает. Попробуйте ещё раз через минуту.';
-  return 'Не нашёл '+what+' в VK Видео'+(d&&d.youtube?' и на YouTube':'')+'. Попробуйте уточнить название или год.';
+  const where=d&&d.sources?[d.sources.rutube?'на Rutube':'',d.sources.youtube?'на YouTube':''].filter(Boolean).join(' и '):'на Rutube';
+  if(d&&d.error==='rutube_error')return 'Rutube сейчас не отвечает. Попробуйте ещё раз через минуту.';
+  return 'Не нашёл '+what+' '+(where||'на Rutube')+'. Попробуйте уточнить название или год.';
+}
+/* Сообщение с «@Плагин». true — обработано (ответ уже в чате). */
+async function hmPluginRoute(m,text){
+  const rest=(m.rest||'').trim();
+  if(m.plugin==='youtube'||m.plugin==='rutube'){
+    if(!rest)return false;
+    return hmVideoRoute(rest,{forced:true,display:text,sources:{rutube:m.plugin==='rutube',youtube:m.plugin==='youtube'}});
+  }
+  if(m.plugin==='yandex'){
+    // Трек приложен или был недавно — загрузка/разбор решает ИИ-агент.
+    const hasAudio=pendingAttachments.some(a=>a.kind==='audio')||hmRecentAudioList().length;
+    if(hasAudio&&await hmAgentRoute(rest||'Загрузи этот трек в мою Яндекс Музыку'))return true;
+    if(!rest)return false;
+    const q=/(включи|найди|поставь|составь|собери|подбери|плейлист|подборк|загрузи|добавь|сохрани|покажи|узнай|сыграй)/i.test(rest)?rest:'включи '+rest;
+    if(typeof handleMusicMessage==='function'&&await handleMusicMessage(q))return true;
+  }
+  return false;
 }
 /* true — сообщение обработано как видео (ответ уже в чате). */
-async function hmVideoRoute(text){
-  if(!hmVideoWanted(text))return false;
+async function hmVideoRoute(text,opts){
+  opts=opts||{};
+  if(!opts.forced&&!hmVideoWanted(text))return false;
+  const sources=opts.sources||{rutube:window.HmVideo.pluginOn('rutube'),youtube:window.HmVideo.pluginOn('youtube')};
   let d=null;
   showTyping('text');
-  try{d=await hmVideoCall({action:'find',message:text,history:hmVideoHistory()},25000);}
+  try{d=await hmVideoCall({action:'find',message:text,history:hmVideoHistory(),sources,forced:Boolean(opts.forced)},25000);}
   catch(e){d=null;}
   finally{hideTyping();}
   if(!d||!d.is_video)return false;
-  addUserBubble(text,[]);
-  chatHistory.push({role:'user',content:text,createdAt:messageNow()});
+  const shown=opts.display||text;
+  addUserBubble(shown,[]);
+  chatHistory.push({role:'user',content:shown,createdAt:messageNow()});
   const g=document.getElementById('greetingWrap');if(g)g.style.display='none';
   const shell=createAiBubbleShell({showActions:true});
   const query=(d.intent&&(d.intent.title||d.intent.query))||'';
@@ -15819,80 +15832,41 @@ async function hmVideoRoute(text){
   return true;
 }
 
-/* --- VK ID: персонал подключает VK к серверу (один ключ на всех) --- */
-const HM_VKID_RETURN=(function(){
-  try{
-    const u=new URL(location.href);
-    let code=u.searchParams.get('code'),state=u.searchParams.get('state'),device=u.searchParams.get('device_id');
-    const payload=u.searchParams.get('payload');
-    if(payload){try{const j=JSON.parse(payload);code=code||j.code;state=state||j.state;device=device||j.device_id;}catch(e){}}
-    const saved=JSON.parse(sessionStorage.getItem('hm_vkid_pkce')||'null');
-    if(!code||!saved||saved.state!==state)return null;
-    u.searchParams.delete('code');u.searchParams.delete('state');u.searchParams.delete('device_id');u.searchParams.delete('payload');
-    u.searchParams.delete('expires_in');u.searchParams.delete('type');u.searchParams.delete('ext_id');
-    history.replaceState(null,'',u.pathname+(u.search?u.search:'')+u.hash);
-    return {code,state,device_id:device||'',code_verifier:saved.verifier,redirect_uri:saved.redirect};
-  }catch(e){return null;}
-})();
-function hmB64url(buf){let s='';new Uint8Array(buf).forEach(b=>{s+=String.fromCharCode(b);});return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
-async function hmVkidStart(clientId){
-  const rnd=new Uint8Array(48);crypto.getRandomValues(rnd);
-  const verifier=hmB64url(rnd);
-  const challenge=hmB64url(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(verifier)));
-  const st=new Uint8Array(16);crypto.getRandomValues(st);
-  const state=hmB64url(st);
-  const redirect=location.origin+'/chat';
-  sessionStorage.setItem('hm_vkid_pkce',JSON.stringify({verifier,state,redirect}));
-  const q=new URLSearchParams({response_type:'code',client_id:clientId,scope:'video',redirect_uri:redirect,state,code_challenge:challenge,code_challenge_method:'S256'});
-  location.href='https://id.vk.com/authorize?'+q.toString();
+/* --- Плагины видео: Rutube и YouTube (включаются в «Плагинах») --- */
+const HM_PLUGIN_LOGOS={
+  yandex:'<svg viewBox="0 0 36 36" aria-hidden="true"><g fill="#FFD400"><path d="M18 0l2.2 10.1L26.5 2l-2.9 10 9.1-5.1-7.5 7.1L36 14.7l-10.6 2.2L35 21.4l-10.8-1 7.4 7.9-9.2-5.7 3 10.4-6.4-8.7L18 36l-2.2-10.7L9.5 34l2.9-10.5-9.1 5.6 7.5-7.6L0 20.5l10.7-2.1L1 14l10.8.8-7.4-7.6 9.1 5.3L10.6 2l6.3 8.7L18 0z"/><circle cx="18" cy="18" r="5.2"/></g></svg>',
+  youtube:'<svg viewBox="0 0 36 36" aria-hidden="true"><rect x="2" y="7" width="32" height="22" rx="7" fill="#FF0033"/><path d="M15 12.8v10.4c0 .6.7 1 1.2.7l8.2-5.2a.8.8 0 0 0 0-1.4l-8.2-5.2c-.5-.3-1.2.1-1.2.7z" fill="#fff"/></svg>',
+  rutube:'<svg viewBox="0 0 36 36" aria-hidden="true"><rect width="36" height="36" rx="9" fill="#100943"/><path d="M10 10h11.2c3.4 0 5.6 2 5.6 5s-2.2 5-5.6 5H20l5.4 6h-4.6l-5-6H14v6h-4V10zm4 3.6v3h7c1.1 0 1.8-.6 1.8-1.5s-.7-1.5-1.8-1.5h-7z" fill="#fff"/><circle cx="28" cy="9" r="3.4" fill="#ED143B"/></svg>'
+};
+function hmVideoPluginCard(name,title,logo){
+  return `<div class="stp-card stp-conn" id="conn-${name}">
+      <div class="stp-conn-row">
+        <div class="stp-conn-logo vid">${logo}</div>
+        <div class="stp-conn-meta">
+          <div class="stp-row-title">${title}</div>
+          <div class="stp-conn-state">Проверяю подключение…</div>
+        </div>
+        <button type="button" class="stp-toggle" aria-label="${title} в чате"></button>
+      </div>
+    </div>`;
 }
-(function hmVkidFinish(){
-  if(!HM_VKID_RETURN)return;
-  let tries=0;
-  const go=async()=>{
-    if(!curUser){if(++tries<60)setTimeout(go,500);return;}
-    sessionStorage.removeItem('hm_vkid_pkce');
-    try{
-      const r=await hmVideoCall({action:'vk-connect',...HM_VKID_RETURN},30000);
-      if(r&&r.ok)showToast('VK Видео подключено к серверу');
-      else{
-        const err=(r&&(r.error&&r.error.message||r.message||r.error))||'ошибка';
-        const lines=['VK выдал ключ, но поиск видео с ним не работает.','',
-          'Данные для поддержки VK ID:',
-          '• ID приложения: '+((r&&r.clientId)||'—'),
-          '• Выданные доступы (scope): '+((r&&r.scope)||'VK не сообщил'),
-          '• Доступ «video» '+(r&&r.hasVideoScope?'выдан':'НЕ выдан'),
-          '• Метод: video.search',
-          '• Ответ VK: '+err+(r&&r.errorCode?' ('+r.errorCode+')':'')];
-        try{await hmAlert(lines.join('\n'),'VK Видео не подключено');}catch(e){showToast('VK подключился, но поиск видео не работает: '+err);}
-      }
-    }catch(e){showToast('Не удалось подключить VK: '+(e.message||e));}
-  };
-  setTimeout(go,300);
-})();
-async function refreshVkVideoConn(){
-  const card=document.getElementById('connVk');
-  if(!card||!window.HmVideo)return;
-  const state=card.querySelector('.stp-conn-state');
-  const tg=card.querySelector('.stp-toggle');
-  const extra=card.querySelector('.stp-conn-slot');
-  tg.classList.toggle('on',window.HmVideo.enabled());
-  tg.onclick=()=>{const on=!tg.classList.contains('on');tg.classList.toggle('on',on);window.HmVideo.setEnabled(on);state.textContent=on?'Фильмы, сериалы и видео прямо в чате':'Выключено — видео в чате не ищется';};
+async function refreshVideoPlugins(){
+  if(!window.HmVideo)return;
+  const cards={rutube:document.getElementById('conn-rutube'),youtube:document.getElementById('conn-youtube')};
+  const text={rutube:'Фильмы, сериалы и видео с Rutube прямо в чате',youtube:'Видео с YouTube прямо в чате'};
   let st=null;
   try{st=await hmVideoCall({action:'status'},12000);}catch(e){st=null;}
-  if(!document.body.contains(card))return;
-  if(!st||!st.ok){state.textContent='Не удалось проверить подключение';return;}
-  const src=[st.vk?'VK Видео':'',st.youtube?'YouTube':''].filter(Boolean).join(' и ');
-  state.textContent=!window.HmVideo.enabled()?'Выключено — видео в чате не ищется':(src?'Ищу фильмы и сериалы в '+src:'Сервер ещё не подключён к VK Видео');
-  if(st.staff&&extra){
-    if(st.vkid&&st.vkid.fixedToken){extra.innerHTML='<div class="stp-conn-state">Сервер использует VK_USER_TOKEN из Vercel.</div>';}
-    else if(st.vkid&&st.vkid.clientId){
-      extra.innerHTML='<button type="button" class="stp-btn stp-btn-white" id="vkidConnectBtn">'+(st.vk?'Переподключить VK к серверу':'Подключить VK к серверу')+'</button><div class="stp-conn-state" style="margin-top:6px">Видно только персоналу. Войдите в VK-аккаунт, от имени которого сервер будет искать видео.</div>';
-      extra.querySelector('#vkidConnectBtn').onclick=()=>hmVkidStart(st.vkid.clientId);
-    }else{
-      extra.innerHTML='<div class="stp-conn-state">Для подключения задайте в Vercel VK_ID_CLIENT_ID (приложение VK ID) или VK_USER_TOKEN.</div>';
-    }
-  }
+  Object.keys(cards).forEach(name=>{
+    const card=cards[name];if(!card||!document.body.contains(card))return;
+    const state=card.querySelector('.stp-conn-state'),tg=card.querySelector('.stp-toggle');
+    const paint=()=>{
+      const on=window.HmVideo.pluginOn(name);
+      tg.classList.toggle('on',on);
+      state.textContent=!on?'Выключено':(st&&st.ok&&!st[name]?(name==='youtube'?'Нужен ключ YOUTUBE_API_KEY на сервере':'Сейчас недоступно'):text[name]);
+    };
+    tg.onclick=()=>{window.HmVideo.setPluginOn(name,!window.HmVideo.pluginOn(name));paint();};
+    paint();
+  });
 }
 
 async function hmAgentRoute(text){
@@ -16191,7 +16165,8 @@ function toggleDesktopPlus(anchor){
     <button type="button" role="menuitemcheckbox" aria-checked="${thinkOn}" data-k="think"><svg viewBox="0 0 24 24" fill="none"><path d="M9 18h6M10 21h4M12 3a6 6 0 00-3.6 10.8c.6.5 1 1.2 1 2V16h5.2v-.2c0-.8.4-1.5 1-2A6 6 0 0012 3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg><span>Размышление</span><i class="hm-plus-sw${thinkOn?' on':''}"></i></button>
     <div class="hm-plus-sep"></div>
     <button type="button" role="menuitem" data-k="image"${lim(imgLim)}><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="16" rx="2.5" stroke="currentColor" stroke-width="1.6"/><circle cx="9" cy="10" r="1.8" stroke="currentColor" stroke-width="1.5"/><path d="M4 17l5-4.5 4 3.5 3-2.5 4 3.5" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg><span class="hm-plus-lbl"><span>Сгенерировать изображение</span>${limHint(imgLim)}</span></button>
-    <button type="button" role="menuitem" data-k="audio"${lim(chatLim)}><svg viewBox="0 0 24 24" fill="none"><path d="M3 12h2M7 8v8M11 5v14M15 9v6M19 7v10M21 12h0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span class="hm-plus-lbl"><span>Добавить аудио</span>${limHint(chatLim)}</span></button>`;
+    <div class="hm-plus-sep"></div>
+    <button type="button" role="menuitem" data-k="plugins"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.6"/><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Плагины</span></button>`;
   document.body.appendChild(m);
   const r=anchor.getBoundingClientRect();
   m.style.left=Math.max(8,r.left-6)+'px';
@@ -16204,7 +16179,7 @@ function toggleDesktopPlus(anchor){
     if(k==='files'){closeDesktopPlus();triggerFileInput();}
     else if(k==='music'){closeDesktopPlus();hmMicToggle();}
     else if(k==='image'){closeDesktopPlus();setImageMode(true);document.getElementById('msgTa')?.focus();}
-    else if(k==='audio'){closeDesktopPlus();triggerAudioAnalyzer();}
+    else if(k==='plugins'){closeDesktopPlus();if(window.HmMentions)window.HmMentions.open();}
     else if(k==='think'){
       toggleThink({stopPropagation:()=>{}});
       b.setAttribute('aria-checked',String(thinkOn));b.querySelector('.hm-plus-sw').classList.toggle('on',thinkOn);

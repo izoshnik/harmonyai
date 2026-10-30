@@ -2,9 +2,9 @@
    HarmonyAI — видеоплеер онлайн-кинотеатра (window.HmVideo).
 
    Один плеер для двух площадок:
-     • VK Видео — официальный плеер video_ext.php + его JS API (videoplayer.js):
-       play/pause/перемотка/громкость/события. Качество выбирается параметром
-       hd (плеер перезагружается и продолжает с того же места).
+     • Rutube — официальный плеер rutube.ru/play/embed + его API на postMessage
+       (play/pause/перемотка/громкость/скорость 0.5–2×/качество из списка
+       плеера/субтитры). Родные кнопки Rutube прячем, наши — под кадром.
      • YouTube — родной плеер YouTube (controls=1): качество, субтитры, скорость и
        автодубляж YouTube — в его же шестерёнке; наша полоса для YouTube скрыта.
 
@@ -57,9 +57,7 @@
     film: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="14" rx="3"' + S.replace('2.4', '2.1') + '/><path d="M10 9.4v5.2c0 .5.5.8.9.5l4-2.6a.6.6 0 0 0 0-1L10.9 8.9c-.4-.3-.9 0-.9.5z" fill="currentColor"/></svg>'
   };
 
-  var QUALITIES = [2160, 1440, 1080, 720, 480, 360, 240, 144];
-  var SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3];
-  var VK_HD = { 360: 1, 480: 2, 720: 3, 1080: 4, 1440: 5, 2160: 6 };
+  var RT_SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]; // Rutube умеет 0.25–2×, ниже 0.5× смотреть нельзя
 
   /* ----------------------------------------------------------- загрузчики */
   var scripts = {};
@@ -92,77 +90,83 @@
      caps() → {qualities:[...], speeds:[...], captions:[...]}, setQuality(q),
      setSpeed(x), setCaptions(code|''), destroy(). События — через ui.* */
 
-  function vkAdapter(item, stage, ui, opts) {
-    var iframe = null, api = null, inited = false, quality = opts.quality || 0, alive = true;
-    var resumeAt = opts.start || 0, wantPlay = true, fallbackTimer = 0;
-    function src() {
-      var u = item.embed + (item.embed.indexOf('?') >= 0 ? '&' : '?') + 'js_api=1&autoplay=1';
-      if (quality && VK_HD[quality]) u += '&hd=' + VK_HD[quality];
-      return u;
+  function rutubeAdapter(item, stage, ui, opts) {
+    var alive = true, ready = false, qualities = [], captions = [], quality = 0;
+    var iframe = document.createElement('iframe');
+    var accent = '';
+    try { accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim().replace('#', ''); } catch (e) { /* без цвета */ }
+    var src = item.embed.replace(/\/?$/, '/') + '?autoplay=true' + (opts.start > 3 ? '&t=' + Math.floor(opts.start) : '') + (/^[0-9a-f]{6}$/i.test(accent) ? '&skinColor=' + accent : '');
+    iframe.className = 'hv-frame';
+    iframe.src = src;
+    iframe.allow = 'clipboard-write; autoplay; fullscreen; picture-in-picture; encrypted-media; screen-wake-lock';
+    iframe.setAttribute('allowfullscreen', '');
+    iframe.title = item.title || 'Rutube';
+    stage.appendChild(iframe);
+    function send(type, data) {
+      try { iframe.contentWindow.postMessage(JSON.stringify({ type: type, data: data || {} }), '*'); } catch (e) { /* кадр ещё не готов */ }
     }
-    function mount() {
-      if (api) try { api.destroy(); } catch (e) { /* уже нет */ }
-      api = null; inited = false;
-      if (iframe) iframe.remove();
-      iframe = document.createElement('iframe');
-      iframe.className = 'hv-frame';
-      iframe.src = src();
-      iframe.allow = 'autoplay; encrypted-media; fullscreen; picture-in-picture; screen-wake-lock';
-      iframe.setAttribute('allowfullscreen', '');
-      iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
-      iframe.title = item.title || 'VK Видео';
-      stage.appendChild(iframe);
-      clearTimeout(fallbackTimer);
-      // Если API плеера не ответил — управление остаётся в самом кадре VK.
-      fallbackTimer = setTimeout(function () { if (alive && !inited) ui.limited('Управление — в самом плеере VK'); }, 7000);
-      // API плеера подключаем только после загрузки кадра: команда init,
-      // отправленная в ещё пустой iframe, теряется, и плеер «молчит».
-      var frame = iframe;
-      var loaded = new Promise(function (r) { frame.addEventListener('load', function () { r(); }, { once: true }); });
-      Promise.all([loadScript('https://vk.com/js/api/videoplayer.js'), loaded]).then(function () {
-        if (!alive || frame !== iframe || !global.VK || !global.VK.VideoPlayer) return;
-        try { api = global.VK.VideoPlayer(iframe); } catch (e) { ui.limited('Управление — в самом плеере VK'); return; }
-        var E = global.VK.VideoPlayer.Events || {};
-        api.on(E.INITED || 'inited', function (s) {
-          inited = true; ui.limited('');
-          ui.duration(s.duration);
-          if (resumeAt > 3) { api.seek(resumeAt); resumeAt = 0; }
-          if (wantPlay) api.play();
-        });
-        api.on(E.TIMEUPDATE || 'timeupdate', function (s) { ui.time(s.time, s.duration); });
-        api.on(E.STARTED || 'started', function (s) { ui.playing(true); ui.duration(s.duration); });
-        api.on(E.RESUMED || 'resumed', function () { ui.playing(true); });
-        api.on(E.PAUSED || 'paused', function () { ui.playing(false); });
-        api.on(E.ENDED || 'ended', function () { ui.playing(false); ui.ended(); });
-        api.on(E.VOLUMECHANGE || 'volumechange', function (s) { ui.volume(s.volume, s.muted); });
-        api.on(E.QUALITYCHANGE || 'qualitychange', function (s) { if (s.quality) ui.actual(s.quality); });
-        api.on(E.ADSTARTED || 'adStarted', function () { ui.ad(true); });
-        api.on(E.ADCOMPLETED || 'adCompleted', function () { ui.ad(false); });
-        api.on(E.ERROR || 'error', function () { ui.error('VK не отдаёт это видео на сторонние сайты. Попробуйте другой вариант ниже.'); });
-      }).catch(function () { ui.limited('Управление — в самом плеере VK'); });
+    function onMsg(e) {
+      if (!alive || e.source !== iframe.contentWindow) return;
+      var m = e.data;
+      if (typeof m === 'string') { try { m = JSON.parse(m); } catch (x) { return; } }
+      if (!m || typeof m.type !== 'string') return;
+      var d = m.data || {};
+      switch (m.type) {
+        case 'player:ready':
+          ready = true; ui.limited('');
+          send('player:hideControls'); // родная полоса Rutube дублирует нашу
+          send('frame:checkOptions');
+          break;
+        case 'player:changeState':
+          if (d.state === 'playing') ui.playing(true);
+          else if (d.state === 'pause' || d.state === 'paused') ui.playing(false);
+          else if (d.state === 'completed') { ui.playing(false); ui.ended(); }
+          break;
+        case 'player:playComplete': ui.playing(false); ui.ended(); break;
+        case 'player:currentTime': ui.time(d.time != null ? d.time : d.currentTime, d.duration); break;
+        case 'player:durationChange': ui.duration(d.duration); break;
+        case 'player:volumeChange': if (d.volume != null) ui.volume(Number(d.volume), Number(d.volume) === 0); break;
+        case 'player:qualityList':
+          qualities = (d.list || []).map(Number).filter(function (q) { return q > 0; }).sort(function (a, b) { return b - a; });
+          ui.refreshMenu();
+          break;
+        case 'player:currentQuality': {
+          var q = Number(d.quality && typeof d.quality === 'object' ? d.quality.quality : d.quality);
+          if (q) ui.actual(q);
+          break;
+        }
+        case 'player:playbackSpeedChanged': if (d.speed) ui.speed(Number(d.speed)); break;
+        case 'player:playOptionsLoaded': {
+          var po = d.playOptions || d;
+          captions = (po.captions || []).map(function (c) {
+            var code = String(c.id != null ? c.id : (c.code || c.lang || c.langId || ''));
+            return { code: code, label: String(c.langTitle || c.title || c.lang || code) };
+          }).filter(function (c) { return c.code; });
+          ui.refreshMenu();
+          break;
+        }
+        case 'player:changeCaption': ui.captions(d.enabled ? String(d.current || '') : ''); break;
+        case 'player:error': ui.error('Rutube не смог открыть это видео. Попробуйте другой вариант ниже.'); break;
+      }
     }
-    mount();
+    window.addEventListener('message', onMsg);
+    var fallback = setTimeout(function () { if (alive && !ready) ui.limited('Управление — в самом плеере Rutube'); }, 8000);
     return {
-      kind: 'vk',
-      play: function () { wantPlay = true; if (api) api.play(); },
-      pause: function () { wantPlay = false; if (api) api.pause(); },
-      seek: function (t) { if (api) api.seek(t); },
-      setVolume: function (v) { if (api) api.setVolume(clamp(v, 0, 1)); },
-      setMuted: function (m) { if (api) { if (m) api.mute(); else api.unmute(); } },
-      caps: function () {
-        var q = [1080, 720, 480, 360];
-        if ((item.height || 0) >= 1440) q.unshift(1440);
-        if ((item.height || 0) >= 2160) q.unshift(2160);
-        return { qualities: q, auto: true, speeds: [1], captions: [] };
-      },
+      kind: 'rt',
+      play: function () { send('player:play'); },
+      pause: function () { send('player:pause'); },
+      seek: function (t) { send('player:setCurrentTime', { time: t }); },
+      setVolume: function (v) { send('player:setVolume', { volume: clamp(v, 0, 1) }); if (v > 0) send('player:unMute'); },
+      setMuted: function (m) { send(m ? 'player:mute' : 'player:unMute'); },
+      caps: function () { return { qualities: qualities, speeds: RT_SPEEDS, captions: captions }; },
       quality: function () { return quality; },
-      setQuality: function (q) {
-        resumeAt = api ? api.getCurrentTime() : resumeAt; wantPlay = true; quality = q;
-        ui.quality(q); mount();
+      setQuality: function (q) { quality = q; send('player:changeQuality', { quality: String(q) }); ui.quality(q); },
+      setSpeed: function (x) { send('player:setPlaybackSpeed', { speed: x }); ui.speed(x); },
+      setCaptions: function (code) {
+        send('player:setCaption', { current: code || (captions[0] && captions[0].code) || '', enabled: Boolean(code) });
+        ui.captions(code || '');
       },
-      setSpeed: function () { /* VK не даёт менять скорость во встроенном плеере */ },
-      setCaptions: function () { /* субтитров в API VK нет */ },
-      destroy: function () { alive = false; clearTimeout(fallbackTimer); if (api) try { api.destroy(); } catch (e) { /* нет */ } if (iframe) iframe.remove(); }
+      destroy: function () { alive = false; clearTimeout(fallback); window.removeEventListener('message', onMsg); iframe.remove(); }
     };
   }
 
@@ -209,7 +213,7 @@
           }
         }
       });
-    }).catch(function () { ui.error('YouTube недоступен. Попробуйте вариант из VK.'); });
+    }).catch(function () { ui.error('YouTube недоступен. Попробуйте вариант с Rutube ниже.'); });
     return {
       kind: 'yt',
       play: function () { if (p && p.playVideo) p.playVideo(); },
@@ -348,7 +352,7 @@
 
   /* ----------------------------------------------------------- плеер */
 
-  function srcLabel(it) { return it && it.source === 'yt' ? 'YouTube' : 'VK Видео'; }
+  function srcLabel(it) { return it && it.source === 'yt' ? 'YouTube' : 'Rutube'; }
   function voiceLabel(v) {
     if (!v) return 'Русский';
     if (v.voice === 'Оригинал') return 'Английский · оригинал';
@@ -476,7 +480,7 @@
 
     function head() {
       // YouTube показываем его родным плеером: свои кнопки, качество, субтитры,
-      // скорость и автодубляж — всё в шестерёнке YouTube. Наши кнопки — только для VK.
+      // скорость и автодубляж — всё в шестерёнке YouTube. Наши кнопки — только для Rutube.
       el.classList.toggle('hv--native', cur.source === 'yt');
       $('.hv-title').textContent = (intent.title && (cur.episode || intent.kind === 'movie' || intent.kind === 'cartoon')) ? intent.title : cur.title;
       $('.hv-title').title = cur.title;
@@ -491,7 +495,7 @@
       el.classList.add('is-on');
       st.t = at || 0; st.d = cur.duration || 0; st.quality = 0; st.actual = 0; st.speed = 1; st.captions = ''; started = false; lastSaved = st.t;
       paint();
-      adapter = (cur.source === 'yt' ? ytAdapter : vkAdapter)(cur, stage, ui, { start: at || 0 });
+      adapter = (cur.source === 'yt' ? ytAdapter : rutubeAdapter)(cur, stage, ui, { start: at || 0 });
       st.playing = true; setPlayIcon();
     }
     function load(item, o) {
@@ -594,7 +598,7 @@
 
     /* ----------------------------- меню настроек */
     var menuPanel = 'main';
-    function caps() { return adapter ? adapter.caps() : (cur.source === 'yt' ? { qualities: [], auto: true, speeds: [1], captions: [] } : { qualities: [1080, 720, 480, 360], auto: true, speeds: [1], captions: [] }); }
+    function caps() { return adapter ? adapter.caps() : { qualities: [], speeds: [], captions: [] }; }
     function curQualityLabel() { return st.quality ? st.quality + 'p' : 'Авто' + (st.actual ? ' · ' + st.actual + 'p' : ''); }
     function curVoice() {
       var vs = data.voices || [];
@@ -608,41 +612,36 @@
       menuPanel = panel;
       var c = caps(), html = '';
       var backHead = function (t) { return '<div class="hv-mh"><button type="button" class="hv-ib hv-mback" aria-label="Назад">' + IC.back + '</button><span>' + t + '</span></div>'; };
+      /* Только то, что умеет текущая площадка: пустых и серых пунктов нет. */
+      var vlist = data.voices || [];
       if (panel === 'main') {
         var cv = curVoice();
-        html = row('data-go="quality"', 'Качество', esc(curQualityLabel()) + IC.right) +
-          row('data-go="captions"', 'Субтитры', (st.captions ? esc((c.captions.filter(function (x) { return x.code === st.captions; })[0] || {}).label || st.captions) : 'Выкл') + IC.right) +
-          row('data-go="speed"', 'Скорость', (st.speed === 1 ? 'Обычная' : st.speed + '×') + IC.right) +
-          row('data-go="voice"', 'Дубляж', esc(cv ? voiceLabel(cv).split(' · ')[0] : 'Русский') + IC.right);
+        if (c.qualities.length > 1) html += row('data-go="quality"', 'Качество', esc(curQualityLabel()) + IC.right);
+        if (c.captions.length) html += row('data-go="captions"', 'Субтитры', (st.captions ? esc((c.captions.filter(function (x) { return x.code === st.captions; })[0] || {}).label || st.captions) : 'Выкл') + IC.right);
+        if (c.speeds.length > 1) html += row('data-go="speed"', 'Скорость', (st.speed === 1 ? 'Обычная' : st.speed + '×') + IC.right);
+        if (vlist.length > 1) html += row('data-go="voice"', 'Дубляж', esc(cv ? voiceLabel(cv).split(' · ')[0] : 'Русский') + IC.right);
+        if (!html) html = '<div class="hv-mnote">' + (adapter ? 'У этого видео нет настроек.' : 'Запустите видео — настройки появятся.') + '</div>';
       } else if (panel === 'quality') {
         html = backHead('Качество');
-        html += row('data-q="0"', (st.quality === 0 ? IC.check : '<i class="hv-ck"></i>') + 'Авто', c.auto ? null : '', st.quality === 0 ? ' is-on' : '');
-        QUALITIES.forEach(function (q) {
+        c.qualities.forEach(function (q) {
           var proOnly = q >= 1440 && !isPro();
-          var ok = c.qualities.indexOf(q) >= 0;
-          var on = st.quality === q;
-          var right = proOnly ? '<span class="hv-pro">Только с Pro</span>' : (ok ? null : '<span class="hv-na">' + (cur.source === 'yt' ? 'YouTube выбирает сам' : 'нет в видео') + '</span>');
-          html += row('data-q="' + q + '"' + (proOnly ? ' data-pro="1"' : '') + (!ok && !proOnly ? ' disabled' : ''), (on ? IC.check : '<i class="hv-ck"></i>') + q + 'p' + (q >= 720 ? ' <b class="hv-hd">' + (q >= 2160 ? '4K' : 'HD') + '</b>' : ''), right, (on ? ' is-on' : '') + (proOnly ? ' is-pro' : ''));
+          var on = (st.quality || st.actual) === q;
+          html += row('data-q="' + q + '"' + (proOnly ? ' data-pro="1"' : ''), (on ? IC.check : '<i class="hv-ck"></i>') + q + 'p' + (q >= 720 ? ' <b class="hv-hd">' + (q >= 2160 ? '4K' : 'HD') + '</b>' : ''), proOnly ? '<span class="hv-pro">Только с Pro</span>' : null, (on ? ' is-on' : '') + (proOnly ? ' is-pro' : ''));
         });
       } else if (panel === 'speed') {
         html = backHead('Скорость');
-        SPEEDS.forEach(function (x) {
-          var ok = c.speeds.indexOf(x) >= 0, on = st.speed === x;
-          html += row('data-s="' + x + '"' + (ok ? '' : ' disabled'), (on ? IC.check : '<i class="hv-ck"></i>') + (x === 1 ? 'Обычная' : x + '×'), ok ? null : '<span class="hv-na">' + (cur.source === 'vk' ? 'VK не даёт менять' : 'недоступно') + '</span>', on ? ' is-on' : '');
+        c.speeds.forEach(function (x) {
+          var on = st.speed === x;
+          html += row('data-s="' + x + '"', (on ? IC.check : '<i class="hv-ck"></i>') + (x === 1 ? 'Обычная' : x + '×'), null, on ? ' is-on' : '');
         });
       } else if (panel === 'captions') {
         html = backHead('Субтитры');
         html += row('data-c=""', (!st.captions ? IC.check : '<i class="hv-ck"></i>') + 'Выкл', null, !st.captions ? ' is-on' : '');
-        if (c.captions.length) {
-          c.captions.forEach(function (t) { var on = st.captions === t.code; html += row('data-c="' + esc(t.code) + '"', (on ? IC.check : '<i class="hv-ck"></i>') + esc(t.label), null, on ? ' is-on' : ''); });
-        } else {
-          html += '<div class="hv-mnote">' + (cur.source === 'vk' ? 'Встроенный плеер VK не отдаёт субтитры.' : (adapter ? 'У этого видео нет субтитров.' : 'Запустите видео — список появится.')) + '</div>';
-        }
+        c.captions.forEach(function (t) { var on = st.captions === t.code; html += row('data-c="' + esc(t.code) + '"', (on ? IC.check : '<i class="hv-ck"></i>') + esc(t.label), null, on ? ' is-on' : ''); });
       } else if (panel === 'voice') {
         html = backHead('Дубляж');
-        var vs = (data.voices || []).slice();
+        var vs = vlist.slice();
         var cv2 = curVoice();
-        if (!vs.length) html += '<div class="hv-mnote">Других озвучек не нашлось. Попросите в чате, например: «давай в оригинале» или «найди в озвучке LostFilm».</div>';
         vs.sort(function (a, b) { return (a.lang === 'ru' ? 0 : 1) - (b.lang === 'ru' ? 0 : 1); });
         vs.forEach(function (v, i) {
           var on = cv2 && v.item && v.item.id === cur.id;
@@ -658,7 +657,7 @@
           if (b.getAttribute('data-pro')) { closeMenu(); if (typeof global.goToDynatos === 'function') global.goToDynatos(); return; }
           var q = Number(b.getAttribute('data-q'));
           if (!adapter) { st.quality = q; closeMenu(); return; }
-          if (adapter.kind === 'vk' && q !== st.quality) adapter.setQuality(q); else st.quality = q;
+          if (q !== st.quality) adapter.setQuality(q);
           closeMenu();
         };
       });
@@ -780,9 +779,10 @@
     el.querySelectorAll('.vl-del').forEach(function (b) { b.onclick = function () { var it = L.singles[Number(b.getAttribute('data-i'))]; library.remove('singles', it.source, it.id); renderLibrary(el, onBack); }; });
   }
 
-  /* Включён ли плагин VK Video у этого пользователя (по умолчанию — да). */
-  function enabled() { try { return localStorage.getItem('hm_vk_video_off') !== '1'; } catch (e) { return true; } }
-  function setEnabled(on) { try { if (on) localStorage.removeItem('hm_vk_video_off'); else localStorage.setItem('hm_vk_video_off', '1'); } catch (e) { /* нет */ } }
+  /* Плагины видео (Rutube, YouTube) включаются в «Плагинах» (по умолчанию — да). */
+  function pluginOn(name) { try { return localStorage.getItem('hm_plugin_off_' + name) !== '1'; } catch (e) { return true; } }
+  function setPluginOn(name, on) { try { if (on) localStorage.removeItem('hm_plugin_off_' + name); else localStorage.setItem('hm_plugin_off_' + name, '1'); } catch (e) { /* нет */ } }
+  function enabled() { return pluginOn('rutube') || pluginOn('youtube'); }
 
-  global.HmVideo = { create: create, openModal: openModal, library: library, renderLibrary: renderLibrary, enabled: enabled, setEnabled: setEnabled, fmt: fmt, icons: IC };
+  global.HmVideo = { create: create, openModal: openModal, library: library, renderLibrary: renderLibrary, enabled: enabled, pluginOn: pluginOn, setPluginOn: setPluginOn, fmt: fmt, icons: IC };
 })(window);
