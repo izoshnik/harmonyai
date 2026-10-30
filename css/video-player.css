@@ -2,7 +2,7 @@
    Минималистичный, всегда тёмный (кино смотрят на чёрном): кадр площадки,
    под ним — полоса прогресса и строка кнопок, как в присланном макете. */
 .hv{--hv-bg:#000;--hv-fg:#fff;--hv-mute:#a3a3a3;--hv-track:#737373;--hv-panel:#161616;--hv-line:rgba(255,255,255,.1);
-  position:relative;width:100%;max-width:760px;margin:6px 0 4px;background:var(--hv-bg);color:var(--hv-fg);border-radius:18px;overflow:hidden;
+  position:relative;width:100%;max-width:520px;margin:6px 0 4px;background:var(--hv-bg);color:var(--hv-fg);border-radius:18px;overflow:hidden;
   font:14px/1.35 -apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Roboto,sans-serif;outline:none;
   box-shadow:0 0 0 1px rgba(255,255,255,.06),0 10px 30px rgba(0,0,0,.18);-webkit-tap-highlight-color:transparent;}
 .hv:focus-visible{box-shadow:0 0 0 2px var(--accent,#2f8fff);}
@@ -167,7 +167,7 @@ html.hv-lock,html.hv-lock body{overflow:hidden;}
   .hv-menu,.hv-modal{animation:none;}
   .hv-track,.hv-knob,.hv-ib,.hv-collapse svg,.hv-gear svg{transition:none;}
 }
-.stp-conn-logo.vk svg{width:34px;height:34px;}
+.stp-conn-logo.vid svg{width:34px;height:34px;}
 
 /* YouTube — родным плеером YouTube: своя полоса и меню не нужны */
 .hv--native .hv-bar,.hv--native .hv-menu{display:none!important;}

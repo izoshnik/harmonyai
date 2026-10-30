@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseEpisode, detectVoice, baseTitle, titleMatches, fmtQuery, scoreItem, collectEpisodes, normalizeIntent, mapVkItem } from '../lib/video.js';
+import { parseEpisode, detectVoice, baseTitle, titleMatches, fmtQuery, scoreItem, collectEpisodes, normalizeIntent, mapRutubeItem } from '../lib/video.js';
 
 test('сезон и серия из разных форматов', () => {
   assert.deepEqual(parseEpisode('Мандалорец 2 сезон 3 серия LostFilm'), { season: 2, episode: 3 });
@@ -42,10 +42,13 @@ test('подбор нужной серии и фильма', () => {
   assert.ok(scoreItem(a, movie) > scoreItem(b, movie));
 });
 
-test('VK: только встраиваемые ролики', () => {
-  assert.equal(mapVkItem({ id: 1, owner_id: -2, title: 'x', player: 'https://www.youtube.com/embed/abc' }), null);
-  const v = mapVkItem({ id: 1, owner_id: -2, title: 'Мандалорец S01E01', duration: 2000, player: 'https://vk.com/video_ext.php?oid=-2&id=1&hash=h', image: [{ url: 'a', width: 320 }, { url: 'b', width: 800 }] });
-  assert.equal(v.id, '-2_1');
-  assert.equal(v.episode, 1);
-  assert.equal(v.image, 'b');
+test('Rutube: платное, скрытое, 18+ и заблокированное отбрасываем', () => {
+  assert.equal(mapRutubeItem({ id: 'a', title: 'x', is_paid: true }), null);
+  assert.equal(mapRutubeItem({ id: 'a', title: 'x', is_adult: true }), null);
+  assert.equal(mapRutubeItem({ id: 'a', title: 'x', action_reason: { id: 3, name: 'blocked' } }), null);
+  const v = mapRutubeItem({ id: 'abc', title: 'Мандалорец S01E02', duration: 2000, hits: 5, thumbnail_url: 'img', embed_url: 'https://rutube.ru/play/embed/abc', action_reason: { id: 0 }, author: { name: 'Канал' } });
+  assert.equal(v.source, 'rt');
+  assert.equal(v.episode, 2);
+  assert.equal(v.embed, 'https://rutube.ru/play/embed/abc');
+  assert.equal(v.channel, 'Канал');
 });
