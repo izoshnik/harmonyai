@@ -491,9 +491,24 @@ export default async function handler(req, res) {
         if (!station) {
           station = personal || !seeds.length ? WAVE_STATION : `track:${seeds[Math.floor(Math.random() * seeds.length)]}`;
         }
+        /* Недавно звучавшие в волне треки (присылает клиент): Яндекс на старте
+           станции отдаёт почти ту же первую порцию, и каждая «новая» волна
+           начиналась с одних и тех же песен. Отсеиваем их и при нехватке
+           докачиваем следующие порции (queue = последний трек выдачи). */
+        const recent = new Set((Array.isArray(body.exclude) ? body.exclude : []).map(x => String(x || '').split(':')[0].replace(/\D/g, '')).filter(Boolean).slice(0, 400));
         let wave;
         try {
           wave = await getWaveTracks({ token, station, queue: body.queue });
+          let fresh = wave.items.filter(t => !recent.has(String(t.trackId)));
+          for (let i = 0; i < 2 && fresh.length < 3 && wave.items.length; i++) {
+            const more = await getWaveTracks({ token, station: wave.station, queue: wave.items[wave.items.length - 1].trackId }).catch(() => null);
+            if (!more || !more.items.length) break;
+            if (more.batchId) wave.batchId = more.batchId;
+            const seen = new Set(wave.items.map(t => String(t.trackId)));
+            wave.items = wave.items.concat(more.items.filter(t => !seen.has(String(t.trackId))));
+            fresh = wave.items.filter(t => !recent.has(String(t.trackId)));
+          }
+          if (fresh.length) wave.items = fresh;
         } catch (e) {
           wave = { station, batchId: '', items: [] };
         }
