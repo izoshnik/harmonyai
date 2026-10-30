@@ -2406,7 +2406,10 @@ export default async function handler(req, res) {
         if (result.ok && !quota.seen) recordVideoWatch(userId, videoLink.key, result.meta && result.meta.duration).catch(() => {});
         if (!result.ok && started) result = { ok: true, text: '' };
       }
-      const finalText = result.ok ? linkTimestamps(result.text, videoLink) : watchErrorText(result, videoLink);
+      let finalText = result.ok ? linkTimestamps(result.text, videoLink) : watchErrorText(result, videoLink);
+      // Персоналу — техническая причина сбоя, чтобы чинить без логов Vercel.
+      const staffRole = ['developer', 'admin', 'moderator'].includes(String(profile?.role || '').toLowerCase());
+      if (!result.ok && staffRole && (result.message || result.error)) finalText += `\n\n_Для персонала: ${String(result.error || '')} ${String(result.message || '').replace(/[_*`]/g, ' ').slice(0, 300)}_`;
       if (!result.ok) writeSseEvent(res, { type: 'delta', text: finalText });
       writeSseEvent(res, { type: 'done', text: finalText });
       res.end();
