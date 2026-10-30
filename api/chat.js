@@ -5,6 +5,7 @@ import { readChatImages, withReading, isDocumentReading } from '../lib/image-rea
 import { createReasoningRelay, isNativeReasoner } from '../lib/reasoning-relay.js';
 import { applyDevAccountProfile } from '../lib/dev-account.js';
 import { searchWeb } from '../lib/web-search.js';
+import { findVideoLink, videoFromHistory, watchVideo, watchErrorText, linkTimestamps, checkVideoQuota, recordVideoWatch } from '../lib/video-watch.js';
 export const config = {
   maxDuration: 300
 };
@@ -2377,6 +2378,41 @@ export default async function handler(req, res) {
     // Лимит почти исчерпан: сообщаем клиенту (заголовок) и модели (системная заметка).
     if (allowance.low) {
       try { res.setHeader('X-HM-Limit-Low', '1'); if (allowance.resetAt) res.setHeader('X-HM-Limit-Reset', allowance.resetAt); } catch (e) {}
+    }
+
+    /* ВИДЕО ПО ССЫЛКЕ: YouTube / TikTok смотрит Gemini (lib/video-watch.js) —
+       описание, таймкоды, текст с экрана, расшифровка, смысловой комментарий.
+       Ссылка в этом сообщении или в недавних, если вопрос — продолжение. */
+    const videoLink = stream ? (findVideoLink(query) || videoFromHistory(messages, query)) : null;
+    if (videoLink) {
+      res.statusCode = 200;
+      res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-cache, no-transform');
+      res.setHeader('Connection', 'keep-alive');
+      if (typeof res.flushHeaders === 'function') res.flushHeaders();
+      const pro = isProRole(profile);
+      const quota = await checkVideoQuota(userId, videoLink.key, pro);
+      let result;
+      if (!quota.ok) result = { ok: false, error: 'quota' };
+      else {
+        const history = messages.filter((m) => m && m.role !== 'system').slice(-7, -1).map((m) => ({
+          role: m.role, text: typeof m.content === 'string' ? m.content : (Array.isArray(m.content) ? m.content.map((p) => p.text || '').join(' ') : '')
+        }));
+        let started = false;
+        result = await watchVideo(videoLink, query, {
+          pro, history,
+          onDelta: (d) => { started = true; writeSseEvent(res, { type: 'delta', text: d }); }
+        });
+        if (result.ok && !quota.seen) recordVideoWatch(userId, videoLink.key, result.meta && result.meta.duration).catch(() => {});
+        if (!result.ok && started) result = { ok: true, text: '' };
+      }
+      const finalText = result.ok ? linkTimestamps(result.text, videoLink) : watchErrorText(result, videoLink);
+      if (!result.ok) writeSseEvent(res, { type: 'delta', text: finalText });
+      writeSseEvent(res, { type: 'done', text: finalText });
+      res.end();
+      console.log(`[harmonyai] video watch | ${videoLink.platform} | ok=${result.ok} | err=${result.error || ''} | model=${result.model || ''}`);
+      if (result.ok) insertUsageEvent(userId, model, estimateTokensFromMessages(messages.filter((m) => m && m.role !== 'system')) + Math.ceil(finalText.length / 4) + 1500, 1).catch(() => {});
+      return;
     }
 
     // Режим «Обучение» developer/admin — запись в базу знаний в фоне, ответ её не ждёт.
