@@ -1512,9 +1512,9 @@ html[data-theme="light"] .attach-opt:hover{background:rgba(20,18,12,.05);}
 /* ChatGPT-стриминг: новые слова проявляются, ожидание — одна пульсирующая точка */
 .hm-fade{animation:hmFadeIn .52s ease-out both;}
 @keyframes hmFadeIn{from{opacity:0;filter:blur(1.5px)}to{opacity:1;filter:none}}
-.hm-pulse-dot{width:13px;height:13px;border-radius:50%;background:var(--text);animation:hmPulseDot 1.3s ease-in-out infinite;margin:6px 2px;}
+.hm-pulse-dot{width:13px;height:13px;border-radius:50%;background:var(--accent,#2f8fff);animation:hmPulseDot 1.3s ease-in-out infinite;margin:6px 2px;}
 @keyframes hmPulseDot{0%,100%{transform:scale(.72);opacity:.55}50%{transform:scale(1);opacity:1}}
-.stream-cur.hm-stall-dot{width:9px;height:9px;border-radius:50%;background:var(--text);margin-left:4px;vertical-align:middle;animation:hmPulseDot 1.3s ease-in-out infinite;}
+.stream-cur.hm-stall-dot{width:9px;height:9px;border-radius:50%;background:var(--accent,#2f8fff);margin-left:4px;vertical-align:middle;animation:hmPulseDot 1.3s ease-in-out infinite;}
 .hm-turn-spacer{flex:none;pointer-events:none;}
 .hm-to-bottom{position:absolute;left:50%;top:-50px;transform:translate(-50%,8px) scale(.9);width:38px;height:38px;border-radius:50%;
   border:1px solid var(--border);background:var(--bg2);color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;
@@ -8476,7 +8476,28 @@ function createAiBubbleShell({showActions=true,hiddenActions=false,createdAt=nul
   refreshChatMenuAvailability();
   return {wrap,msg,actions};
 }
+/* Сообщение пользователя показываем СРАЗУ после отправки — до ИИ-агента,
+   поиска видео и музыки. Раньше пузырь появлялся только когда путь ответа
+   был выбран (секунды), а точка ожидания — сразу. Путь, который потом
+   рисует пузырь, просто забирает уже показанный. */
+let hmPre=null;
+function hmPreBubble(text,atts){
+  hmPre=null;
+  const g=document.getElementById('greetingWrap');if(g)g.style.display='none';
+  const wrap=addUserBubble(text,atts||[]);
+  hmPre={wrap,text:String(text||'')};
+}
+function hmDropPreBubble(){if(hmPre){try{hmPre.wrap.remove();}catch(e){}hmPre=null;}}
 function addUserBubble(text,attachments=[],opts={}){
+  if(hmPre){
+    const pre=hmPre;hmPre=null;
+    if(pre.wrap.isConnected&&String(text||'')===pre.text){
+      pre.wrap.dataset.historyIndex=String(opts.historyIndex??chatHistory.length);
+      if(attachments.length)pre.wrap.__hmAtts=attachments;
+      return pre.wrap;
+    }
+    try{pre.wrap.remove();}catch(e){}
+  }
   const inner=getChatInner();
   const wrap=document.createElement('div');wrap.className='msg-user-wrap';
   wrap.dataset.historyIndex=String(opts.historyIndex??chatHistory.length);
@@ -12098,7 +12119,7 @@ async function sendMsg(opts){
   if(hmSendBusy&&Date.now()-hmSendBusySince<120000){if(fromEnter)hmNotifyBusy();return;}
   hmSendBusy=true;hmSendBusySince=Date.now();
   try{await sendMsgInner();}
-  finally{hmSendBusy=false;}
+  finally{hmSendBusy=false;hmDropPreBubble();}
 }
 async function sendMsgInner(){
   if(isGenerating){stopGeneration();return;}
@@ -12123,6 +12144,7 @@ async function sendMsgInner(){
     try{await hmWaitAttachments();}finally{hideTyping();}
   }
   if(!text&&!pendingAttachments.length)return;
+  hmPreBubble(text,pendingAttachments.slice());
   /* ИИ-агент: трек, Яндекс Музыка, лимиты, подключение — ИИ по смыслу
      решает, что сделать. Явные команды плеера («включи…», «пауза») идут
      своим быстрым путём ниже, без лишнего похода к модели. */
@@ -15680,7 +15702,7 @@ function hmRecentAudioList(){
 }
 /* Сообщения, где агенту есть что решать: про трек, Яндекс, лимиты, аккаунт.
    Это лишь фильтр «стоит ли спросить ИИ», само решение принимает модель. */
-const HM_AGENT_HINT=/(я\.?\s?муз|яндекс|yandex|плейлист|трек|песн|мелоди|загруз|закин|залей|скин|сохрани|добав|лимит|остал|сколько.{0,25}(сообщени|запрос|можно|ещё|еще)|сброс|обнов(ят|ит)ся|подключ|аккаунт|ноты|нотам|партитур|расшифр|тональн|темп\b|bpm|шазам|shazam|узна|что за|кто (это )?(поёт|поет|исполня)|называ|аудио|запис)/i;
+const HM_AGENT_HINT=/(я\.?\s?муз|яндекс|yandex|медиатек|моей музык|мою музык|себе в |плейлист|трек|песн|мелоди|загруз|закин|залей|скин|сохрани|добав|лимит|остал|сколько.{0,25}(сообщени|запрос|можно|ещё|еще)|сброс|обнов(ят|ит)ся|подключ|аккаунт|ноты|нотам|партитур|расшифр|тональн|темп\b|bpm|шазам|shazam|узна|что за|кто (это )?(поёт|поет|исполня)|называ|аудио|запис)/i;
 function hmAgentNick(){
   const n=(curUser?.nickname||'').trim();
   return n&&n.indexOf('@')<0?n:'';
@@ -16127,7 +16149,7 @@ async function hmAgentAudioAnswer(action,tracks,text,intro){
   p.settle();
   const ask=(text||'').trim()||({identify_track:'Что это за трек?',transcribe_track:'Запиши ноты мелодии этого трека.'}[action]||'Разбери этот трек.');
   const guide={
-    analyze_track:'Ниже — разбор аудио, сделанный приложением в браузере. Расскажи о треке как живой музыкант: темп и характер, тональность и лад, динамика, структура, что выделяется. Числа давай естественно («около 128 ударов в минуту»). Никогда не пиши про «уверенность», «confidence», проценты точности и технические поля.',
+    analyze_track:'Ниже — разбор аудио, сделанный приложением в браузере. Расскажи о треке как живой музыкант: темп и характер, тональность и лад, динамика, структура, что выделяется. Числа давай естественно («около 128 ударов в минуту»). Никогда не пиши про «уверенность», «confidence», проценты точности и технические поля. Файл трека уже есть у приложения: если уместно, в конце одной фразой предложи загрузить его в Яндекс Музыку пользователя. НЕ проси прислать файл заново и не требуй особых слов — пользователю достаточно согласиться.',
     identify_track:'Пользователь хочет узнать трек. Данные ниже: recognized — точное распознавание по звуку, catalog — найденное в каталоге Яндекс Музыки, tags — теги файла, file — имя файла. Сверь их и назови трек и исполнителя уверенно и по-человечески (без слов «уверенность», «вероятно 0.8» и т. п.). Если recognized нет, а catalog совпадает с тегами или именем файла — это он. Если данных совсем нет, честно скажи, что по звуку определить не вышло, и предложи прислать фрагмент почище. В конце дай кнопку включить трек.',
     transcribe_track:'Ниже — ноты мелодии, расшифрованные приложением из записи (ABC). Покажи их блоком ```abc```, коротко опиши мелодию (лад, размер, характер) и предложи, что можно сделать дальше. Если расшифровки нет — честно скажи и предложи прислать запись почище, с одной мелодией.'
   }[action];
