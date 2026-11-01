@@ -7,6 +7,7 @@ Disallow: /management
 Disallow: /api/
 Disallow: /v1/
 Disallow: /mcp
+Disallow: /seo/
 Disallow: /*?share=
 Disallow: /*?invite=
 

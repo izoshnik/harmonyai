@@ -105,11 +105,13 @@
     .legal-footer{padding:14px 16px 15px;text-align:center;font-size:11px;}
   }
   @media(prefers-reduced-motion:reduce){.pro-button{transition:none;}.pricing-grid{scroll-behavior:auto;}}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 </style>
 <script src="/i18n.js"></script><script defer src="/js/i18n/common.js"></script><script defer src="/js/i18n/subscribe.js"></script>
 <link rel="stylesheet" href="/css/hm-scrollbar.css">
 </head>
 <body>
+<h1 class="sr-only">Подписка HarmonyAI Pro — тарифы</h1>
 <div class="page-main">
   <div class="plans-tabs" role="tablist" aria-label="Тарифы">
     <button type="button" role="tab" id="tabFree" aria-selected="true" aria-controls="cardFree" onclick="showPlan('free')">Free</button>
@@ -118,7 +120,7 @@
   <div id="checkout" class="pricing-grid">
     <section class="plan-card" id="cardFree" aria-labelledby="freeTitle">
       <div class="plan-name">Free <span class="plan-pill" id="freeBadge" hidden>Ваш план</span></div>
-      <h1 class="plan-title" id="freeTitle">Пробная версия<br>HarmonyAI</h1>
+      <h2 class="plan-title" id="freeTitle">Пробная версия<br>HarmonyAI</h2>
       <p class="plan-subtitle">Попробуйте функции HarmonyAI, пользуйтесь им в музыкальной школе и жизни</p>
       <div class="period-spacer" aria-hidden="true"></div>
       <div class="price-line"><div class="price">0₽</div><div class="price-per">/месяц</div></div>

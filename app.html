@@ -4669,6 +4669,29 @@ function buildMarkedRenderer(){
       +'<pre class="code-pre"><code class="hljs">'+highlighted+'</code></pre>'
       +'</div>';
   };
+  /* Безопасность: ответ модели — недоверенный текст (в него может попасть
+     содержимое веб-страниц из поиска или чужой общий чат). marked пропускает
+     сырой HTML как есть, а CSP разрешает inline-скрипты — <img onerror> или
+     ссылка javascript: выполнили бы чужой код. Поэтому сырой HTML экранируем
+     (кроме простых тегов без атрибутов), а в ссылках и картинках оставляем
+     только http(s)/mailto/tel и относительные адреса. */
+  const HM_SAFE_TAG=/^<\/?(br|sup|sub|b|i|u|s|em|strong|mark|kbd|small|del|ins|hr)\s*\/?>$/i;
+  renderer.html=function(html){
+    const raw=typeof html==='object'&&html?String(html.text||html.raw||''):String(html||'');
+    return raw.replace(/<\/?[a-z][^>]*>/gi,t=>HM_SAFE_TAG.test(t)?t:escapeHtml(t)).replace(/<!--[\s\S]*?-->/g,'');
+  };
+  const hmSafeUrl=u=>{const v=String(u||'').trim();if(!v)return '';if(/^(https?:|mailto:|tel:|#|\/(?!\/))/i.test(v))return v;if(/^[a-z][a-z0-9+.-]*:/i.test(v))return '';return v;};
+  renderer.link=function(href,title,text){
+    const h=hmSafeUrl(href);
+    if(!h)return text;
+    const ext=/^https?:/i.test(h);
+    return '<a href="'+escapeHtml(h)+'"'+(title?' title="'+escapeHtml(title)+'"':'')+(ext?' target="_blank" rel="noopener noreferrer"':'')+'>'+text+'</a>';
+  };
+  renderer.image=function(href,title,text){
+    const h=hmSafeUrl(href);
+    if(!h||/^(mailto|tel):/i.test(h))return escapeHtml(text||'');
+    return '<img src="'+escapeHtml(h)+'" alt="'+escapeHtml(text||'')+'"'+(title?' title="'+escapeHtml(title)+'"':'')+' loading="lazy">';
+  };
   marked.setOptions({renderer:renderer,breaks:true,gfm:true});
 }
 buildMarkedRenderer();
@@ -13484,6 +13507,17 @@ function saveSetting(key,val){
   hmSettingsChain=hmSettingsChain.then(()=>hmWriteSetting(uid,key,val)).catch(e=>console.warn('saveSetting failed',e));
   return hmSettingsChain;
 }
+/* Запись настроек профиля. upsert — это INSERT … ON CONFLICT, и RLS проверяет
+   его как вставку: там, где политика разрешает только UPDATE своей строки,
+   он падал с 42501 («new row violates row-level security policy») и настройки
+   не сохранялись. Профиль у вошедшего пользователя есть — обновляем строку;
+   upsert остаётся только на случай, если строки ещё нет. */
+async function hmWriteProfileSettings(uid,settings){
+  const {data,error}=await sb.from('profiles').update({settings}).eq('id',uid).select('id');
+  if(!error&&Array.isArray(data)&&data.length)return;
+  const r=await sb.from('profiles').upsert({id:uid,settings},{onConflict:'id'});
+  if(r.error)throw (error||r.error);
+}
 async function hmWriteSetting(uid,key,val){
   if(!curUser||curUser.id!==uid)return;
   const remote=await fetchRemoteSettings();
@@ -13500,8 +13534,7 @@ async function hmWriteSetting(uid,key,val){
       .forEach(d=>{const p=byKey.get(d.key);if(!p||String(d.lastSeen||'')>String(p.lastSeen||''))byKey.set(d.key,d);});
     if(byKey.size)base[DEVICES_SETTING_KEY]=sortDeviceList(Array.from(byKey.values())).slice(0,DEVICES_MAX);
   }
-  const {error}=await sb.from('profiles').upsert({id:uid,settings:base},{onConflict:'id'});
-  if(error)throw error;
+  await hmWriteProfileSettings(uid,base);
   // Локальная копия догоняет серверную (в т.ч. изменения с других устройств).
   if(curUser&&curUser.id===uid)curUser.settings=Object.assign({},base,{[key]:curUser.settings[key]});
 }
@@ -14599,8 +14632,7 @@ async function registerCurrentDevice(){
   const list=sortDeviceList(Array.from(byKey.values())).slice(0,DEVICES_MAX);
   base[DEVICES_SETTING_KEY]=list;
   curUser.settings=base;
-  const {error}=await sb.from('profiles').upsert({id:curUser.id,settings:base},{onConflict:'id'});
-  if(error)throw error;
+  await hmWriteProfileSettings(curUser.id,base);
   return list;
 }
 function buildLocaleApiCandidates(){
@@ -14839,7 +14871,7 @@ async function renderReportsInbox(){
       <div class="stp-conn-state">Загрузка...</div>
     </div>`;
   try{
-    const r=await fetch(`/api/reports?userId=${encodeURIComponent(curUser.id)}`);
+    const r=await fetch('/api/reports',{headers:await hmAuthHeaders(),cache:'no-store'});
     const data=await r.json();
     const list=document.getElementById('reportsInboxList');
     if(!list)return;

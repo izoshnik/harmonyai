@@ -1,3 +1,4 @@
+import { requireUser } from '../lib/auth.js';
 export const config = {
   maxDuration: 30
 };
@@ -38,8 +39,8 @@ async function fetchProfile(userId) {
 }
 
 // Сообщения из «Сообщить о проблеме в приложении» доступны только ролям
-// developer / moderator / admin — это проверяется на сервере по userId,
-// который передаёт клиент (тот же паттерн доверия, что и в api/chat.js).
+// developer / moderator / admin. Пользователь берётся ТОЛЬКО из токена:
+// раньше хватало чужого userId в адресе, чтобы прочитать все обращения с email.
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: { message: 'Метод не поддерживается' } });
@@ -49,10 +50,9 @@ export default async function handler(req, res) {
   }
 
   try {
-    const userId = String(req.query?.userId || '').trim();
-    if (!userId) {
-      return res.status(400).json({ error: { message: 'Не передан userId' } });
-    }
+    const user = await requireUser(req, res);
+    if (!user) return;
+    const userId = user.id;
 
     const profile = await fetchProfile(userId);
     const role = profile?.role || 'user';

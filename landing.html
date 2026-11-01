@@ -3,16 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>HarmonyAI — универсальный AI-помощник</title>
-<meta name="description" content="HarmonyAI — универсальный AI-помощник для музыкальной школы, работы, анализа, кода, файлов и творчества. Потоковые ответы, режим размышления, веб-поиск, работа с файлами и API для разработчиков.">
+<title>HarmonyAI — музыкальный ИИ и помощник для учёбы</title>
+<meta name="description" content="HarmonyAI — музыкальный ИИ и помощник для учёбы: сольфеджио, теория музыки и ноты на нотном стане, помощь школьникам, документы, поиск в интернете и Яндекс Музыка. Бесплатный доступ.">
 <link rel="canonical" href="https://harmonyai.ru/">
 <meta property="og:type" content="website">
-<meta property="og:title" content="HarmonyAI — универсальный AI-помощник">
+<meta property="og:title" content="HarmonyAI — музыкальный ИИ и помощник для учёбы">
 <meta property="og:description" content="Музыка, работа, анализ, код, файлы и творчество — в одном чате. Плюс API, совместимый с Anthropic и OpenAi Messages API.">
 <meta property="og:url" content="https://harmonyai.ru/">
 <meta name="theme-color" content="#ffffff">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="HarmonyAI — универсальный AI-помощник">
+<meta name="twitter:title" content="HarmonyAI — музыкальный ИИ и помощник для учёбы">
 <meta name="twitter:description" content="Музыка, работа, анализ, код, файлы и творчество — в одном чате. Вход по коду на почту, базовый доступ бесплатный.">
 
 <link rel="icon" href="/favicon.ico" sizes="any">
@@ -30,6 +30,10 @@ if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127
   window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js',{scope:'/'}).catch(function(){});});
 }
 </script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Organization", "name": "HarmonyAI", "url": "https://harmonyai.ru/", "logo": "https://harmonyai.ru/favicon-192.png", "email": "harmonyaisent@gmail.com", "sameAs": ["https://t.me/harmonyaisupport_bot"]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "WebSite", "name": "HarmonyAI", "url": "https://harmonyai.ru/", "inLanguage": "ru-RU"}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "HarmonyAI", "applicationCategory": "EducationalApplication", "operatingSystem": "Web, Android, iOS", "url": "https://harmonyai.ru/", "description": "HarmonyAI — музыкальный ИИ и помощник для учёбы: сольфеджио, теория музыки и ноты на нотном стане, помощь школьникам, документы, поиск в интернете и Яндекс Музыка. Бесплатный доступ.", "offers": [{"@type": "Offer", "name": "Бесплатно", "price": "0", "priceCurrency": "RUB"}, {"@type": "Offer", "name": "Pro — месяц", "price": "299", "priceCurrency": "RUB"}, {"@type": "Offer", "name": "Pro — неделя", "price": "129", "priceCurrency": "RUB"}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Чем отличаются Adan и Dynatos?", "acceptedAnswer": {"@type": "Answer", "text": "Adan — быстрая и недорогая модель для повседневных задач, доступна бесплатно. Dynatos — флагман для сложных задач и кода: контекст 1 000 000 токенов и до 64 000 токенов в одном ответе. В чате Dynatos доступна по подписке Pro, в API — обеим моделям нужен только положительный баланс."}}, {"@type": "Question", "name": "Что делает режим размышления?", "acceptedAnswer": {"@type": "Answer", "text": "Увеличивает вычислительный бюджет модели: на уровнях Max и Extra она разбирает задачу дольше и тщательнее. Пока модель работает, в чате виден безопасный индикатор прогресса и реальное затраченное время — внутреннюю цепочку рассуждений мы не показываем и не имитируем."}}, {"@type": "Question", "name": "Какие файлы можно загрузить?", "acceptedAnswer": {"@type": "Answer", "text": "PDF, DOCX, PPTX, XLSX, TXT, Markdown, изображения и файлы с кодом. В обратную сторону помощник собирает готовый документ в форматах md, txt, pdf, docx и презентацию pptx."}}, {"@type": "Question", "name": "Как подключить API к своему редактору?", "acceptedAnswer": {"@type": "Answer", "text": "Шлюз совместим с Anthropic Messages API: достаточно указать адрес https://api.harmonyai.ru, свой ключ sk-h-… и модель dynatos или adanatos. Готовые команды для Claude Code, Cline, Roo Code, Cursor, OpenCode и других клиентов собраны на странице API."}}, {"@type": "Question", "name": "Что происходит с моими данными и файлами?", "acceptedAnswer": {"@type": "Answer", "text": "Файлы и переписка хранятся у HarmonyAI. Персональные данные сторонним сервисам не передаются. Отдельные материалы — кроме персональных данных — могут обрабатываться сторонними моделями, а обезличенные чаты могут использоваться для улучшения моделей и сервиса. Эту функцию можно отключить в настройках. Подробности — в Политике конфиденциальности."}}, {"@type": "Question", "name": "Чем баланс API отличается от подписки Pro?", "acceptedAnswer": {"@type": "Answer", "text": "Это два независимых кошелька. Pro за 299 ₽ в месяц открывает возможности чата на сайте. Баланс API пополняется отдельно и расходуется только на запросы через /v1/messages. Подписка не начисляет баланс, а баланс не включает Pro."}}]}</script>
 <link rel="stylesheet" href="/css/site.css">
 <script>
 /* ===== АВТОВОЗВРАТ АВТОРИЗОВАННОГО ПОЛЬЗОВАТЕЛЯ В /chat =====
@@ -288,15 +292,15 @@ if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127
           <tbody>
             <tr>
               <td><code>dynatos</code> — Dynatos</td>
-              <td class="num" data-price="in:dynatos">$0.60</td>
-              <td class="num" data-price="out:dynatos">$7.00</td>
-              <td class="num">200 000</td>
+              <td class="num" data-price="in:dynatos">$1.00</td>
+              <td class="num" data-price="out:dynatos">$3.00</td>
+              <td class="num">1 000 000</td>
             </tr>
             <tr>
               <td><code>adanatos</code> — Adan</td>
               <td class="num" data-price="in:adanatos">$0.50</td>
-              <td class="num" data-price="out:adanatos">$5.00</td>
-              <td class="num">200 000</td>
+              <td class="num" data-price="out:adanatos">$2.00</td>
+              <td class="num">1 000 000</td>
             </tr>
           </tbody>
         </table>
@@ -326,7 +330,7 @@ if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127
           </button>
           <div class="faq-a"><div><p>
             Adan — быстрая и недорогая модель для повседневных задач, доступна бесплатно.
-            Dynatos — флагман для сложных задач и кода: контекст 200 000 токенов и до 64 000 токенов
+            Dynatos — флагман для сложных задач и кода: контекст 1 000 000 токенов и до 64 000 токенов
             в одном ответе. В чате Dynatos доступна по подписке Pro, в API — обеим моделям нужен
             только положительный баланс.
           </p></div></div>
@@ -436,6 +440,18 @@ if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127
         <ul>
           <li><a href="/#features">Возможности</a></li>
           <li><a href="/#pricing">Цены</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Музыка и учёба</h4>
+        <ul>
+          <li><a href="/muzykalnyj-ii">Музыкальный ИИ</a></li>
+          <li><a href="/ii-solfedzhio">ИИ для сольфеджио</a></li>
+          <li><a href="/ii-dlya-muzykalnoj-shkoly">ИИ для музыкальной школы</a></li>
+          <li><a href="/ii-dlya-muzykantov">ИИ для музыкантов</a></li>
+          <li><a href="/ii-dlya-shkolnikov">ИИ для школьников</a></li>
+          <li><a href="/ii-dlya-ucheby">ИИ для учёбы</a></li>
         </ul>
       </div>
 

@@ -11,7 +11,7 @@ export const config = {
   maxDuration: 300
 };
 
-import { FREE_TEXT_MODEL, PRO_TEXT_MODEL, envModel, currentModelName, providerForModel, providerBaseUrl, isOpenRouterModel, supportsReasoningEffort, noteUnaskedReasoning, responseHasReasoning, fastReasoningEffort } from '../lib/models.js';
+import { FREE_TEXT_MODEL, PRO_TEXT_MODEL, envModel, currentModelName, LONG_CONTEXT_THRESHOLD, longContextModel, providerForModel, providerBaseUrl, isOpenRouterModel, supportsReasoningEffort, noteUnaskedReasoning, responseHasReasoning, fastReasoningEffort } from '../lib/models.js';
 import { authenticateRequest } from '../lib/auth.js';
 
 // Adan (free) отвечает на claude-haiku-4-5, Dynatos (pro) — на gpt-5.6-luna (см. lib/models.js).
@@ -2074,7 +2074,14 @@ function selectRoute(profile, requestedModel, messages) {
   // Если запрошена Pro-модель, но роль не Pro — тихо откатываемся на Adan.
   const allowedPro = wantsPro && isProRole(profile);
   // С фото сначала модель со зрением: ни glm-5.3-flash (Pro), ни deepseek картинки не видят.
-  const baseChain = allowedPro ? MODEL_CHAINS.dynatos.concat(adanChain()) : adanChain();
+  let baseChain = allowedPro ? MODEL_CHAINS.dynatos.concat(adanChain()) : adanChain();
+  /* Длинный контекст (больше ~120K токенов): модели pro-ai.online держат только
+     128K и упали бы с ошибкой. Берём ту же модель через OpenRouter (~1M) и
+     оставляем в цепочке только модели OpenRouter. */
+  if (estimateTokensFromMessages(messages) > LONG_CONTEXT_THRESHOLD) {
+    const long = allowedPro ? [longContextModel(MODEL_CHAINS.dynatos[0])] : [];
+    baseChain = long.concat(baseChain.filter((m) => isOpenRouterModel(m) && !/gemma/i.test(m)), [longContextModel(FREE_TEXT_MODEL)]);
+  }
   const modelChain = lastUserHasImage(messages) ? visionFirst(baseChain) : baseChain;
 
   return {
