@@ -47,12 +47,16 @@
     return 'en';
   }
 
-  var chosen = ls('hai_lang');
-  var auto = ls('hai_lang_auto');
-  var current = ok(chosen) ? chosen : ok(auto) ? auto : browserLang();
+  /* Поисковые роботы всегда видят русский оригинал. Googlebot обходит сайт из
+     США и выполняет JS: раньше он получал английский перевод по IP и
+     индексировал русский сайт как английский. */
+  var BOT = /bot|crawl|spider|slurp|yandex|google|bing|baidu|duckduck|mail\.ru|lighthouse|headlesschrome|prerender|facebookexternalhit|telegrambot|vkshare/i.test(navigator.userAgent || '');
+  var chosen = BOT ? null : ls('hai_lang');
+  var auto = BOT ? null : ls('hai_lang_auto');
+  var current = BOT ? 'ru' : ok(chosen) ? chosen : ok(auto) ? auto : browserLang();
   var isAuto = !ok(chosen);
   // Первый визит: язык ещё не выбран и по IP не определялся — спросим сервер.
-  var needDetect = !ok(chosen) && !ok(auto) && location.protocol !== 'file:';
+  var needDetect = !BOT && !ok(chosen) && !ok(auto) && location.protocol !== 'file:';
 
   // Пока переводы не применены — прячем русский текст (без «мигания»).
   var waitTimer = null;
