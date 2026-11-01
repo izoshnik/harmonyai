@@ -125,7 +125,7 @@ details.cat .fnlist{margin-top:8px}
   <div class="panel tbl"><table>
     <thead><tr><th>Роль</th><th>Модель</th><th>Провайдер</th><th>Где задаётся</th></tr></thead>
     <tbody>
-      <tr><td>Free · Adan · текст</td><td><code>thinkingmachines/inkling:free</code> → <code>google/gemma-4-31b-it:free</code> → <code>nvidia/nemotron-3-ultra-550b-a55b:free</code> → <code>nvidia/nemotron-3.5-lightning:free</code> → <code>deepseek-v4-flash-0731</code></td><td>OpenRouter (бесплатные) + pro-ai.online (запасная)</td><td><code>ADAN_MODELS</code>, api/chat.js</td></tr>
+      <tr><td>Free · Adan · текст</td><td><code>thinkingmachines/inkling:free</code> → <code>google/gemma-4-31b-it:free</code> → <code>nvidia/nemotron-3-ultra-550b-a55b:free</code> → <code>nvidia/nemotron-3.5-lightning:free</code> → <code>deepseek-v4-flash</code></td><td>OpenRouter (бесплатные) + pro-ai.online (запасная)</td><td><code>ADAN_MODELS</code>, api/chat.js</td></tr>
       <tr><td>Free · с фото</td><td><code>inkling:free</code> → <code>gemma-4-31b-it:free</code> → <code>nemotron-3.5-super-vl:free</code>, затем остальные</td><td>OpenRouter</td><td><code>ADAN_VISION_MODELS</code>, api/chat.js</td></tr>
       <tr><td>Pro · Dynatos · текст</td><td>цепочка <code>MODEL_CHAINS.dynatos</code>, затем Adan</td><td>pro-ai.online (<code>OPENAI_BASE_URL</code>)</td><td>lib/models.js</td></tr>
       <tr><td>Картинки Free</td><td><code>@cf/black-forest-labs/flux-1-schnell</code> → Pollinations <code>flux</code></td><td>Cloudflare Workers AI, Pollinations</td><td><code>CLOUDFLARE_IMAGE_MODEL</code>, <code>POLLINATIONS_TOKEN</code></td></tr>
