@@ -44,3 +44,22 @@ test('video-gen: job token is bound to the user', () => {
   assert.equal(readJob(t, 'u2'), null);
   assert.equal(readJob(t.slice(0, -2) + 'xx', 'u1'), null);
 });
+
+test('video-gen: unavailable model (502 on quote) falls back to the next one', async () => {
+  const real = globalThis.fetch;
+  process.env.CLOSEROUTER_API_KEY = 'k';
+  const created = [];
+  globalThis.fetch = async (url, init = {}) => {
+    const b = init.body ? JSON.parse(init.body) : {};
+    if (/quote$/.test(url)) return b.model === 'bytedance/seedance-1.5-pro'
+      ? new Response(JSON.stringify({ error: { message: 'The model is temporarily unavailable. Retry shortly.' } }), { status: 502 })
+      : new Response(JSON.stringify({ max_cost_usd: '0.12' }), { status: 200 });
+    created.push(b.model);
+    return new Response(JSON.stringify({ id: 'T2', status: 'pending' }), { status: 202 });
+  };
+  try {
+    const j = await startVideoJob('coffee');
+    assert.equal(j.model, 'bytedance/v1-lite');
+    assert.deepEqual(created, ['bytedance/v1-lite']);
+  } finally { globalThis.fetch = real; delete process.env.CLOSEROUTER_API_KEY; }
+});
