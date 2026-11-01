@@ -49,6 +49,30 @@
       "destination": "/landing.html"
     },
     {
+      "source": "/muzykalnyj-ii",
+      "destination": "/seo/muzykalnyj-ii.html"
+    },
+    {
+      "source": "/ii-solfedzhio",
+      "destination": "/seo/ii-solfedzhio.html"
+    },
+    {
+      "source": "/ii-dlya-ucheby",
+      "destination": "/seo/ii-dlya-ucheby.html"
+    },
+    {
+      "source": "/ii-dlya-shkolnikov",
+      "destination": "/seo/ii-dlya-shkolnikov.html"
+    },
+    {
+      "source": "/ii-dlya-muzykantov",
+      "destination": "/seo/ii-dlya-muzykantov.html"
+    },
+    {
+      "source": "/ii-dlya-muzykalnoj-shkoly",
+      "destination": "/seo/ii-dlya-muzykalnoj-shkoly.html"
+    },
+    {
       "source": "/about",
       "destination": "/about.html"
     },
