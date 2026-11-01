@@ -1516,13 +1516,7 @@ html[data-theme="light"] .attach-opt:hover{background:rgba(20,18,12,.05);}
 @keyframes hmFadeIn{from{opacity:0;filter:blur(1.5px)}to{opacity:1;filter:none}}
 /* Размер — с заглавную букву текста ответа («Д»). */
 .hm-pulse-dot{width:calc(var(--font-base,15px)*1.12);height:calc(var(--font-base,15px)*1.12);border-radius:50%;background:var(--accent,#2f8fff);animation:hmPulseDot 1.3s ease-in-out infinite;margin:5px 2px;}
-html[data-fs="l"] .hm-pulse-dot{width:20px;height:20px;}
-/* Сгенерированное видео в сообщении */
-.hm-genvid{max-width:420px;width:100%;border-radius:14px;overflow:hidden;background:#000;margin:4px 0;aspect-ratio:16/9;}
-.hm-genvid.is-tall{max-width:240px;aspect-ratio:9/16;}
-.hm-genvid video{width:100%;height:100%;display:block;object-fit:contain;background:#000;}
-.hm-genvid-wait{display:flex;align-items:center;gap:10px;color:var(--text2);font-size:14px;}
-.hm-genvid-wait .hm-pulse-dot{margin:2px 0;}html[data-fs="s"] .hm-pulse-dot{width:15px;height:15px;}
+html[data-fs="l"] .hm-pulse-dot{width:20px;height:20px;}html[data-fs="s"] .hm-pulse-dot{width:15px;height:15px;}
 @keyframes hmPulseDot{0%,100%{transform:scale(.8);opacity:.6}50%{transform:scale(1);opacity:1}}
 .stream-cur.hm-stall-dot{width:12px;height:12px;border-radius:50%;background:var(--accent,#2f8fff);margin-left:4px;vertical-align:middle;animation:hmPulseDot 1.3s ease-in-out infinite;}
 .hm-turn-spacer{flex:none;pointer-events:none;}
@@ -7145,11 +7139,6 @@ async function openChat(id,opts){
         try{renderMd(ans,normalizeReplyNotation(txt));}catch(e){ans.textContent=txt;}
       }
     }
-    else if(m.videoGen||m.videoGenToken){
-      const shell=createAiBubbleShell({showActions:true,createdAt:m.createdAt,historyIndex:idx});
-      if(m.videoGen)hmRenderGenVideo(shell,m.videoGen,m.videoGenAspect);
-      else hmPollVideoGen(shell,m,m.videoGenToken);
-    }
     else if(m.image){
       // Сообщение с сгенерированной картинкой — рендерим <img> по URL из Storage.
       const shell=createAiBubbleShell({showActions:false,createdAt:m.createdAt,historyIndex:idx});
@@ -11619,101 +11608,6 @@ async function hmImageForEdit(att){
     return c.toDataURL('image/png');
   }catch(e){return src;}
 }
-/* ===== ГЕНЕРАЦИЯ ВИДЕО (Pollinations через /api/util?op=video-gen) =====
-   Ролик делается 30–120 с: сервер ставит задачу в очередь и отдаёт подписанный
-   номер, клиент опрашивает его раз в 5 с. Номер хранится в истории — после
-   перезагрузки страницы опрос продолжается с того же места. */
-const HM_VIDEO_GEN_RE=/(сгенерир|создай|сделай|сними|нарисуй|анимируй|оживи|смонтируй)\S*\s+(мне\s+|нам\s+|пожалуйста\s+)?(\S+\s+){0,2}?(видео|видос|ролик|клип|анимаци|мультик)|^(видео|ролик)\s*[:—-]\s*\S|\b(generate|create|make|render)\s+(me\s+)?(a\s+|an\s+)?(short\s+)?(video|clip|animation)\b/i;
-// «Сделай презентацию/сценарий/обложку для видео» — это не генерация ролика.
-const HM_VIDEO_GEN_NOT=/(сгенерир|создай|сделай|сними|нарисуй|смонтируй)\S*\s+(мне\s+|нам\s+)?(\S+\s+)?(презентаци|документ|таблиц|реферат|доклад|текст|сценари|описани|план|картинк|изображени|обложк|превью|постер|субтитр|монтажн|название|идеи|список)/i;
-function hmIsVideoGen(text){return HM_VIDEO_GEN_RE.test(text)&&!HM_VIDEO_GEN_NOT.test(text);}
-async function hmVideoGenCall(body){
-  const r=await fetch('/api/util?op=video-gen',{method:'POST',headers:await hmAuthHeaders(),body:JSON.stringify(body),cache:'no-store',credentials:'omit'});
-  const d=await r.json().catch(()=>({}));
-  if(r.status===429&&d.scope){d.limit=true;}
-  return d;
-}
-function hmRenderGenVideo(shell,url,aspect){
-  shell.msg.innerHTML='';
-  const box=document.createElement('div');box.className='hm-genvid'+(aspect==='9:16'?' is-tall':'');
-  const v=document.createElement('video');
-  v.controls=true;v.playsInline=true;v.loop=true;v.preload='metadata';
-  v.setAttribute('controlsList','nodownload noplaybackrate');
-  v.disablePictureInPicture=true;
-  v.addEventListener('contextmenu',e=>e.preventDefault());
-  box.appendChild(v);shell.msg.appendChild(box);
-  // Как с картинками: в плеер — blob:-адрес, ссылки на хранилище в разметке нет.
-  hmImgBlob(url).then(b=>{v.src=URL.createObjectURL(b);}).catch(()=>{v.src=url;});
-  let actions=shell.actions||shell.wrap.querySelector('.msg-actions');
-  if(actions){
-    try{setMessageActionsVisible(actions,true);}catch(e){}
-    if(!actions.querySelector('.mac-dl')){
-      const b=document.createElement('button');
-      b.className='mac-btn mac-dl';b.type='button';b.title='Скачать';b.setAttribute('aria-label','Скачать видео');
-      b.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 19.5h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-      b.onclick=async()=>{try{const blob=await hmImgBlob(url);const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='harmonyai-video.mp4';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);}catch(e){}};
-      actions.insertBefore(b,actions.firstChild);
-    }
-  }
-  scrollChat();
-}
-function hmVideoGenWaiting(shell){
-  shell.msg.innerHTML='<div class="hm-genvid-wait"><div class="hm-pulse-dot"></div><span>Создаю видео… обычно 30–90 секунд</span></div>';
-  scrollChat();
-}
-async function hmPollVideoGen(shell,note,token){
-  hmVideoGenWaiting(shell);
-  const started=Date.now();
-  for(;;){
-    await new Promise(r=>setTimeout(r,5000));
-    if(!shell.wrap.isConnected)return; // ушли в другой чат — допросим при следующем открытии
-    let d=null;
-    try{d=await hmVideoGenCall({action:'status',token});}catch(e){d=null;}
-    if(d&&d.status==='done'&&d.url){
-      note.videoGen=d.url;delete note.videoGenToken;note.content='[Сгенерировано видео]'+(note.videoGenPrompt?' по запросу: «'+note.videoGenPrompt+'»':'');
-      saveChat().catch(()=>{});
-      hmRenderGenVideo(shell,d.url,note.videoGenAspect);
-      return;
-    }
-    if(d&&d.status==='failed'||Date.now()-started>6*60*1000){
-      const msg=(d&&d.message)||'Видео не успело создаться. Попробуйте ещё раз.';
-      delete note.videoGenToken;note.content=msg;saveChat().catch(()=>{});
-      renderMd(shell.msg,msg+(d&&d.detail?'\n\n_Для персонала: '+String(d.detail).replace(/[_*`]/g,' ')+'_':''));
-      return;
-    }
-  }
-}
-async function handleVideoGeneration(text){
-  const gw=document.getElementById('greetingWrap');if(gw)gw.style.display='none';
-  addUserBubble(text,[],{createdAt:messageNow()});
-  chatHistory.push({role:'user',content:text,attachments:[],createdAt:messageNow()});
-  saveChat().catch(()=>{});
-  const shell=createAiBubbleShell({showActions:true,hiddenActions:true});
-  hmVideoGenWaiting(shell);
-  setGeneratingState(true);
-  let d=null;
-  try{d=await hmVideoGenCall({action:'start',prompt:text});}catch(e){d={message:'Нет соединения с сервером. Попробуйте ещё раз.'};}
-  finally{setGeneratingState(false);}
-  const note={role:'assistant',content:'',createdAt:messageNow(),videoGenPrompt:text.slice(0,300),videoGenAspect:(d&&d.aspect)||'16:9'};
-  if(d&&d.limit){
-    note.content=d.message||'Лимит видео исчерпан.';
-    shell.msg.innerHTML=limitMessageHtml({scope:d.scope,resetAt:d.resetAt,kind:'video',reason:d.message}).replace(/Лимиты закончились/,'Лимит видео исчерпан');
-  }else if(d&&d.ok&&d.status==='done'&&d.url){
-    note.videoGen=d.url;note.content='[Сгенерировано видео по запросу: «'+text.slice(0,300)+'»]';
-    hmRenderGenVideo(shell,d.url,note.videoGenAspect);
-  }else if(d&&d.ok&&d.token){
-    note.videoGenToken=d.token;note.content='[Видео создаётся]';
-    chatHistory.push(note);saveChat().catch(()=>{});
-    hmPollVideoGen(shell,note,d.token);
-    return;
-  }else{
-    note.content=(d&&d.message)||'Не получилось создать видео. Попробуйте ещё раз.';
-    renderMd(shell.msg,note.content+(d&&d.detail?'\n\n_Для персонала: '+String(d.detail).replace(/[_*`]/g,' ')+'_':''));
-  }
-  chatHistory.push(note);
-  saveChat().catch(()=>{});
-}
-
 async function handleImageGeneration(promptText,opts={}){
   const limit=checkImageLimit();
   if(limit.blocked){showImageLimitReached(Object.assign({kind:'image'},limit));return;}
@@ -12308,14 +12202,6 @@ async function sendMsgInner(){
   /* Новое сообщение — всегда возвращаем вид к низу: даже если человек отлистал
      вверх во время прошлой генерации, свой собственный вопрос он должен увидеть. */
   resetChatScrollFollow();
-
-  // ГЕНЕРАЦИЯ ВИДЕО по описанию («сгенерируй видео, где…») — раньше кино-поиска,
-  // иначе «сделай ролик про котов» ушло бы искать готовые ролики.
-  if(text&&!pendingAttachments.length&&hmIsVideoGen(text)){
-    clearPendingAttachments();renderComposerAttachments();updateComposerPlaceholder();
-    await handleVideoGeneration(text);
-    return;
-  }
 
   // КИНО: фильм, сериал, серия, озвучка, ролик — плеер прямо в сообщении.
   if(text&&!pendingAttachments.length&&typeof hmVideoRoute==='function'){
