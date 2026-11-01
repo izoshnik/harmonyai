@@ -154,7 +154,10 @@ const exhaustedModels = new Map(); // model → время (ms), до котор
 
 function adanModels() {
   const fromEnv = readEnv('ADAN_MODELS').split(',').map(x => currentModelName(x)).filter(Boolean);
-  return fromEnv.length ? fromEnv : ADAN_DEFAULT_MODELS;
+  // Свои модели из ADAN_MODELS — первыми, встроенные — запасными после них:
+  // короткий список в Vercel (две модели) оставлял цепочку без запаса, когда
+  // одна упиралась в лимит, а другая лежала у провайдера.
+  return fromEnv.length ? [...new Set(fromEnv.concat(ADAN_DEFAULT_MODELS))] : ADAN_DEFAULT_MODELS;
 }
 /* Модель из цепочки Adan: при лимите/обрыве переключаемся на следующую. */
 function isAdanModel(name) { const n = String(name || ''); return isOpenRouterModel(n) || adanModels().includes(n); }
