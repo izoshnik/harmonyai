@@ -36,7 +36,7 @@
 
 import { extractApiKey, looksLikeApiKey, hashApiKey } from '../lib/api-keys.js';
 import { supabaseRest, readAccessProfile, hasProAccess, isUnlimitedApiRole } from '../lib/auth.js';
-import { resolvePublicModel, PUBLIC_MODEL_IDS, PUBLIC_MODELS, providerBaseUrl } from '../lib/models.js';
+import { resolvePublicModel, PUBLIC_MODEL_IDS, PUBLIC_MODELS, providerBaseUrl, providerForModel, LONG_CONTEXT_THRESHOLD, longContextModel } from '../lib/models.js';
 import {
   MODEL_PRICING,
   usageCostMicroRubles,
@@ -258,14 +258,18 @@ async function handleMessages(req, res, body, auth) {
   }
 
   const wantStream = body.stream !== false;
-  const upstreamBody = anthropicToOpenAI(body, model.internal);
+  /* Контекст 1M: длинный запрос — та же модель через OpenRouter (pro-ai держит 128K). */
+  const longCtx = inputTokensEstimate > LONG_CONTEXT_THRESHOLD;
+  const upstreamModel = longCtx ? longContextModel(model.internal) : model.internal;
+  const upstreamBody = anthropicToOpenAI(body, upstreamModel);
+  if (longCtx) { delete upstreamBody.reasoning_effort; upstreamBody.reasoning = { enabled: false }; }
   upstreamBody.max_tokens = maxOutput;
   upstreamBody.stream = wantStream;
   if (wantStream) upstreamBody.stream_options = { include_usage: true };
 
   let upstream;
   try {
-    upstream = await callUpstream(upstreamBody, upstreamKey);
+    upstream = await callUpstream(upstreamBody, upstreamKey, longCtx ? providerForModel(upstreamModel) : null);
   } catch (error) {
     console.error('[v1] апстрим недоступен:', String(error?.message || error).slice(0, 200));
     return sendError(res, 503, 'Модель временно недоступна, попробуйте ещё раз', 'overloaded_error');
@@ -352,11 +356,12 @@ async function handleMessages(req, res, body, auth) {
 
 /* Вызов апстрима с повтором без reasoning_effort: не все модели его принимают,
    и из-за одного необязательного параметра запрос падать не должен. */
-async function callUpstream(body, apiKey) {
-  const url = `${upstreamBase()}/chat/completions`;
+async function callUpstream(body, apiKey, provider = null) {
+  const url = `${provider ? provider.baseUrl : upstreamBase()}/chat/completions`;
   const headers = {
     'Content-Type': 'application/json',
-    Authorization: `Bearer ${apiKey}`
+    Authorization: `Bearer ${provider ? provider.apiKey : apiKey}`,
+    ...((provider && provider.headers) || {})
   };
 
   const first = await withTimeout(

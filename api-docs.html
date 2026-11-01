@@ -81,7 +81,7 @@
 
         <ul class="api-facts">
           <li><strong>2</strong><span>модели: Adan и Dynatos</span></li>
-          <li><strong>200K</strong><span>токенов контекста</span></li>
+          <li><strong>1M</strong><span>токенов контекста</span></li>
           <li><strong>SSE</strong><span>потоковые ответы</span></li>
           <li><strong>$0.50</strong><span>от, за 1M входных</span></li>
         </ul>
@@ -215,8 +215,8 @@ console.log(msg.content[0].text);</pre></div>
             короткие тексты, подсказки в редакторе, автодополнение.</p>
           <dl class="api-model-spec">
             <div><dt>Вход</dt><dd data-price="in:adanatos">$0.50</dd></div>
-            <div><dt>Выход</dt><dd data-price="out:adanatos">$5.00</dd></div>
-            <div><dt>Контекст</dt><dd>200 000</dd></div>
+            <div><dt>Выход</dt><dd data-price="out:adanatos">$2.00</dd></div>
+            <div><dt>Контекст</dt><dd>1 000 000</dd></div>
             <div><dt>Макс. ответ</dt><dd>32 000</dd></div>
           </dl>
           <p class="api-model-note">Прежнее имя <code>adanatos</code> продолжает работать.</p>
@@ -231,9 +231,9 @@ console.log(msg.content[0].text);</pre></div>
           <p>Для сложного: длинные документы, код и рефакторинг, анализ, многошаговые
             рассуждения и агентные сценарии с инструментами.</p>
           <dl class="api-model-spec">
-            <div><dt>Вход</dt><dd data-price="in:dynatos">$0.60</dd></div>
-            <div><dt>Выход</dt><dd data-price="out:dynatos">$7.00</dd></div>
-            <div><dt>Контекст</dt><dd>200 000</dd></div>
+            <div><dt>Вход</dt><dd data-price="in:dynatos">$1.00</dd></div>
+            <div><dt>Выход</dt><dd data-price="out:dynatos">$3.00</dd></div>
+            <div><dt>Контекст</dt><dd>1 000 000</dd></div>
             <div><dt>Макс. ответ</dt><dd>64 000</dd></div>
           </dl>
           <p class="api-model-note">Доступна при активной подписке Pro. В Claude Code подставляется вместо Sonnet и Opus.</p>
@@ -1194,7 +1194,7 @@ event: message_stop</pre>
       "id": "dynatos",
       "display_name": "Dynatos",
       "description": "Флагманская модель: длинный контекст, сложные задачи, код",
-      "context_window": 200000,
+      "context_window": 1000000,
       "max_output_tokens": 64000,
       "pricing": {
         "input_usd_per_million_tokens": 0.6,
@@ -1252,16 +1252,16 @@ event: message_stop</pre>
           <tbody>
             <tr>
               <td><code>dynatos</code><br><span style="color:var(--text-3);font-size:14px;">Флагманская модель</span></td>
-              <td class="num" data-price="in:dynatos">$0.60</td>
-              <td class="num" data-price="out:dynatos">$7.00</td>
-              <td class="num">200 000</td>
+              <td class="num" data-price="in:dynatos">$1.00</td>
+              <td class="num" data-price="out:dynatos">$3.00</td>
+              <td class="num">1 000 000</td>
               <td class="num">64 000</td>
             </tr>
             <tr>
               <td><code>adan</code><br><span style="color:var(--text-3);font-size:14px;">Быстрая и дешёвая (он же <code>adanatos</code>)</span></td>
               <td class="num" data-price="in:adanatos">$0.50</td>
-              <td class="num" data-price="out:adanatos">$5.00</td>
-              <td class="num">200 000</td>
+              <td class="num" data-price="out:adanatos">$2.00</td>
+              <td class="num">1 000 000</td>
               <td class="num">32 000</td>
             </tr>
           </tbody>
