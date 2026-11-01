@@ -63,3 +63,24 @@ test('video-gen: unavailable model (502 on quote) falls back to the next one', a
     assert.deepEqual(created, ['bytedance/v1-lite']);
   } finally { globalThis.fetch = real; delete process.env.CLOSEROUTER_API_KEY; }
 });
+
+test('video-gen: restart from the next model keeps the prompt in the signed token', async () => {
+  const { readJobInfo } = await import('../lib/video-gen.js');
+  const real = globalThis.fetch;
+  process.env.CLOSEROUTER_API_KEY = 'k';
+  const created = [];
+  globalThis.fetch = async (url, init = {}) => {
+    const b = init.body ? JSON.parse(init.body) : {};
+    if (/quote$/.test(url)) return new Response(JSON.stringify({ max_cost_usd: '0.1' }), { status: 200 });
+    created.push(b.model);
+    return new Response(JSON.stringify({ id: 'T3' }), { status: 202 });
+  };
+  try {
+    const j = await startVideoJob('coffee', { fromIndex: 1 });
+    assert.equal(j.index, 1);
+    assert.deepEqual(created, ['bytedance/v1-lite']);
+    const t = signJob('T3', 'u1', { m: 1, p: 'coffee', a: '16:9', r: 0 });
+    assert.equal(readJobInfo(t, 'u1').p, 'coffee');
+    assert.equal(readJobInfo(t, 'u2'), null);
+  } finally { globalThis.fetch = real; delete process.env.CLOSEROUTER_API_KEY; }
+});
