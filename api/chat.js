@@ -5,12 +5,13 @@ import { readChatImages, withReading, isDocumentReading } from '../lib/image-rea
 import { createReasoningRelay, isNativeReasoner } from '../lib/reasoning-relay.js';
 import { applyDevAccountProfile } from '../lib/dev-account.js';
 import { searchWeb } from '../lib/web-search.js';
+import { planSearchQueries } from '../lib/ai-tasks.js';
 import { findVideoLink, videoFromHistory, watchVideo, watchErrorText, linkTimestamps, checkVideoQuota, recordVideoWatch } from '../lib/video-watch.js';
 export const config = {
   maxDuration: 300
 };
 
-import { FREE_TEXT_MODEL, PRO_TEXT_MODEL, envModel, providerForModel, providerBaseUrl, isOpenRouterModel, supportsReasoningEffort, noteUnaskedReasoning, responseHasReasoning, fastReasoningEffort } from '../lib/models.js';
+import { FREE_TEXT_MODEL, PRO_TEXT_MODEL, envModel, currentModelName, providerForModel, providerBaseUrl, isOpenRouterModel, supportsReasoningEffort, noteUnaskedReasoning, responseHasReasoning, fastReasoningEffort } from '../lib/models.js';
 import { authenticateRequest } from '../lib/auth.js';
 
 // Adan (free) отвечает на claude-haiku-4-5, Dynatos (pro) — на gpt-5.6-luna (см. lib/models.js).
@@ -93,7 +94,7 @@ function readEnv(name) {
      ADAN_MODELS         — модели через запятую, первая — основная. По умолчанию:
                            thinkingmachines/inkling:free, google/gemma-4-31b-it:free,
                            nvidia/nemotron-3-ultra-550b-a55b:free, nvidia/nemotron-3.5-lightning:free
-                           (OpenRouter), deepseek-v4-flash-0731 (pro-ai.online) — запасная.
+                           (OpenRouter), deepseek-v4-flash (pro-ai.online) — запасная.
      OPENROUTER_API_KEY  — ключ OpenRouter; OPENAI_API_KEY — ключ pro-ai.online.
    Если модель не отвечает, упёрлась в лимит или оборвала ответ — сервер берёт
    следующую из списка (в том числе посреди ответа: продолжение с того же места),
@@ -147,12 +148,12 @@ const ADAN_DEFAULT_MODELS = [
   'google/gemma-4-31b-it:free',
   'nvidia/nemotron-3-ultra-550b-a55b:free',
   'nvidia/nemotron-3.5-lightning:free',
-  'deepseek-v4-flash-0731'
+  'deepseek-v4-flash'
 ];
 const exhaustedModels = new Map(); // model → время (ms), до которого модель не используем
 
 function adanModels() {
-  const fromEnv = readEnv('ADAN_MODELS').split(',').map(x => x.trim()).filter(Boolean);
+  const fromEnv = readEnv('ADAN_MODELS').split(',').map(x => currentModelName(x)).filter(Boolean);
   return fromEnv.length ? fromEnv : ADAN_DEFAULT_MODELS;
 }
 /* Модель из цепочки Adan: при лимите/обрыве переключаемся на следующую. */
@@ -673,6 +674,22 @@ function needsFreshFacts(query = '') {
   return asks.test(clean) || (named && clean.split(/\s+/).length >= 3);
 }
 
+// Задачи, где поиск ничего не добавит: работа с присланным текстом, код,
+// расчёты, сочинительство, короткие реплики без предмета.
+function searchAddsNothing(query = '') {
+  const raw = String(query || '');
+  const clean = normalizeText(raw).toLowerCase();
+  if (/\[ФАЙЛ \d+:/.test(raw)) return true;
+  if (/^(переведи|перепиши|исправь|сократи|перефразируй|отредактируй|проверь\s+(текст|орфограф|ошибк)|посчитай|вычисли|реши\s+(уравнени|пример|задач))/.test(clean)) return true;
+  if (/(код|функци[юя]|скрипт|html|css|javascript|typescript|python|sql|регулярн|баг\b|ошибк[аиу]\s+в\s+коде)/.test(clean)) return true;
+  if (/^[\d\s+\-*/^().,=x×÷%]+$/.test(clean)) return true;
+  if (/(сочини|придумай|напиши)\s+(мне\s+)?(стих|песн|рассказ|сказк|шутк|анекдот|тост|поздравлени|имя|назван|слоган|рэп|текст\s+песни)/.test(clean)) return true;
+  if (raw.length > 600 && /^(вот|текст|прочитай|оцени|что\s+думаешь)/.test(clean)) return true;
+  // Короткая реплика без предмета разговора («ок», «понял, спасибо», «а ты?»).
+  if (clean.split(/\s+/).length < 3 && !/[a-z]{3,}/i.test(raw) && !/[А-ЯЁ][а-яё]{2,}/.test(raw.slice(1))) return true;
+  return false;
+}
+
 // Финальное решение: нужен ли поиск. Учитывает явный запрос пользователя,
 // характер вопроса (факты/актуальность) и исключения.
 function decideWebSearch({ query = '', searchEnabled = 'auto' } = {}) {
@@ -686,6 +703,10 @@ function decideWebSearch({ query = '', searchEnabled = 'auto' } = {}) {
   // Вопрос о фактах реального мира (люди, каналы, компании, события, числа) —
   // ищем всегда: устаревшие или выдуманные факты хуже лишних пары секунд.
   if (needsFreshFacts(query)) return true;
+  // Почти всё остальное тоже ищем: знания модели отстают на месяцы, а реферат,
+  // совет или сравнение со свежими фактами точнее. Не ищем только там, где
+  // интернет ничего не добавит (см. searchAddsNothing).
+  if (!searchAddsNothing(query)) return true;
   // Промежуточный случай: длинный фактологический вопрос без признаков теории/творчества —
   // даём шанс поискать, если вопрос снаружи выходит за музыкальную базу знаний.
   const clean = normalizeText(query).toLowerCase();
@@ -736,10 +757,10 @@ function parseDuckDuckGoResults(html = '') {
   return results;
 }
 
-async function webSearchResults(query) {
+async function webSearchResults(query, queries = []) {
   const cleanQuery = normalizeText(query);
   if (!cleanQuery) return [];
-  const { provider, results } = await searchWeb(cleanQuery, { max: SEARCH_MAX_RESULTS });
+  const { provider, results } = await searchWeb(cleanQuery, { max: SEARCH_MAX_RESULTS, queries });
   if (!results.length) console.warn('[harmonyai] web search: no results from any provider');
   else console.log('[harmonyai] web search via', provider, results.length);
   return results;
@@ -774,8 +795,8 @@ async function fetchPageText(url) {
 
 // Собираем итоговый контекст из найденных источников: для каждого источника —
 // заголовок, ссылка и вытянутый текст (если получилось) или сниппет.
-async function buildWebSearchContext(query, res) {
-  const results = await webSearchResults(query);
+async function buildWebSearchContext(query, res, queries = []) {
+  const results = await webSearchResults(query, queries);
   if (!results.length) return { context: '', sources: [], browsed: 0 };
 
   const sources = results.map((r) => ({ url: r.url, title: r.title, snippet: r.snippet }));
@@ -2507,9 +2528,15 @@ export default async function handler(req, res) {
         res.setHeader('Connection', 'keep-alive');
         if (typeof res.flushHeaders === 'function') res.flushHeaders();
         webHeadersSent = true;
-        writeSseEvent(res, { type: 'search_query', query: normalizeText(query) });
       }
-      const searchResult = await buildWebSearchContext(query, stream ? res : null);
+      /* Что именно искать, решает ИИ: ключевые слова, язык по теме, месяц и
+         год для свежих данных. Не ответил за 4 с — ищем по очищенному вопросу. */
+      const planHistory = messages.filter((m) => m && m.role !== 'system').slice(-5, -1).map((m) => ({
+        role: m.role, text: typeof m.content === 'string' ? m.content : (Array.isArray(m.content) ? m.content.map((p) => p.text || '').join(' ') : '')
+      }));
+      const planned = await planSearchQueries({ message: query, history: planHistory }).catch(() => []);
+      if (stream) writeSseEvent(res, { type: 'search_query', query: planned.length ? planned.join(' · ') : normalizeText(query) });
+      const searchResult = await buildWebSearchContext(query, stream ? res : null, planned);
       webContext = searchResult.context;
       webSources = searchResult.sources;
       webBrowsed = searchResult.browsed;
@@ -2619,6 +2646,22 @@ export default async function handler(req, res) {
         (think || isDeepEffort(effort) || isLargeContext) ? 6000
           : (fastPath ? 1500 : 2500) + (proPrimary ? 1000 : 0)
       );
+      /* Поток клиенту открываем сразу, до первой модели: пока цепочка перебирает
+         модели, клиент получает «: ping» (heartbeat в streamOpenAIToClient) и
+         не висит минутами на пустом fetch; ошибка же уходит событием, а не
+         молчанием. */
+      if (stream && !sseOpen && !res.headersSent) {
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-cache, no-transform');
+        res.setHeader('Connection', 'keep-alive');
+        if (typeof res.flushHeaders === 'function') res.flushHeaders();
+        try { res.write(': start\n\n'); } catch (e) { /* закрыто */ }
+        sseOpen = true;
+      }
+      // Общий предел на всю цепочку: лучше честная ошибка через 2,5 минуты,
+      // чем ответ, который не приходит вовсе (Vercel обрывает функцию на 300 с).
+      const chainDeadline = Date.now() + 150000;
       const triedModels = new Set();
       const pickHedge = (mi) => {
         if (hasImage) return null;
@@ -2629,6 +2672,10 @@ export default async function handler(req, res) {
         const modelName = route.models[mi];
         const hasNextModel = mi < route.models.length - 1;
         if (triedModels.has(modelName)) continue; // уже участвовала в гонке как запасная
+        if (mi > 0 && Date.now() > chainDeadline) {
+          console.error(`[harmonyai] chain deadline | tried=${[...triedModels].join(',')} | last=${compactErrorValue(lastError?.message, 200)}`);
+          return failRequest(503, 'Модели сейчас перегружены и не отвечают. Попробуйте ещё раз через минуту.');
+        }
         if (stream) {
           const hedge = pickHedge(mi);
           const streamResult = await streamOpenAIToClient(res, route.apiKey, modelName, messagesFor(modelName), modelTimeoutMs, query, isLargeContext, Boolean(think), maxTokens, sseOpen, reasoningFor(modelName),

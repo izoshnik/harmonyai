@@ -1300,7 +1300,8 @@ html[data-theme="light"] .cmp-confirm{background:rgba(252,251,249,.96);border-co
 /* Картинка в бабле ассистента (сгенерированное изображение).
    Ограничение по ширине: 320px на десктопе / 220px на мобильном.
    object-fit:contain — сохраняем пропорции, не вылезая за пузырь. */
-.msg-ai-img{max-width:320px;width:100%;height:auto;object-fit:contain;border-radius:12px;display:block;margin:4px 0;box-shadow:0 2px 12px rgba(0,0,0,.15);cursor:zoom-in;}
+.msg-ai-img,#pvImage{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;-webkit-user-drag:none;}
+.msg-ai-img{max-width:320px;width:100%;height:auto;object-fit:contain;min-height:60px;border-radius:12px;display:block;margin:4px 0;box-shadow:0 2px 12px rgba(0,0,0,.15);cursor:zoom-in;}
 @media(max-width:768px){
   .msg-ai-img{max-width:220px;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.15);}
 }
@@ -1513,9 +1514,11 @@ html[data-theme="light"] .attach-opt:hover{background:rgba(20,18,12,.05);}
 /* ChatGPT-стриминг: новые слова проявляются, ожидание — одна пульсирующая точка */
 .hm-fade{animation:hmFadeIn .52s ease-out both;}
 @keyframes hmFadeIn{from{opacity:0;filter:blur(1.5px)}to{opacity:1;filter:none}}
-.hm-pulse-dot{width:13px;height:13px;border-radius:50%;background:var(--accent,#2f8fff);animation:hmPulseDot 1.3s ease-in-out infinite;margin:6px 2px;}
-@keyframes hmPulseDot{0%,100%{transform:scale(.72);opacity:.55}50%{transform:scale(1);opacity:1}}
-.stream-cur.hm-stall-dot{width:9px;height:9px;border-radius:50%;background:var(--accent,#2f8fff);margin-left:4px;vertical-align:middle;animation:hmPulseDot 1.3s ease-in-out infinite;}
+/* Размер — с заглавную букву текста ответа («Д»). */
+.hm-pulse-dot{width:calc(var(--font-base,15px)*1.12);height:calc(var(--font-base,15px)*1.12);border-radius:50%;background:var(--accent,#2f8fff);animation:hmPulseDot 1.3s ease-in-out infinite;margin:5px 2px;}
+html[data-fs="l"] .hm-pulse-dot{width:20px;height:20px;}html[data-fs="s"] .hm-pulse-dot{width:15px;height:15px;}
+@keyframes hmPulseDot{0%,100%{transform:scale(.8);opacity:.6}50%{transform:scale(1);opacity:1}}
+.stream-cur.hm-stall-dot{width:12px;height:12px;border-radius:50%;background:var(--accent,#2f8fff);margin-left:4px;vertical-align:middle;animation:hmPulseDot 1.3s ease-in-out infinite;}
 .hm-turn-spacer{flex:none;pointer-events:none;}
 .hm-to-bottom{position:absolute;left:50%;top:-50px;transform:translate(-50%,8px) scale(.9);width:38px;height:38px;border-radius:50%;
   border:1px solid var(--border);background:var(--bg2);color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;
@@ -2131,11 +2134,12 @@ html[data-theme="light"] .photo-deleted-msg{
   .sb-chat-item.active{background:rgba(8,76,253,.18);border:1px solid rgba(8,76,253,.34);}
 
   /* ---------- MESSAGES ---------- */
+  /* Сообщение пользователя — ровный тёмно-серый пузырь, без рамки, градиента и тени. */
   html:not([data-theme="light"]):not([data-theme="messenger"]) .msg-user{
-    background:linear-gradient(180deg,rgba(255,255,255,.11),rgba(255,255,255,.045));
-    -webkit-backdrop-filter:var(--lg-blur);backdrop-filter:var(--lg-blur);
-    border:1px solid var(--lg-stroke);
-    box-shadow:var(--lg-inner),0 10px 24px rgba(0,0,0,.34);
+    background:#2a2a2e;
+    -webkit-backdrop-filter:none;backdrop-filter:none;
+    border:0;
+    box-shadow:none;
     color:#fff;
   }
   html:not([data-theme="light"]):not([data-theme="messenger"]) .msg-ai{color:#EDEDF2;}
@@ -9398,7 +9402,7 @@ function scheduleViewportSync(){
 })();
 function cpMsg(btn){
   const imgEl=btn.closest('.msg-ai-wrap')?.querySelector('.msg-ai-img');
-  if(imgEl){navigator.clipboard.writeText(imgEl.dataset.src||imgEl.src).catch(()=>{});btn.classList.add('liked');setTimeout(()=>btn.classList.remove('liked'),800);return;}
+  if(imgEl){hmCopyImage(imgEl).then(()=>{btn.classList.add('liked');setTimeout(()=>btn.classList.remove('liked'),800);}).catch(()=>{try{pvToast('Не удалось скопировать — скачайте изображение кнопкой ↓');}catch(e){}});return;}
   const txt=(btn.closest('.msg-ai-wrap').querySelector('.msg-ai').dataset.raw||btn.closest('.msg-ai-wrap').querySelector('.msg-ai').textContent);
   navigator.clipboard.writeText(txt).catch(()=>{});
   btn.classList.add('liked');setTimeout(()=>btn.classList.remove('liked'),800);
@@ -11141,8 +11145,12 @@ async function requestChatReplyLive(msgEl,actionsEl,extraMessages=[],prefixText=
       if(streamStarted){
         try{activeAbortController.abort();}catch(_){}
         hideTyping();
-        const partial=normalizeReplyNotation(msgEl.dataset.raw||msgEl.textContent||'');
+        const partial=normalizeReplyNotation(msgEl.dataset.raw||'');
         if(partial){setMessageActionsVisible(actionsEl,true);return {text:partial,truncated:true};}
+        /* Текста нет совсем (сервер прислал ошибку или замолчал после поиска) —
+           показываем причину. Раньше цикл шёл к следующему адресу с уже
+           отменённым запросом, и под «Просмотрел 3 сайта» оставалась пустота. */
+        throw e;
       }
       if(i<endpoints.length-1&&(msg.includes('failed to fetch')||msg.includes('load failed')||msg.includes('network'))){
         continue;
@@ -11310,7 +11318,7 @@ function attachImageMessageActions(shell,prompt){
       const b=document.createElement('button');
       b.className='mac-btn mac-dl';b.type='button';b.title='Скачать';b.setAttribute('aria-label','Скачать изображение');
       b.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 19.5h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-      b.onclick=()=>hmDownloadImage(img.dataset.src||img.src,shell.wrap.dataset.imgPrompt||'');
+      b.onclick=()=>hmDownloadImage(hmImgUrl(img)||img.src,shell.wrap.dataset.imgPrompt||'');
       actions.insertBefore(b,actions.firstChild);
     }
   }
@@ -11335,17 +11343,47 @@ function imagePromptFromHistory(m){
   const mm=/«([\s\S]*)»/.exec(String(m&&m.content||''));
   return mm?mm[1]:'';
 }
+/* Сгенерированная картинка показывается через blob:-адрес, который живёт только
+   в этой вкладке: «Копировать адрес изображения», перетаскивание и долгий тап
+   больше не выдают ссылку на хранилище. Настоящий адрес — только в памяти
+   (нужен для скачивания и редактирования), в разметке его нет. */
+const HM_IMG_URLS=new WeakMap();
+function hmImgUrl(img){return img?(HM_IMG_URLS.get(img)||''):'';}
+async function hmImgBlob(src){
+  const r=await fetch(src,{credentials:'omit',cache:'force-cache'});
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  return r.blob();
+}
+function hmGuardImage(img){
+  img.draggable=false;
+  img.addEventListener('contextmenu',e=>e.preventDefault());
+  img.addEventListener('dragstart',e=>e.preventDefault());
+}
 function appendImageToShell(msgEl,src){
   if(!msgEl)return;
-  // data-src хранит URL для просмотрщика; клик по фото на десктопе открывает ��одалку,
-  // на мобильном пока остаётся старое поведение (zoom-in курсор, без модалки —
-  // полноэкранный просмотрщик мобильной версии не входит в эту задачу).
-  msgEl.innerHTML=`<img class="msg-ai-img" src="${escapeHtml(src)}" data-src="${escapeHtml(src)}" alt="Сгенерированное изображение" loading="lazy">`;
+  msgEl.innerHTML='<img class="msg-ai-img" alt="Сгенерированное изображение">';
   const img=msgEl.querySelector('.msg-ai-img');
   if(img){
+    HM_IMG_URLS.set(img,src);
+    hmGuardImage(img);
+    if(/^(data|blob):/.test(String(src)))img.src=src;
+    else hmImgBlob(src).then(b=>{img.src=URL.createObjectURL(b);}).catch(()=>{img.src=src;});
     img.addEventListener('click',()=>openPhotoViewer(src,img));
   }
   scrollChat();
+}
+/* Скопировать саму картинку (а не ссылку на неё). */
+async function hmCopyImage(img){
+  const url=hmImgUrl(img)||img.src;
+  const blob=await hmImgBlob(img.src||url);
+  let png=blob;
+  if(blob.type!=='image/png'){
+    const bmp=await createImageBitmap(blob);
+    const c=document.createElement('canvas');c.width=bmp.width;c.height=bmp.height;
+    c.getContext('2d').drawImage(bmp,0,0);
+    png=await new Promise(r=>c.toBlob(r,'image/png'));
+  }
+  await navigator.clipboard.write([new ClipboardItem({'image/png':png})]);
 }
 
 /* ===== ДЕСКТОПНЫЙ ПРОСМОТРЩИК ФОТО (модалка) ===== */
@@ -11359,7 +11397,9 @@ function openPhotoViewer(url,imgEl){
   const ov=document.getElementById('photoViewerOverlay');
   const img=document.getElementById('pvImage');
   if(!ov||!img)return;
-  img.src=url;
+  // В окне — тот же blob:-адрес, что и в чате: ссылка на хранилище не светится.
+  img.src=(imgEl&&/^blob:/.test(imgEl.src))?imgEl.src:url;
+  if(!img.__hmGuard){img.__hmGuard=true;hmGuardImage(img);}
   // Блокируем скролл фона, пока окно открыто.
   document.body.style.overflow='hidden';
   ov.classList.add('open');
@@ -11435,19 +11475,16 @@ async function pvShare(){
             return;
           }
         }
-      }catch(e){/* CORS/не поддерживается — пробуем URL ниже */}
-      if(navigator.share){
-        await navigator.share({title:'HarmonyAI — изображение',url});
-        return;
-      }
+      }catch(e){/* не поддерживается — ниже копируем саму картинку */}
     }
-  }catch(e){/* пользователь отменил share — молча выходим, это не ошибка */}
-  // Фолбэк: копируем URL в буфер обмена.
+  }catch(e){/* пользователь отменил share — молча выходим, это не ошибка */return;}
+  // Делимся картинкой, а не ссылкой: копируем изображение в буфер обмена.
   try{
-    await navigator.clipboard.writeText(url);
-    pvToast('Ссылка на изображение скопирована');
+    const im=document.getElementById('pvImage');
+    await hmCopyImage(im);
+    pvToast('Изображение скопировано');
   }catch(e){
-    pvToast('Не удалось поделиться — скопируйте ссылку вручную');
+    pvToast('Не удалось поделиться — скачайте изображение');
   }
 }
 // Редактировать: закрываем окно и прикрепляем это фото к полю ввода как attachment-чип.
