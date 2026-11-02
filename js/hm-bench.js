@@ -26,7 +26,7 @@
   var el=null,items=[],cur=0,view='preview';
 
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
-  function wide(){return window.innerWidth>=MIN_WIDTH;}
+  function wide(){try{if(window.matchMedia("(hover:none) and (pointer:coarse)").matches)return false;}catch(e){}return window.innerWidth>=MIN_WIDTH;}
   function extOf(it){var m=/\.([a-z0-9]+)$/i.exec(it.name||'');return (m?m[1]:(EXT[(it.lang||'').toLowerCase()]||'txt')).toLowerCase();}
   function previewable(it){var e=extOf(it);return e==='html'||e==='htm'||e==='svg'||e==='md'||BINARY[e];}
 

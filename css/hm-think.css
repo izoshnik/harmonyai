@@ -10,7 +10,7 @@
   font-size:14px;line-height:1.3;color:var(--hts-muted);vertical-align:middle;
 }
 html[data-theme="dark"] .hts{--ns:88%;--nl:70%;--nl-lit:82%;}
-@media(max-width:768px){html:not([data-theme="light"]):not([data-theme="messenger"]) .hts{--ns:88%;--nl:70%;--nl-lit:82%;}}
+@media (max-width:768px), (hover:none) and (pointer:coarse){html:not([data-theme="light"]):not([data-theme="messenger"]) .hts{--ns:88%;--nl:70%;--nl-lit:82%;}}
 
 .hts-staff{width:26px;height:13px;flex:none;overflow:visible;color:var(--hts-faint);}
 .hts-lines line{stroke:currentColor;stroke-width:.8;}
@@ -96,7 +96,7 @@ html[data-theme="dark"] .hts{--ns:88%;--nl:70%;--nl-lit:82%;}
 .hts[data-state="done"] .hts-head{color:var(--hts-muted);}
 .hts{flex-wrap:nowrap;max-width:100%;}
 .hts-label{flex:none;}
-@media(max-width:768px){.hts-head{max-width:46vw;}}
+@media (max-width:768px), (hover:none) and (pointer:coarse){.hts-head{max-width:46vw;}}
 
 /* ===== Другие анимации рядом с подписью ===== */
 .hts-alt{color:var(--hts-accent);}

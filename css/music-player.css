@@ -1302,7 +1302,7 @@ body:not(.has-music-bar) .pl-toast{bottom:24px;}
 
 /* Телефон: шапка (меню, выбор модели) закреплена сверху и перекрывала панель
    плеера — опускаем панель под шапку. */
-@media (max-width: 768px) {
+@media (max-width:768px), (hover:none) and (pointer:coarse){
   .music-bar { margin-top: calc(60px + env(safe-area-inset-top, 0px)); }
 }
 
