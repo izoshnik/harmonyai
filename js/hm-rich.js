@@ -1321,14 +1321,33 @@
     if(!o){o=el('div','code-out');block.appendChild(o);}
     o.innerHTML='';o.classList.remove('is-html');return o;
   }
-  /* HTML/SVG — живая страница в изолированном iframe (без доступа к сайту и аккаунту). */
+  /* Живое превью сгенерированной страницы. iframe изолирован (без
+     allow-same-origin: страница не видит сайт, cookies и аккаунт), поэтому
+     обращение к localStorage/sessionStorage в нём бросает исключение — и весь
+     скрипт страницы падал на первой строке: кнопки не нажимались. Подкладываем
+     хранилище в памяти до кода страницы; светлая схема — чтобы страница без
+     своего фона не рисовалась чёрным текстом на тёмном. */
+  var SANDBOX_SHIM='<meta name="color-scheme" content="light"><script>(function(){function M(){var d={};return{getItem:function(k){return Object.prototype.hasOwnProperty.call(d,k)?d[k]:null},setItem:function(k,v){d[String(k)]=String(v)},removeItem:function(k){delete d[k]},clear:function(){d={}},key:function(i){return Object.keys(d)[i]||null},get length(){return Object.keys(d).length}}}'
+    +"['localStorage','sessionStorage'].forEach(function(n){var ok=false;try{ok=!!window[n]}catch(e){}if(!ok){try{Object.defineProperty(window,n,{value:M(),configurable:true})}catch(e){}}});"
+    +"try{document.cookie}catch(e){try{var c='';Object.defineProperty(document,'cookie',{get:function(){return c},set:function(v){c=(c?c+'; ':'')+String(v).split(';')[0]},configurable:true})}catch(e2){}}"
+    +'})();<\/script>';
+  function sandboxDoc(code){
+    var src=String(code||'');
+    if(!/<html|<body|<!doctype|<head/i.test(src))return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'+SANDBOX_SHIM+'</head><body style="margin:0;background:#fff">'+src+'</body></html>';
+    if(/<head[^>]*>/i.test(src))return src.replace(/<head[^>]*>/i,function(m){return m+SANDBOX_SHIM;});
+    if(/<html[^>]*>/i.test(src))return src.replace(/<html[^>]*>/i,function(m){return m+'<head>'+SANDBOX_SHIM+'</head>';});
+    if(/<!doctype[^>]*>/i.test(src))return src.replace(/<!doctype[^>]*>/i,function(m){return m+SANDBOX_SHIM;});
+    return SANDBOX_SHIM+src;
+  }
+  window.hmSandboxDoc=sandboxDoc;
+  var SANDBOX_FLAGS='allow-scripts allow-forms allow-modals allow-popups allow-pointer-lock';
+  window.hmSandboxFlags=SANDBOX_FLAGS;
   function runHtml(code,o){
     o.classList.add('is-html');
     var fr=document.createElement('iframe');fr.className='code-frame';
-    fr.setAttribute('sandbox','allow-scripts allow-modals allow-pointer-lock');
+    fr.setAttribute('sandbox',SANDBOX_FLAGS);
     fr.setAttribute('referrerpolicy','no-referrer');fr.title=t('Результат');
-    var doc=/<html|<body|<!doctype/i.test(code)?code:'<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><body style="margin:0;background:#fff">'+code;
-    fr.srcdoc=doc;o.appendChild(fr);
+    fr.srcdoc=sandboxDoc(code);o.appendChild(fr);
     return Promise.resolve();
   }
   function showCode(btn){
@@ -1354,7 +1373,7 @@
       }
       window.addEventListener('message',onMsg);
       var timer=setTimeout(function(){outLine(o,t('Остановлено: выполнение дольше 8 секунд'),'err');end();},8000);
-      fr.srcdoc='<!doctype html><script>'
+      fr.srcdoc='<!doctype html>'+SANDBOX_SHIM+'<script>'
         +'var S=function(t,a){parent.postMessage({hmRun:1,t:t,a:a},"*")};'
         +'var F=function(v){try{if(typeof v==="string")return v;if(v instanceof Error)return v.stack||String(v);if(typeof v==="function")return String(v);var j=JSON.stringify(v);return j&&j.length>80?JSON.stringify(v,null,2):j}catch(e){return String(v)}};'
         +'["log","info","warn","error","debug"].forEach(function(k){console[k]=function(){S(k,[].map.call(arguments,F))}});'
