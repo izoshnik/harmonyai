@@ -73,8 +73,10 @@
     var body=el.querySelector('.hmb-body');
     if(view==='preview'&&previewable(it)){
       if(e==='html'||e==='htm'||e==='svg'){
-        body.innerHTML='<iframe class="hmb-frame" sandbox="allow-scripts allow-forms allow-modals allow-popups" referrerpolicy="no-referrer" title="Просмотр '+esc(it.name)+'"></iframe>';
-        body.firstChild.srcdoc=e==='svg'?'<body style="margin:0;display:grid;place-items:center;min-height:100vh;background:#fff">'+it.content+'</body>':it.content;
+        body.innerHTML='<iframe class="hmb-frame" sandbox="allow-scripts allow-forms allow-modals allow-popups allow-pointer-lock" referrerpolicy="no-referrer" title="Просмотр '+esc(it.name)+'"></iframe>';
+        // hmSandboxDoc (js/hm-rich.js): хранилище в памяти — иначе скрипты страницы падают и кнопки «мертвы».
+        var src=e==='svg'?'<body style="margin:0;display:grid;place-items:center;min-height:100vh;background:#fff">'+it.content+'</body>':it.content;
+        body.firstChild.srcdoc=typeof window.hmSandboxDoc==='function'?window.hmSandboxDoc(src):src;
       }else{
         var html='';try{html=window.marked?window.marked.parse(String(it.content||'')):esc(it.content);}catch(err){html=esc(it.content);}
         body.innerHTML='<div class="hmb-doc'+(BINARY[e]?' hmb-paper':'')+'">'+html+'</div>';

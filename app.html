@@ -3640,7 +3640,7 @@ html:not([data-theme="light"]):not([data-theme="messenger"]) .msg-user{backgroun
       <div class="auth-switch">Уже зарегистрированы? <a href="#" onclick="toggleLoginHint();return false;">Войти</a></div>
       <div class="auth-hint" id="loginHint" style="display:none;"></div>
       <div class="auth-tos">Продолжая, вы соглашаетесь с <a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Политикой Конфиденциальности</a> и <a href="/legal/terms.html" target="_blank" rel="noopener noreferrer">Условиями Пользователя</a> HarmonyAI</div>
-      <div class="auth-beta">Beta 0.8.81</div>
+      <div class="auth-beta">Beta 0.8.91</div>
     </div>
 
     <!-- Экран 2: Код подтверждения -->
@@ -3655,7 +3655,7 @@ html:not([data-theme="light"]):not([data-theme="messenger"]) .msg-user{backgroun
       <div class="auth-resend" id="btnResend" onclick="resendOTP()">Не пришел код? Отправить снова</div>
       <div class="auth-switch">Уже зарегистрированы? <a href="#" onclick="toggleLoginHint();return false;">Войти</a></div>
       <div class="auth-tos">Продолжая, вы соглашаетесь с <a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Политикой Конфиденциальности</a> и <a href="/legal/terms.html" target="_blank" rel="noopener noreferrer">Условиями Пользователя</a> HarmonyAI</div>
-      <div class="auth-beta">Beta 0.8.81</div>
+      <div class="auth-beta">Beta 0.8.91</div>
     </div>
 
   </div>
@@ -15139,7 +15139,7 @@ function renderAbout(){
       <div class="stp-about-hero">
         <div class="stp-about-logo"><svg width="26" height="26" viewBox="0 0 64 64"><path d="M18 14h8v18h12V14h8v36h-8V39H26v11h-8z" fill="currentColor"/></svg></div>
         <div class="stp-about-name">HarmonyAI</div>
-        <div class="stp-about-ver">Beta 0.8.81</div>
+        <div class="stp-about-ver">Beta 0.8.91</div>
       </div>
       <div class="stp-row" onclick="hmOpenDoc('/legal/privacy.html')" role="link" tabindex="0">
         <div class="stp-row-label"><div class="stp-row-title">Политика конфиденциальности</div></div>
@@ -15180,12 +15180,17 @@ function renderSettingsLimits(){
   }
   const u=getUsage();
   const L=planLimits();
-  const iu=getImgUsage();
-  const IL=imgPlanLimits();
   const rollingPct=combinedLimitPercent(u.dayTokens,u.dayMessages,L.rolling.tokens,L.rolling.messages);
   const weekPct=combinedLimitPercent(u.weekTokens||0,u.weekMessages||0,L.weekly.tokens,L.weekly.messages);
-  const imgPct=Math.min(100,Math.round(Math.max(iu.dayImages/IL.daily,iu.weekImages/IL.weekly,iu.monthImages/IL.monthly)*100));
-  const card=(title,sub,pct)=>`
+  /* Окно лимита начинается с первого сообщения: пока в периоде не было ни
+     одного сообщения, процент и время сброса не показываем — им не от чего
+     отсчитываться. Лимиты на изображения действуют, но здесь не выводятся. */
+  const card=(title,sub,pct,empty)=>empty?`
+    <div class="stp-usage-card stp-usage-empty">
+      <div class="stp-usage-top">
+        <div><div class="stp-usage-title">${title}</div><div class="stp-usage-sub">Отправьте сообщение для показа лимитов</div></div>
+      </div>
+    </div>`:`
     <div class="stp-usage-card">
       <div class="stp-usage-top">
         <div><div class="stp-usage-title">${title}</div><div class="stp-usage-sub">${sub}</div></div>
@@ -15193,15 +15198,13 @@ function renderSettingsLimits(){
       </div>
       <div class="stp-bar"><div class="stp-bar-fill" style="width:${pct}%"></div></div>
     </div>`;
-  const imgReset=iu.monthImages>=IL.monthly?nextMonthlyReset():(iu.weekImages>=IL.weekly?nextCalendarWeekReset():nextDailyReset());
   const foot=isPro
     ?'В Pro лимиты в 25 раз выше, чем в Free. Проценты обновляются после каждого сообщения.'
     :'Перейдите на <strong>Pro</strong>, чтобы получить в 25 раз больше лимитов.';
   stpEnsure('usage','Использование',stpBackMain(),`
     <div class="stp-sec-label">Лимиты плана ${isPro?'Pro':'Free'}</div>
-    ${card('5 часов','<span>Сброс произойдет</span> '+fmtResetHuman(nextFiveHourReset()),rollingPct)}
-    ${card('Неделя','<span>Сброс произойдет</span> '+fmtResetHuman(nextWeeklyReset()),weekPct)}
-    ${card('Изображения','<span>Сброс произойдет</span> '+fmtResetHuman(imgReset),imgPct)}
+    ${card('5 часов','<span>Сброс произойдет</span> '+fmtResetHuman(nextFiveHourReset()),rollingPct,!(u.windowEvents&&u.windowEvents.length))}
+    ${card('Неделя','<span>Сброс произойдет</span> '+fmtResetHuman(nextWeeklyReset()),weekPct,!(u.weekEvents&&u.weekEvents.length))}
     <div class="stp-row-desc" style="padding:4px 2px;">${foot}</div></div>`);
 }
 
@@ -16418,17 +16421,16 @@ function hmAudioFilesFor(atts){
 }
 function hmLimitsText(){
   if(hasTrainingAccess())return 'У тебя служебная роль — лимитов нет, пиши сколько угодно.';
-  const u=getUsage(),L=planLimits(),iu=getImgUsage(),IL=imgPlanLimits();
+  const u=getUsage(),L=planLimits();
   const left=p=>Math.max(0,100-p);
   const rolling=combinedLimitPercent(u.dayTokens,u.dayMessages,L.rolling.tokens,L.rolling.messages);
   const week=combinedLimitPercent(u.weekTokens||0,u.weekMessages||0,L.weekly.tokens,L.weekly.messages);
-  const img=Math.min(100,Math.round(Math.max(iu.dayImages/IL.daily,iu.weekImages/IL.weekly,iu.monthImages/IL.monthly)*100));
-  const imgReset=iu.monthImages>=IL.monthly?nextMonthlyReset():(iu.weekImages>=IL.weekly?nextCalendarWeekReset():nextDailyReset());
   const pro=isProUser();
+  // Нет сообщений в периоде — окно ещё не началось, показывать нечего.
+  const noWin=!(u.windowEvents&&u.windowEvents.length),noWeek=!(u.weekEvents&&u.weekEvents.length);
   return `Тариф **${pro?'Pro':'Free'}**:\n\n`
-    +`- **На ближайшие 5 часов** осталось ${left(rolling)}% — обновится ${fmtResetHuman(nextFiveHourReset())}\n`
-    +`- **На неделю** осталось ${left(week)}% — обновится ${fmtResetHuman(nextWeeklyReset())}\n`
-    +`- **Картинки** — осталось ${left(img)}%, обновятся ${fmtResetHuman(imgReset)}\n\n`
+    +`- **На ближайшие 5 часов** — ${noWin?'отправьте сообщение для показа лимитов':`осталось ${left(rolling)}%, обновится ${fmtResetHuman(nextFiveHourReset())}`}\n`
+    +`- **На неделю** — ${noWeek?'отправьте сообщение для показа лимитов':`осталось ${left(week)}%, обновится ${fmtResetHuman(nextWeeklyReset())}`}\n\n`
     +(pro?'В Pro лимиты в 25 раз выше, чем в Free.':'Если не хватает — в **Pro** лимиты в 25 раз больше.');
 }
 const HM_AUDIO_BUTTONS='\n\n```buttons\n'+JSON.stringify([
