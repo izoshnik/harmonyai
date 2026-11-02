@@ -33,6 +33,7 @@ import { handler as agentHandler } from '../lib/util-agent.js';
 import { handler as ocrHandler } from '../lib/util-ocr.js';
 import { handler as videoHandler } from '../lib/util-video.js';
 import { handler as videoGenHandler } from '../lib/util-video-gen.js';
+import { handler as memoryHandler } from '../lib/util-memory.js';
 import { handleIngestUrl, handleIngestText, handleIngestProxy, handleIngestDistill } from '../lib/textbook-ingestor.js';
 
 const OPS = {
@@ -45,6 +46,7 @@ const OPS = {
   'ocr': ocrHandler,
   'video': videoHandler,
   'video-gen': videoGenHandler,
+  'memory': memoryHandler,
   'ingest-url': handleIngestUrl,
   'ingest-text': handleIngestText,
   'ingest-proxy': handleIngestProxy,

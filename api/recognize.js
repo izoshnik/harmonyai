@@ -11,6 +11,7 @@
    тащить чат-модуль. Free-роль → 403 сразу, без обращения к внешним API.
    ============================================================================ */
 import { requireUser } from '../lib/auth.js';
+import { logRequest, reportError, serviceErrorText } from '../lib/observe.js';
 import { providerBaseUrl, PRO_TEXT_MODEL } from '../lib/models.js';
 
 
@@ -251,12 +252,15 @@ export default async function handler(req, res) {
   if (!originAllowed(req)) return res.status(403).json({ error: { message: 'Недопустимый источник запроса.' } });
   if (rateLimited(req)) return res.status(429).json({ error: { message: 'Слишком много запросов. Попробуйте через минуту.' } });
 
+  const started = Date.now();
+  let errUser = null;
   try {
     // userId берём из проверенной сессии, а не из тела запроса: иначе Pro-проверку
     // можно было пройти, подставив чужой id.
     const authUser = await requireUser(req, res);
     if (!authUser) return;
     const userId = authUser.id;
+    errUser = userId;
     const { mode = 'identify', audioBase64 = '', melodyDescription = '' } = req.body || {};
     if (mode !== 'identify' && mode !== 'dictation') {
       return res.status(400).json({ error: { message: 'Неизвестный режим' } });
@@ -276,7 +280,8 @@ export default async function handler(req, res) {
         source: 'heuristic', workGuess: 'Нотный диктант', composerGuess: '', periodGuess: '', confidence: 'средняя',
         reasoning: 'Расшифровка выполнена автоматически. Проверьте ноты и при необходимости отредактируйте вручную.'
       };
-      await logRecognition({ userId, type: 'notation', pathUsed: 'heuristic', resultJson: heur });
+      await Promise.all([logRecognition({ userId, type: 'notation', pathUsed: 'heuristic', resultJson: heur }),
+        logRequest({ userId, source: 'recognize', plan: 'pro', model: 'dictation', ok: true, status: 200, latencyMs: Date.now() - started })]);
       return res.status(200).json(heur);
     }
 
@@ -294,9 +299,11 @@ export default async function handler(req, res) {
     // без упоминания источников (AudD, fingerprint и т.п.).
     const description = await enrichDescription(result);
     if (description) result.description = description;
-    await logRecognition({ userId, type: 'audio_id', pathUsed, resultJson: result });
+    await Promise.all([logRecognition({ userId, type: 'audio_id', pathUsed, resultJson: result }),
+      logRequest({ userId, source: 'recognize', plan: 'pro', model: 'identify', upstream: pathUsed === 'fingerprint' ? 'audd' : null, provider: pathUsed === 'fingerprint' ? 'audd' : null, ok: pathUsed !== 'none', status: 200, latencyMs: Date.now() - started })]);
     return res.status(200).json(result);
   } catch (e) {
-    return res.status(500).json({ error: { message: e?.message || 'Внутренняя ошибка сервера' } });
+    const code = await reportError({ source: 'recognize', status: 500, message: String(e?.message || e).slice(0, 800), userId: errUser, allowText: false });
+    return res.status(500).json({ error: { message: serviceErrorText(code), status: 500, code } });
   }
 }

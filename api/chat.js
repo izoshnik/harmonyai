@@ -13,6 +13,7 @@ export const config = {
 
 import { FREE_TEXT_MODEL, PRO_TEXT_MODEL, envModel, currentModelName, LONG_CONTEXT_THRESHOLD, longContextModel, providerForModel, providerBaseUrl, isOpenRouterModel, supportsReasoningEffort, noteUnaskedReasoning, responseHasReasoning, fastReasoningEffort } from '../lib/models.js';
 import { authenticateRequest } from '../lib/auth.js';
+import { logRequest, reportError, serviceErrorText, allowsTextLogging, isBlockedProfile, BLOCKED_MESSAGE, estimateTokens } from '../lib/observe.js';
 
 // Adan (free) отвечает на claude-haiku-4-5, Dynatos (pro) — на gpt-5.6-luna (см. lib/models.js).
 // Режим low/max НЕ меняют модель, они меняют только таймаут/глубину (см. selectRoute/handler).
@@ -417,7 +418,9 @@ async function fetchUserKnowledge(userId) {
 async function fetchProfile(userId) {
   if (!userId) return null;
   const rows = await supabaseRequest(
-    `/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=id,nickname,role,plan,plan_expires_at,settings&limit=1`
+    // select=* — чтобы новые колонки (blocked_at, limits_reset_at) читались, а
+    // если миграция ещё не выполнена, запрос не падал из-за неизвестной колонки.
+    `/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=*&limit=1`
   );
   return rows?.[0] || null;
 }
@@ -2219,7 +2222,9 @@ async function checkUsageAllowance(userId, profile, requestedModel) {
   try {
     const now = Date.now();
     const monthStart = Date.parse(startOfMonthIso());
-    const rows = await chatUsageRows(userId, Math.min(monthStart, now - WEEK_MS));
+    // «Сбросить лимит» в панели управления: события до этой отметки не считаются.
+    const resetAt = Date.parse(profile?.limits_reset_at || '') || 0;
+    const rows = (await chatUsageRows(userId, Math.min(monthStart, now - WEEK_MS))).filter((r) => r.at >= resetAt);
     if (isPro) {
       const burst = sumRows(rows, now - PRO_BURST.windowSec * 1000);
       if (burst.messages >= PRO_BURST.messages) {
@@ -2309,16 +2314,16 @@ export default async function handler(req, res) {
   }
 
   if (!hasUsableOpenAI()) {
-    return res.status(500).json({
-      error: {
-        message: 'Ключ или адрес API ИИ-провайдера настроены неверно. Обратитесь к администратору.'
-      }
-    });
+    const code = await reportError({ source: 'chat', status: 500, kind: 'config', message: 'OPENAI_API_KEY / OPENAI_BASE_URL настроены неверно' }).catch(() => null);
+    return res.status(500).json({ error: { message: code ? serviceErrorText(code) : 'Ошибка сервиса. Попробуйте позже.', status: 500, code } });
   }
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return res.status(500).json({ error: { message: 'SUPABASE_URL или SUPABASE_SERVICE_ROLE_KEY не настроены' } });
+    console.error('[harmonyai] SUPABASE_URL или SUPABASE_SERVICE_ROLE_KEY не настроены');
+    return res.status(500).json({ error: { message: 'Ошибка сервиса. Попробуйте позже.', status: 500 } });
   }
 
+  const reqStart = Date.now();
+  let errUserId = null, errQuery = '', errAllowText = true;
   try {
     let { messages, model, userId, think = false, effort = 'low', stream = false, trainingMode = false, webSearch = 'auto' } = req.body || {};
     res.__hmNoCjk = Array.isArray(messages) && !userWritesCjk(messages);
@@ -2334,8 +2339,10 @@ export default async function handler(req, res) {
        требуют безусловно — там подстановки id из тела нет вообще. */
     const authedUser=await requireUser(req,res);if(!authedUser)return;
     userId=authedUser.id;
+    errUserId = userId;
 
     const query = lastUserText(messages);
+    errQuery = query;
     /* quick:true — служебный короткий ответ клиента (описание найденного трека и т.п.):
        сразу быстрый путь — минимум рассуждений, гонка за первый токен, без веб-поиска. */
     const isQuick = req.body?.quick === true || isSimpleQuery(query);
@@ -2376,6 +2383,13 @@ export default async function handler(req, res) {
     const chunks = [...(globalKnowledge.chunks || []), ...(userKnowledge.chunks || [])];
     const memories = val(4, []);
     const feedbackRows = val(5, []);
+    errAllowText = allowsTextLogging(profile);
+    // Блокировка из панели управления (profiles.blocked_at).
+    if (isBlockedProfile(profile) && !applyDevAccountProfile.isDev(authedUser)) {
+      return res.status(403).json({ error: { message: BLOCKED_MESSAGE, status: 403, code: 'blocked' } });
+    }
+    const planTag = ['developer', 'admin', 'moderator'].includes(String(profile?.role || '').toLowerCase()) ? 'staff' : (isProRole(profile) ? 'pro' : 'free');
+    const publicModel = () => (model === 'pro' ? 'dynatos' : 'adanatos');
 
     // Max и «Думать» разрешены всем. Только Dynatos остаётся серверно защищённым.
     // Прямой запрос model:'pro' от FREE не получает платную модель.
@@ -2454,14 +2468,23 @@ export default async function handler(req, res) {
         if (!result.ok && started) result = { ok: true, text: '' };
       }
       let finalText = result.ok ? linkTimestamps(result.text, videoLink) : watchErrorText(result, videoLink);
-      // Персоналу — техническая причина сбоя, чтобы чинить без логов Vercel.
-      const staffRole = ['developer', 'admin', 'moderator'].includes(String(profile?.role || '').toLowerCase());
-      if (!result.ok && staffRole && (result.message || result.error)) finalText += `\n\n_Для персонала: ${String(result.error || '')} ${String(result.message || '').replace(/[_*`]/g, ' ').slice(0, 300)}_`;
+      /* Понятные пользователю причины (приватное, слишком длинное, лимит) —
+         текстом. Сбой самого сервиса — кодом, причина уходит в панель. */
+      let watchCode = null;
+      if (!result.ok && !['private', 'unavailable', 'too_long', 'too_big', 'quota'].includes(result.error)) {
+        watchCode = await reportError({ source: 'video_watch', status: 502, kind: result.error === 'rate_limited' ? 'quota' : '', message: `${result.error || 'failed'} ${String(result.message || '')}`.trim(),
+          detail: { platform: videoLink.platform, model: result.model || null }, userId, userText: query, allowText: errAllowText });
+        finalText = serviceErrorText(watchCode) + '. Попробуйте ещё раз чуть позже.';
+      }
       if (!result.ok) writeSseEvent(res, { type: 'delta', text: finalText });
       writeSseEvent(res, { type: 'done', text: finalText });
       res.end();
       console.log(`[harmonyai] video watch | ${videoLink.platform} | ok=${result.ok} | err=${result.error || ''} | model=${result.model || ''}`);
-      if (result.ok) insertUsageEvent(userId, model, estimateTokensFromMessages(messages.filter((m) => m && m.role !== 'system')) + Math.ceil(finalText.length / 4) + 1500, 1).catch(() => {});
+      await Promise.all([
+        result.ok ? insertUsageEvent(userId, model, estimateTokensFromMessages(messages.filter((m) => m && m.role !== 'system')) + Math.ceil(finalText.length / 4) + 1500, 1).catch(() => {}) : null,
+        logRequest({ userId, source: 'video_watch', plan: planTag, model: publicModel(), upstream: result.model || 'gemini', provider: 'gemini', unit: 'video_watch',
+          ok: Boolean(result.ok), latencyMs: Date.now() - reqStart, outputTokens: estimateTokens(finalText.length), errorCode: watchCode })
+      ]);
       return;
     }
 
@@ -2598,16 +2621,37 @@ export default async function handler(req, res) {
     // Открыт ли уже SSE-поток клиенту (поиск или первая модель цепочки).
     // Если открыт — ошибки отдаём событием {type:'error'}, а не JSON-ом.
     let sseOpen = webHeadersSent;
-    const failRequest = (status, message) => {
+    const triedModels = new Set();
+    /* Сбой сервиса: пользователь видит только «Ошибка сервиса № <код>»,
+       причина (модели цепочки, режим, текст ошибки провайдера) — в панели
+       управления → «Ошибки сервиса». Лимиты пользователя сюда не попадают:
+       они отвечают раньше и обычным текстом. */
+    const failRequest = async (status, message) => {
+      const code = await reportError({
+        source: 'chat', status,
+        message: `${message}${lastError?.message ? ' | ' + compactErrorValue(lastError.message, 600) : ''}`,
+        detail: { model: publicModel(), think: Boolean(think), effort, search: webSearched, tried: [...triedModels], lastModel: lastError?.model || null, upstreamStatus: lastError?.status || null, provider: route.provider, stream: Boolean(stream) },
+        userId, userText: query, allowText: errAllowText
+      });
+      await logRequest({ userId, source: 'chat', plan: planTag, model: publicModel(), upstream: lastError?.model || route.models?.[0] || null, ok: false, status,
+        latencyMs: Date.now() - reqStart, tried: [...triedModels], think, effort, search: webSearched, errorCode: code });
+      const text = serviceErrorText(code);
       if (sseOpen || res.headersSent) {
         if (!res.writableEnded) {
-          writeSseEvent(res, { type: 'error', message, status });
+          writeSseEvent(res, { type: 'error', message: text, status, code });
           res.end();
         }
         return;
       }
-      return res.status(status).json({ error: { message, status } });
+      return res.status(status).json({ error: { message: text, status, code } });
     };
+    // Успешный ответ: строка в журнал запросов (токены оцениваются по тексту,
+    // вход — вместе с системными инструкциями: их тоже оплачиваем мы).
+    const logOk = (upstream, replyText) => logRequest({
+      userId, source: 'chat', plan: planTag, model: publicModel(), upstream, ok: true, status: 200,
+      latencyMs: Date.now() - reqStart, inputTokens: estimateTokens(String(mergedSystem).length + totalContextChars),
+      outputTokens: estimateTokens(String(replyText || '').length), tried: [...triedModels], think, effort, search: webSearched
+    });
 
     if (route.provider === 'openai') {
       const limitNote = allowance.low ? `
@@ -2683,7 +2727,6 @@ export default async function handler(req, res) {
       // Общий предел на всю цепочку: лучше честная ошибка через 2,5 минуты,
       // чем ответ, который не приходит вовсе (Vercel обрывает функцию на 300 с).
       const chainDeadline = Date.now() + 150000;
-      const triedModels = new Set();
       const pickHedge = (mi) => {
         if (hasImage) return null;
         const rest = route.models.slice(mi + 1).filter((m) => !triedModels.has(m) && !isModelExhausted(m));
@@ -2707,7 +2750,7 @@ export default async function handler(req, res) {
           if (streamResult.headersSent) sseOpen = true;
           if (streamResult.ok) {
             const replyTokens = Math.max(1, Math.ceil(String(streamResult.text || '').length / 4));
-            await insertUsageEvent(userId, model, promptTokens + replyTokens, 1);
+            await Promise.all([insertUsageEvent(userId, model, promptTokens + replyTokens, 1), logOk(streamResult.model || modelName, streamResult.text)]);
             return;
           }
           lastError = {
@@ -2757,7 +2800,8 @@ export default async function handler(req, res) {
           think ? stripReasoningPrefix(rawContent) : rawContent
         );
         const replyTokens = Math.max(1, Math.ceil(String(replyText || '').length / 4));
-        await insertUsageEvent(userId, model, promptTokens + replyTokens, 1);
+        triedModels.add(modelName);
+        await Promise.all([insertUsageEvent(userId, model, promptTokens + replyTokens, 1), logOk(modelName, replyText)]);
         return res.status(200).json({
           // Нестримовый путь: серого блока здесь нет вовсе, поэтому маркер тем более
           // не должен остаться в тексте — вычищаем все его вхождения.
@@ -2785,21 +2829,16 @@ export default async function handler(req, res) {
       return failRequest(lastError?.status && lastError.status >= 400 ? lastError.status : 500, 'Не удалось получить ответ от модели. Попробуйте ещё раз.');
     }
 
-    return res.status(500).json({
-      error: {
-        message: 'Не удалось выбрать провайдера модели'
-      }
-    });
+    return failRequest(500, 'Не удалось выбрать провайдера модели');
   } catch (error) {
     console.error('[harmonyai] handler error:', compactErrorValue(error?.message, 500));
+    const code = await reportError({ source: 'chat', status: 500, kind: 'internal', message: compactErrorValue(error?.message, 1000),
+      detail: { stack: String(error?.stack || '').split('\n').slice(0, 6).join('\n') }, userId: errUserId, userText: errQuery, allowText: errAllowText }).catch(() => null);
+    const text = code ? serviceErrorText(code) : 'Ошибка сервиса. Попробуйте ещё раз.';
     if (res.headersSent) {
-      try { if (!res.writableEnded) { writeSseEvent(res, { type: 'error', message: 'Внутренняя ошибка сервера. Попробуйте ещё раз.' }); res.end(); } } catch (e) {}
+      try { if (!res.writableEnded) { writeSseEvent(res, { type: 'error', message: text, status: 500, code }); res.end(); } } catch (e) {}
       return;
     }
-    return res.status(500).json({
-      error: {
-        message: error?.message || 'Внутренняя ошибка сервера'
-      }
-    });
+    return res.status(500).json({ error: { message: text, status: 500, code } });
   }
 }

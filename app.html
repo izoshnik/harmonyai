@@ -958,6 +958,20 @@ html[data-theme="light"] .code-block{background:#1b1c1f;border-color:rgba(255,25
 .file-card-btn{flex:0 0 auto;border:none;border-radius:9px;padding:8px 16px;font-size:13px;font-weight:600;color:#fff;background:#2f6bff;cursor:pointer;transition:opacity .15s;}
 .file-card-btn:hover{opacity:.9;}
 .file-card-btn:disabled{opacity:.6;cursor:default;}
+.hm-mem-ind{display:inline-flex;align-items:center;gap:7px;margin:0 0 8px;font-size:13px;color:var(--text2);user-select:none;}
+.hm-mem-ind svg{width:15px;height:15px;flex:0 0 auto;}
+.hm-mem-ind.done{cursor:pointer;}
+.hm-mem-ind.done:hover{color:var(--text);}
+.hm-shimmer{background:linear-gradient(90deg,var(--text2) 0%,var(--text2) 35%,var(--text) 50%,var(--text2) 65%,var(--text2) 100%);background-size:220% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:hmShimmer 1.4s linear infinite;}
+@keyframes hmShimmer{from{background-position:110% 0}to{background-position:-110% 0}}
+@media(prefers-reduced-motion:reduce){.hm-shimmer{animation:none;color:var(--text2);background:none;}}
+.hm-svc-err{display:flex;align-items:center;gap:12px;flex-wrap:wrap;white-space:normal;padding:2px 0;}
+.hm-svc-err__txt{display:flex;flex-direction:column;gap:2px;min-width:0;}
+.hm-svc-err__txt b{font-weight:700;color:var(--text);}
+.hm-svc-err__code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:600;cursor:copy;user-select:all;}
+.hm-svc-err__txt span{color:var(--text2);font-size:.92em;}
+.hm-svc-err__retry{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:transparent;color:var(--text);border-radius:999px;padding:6px 14px;font:inherit;font-size:13.5px;font-weight:600;cursor:pointer;}
+.hm-svc-err__retry:hover{background:var(--bg3,rgba(255,255,255,.06));}
 .msg-ai{font-size:var(--font-base);line-height:1.7;color:var(--text-ai);word-break:normal;overflow-wrap:anywhere;white-space:pre-wrap;hyphens:none;}
 /* Force AI text visible - light on dark bg, dark on light bg */
 @media(max-width:768px){.msg-ai{color:#e2e2e6;}}
@@ -8443,6 +8457,92 @@ function hmHumanError(msg){
   if(/\(500\)/.test(m))return 'Ошибка на сервере. Попробуйте ещё раз.';
   return m||'Что-то пошло не так. Попробуйте ещё раз.';
 }
+/* ОШИБКИ В ЧАТЕ. Пользователь не видит технических причин: только
+   «Ошибка сервиса № <код>» и кнопку «Повторить». Код выдаёт сервер (он же
+   записывает причину в панель /management → «Ошибки сервиса»). Если ошибка
+   поймана в браузере (обрыв потока, сбой разбора), код запрашивается
+   отдельным отчётом. Понятные человеку ответы — блокировка, отказ по
+   правилам контента, слишком большой запрос, нет интернета — остаются текстом. */
+/* Метка автопамяти над ответом: «Обновляю память» (переливается) →
+   «Память обновлена». По нажатию — список фактов в настройках. */
+const HM_BOOK_SVG='<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5v-15Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M9 8h7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>';
+async function hmAutoMemory(text){
+  if(!window.HmMemory||typeof HmMemory.auto!=='function')return;
+  const inner=document.getElementById('chatInner');
+  const before=inner?inner.querySelectorAll('.msg-ai-wrap').length:0;
+  const chatAtStart=curChatId;
+  let ind=null,shownAt=0;
+  const findWrap=async()=>{
+    for(let i=0;i<120;i++){
+      if(curChatId!==chatAtStart)return null;
+      const ws=inner?inner.querySelectorAll('.msg-ai-wrap'):[];
+      if(ws.length>before)return ws[ws.length-1];
+      await new Promise(r=>setTimeout(r,250));
+    }
+    return null;
+  };
+  await HmMemory.auto(text,{chatId:curChatId,
+    onStart:async()=>{
+      const w=await findWrap();if(!w)return;
+      const m=w.querySelector('.msg-ai');if(!m||!m.parentNode)return;
+      ind=document.createElement('div');ind.className='hm-mem-ind';ind.setAttribute('role','status');
+      ind.innerHTML=HM_BOOK_SVG+'<span class="hm-mem-ind__t hm-shimmer">Обновляю память</span>';
+      m.parentNode.insertBefore(ind,m);shownAt=Date.now();
+    },
+    onDone:(changed)=>{
+      if(!ind)return;
+      if(!changed){ind.remove();return;}
+      setTimeout(()=>{
+        const t=ind.querySelector('.hm-mem-ind__t');if(!t)return;
+        t.classList.remove('hm-shimmer');t.textContent='Память обновлена';
+        ind.classList.add('done');ind.title='Открыть память';ind.tabIndex=0;
+        const open=()=>{try{openSettings();openSettingsSection('pers');setTimeout(()=>{try{renderSettingsMemory();}catch(_){}} ,80);}catch(_){}};
+        ind.onclick=open;ind.onkeydown=(e)=>{if(e.key==='Enter')open();};
+      },Math.max(0,1100-(Date.now()-shownAt)));
+    }
+  });
+}
+const HM_ERR_CODE_RE=/Ошибка сервиса № ([A-Za-z0-9]{8,24})/;
+function hmIsPlainError(m){
+  const s=String(m||'');
+  return /заблокирован|запрещённый контент|отклонил эту сцену|Слишком большой запрос|payload too large|\(413\)/i.test(s);
+}
+async function hmServiceErrorCode(raw,where){
+  const m=HM_ERR_CODE_RE.exec(String(raw||''));
+  if(m)return m[1];
+  try{
+    const h=await hmAuthHeaders();
+    const lastUser=[...chatHistory].reverse().find(x=>x&&x.role==='user');
+    const r=await fetch('/api/account?action=errors.report',{method:'POST',headers:h,cache:'no-store',signal:AbortSignal.timeout(6000),
+      body:JSON.stringify({action:'errors.report',source:'client',where:where||'chat',message:String(raw||'').slice(0,800),online:navigator.onLine!==false,
+        model:typeof curModel!=='undefined'?curModel:'',text:typeof lastUser?.content==='string'?lastUser.content.slice(0,200):''})});
+    const d=await r.json().catch(()=>null);
+    if(d&&d.code)return d.code;
+  }catch(e){}
+  return null;
+}
+async function hmRenderChatError(msgEl,raw,opts={}){
+  if(!msgEl)return;
+  const text=String(raw||'');
+  if(navigator.onLine===false&&!HM_ERR_CODE_RE.test(text)){renderMd(msgEl,'Нет соединения с интернетом. Проверьте сеть и попробуйте ещё раз.');return;}
+  if(hmIsPlainError(text)){renderMd(msgEl,(opts.prefix||'')+text.replace(/^Ошибка:\s*/,''));return;}
+  msgEl.style.whiteSpace='normal';
+  msgEl.innerHTML='<div class="hm-svc-err"><div class="hm-svc-err__txt"><b>Ошибка сервиса</b><span>Попробуйте ещё раз.</span></div></div>';
+  const code=await hmServiceErrorCode(text,opts.where);
+  const box=document.createElement('div');box.className='hm-svc-err';box.setAttribute('role','alert');
+  const t=document.createElement('div');t.className='hm-svc-err__txt';
+  const b=document.createElement('b');b.textContent='Ошибка сервиса'+(code?' № ':'');
+  if(code){const c=document.createElement('span');c.className='hm-svc-err__code';c.textContent=code;c.title='Нажмите, чтобы скопировать код';
+    c.onclick=()=>{navigator.clipboard?.writeText(code).then(()=>{try{pvToast('Код ошибки скопирован');}catch(_){}}).catch(()=>{});};b.appendChild(c);}
+  const sub=document.createElement('span');sub.textContent=code?'Попробуйте ещё раз. Если повторится — сообщите этот код в поддержку.':'Попробуйте ещё раз.';
+  t.append(b,sub);box.appendChild(t);
+  if(opts.retry!==false){
+    const btn=document.createElement('button');btn.type='button';btn.className='hm-svc-err__retry';btn.innerHTML=IC_REGEN+'<span>Повторить</span>';
+    btn.onclick=()=>{if(typeof opts.onRetry==='function')opts.onRetry();else regenMsg(btn);};
+    box.appendChild(btn);
+  }
+  msgEl.replaceChildren(box);
+}
 function stopGeneration(){
   if(activeAbortController)activeAbortController.abort();
   if(typeof activeStreamStop==='function')activeStreamStop();
@@ -9465,12 +9565,23 @@ function cpMsg(btn){
   navigator.clipboard.writeText(txt).catch(()=>{});
   btn.classList.add('liked');setTimeout(()=>btn.classList.remove('liked'),800);
 }
+/* Оценка ответа уходит в статистику (панель → «Обратная связь»): только
+   когда кнопка включается, повторное нажатие (снятие) не считается. */
+function hmSendRating(btn,rating){
+  try{
+    const wrap=btn.closest('.msg-ai-wrap');
+    const raw=wrap?.querySelector('.msg-ai')?.dataset?.raw||wrap?.querySelector('.msg-ai')?.textContent||'';
+    hmAuthHeaders().then(h=>fetch('/api/account?action=stats.rate',{method:'POST',headers:h,keepalive:true,
+      body:JSON.stringify({action:'stats.rate',rating,model:curModel==='pro'?'dynatos':'adanatos',excerpt:String(raw).slice(0,300)})})).catch(()=>{});
+  }catch(e){}
+}
 function likeMsg(btn,t){
   const g=btn.parentElement;
   const lb=g.children[1],db=g.children[2];
-  if(t==='like'){lb.classList.toggle('liked');db.classList.remove('disliked');}
+  if(t==='like'){const on=!lb.classList.contains('liked');lb.classList.toggle('liked');db.classList.remove('disliked');if(on)hmSendRating(btn,1);}
   else{
     const becameActive=!db.classList.contains('disliked');
+    if(becameActive)hmSendRating(btn,-1);
     db.classList.toggle('disliked');
     lb.classList.remove('liked');
     if(becameActive){
@@ -9611,7 +9722,7 @@ async function regenMsg(item){
     await autoContinueIfNeeded(result,wrap,msgEl,actionsEl);
   }catch(e){
     hideTyping();
-    if(e.message!=='Генерация остановлена')renderMd(msgEl,'Ошибка: '+e.message);
+    if(e.message!=='Генерация остановлена')hmRenderChatError(msgEl,e.message,{where:'regen'});
   }finally{
     activeAbortController=null;
     activeStreamStop=null;
@@ -11726,9 +11837,10 @@ async function hmPollVideoGen(shell,note,token){
       return;
     }
     if(d&&d.status==='failed'||Date.now()-started>10*60*1000){
-      const msg=(d&&d.message)||'Видео не успело создаться. Попробуйте ещё раз.';
-      delete note.videoGenToken;note.content=msg;saveChat().catch(()=>{});
-      renderMd(shell.msg,msg+(d&&d.detail?'\n\n_Для персонала: '+String(d.detail).replace(/[_*`]/g,' ')+'_':''));
+      const msg=(d&&d.message)||'video generation timed out on client (10 min)';
+      delete note.videoGenToken;note.content=d&&d.code?'[Видео не создано]':msg;saveChat().catch(()=>{});
+      if(d&&d.message&&!d.code&&/правилам/.test(d.message))renderMd(shell.msg,msg);
+      else hmRenderChatError(shell.msg,msg,{where:'video_gen',retry:false});
       return;
     }
   }
@@ -11757,8 +11869,10 @@ async function handleVideoGeneration(text){
     hmPollVideoGen(shell,note,d.token);
     return;
   }else{
-    note.content=(d&&d.message)||'Не получилось создать видео. Попробуйте ещё раз.';
-    renderMd(shell.msg,note.content+(d&&d.detail?'\n\n_Для персонала: '+String(d.detail).replace(/[_*`]/g,' ')+'_':''));
+    note.content=(d&&d.message)||'video generation start failed';
+    // Понятные отказы (описание не принято, правила контента) — текстом; сбой — кодом.
+    if(d&&d.message&&!d.code&&d.error!=='not_configured'&&!/Нет соединения/.test(d.message))renderMd(shell.msg,d.message);
+    else hmRenderChatError(shell.msg,note.content,{where:'video_gen',retry:false});
   }
   chatHistory.push(note);
   saveChat().catch(()=>{});
@@ -11832,7 +11946,8 @@ async function handleImageGeneration(promptText,opts={}){
     if(e.message==='Генерация остановлена'){
       shell.wrap.remove();
     }else{
-      renderMd(shell.msg,'Не удалось сгенерировать изображение: '+tChatErr(e.message));
+      if(hmIsPlainError(e.message))renderMd(shell.msg,'Не удалось сгенерировать изображение: '+e.message);
+      else hmRenderChatError(shell.msg,e.message,{where:'image',onRetry:()=>{shell.wrap.remove();handleImageGeneration(promptText,opts);}});
     }
   }finally{
     activeAbortController=null;
@@ -12022,7 +12137,7 @@ async function processRecognitionAudio(blob){
     setMessageActionsVisible(aiShell.actions,true);
   }catch(e){
     hideTyping();
-    renderMd(aiShell.msg,'Ошибка: '+(e?.message||''));
+    hmRenderChatError(aiShell.msg,e?.message||'',{where:'recognize',retry:false});
   }finally{
     setGeneratingState(false);
     if(btn)btn.disabled=false;
@@ -13403,7 +13518,7 @@ async function runAssistantReply(displayText){
       }
       hmFailBuildingCards(aiShell.msg,'Генерация файла остановлена. Попросите сделать файл ещё раз.');
     }else{
-      renderMd(aiShell.msg,'Ошибка: '+hmHumanError(e.message));
+      hmRenderChatError(aiShell.msg,e.message,{where:'chat'});
       setMessageActionsVisible(aiShell.actions,false);
       hmFailBuildingCards(aiShell.msg,'Ответ прервался, пока собирался файл.');
     }
@@ -13470,9 +13585,9 @@ async function handleTextReply(pendingText){
   clearPendingAttachments();
   addUserBubble(displayText,historyAttachments);
   chatHistory.push({role:'user',content:userContent,attachments:historyAttachments,createdAt:messageNow()});
-  /* Память: локальная эвристика (0 запросов, 0 токенов) может предложить
-     сохранить факт. Решение — всегда за пользователем. */
-  if(!wasTraining){try{if(window.HmMemory)HmMemory.maybeSuggest(text,{chatId:curChatId});}catch(_){}}
+  /* Память: служебная модель сама решает, есть ли в сообщении факт о
+     пользователе, и сохраняет его без окна (метка над ответом). */
+  if(!wasTraining){try{hmAutoMemory(text);}catch(_){}}
   if(!wasTraining){try{hmSumNoteMessage(text);}catch(_){}}
   // Запрос к модели уходит сразу, сохранение — параллельно (очередь в saveChat).
   saveChat().catch(()=>{});
@@ -13930,7 +14045,7 @@ function renderSettingsMemory(){
   const memRecall=(s.memRecall!==false);
   window._memView=window._memView||'user';
   const body=
-    stpRow('Предлагать запомнить','HarmonyAI будет предлагать сохранить важные факты о вас',stpToggleCtrl('memSave',memSave))
+    stpRow('Запоминать автоматически','HarmonyAI сам сохраняет важные факты о вас — без окон подтверждения',stpToggleCtrl('memSave',memSave))
     +stpRow('Ссылаться на память','Использовать сохранённые факты в ответах',stpToggleCtrl('memRecall',memRecall))
     +'<hr class="stp-hr">'
     +'<div id="memList"><div class="mem-empty">Загрузка…</div></div>'
@@ -13944,7 +14059,7 @@ function renderSettingsMemory(){
 }
 function _memRowsHtml(list){
   if(!list.length){
-    return '<div class="mem-empty">Здесь пока ничего не сохранено.<br>Долгое нажатие на своё сообщение → «Запомнить», или напишите HarmonyAI «запомни, что…»</div>';
+    return '<div class="mem-empty">Здесь пока ничего не сохранено.<br>Расскажите о себе — HarmonyAI запомнит важное сам. Или напишите «запомни, что…»</div>';
   }
   const dateFmt=(iso)=>{try{return new Date(iso).toLocaleDateString('ru-RU',{day:'numeric',month:'short'});}catch(e){return '';}};
   return list.map(r=>{

@@ -1,5 +1,6 @@
 import { handleStats, handleOnboarding, handleTrainingSetting } from '../lib/stats.js';
 import { handleDevInstantLogin } from '../lib/dev-account.js';
+import { handleAdmin, handleClientSignals } from '../lib/admin.js';
 /* ============================================================================
    /api/account — ЛИЧНЫЙ КАБИНЕТ API И ОБЩИЕ ССЫЛКИ НА ЧАТЫ.
 
@@ -460,6 +461,8 @@ export default async function handler(req, res) {
     const user = await requireUser(req, res);
     if (!user) return;
     if(['stats.personal','stats.management','stats.heartbeat','stats.file'].includes(action))return await handleStats(req,res,user,action,body);
+    if(action.startsWith('admin.'))return await handleAdmin(req,res,user,action,body);
+    if(action==='errors.report'||action==='stats.rate')return await handleClientSignals(req,res,user,action,body);
     if(['survey.set','nickname.check','nickname.set'].includes(action))return await handleOnboarding(req,res,user,action,body);
     if(action==='settings.training')return await handleTrainingSetting(req,res,user,body);
 
