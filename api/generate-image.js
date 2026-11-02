@@ -1,4 +1,5 @@
 import { hasProAccess, requireUser } from '../lib/auth.js';
+import { logRequest, reportError, serviceErrorText, isBlockedProfile, BLOCKED_MESSAGE, allowsTextLogging } from '../lib/observe.js';
 export const config = {
   maxDuration: 60
 };
@@ -72,7 +73,7 @@ async function supabaseRequest(path, init = {}) {
 async function fetchProfile(userId) {
   if (!userId) return null;
   const rows = await supabaseRequest(
-    `/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=id,role,plan,plan_expires_at&limit=1`
+    `/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=*&limit=1`
   );
   return rows?.[0] || null;
 }
@@ -623,8 +624,16 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: { message: 'Method not allowed' } });
 
+  const started = Date.now();
+  let errUser = null, errPrompt = '', errProfile = null;
+  // Сбой сервиса: пользователю — только код, причина — в панели управления.
+  const fail = async (status, message, detail = null, upstream = null) => {
+    const code = await reportError({ source: 'image', status, message, detail, userId: errUser, userText: errPrompt, allowText: allowsTextLogging(errProfile) });
+    await logRequest({ userId: errUser, source: 'image', model: 'image', upstream, ok: false, status, latencyMs: Date.now() - started, errorCode: code });
+    return res.status(status).json({ error: { message: serviceErrorText(code), status, code } });
+  };
   try {
-    const user=await requireUser(req,res);if(!user)return;const userId=user.id;
+    const user=await requireUser(req,res);if(!user)return;const userId=user.id;errUser=userId;
     const { prompt, model, image, mode } = req.body || {};
     // Редактирование присланного фото (mode:'edit' + image: data URL).
     const editImage = mode === 'edit' || image ? parseImageDataUrl(image) : null;
@@ -635,6 +644,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: { message: 'Пустой запрос на генерацию изображения' } });
     }
     const cleanPrompt = normalizeText(prompt).slice(0, 1200);
+    errPrompt = cleanPrompt;
 
     // 1. Блок-лист модерации
     if (isForbiddenPrompt(cleanPrompt)) {
@@ -653,6 +663,9 @@ export default async function handler(req, res) {
         console.warn('[generate-image] profile fetch failed:', compactErrorValue(e?.message, 200));
       }
     }
+
+    errProfile = profile;
+    if (isBlockedProfile(profile)) return res.status(403).json({ error: { message: BLOCKED_MESSAGE, status: 403, code: 'blocked' } });
 
     // КЛЮЧЕВАЯ ЛОГИКА: Pro (Dynatos) → closerouter gpt-image-2.5 (запасной — pro-ai.online), Free (Adan) → Cloudflare / Pollinations
     const userIsPro = isProUser(profile);
@@ -677,15 +690,11 @@ export default async function handler(req, res) {
       }
     } catch (e) {
       if (e.code === 'NO_CREDENTIALS') {
-        return res.status(500).json({ error: { message: userIsPro
-          ? 'Ключ OpenAI для генерации изображений не настроен. Обратитесь в поддержку.'
-          : 'Cloudflare credentials not configured' } });
+        return fail(500, userIsPro ? 'image key not configured (pro)' : 'Cloudflare credentials not configured', { pro: userIsPro });
       }
       const provider = userIsPro ? 'gpt-image' : 'бесплатный генератор';
       console.error(`[generate-image] ${provider} failed:`, compactErrorValue(e?.message, 300));
-      return res.status(502).json({
-        error: { message: `Не удалось сгенерировать изображение (${provider}).`, details: e.message }
-      });
+      return fail(502, `${provider}: ${compactErrorValue(e?.message, 800)}`, { pro: userIsPro, edit: Boolean(editImage) });
     }
 
     // 5. Загрузка в Supabase Storage
@@ -694,17 +703,19 @@ export default async function handler(req, res) {
       publicUrl = await uploadImageToStorage(generated.base64, generated.mime, userId);
     } catch (e) {
       console.error('[generate-image] storage upload failed:', compactErrorValue(e?.message, 300));
-      return res.status(502).json({
-        error: { message: 'Изображение сгенерировано, но не удалось сохранить в хранилище.', details: e.message }
-      });
+      return fail(502, `storage upload: ${compactErrorValue(e?.message, 500)}`, { stage: 'storage' });
     }
 
     // 6. Учёт использования
-    await insertUsageEvent(userId);
+    const upstream = userIsPro ? 'gpt-image-2' : (editImage ? '@cf/runwayml/stable-diffusion-v1-5-img2img' : '@cf/black-forest-labs/flux-1-schnell');
+    await Promise.all([
+      insertUsageEvent(userId),
+      logRequest({ userId, source: 'image', plan: userIsPro ? 'pro' : 'free', model: 'image', upstream, unit: 'image', ok: true, status: 200, latencyMs: Date.now() - started })
+    ]);
 
     return res.status(200).json({ image: publicUrl });
   } catch (error) {
     console.error('[generate-image] handler error:', compactErrorValue(error?.message, 500));
-    return res.status(500).json({ error: { message: error?.message || 'Внутренняя ошибка сервера' } });
+    return fail(500, compactErrorValue(error?.message, 800), { stage: 'handler' });
   }
 }

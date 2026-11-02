@@ -35,6 +35,7 @@
    ============================================================================ */
 
 import { extractApiKey, looksLikeApiKey, hashApiKey } from '../lib/api-keys.js';
+import { logRequest, reportError, isBlockedProfile } from '../lib/observe.js';
 import { supabaseRest, readAccessProfile, hasProAccess, isUnlimitedApiRole } from '../lib/auth.js';
 import { resolvePublicModel, PUBLIC_MODEL_IDS, PUBLIC_MODELS, providerBaseUrl, providerForModel, LONG_CONTEXT_THRESHOLD, longContextModel } from '../lib/models.js';
 import {
@@ -141,7 +142,7 @@ async function readBalanceMicro(userId) {
    баланса — это лучше, чем 500 на успешном запросе. */
 async function chargeUsage({ userId, keyId, publicModelId, inputTokens, outputTokens, unlimited }) {
   const costMicro = unlimited ? 0n : usageCostMicroRubles(publicModelId, inputTokens, outputTokens);
-  if (costMicro == null) return;
+  if (costMicro == null) return 0;
   try {
     await supabaseRest('/rest/v1/rpc/debit_api_balance', {
       method: 'POST',
@@ -157,6 +158,15 @@ async function chargeUsage({ userId, keyId, publicModelId, inputTokens, outputTo
   } catch (error) {
     console.error('[v1] не удалось списать расход:', String(error?.message || error).slice(0, 200));
   }
+  return Number(costMicro);
+}
+
+/* Сбой шлюза: код в тексте ошибки (по нему причина находится в панели
+   управления), сама причина наружу не уходит. */
+async function apiFailure(res, status, message, type, { userId, model, upstream, reason, started }) {
+  const code = await reportError({ source: 'api', status, message: `${message} | ${String(reason || '').slice(0, 800)}`, detail: { model, upstream }, userId, allowText: false });
+  await logRequest({ userId, source: 'api', plan: 'api', model, upstream, ok: false, status, latencyMs: Date.now() - started, errorCode: code });
+  return sendError(res, status, `${message} (код ошибки ${code})`, type);
 }
 
 /* ============================================================================
@@ -209,6 +219,7 @@ function handleCountTokens(req, res, body) {
    POST /v1/messages
    ============================================================================ */
 async function handleMessages(req, res, body, auth) {
+  const started = Date.now();
   const validationError = validateMessagesRequest(body);
   if (validationError) return sendError(res, 400, validationError, 'invalid_request_error');
 
@@ -238,6 +249,7 @@ async function handleMessages(req, res, body, auth) {
     readAccessProfile(auth.userId)
   ]);
   const unlimited = isUnlimitedApiRole(accessProfile?.role);
+  if (isBlockedProfile(accessProfile)) return sendError(res, 403, 'Аккаунт заблокирован администрацией', 'permission_error');
   if(model.id==='dynatos'&&!hasProAccess(accessProfile))return sendError(res,403,'Dynatos доступен с активной Pro-подпиской','permission_error');
   const worstCaseMicro = estimateCostMicroRubles(model.id, inputTokensEstimate, maxOutput) || 0n;
   if (!unlimited && (balanceMicro <= 0n || balanceMicro < worstCaseMicro)) {
@@ -272,7 +284,7 @@ async function handleMessages(req, res, body, auth) {
     upstream = await callUpstream(upstreamBody, upstreamKey, longCtx ? providerForModel(upstreamModel) : null);
   } catch (error) {
     console.error('[v1] апстрим недоступен:', String(error?.message || error).slice(0, 200));
-    return sendError(res, 503, 'Модель временно недоступна, попробуйте ещё раз', 'overloaded_error');
+    return apiFailure(res, 503, 'Модель временно недоступна, попробуйте ещё раз', 'overloaded_error', { userId: auth.userId, model: model.id, upstream: upstreamModel, reason: error?.message, started });
   }
 
   if (!upstream.ok) {
@@ -282,13 +294,14 @@ async function handleMessages(req, res, body, auth) {
     try { detail = (await upstream.text()).slice(0, 500); } catch (e) { detail = ''; }
     console.error('[v1] апстрим ответил', upstream.status, detail);
     const status = upstream.status === 429 ? 429 : upstream.status >= 500 ? 503 : 502;
-    return sendError(
+    return apiFailure(
       res,
       status,
       status === 429
         ? 'Слишком много запросов к модели, попробуйте через несколько секунд'
         : 'Модель вернула ошибку, попробуйте ещё раз',
-      status === 429 ? 'rate_limit_error' : 'api_error'
+      status === 429 ? 'rate_limit_error' : 'api_error',
+      { userId: auth.userId, model: model.id, upstream: upstreamModel, reason: `${upstream.status} ${detail}`, started }
     );
   }
 
@@ -298,11 +311,11 @@ async function handleMessages(req, res, body, auth) {
   if (!wantStream) {
     let data = null;
     try { data = await upstream.json(); } catch (e) { data = null; }
-    if (!data) return sendError(res, 502, 'Пустой ответ модели', 'api_error');
+    if (!data) return apiFailure(res, 502, 'Пустой ответ модели', 'api_error', { userId: auth.userId, model: model.id, upstream: upstreamModel, reason: 'empty body', started });
 
     const message = openAIToAnthropic(data, model.id, messageId);
     if (!message.usage.input_tokens) message.usage.input_tokens = inputTokensEstimate;
-    await chargeUsage({
+    const charged = await chargeUsage({
       userId: auth.userId,
       keyId: auth.keyId,
       publicModelId: model.id,
@@ -310,6 +323,8 @@ async function handleMessages(req, res, body, auth) {
       outputTokens: message.usage.output_tokens,
       unlimited
     });
+    await logRequest({ userId: auth.userId, source: 'api', plan: unlimited ? 'staff' : 'api', model: model.id, upstream: upstreamModel, ok: true, status: 200,
+      latencyMs: Date.now() - started, inputTokens: message.usage.input_tokens, outputTokens: message.usage.output_tokens, chargedMicro: charged });
     return res.status(200).json(message);
   }
 
@@ -341,7 +356,7 @@ async function handleMessages(req, res, body, auth) {
   // Списываем то, что реально было израсходовано, даже если поток оборвался
   // на середине: токены апстрим уже потратил.
   if (result?.usage) {
-    await chargeUsage({
+    const charged = await chargeUsage({
       userId: auth.userId,
       keyId: auth.keyId,
       publicModelId: model.id,
@@ -349,6 +364,10 @@ async function handleMessages(req, res, body, auth) {
       outputTokens: result.usage.output_tokens,
       unlimited
     });
+    await logRequest({ userId: auth.userId, source: 'api', plan: unlimited ? 'staff' : 'api', model: model.id, upstream: upstreamModel, ok: true, status: 200,
+      latencyMs: Date.now() - started, inputTokens: result.usage.input_tokens, outputTokens: result.usage.output_tokens, chargedMicro: charged });
+  } else {
+    await logRequest({ userId: auth.userId, source: 'api', plan: unlimited ? 'staff' : 'api', model: model.id, upstream: upstreamModel, ok: false, status: 503, latencyMs: Date.now() - started });
   }
 
   return res.end();

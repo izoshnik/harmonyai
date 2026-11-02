@@ -3,10 +3,13 @@
 
    ПРАВИЛА, зашитые здесь и не подлежащие нарушению:
 
-   1. ПАМЯТЬ ≠ ИСТОРИЯ. В память попадают только короткие факты, которые
-      подтвердил пользователь: пункт меню сообщения «Запомнить» или карточка-
-      предложение после явного «запомни…» в тексте. Переписка сюда
-      автоматически НЕ пишется никогда.
+   1. ПАМЯТЬ ≠ ИСТОРИЯ. В память попадают только короткие устойчивые факты
+      о пользователе. Их выбирает служебная модель (auto → /api/util?op=memory)
+      после сообщения, в котором пользователь говорит о себе или просит
+      запомнить/забыть; окна подтверждения нет — в чате появляется метка
+      «Обновляю память → Память обновлена», а любой факт можно удалить
+      в Настройки → Персонализация → Память. Переписка целиком сюда НЕ пишется.
+      Выключатель «Запоминать автоматически» (settings.memSave) отключает всё.
 
    2. НОЛЬ СЕКРЕТОВ. Похожие на пароли, API-ключи, токены, JWT и номера карт
       строки в память не сохраняются (looksLikeSecret). Фильтр грубый, но
@@ -15,9 +18,9 @@
    3. МИНИМУМ НАГРУЗКИ:
       • чтение — один запрос при входе + кэш в localStorage; сеть — не чаще
         раза в STALE_MS;
-      • запись — только по явному подтверждению пользователя;
-      • НИКАКИХ вызовов модели «вдогонку»: кандидатов ищет локальная
-        эвристика (maybeSuggest), решение всегда за пользователем;
+      • модель зовётся только для сообщений, где пользователь пишет о себе
+        (AUTO_HINT_RE: «я», «мне», «меня зовут», «запомни»…), — не на каждый
+        вопрос;
       • контекст модели собирается на клиенте (contextBlock) одним компактным
         блоком в system-промпте; серверу уходит флаг memoryFromClient:true,
         и он не ходит в Supabase за памятью на каждое сообщение.
@@ -448,16 +451,71 @@
     }, 1200);
   }
 
-  /** Явный запуск из меню сообщения («Запомнить»). */
-  function promptAdd(text, opts) {
+  /** Пункт меню сообщения «Запомнить» — сохраняем сразу, без окна. */
+  async function promptAdd(text, opts) {
     opts = opts || {};
-    showCard(clean(text), { allowScope: true, defaultScope: 'user', chatId: opts.chatId, sourceType: 'manual' });
+    var res = await add(clean(text), { scope: 'user', chatId: opts.chatId, sourceType: 'manual' });
+    try {
+      if (typeof global.pvToast === 'function') global.pvToast(res.ok ? 'Память обновлена' : (res.reason || 'Не удалось сохранить'));
+    } catch (e) { /* без тоста */ }
+    return res;
+  }
+
+  /* ---------- Автоматическая память ----------
+     Только сообщения, где пользователь говорит о себе или просит запомнить/
+     забыть: остальные вопросы модель не тратят. Границы слов — через \p{L},
+     потому что \b в JS не работает с кириллицей. */
+  var AUTO_HINT_RE = /(^|[^\p{L}])(я|мне|меня|мной|мой|моя|моё|мое|мои|моего|моей|моих|мы|нас|нам|наш|наша|наши|зовут|запомни|запомните|запиши|забудь|забудьте|помни|i|i'm|im|my|me|mine|remember|forget)(?=$|[^\p{L}])/iu;
+  var autoBusy = false;
+  async function authToken() {
+    try { var r = await sb().auth.getSession(); return r && r.data && r.data.session ? r.data.session.access_token : ''; } catch (e) { return ''; }
+  }
+  /** opts: {chatId, onStart(): Promise, onDone(changed:boolean)} */
+  async function auto(message, opts) {
+    opts = opts || {};
+    var st = settings();
+    if (st.memSave === false || !state.uid || autoBusy) return { changed: false };
+    var src = String(message || '').trim();
+    if (src.length < 6 || !AUTO_HINT_RE.test(src.slice(0, 2000))) return { changed: false };
+    var token = await authToken();
+    if (!token) return { changed: false };
+    autoBusy = true;
+    try {
+      var facts = list().slice(0, 40);
+      var r = await fetch('/api/util?op=memory', {
+        method: 'POST', cache: 'no-store',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ message: src.slice(0, 1500), facts: facts.map(function (f) { return f.memory_text; }) })
+      });
+      var d = await r.json().catch(function () { return null; });
+      var save = (d && Array.isArray(d.save)) ? d.save : [];
+      var forget = (d && Array.isArray(d.forget)) ? d.forget : [];
+      save = save.filter(function (x) { return x && x.text && !looksLikeSecret(x.text); });
+      if (!save.length && !forget.length) return { changed: false };
+      if (typeof opts.onStart === 'function') { try { await opts.onStart(); } catch (e) {} }
+      var changed = 0;
+      for (var i = 0; i < forget.length; i++) {
+        var f = facts[forget[i]];
+        if (f && f.id && (await remove(f.id)).ok) changed++;
+      }
+      for (var j = 0; j < save.length; j++) {
+        var res = await add(save[j].text, { scope: save[j].scope === 'chat' && opts.chatId ? 'chat' : 'user', chatId: opts.chatId, sourceType: 'suggested' });
+        if (res.ok) changed++;
+      }
+      if (typeof opts.onDone === 'function') opts.onDone(changed > 0);
+      return { changed: changed > 0 };
+    } catch (e) {
+      if (typeof opts.onDone === 'function') opts.onDone(false);
+      return { changed: false };
+    } finally {
+      autoBusy = false;
+    }
   }
 
   global.HmMemory = {
     sync: sync, reset: reset, list: list, count: count,
     add: add, update: update, remove: remove, clearAll: clearAll,
-    contextBlock: contextBlock, maybeSuggest: maybeSuggest, promptAdd: promptAdd,
+    contextBlock: contextBlock, maybeSuggest: maybeSuggest, promptAdd: promptAdd, auto: auto,
     looksLikeSecret: looksLikeSecret
   };
 
