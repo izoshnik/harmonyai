@@ -1029,16 +1029,123 @@
       d.vectors.push({from:[from.x,from.y],to:[from.x+dir.x*F*k,from.y+dir.y*F*k],label:lab,color:col});
     });
   }
+  /* Камера для объёмных фигур: поворот вокруг вертикали и взгляд сверху.
+     Ортогональная проекция — параллельные рёбра остаются параллельными, как в учебнике. */
+  function view3d(v){
+    v=v||{};var th=(isFinite(+v.rotate)?+v.rotate:-28)*Math.PI/180,e=(isFinite(+v.elevation)?+v.elevation:27)*Math.PI/180;
+    var ct=Math.cos(th),st=Math.sin(th),ce=Math.cos(e),se=Math.sin(e);
+    return {p:function(x,y,z){var xr=x*ct-y*st,yr=x*st+y*ct;return {x:xr,y:z*ce+yr*se,depth:yr*ce-z*se};},
+      eye:{x:-ce*st,y:-ce*ct,z:se}};
+  }
+  /* Многогранники и тела вращения по размерам: невидимые рёбра — пунктиром. */
+  function expandSolid(d){
+    var c=d.solid||{};var type=String(c.type||'pyramid').toLowerCase();
+    // Треугольное основание под углом -28° видно почти ребром — поворачиваем иначе.
+    if((+c.n===3||type==='tetra')&&!(d.view&&isFinite(+d.view.rotate)))d.view=Object.assign({},d.view||{},{rotate:20});
+    var V=view3d(d.view);
+    d.points=d.points||[];d.segments=d.segments||[];d.angles=d.angles||[];d.curves=d.curves||[];
+    var L='ABCDEFGHKLMN';var lab=Array.isArray(c.labels)?c.labels:[];
+    var verts={},faces=[],center={x:0,y:0,z:0};
+    function addV(id,x,y,z,label){verts[id]={x:x,y:y,z:z};d.points.push({id:id,x:x,y:y,z:z,label:label!=null?label:id});}
+    var accent='accent';
+    var extras=[];
+    if(/pyramid|prism|cube|box|parallelepiped|tetra/.test(type)){
+      var n=Math.max(3,Math.min(8,+c.n||(type==='cube'||type==='box'||type==='parallelepiped'?4:type==='tetra'?3:4)));
+      var a=+c.a||4,b=+c.b||a,h=+c.h||(type==='cube'?a:type==='tetra'?a*Math.sqrt(2/3):4);if(type==='cube'){b=a;h=a;}
+      var base=[];
+      if(n===4&&(type==='box'||type==='parallelepiped'||type==='cube'||b!==a||/prism/.test(type))){base=[[-a/2,-b/2],[a/2,-b/2],[a/2,b/2],[-a/2,b/2]];}
+      else{var R=a/(2*Math.sin(Math.PI/n)),st0=-Math.PI/2-Math.PI/n;for(var i=0;i<n;i++){var an=st0+2*Math.PI*i/n;base.push([R*Math.cos(an),R*Math.sin(an)]);}}
+      var ids=base.map(function(q,i){var id=lab[i]||L[i];addV(id,q[0],q[1],0);return id;});
+      if(/pyramid|tetra/.test(type)){
+        var apex=c.apex||'S';addV(apex,0,0,h);faces.push(ids.slice().reverse());
+        ids.forEach(function(id,i){faces.push([id,ids[(i+1)%n],apex]);});
+        var cen=c.center||'O';
+        if(c.height!==false){addV(cen,0,0,0);extras.push({from:apex,to:cen,color:accent,label:c.heightLabel||''});
+          d.angles.push({vertex:cen,from:apex,to:ids[Math.min(2,n-1)],right:true});}
+        if(n===4&&c.diagonals!==false&&c.height!==false){extras.push({from:ids[0],to:ids[2],style:'dashed',color:'gray'},{from:ids[1],to:ids[3],style:'dashed',color:'gray'});}
+        else if(c.height!==false){ids.forEach(function(id){if(c.radii)extras.push({from:cen,to:id,style:'dashed',color:'gray'});});}
+        if(c.apothem){var m=c.apothem===true?'M':String(c.apothem);var p0=verts[ids[0]],p1=verts[ids[1]];addV(m,(p0.x+p1.x)/2,(p0.y+p1.y)/2,0);extras.push({from:apex,to:m,color:'orange'});}
+      }else{
+        var top=ids.map(function(id,i){var tid=(lab[n+i])||(id+'₁');var q=verts[id];addV(tid,q.x,q.y,h);return tid;});
+        faces.push(ids.slice().reverse());faces.push(top.slice());
+        ids.forEach(function(id,i){var j=(i+1)%n;faces.push([id,ids[j],top[j],top[i]]);});
+      }
+      Object.keys(verts).forEach(function(k){center.x+=verts[k].x;center.y+=verts[k].y;center.z+=verts[k].z;});var nv=Object.keys(verts).length;center={x:center.x/nv,y:center.y/nv,z:center.z/nv};
+      /* Видимость рёбер: ребро видно, если видна хотя бы одна из прилегающих граней. */
+      var edges={};
+      faces.forEach(function(f){
+        var A=verts[f[0]],B=verts[f[1]],C=verts[f[2]];
+        var ux=B.x-A.x,uy=B.y-A.y,uz=B.z-A.z,vx=C.x-A.x,vy=C.y-A.y,vz=C.z-A.z;
+        var nx=uy*vz-uz*vy,ny=uz*vx-ux*vz,nz=ux*vy-uy*vx;
+        var fc={x:0,y:0,z:0};f.forEach(function(id){fc.x+=verts[id].x;fc.y+=verts[id].y;fc.z+=verts[id].z;});fc.x/=f.length;fc.y/=f.length;fc.z/=f.length;
+        if(nx*(fc.x-center.x)+ny*(fc.y-center.y)+nz*(fc.z-center.z)<0){nx=-nx;ny=-ny;nz=-nz;}
+        var vis=nx*V.eye.x+ny*V.eye.y+nz*V.eye.z>1e-9;
+        f.forEach(function(id,i){var j=f[(i+1)%f.length];var key=id<j?id+'|'+j:j+'|'+id;edges[key]=edges[key]||{a:id,b:j,vis:false};if(vis)edges[key].vis=true;});
+      });
+      var given=(d.segments||[]).slice();d.segments=[];
+      Object.keys(edges).forEach(function(k){var e=edges[k];
+        var g=given.find(function(sg){return (sg.from===e.a&&sg.to===e.b)||(sg.from===e.b&&sg.to===e.a);});
+        d.segments.push({from:e.a,to:e.b,style:e.vis?'solid':'dashed',color:e.vis?accent:'gray',label:g&&g.label,ticks:g&&g.ticks});
+        if(g)given.splice(given.indexOf(g),1);});
+      extras.forEach(function(x){var g=given.find(function(sg){return (sg.from===x.from&&sg.to===x.to)||(sg.from===x.to&&sg.to===x.from);});if(g){x.label=g.label||x.label;given.splice(given.indexOf(g),1);}d.segments.push(x);});
+      // Отрезки от центра основания O лежат внутри тела — по правилам черчения пунктир.
+      var cid=c.center||'O';given.forEach(function(sg){if(!sg.style&&(sg.from===cid||sg.to===cid)){sg.style='dashed';sg.color=sg.color||'gray';}});
+      d.segments=d.segments.concat(given);
+      return;
+    }
+    /* Тела вращения: окружности — эллипсы, задняя половина основания — пунктир. */
+    var r=+c.r||2,hh=+c.h||(type==='sphere'?0:4),N=72;
+    function ring(z,from,to){var out=[];for(var i=0;i<=N;i++){var t=from+(to-from)*i/N;out.push([r*Math.cos(t),r*Math.sin(t),z]);}return out;}
+    function split(z,topVisible){
+      var pts=[];for(var i=0;i<=N;i++){var t=2*Math.PI*i/N;pts.push([r*Math.cos(t),r*Math.sin(t),z]);}
+      var front=[],back=[];pts.forEach(function(q){(V.p(q[0],q[1],q[2]).depth<=V.p(0,0,z).depth+1e-9?front:back).push(q);});
+      var sort=function(arr){return arr.map(function(q){return {q:q,a:Math.atan2(q[1],q[0])};});};
+      if(topVisible){d.curves.push({points:pts,color:accent});return;}
+      var seg=function(cond,style,color){var cur=[];pts.forEach(function(q){var isF=V.p(q[0],q[1],q[2]).depth<=V.p(0,0,z).depth+1e-9;if(isF===cond)cur.push(q);else{if(cur.length>1)d.curves.push({points:cur,style:style,color:color});cur=[];}});if(cur.length>1)d.curves.push({points:cur,style:style,color:color});};
+      seg(true,'solid',accent);seg(false,'dashed','gray');
+    }
+    var cen2=c.center||'O';addV(cen2,0,0,0);
+    if(type==='sphere'){
+      var e=view3d(d.view);var pts=[];for(var i=0;i<=N;i++){var t=2*Math.PI*i/N;pts.push([r*Math.cos(t),0,r*Math.sin(t)]);}
+      // Силуэт шара — окружность радиуса r в плоскости экрана: строим в мировых координатах через ось взгляда.
+      var ex=e.eye,ax={x:-ex.y,y:ex.x,z:0},al=Math.hypot(ax.x,ax.y)||1;ax={x:ax.x/al,y:ax.y/al,z:0};
+      var bx={x:ex.y*ax.z-ex.z*ax.y,y:ex.z*ax.x-ex.x*ax.z,z:ex.x*ax.y-ex.y*ax.x};
+      var sil=[];for(var k=0;k<=N;k++){var tt=2*Math.PI*k/N;sil.push([r*(Math.cos(tt)*ax.x+Math.sin(tt)*bx.x),r*(Math.cos(tt)*ax.y+Math.sin(tt)*bx.y),r*(Math.cos(tt)*ax.z+Math.sin(tt)*bx.z)]);}
+      d.curves.push({points:sil,color:accent});split(0,false);
+      if(c.radius!==false){addV('_R',r,0,0,'');d.segments.push({from:cen2,to:'_R',label:c.radiusLabel||'R',color:'gray',style:'dashed'});}
+      return;
+    }
+    split(0,false);
+    var tx=V.p(r,0,0),silA=null,silB=null;
+    // Образующие-силуэты: точки основания с крайними экранными x.
+    var best=[null,null];for(var i=0;i<N;i++){var t=2*Math.PI*i/N,q=V.p(r*Math.cos(t),r*Math.sin(t),0);if(!best[0]||q.x<best[0].px)best[0]={px:q.x,w:[r*Math.cos(t),r*Math.sin(t)]};if(!best[1]||q.x>best[1].px)best[1]={px:q.x,w:[r*Math.cos(t),r*Math.sin(t)]};}
+    if(/cyl/.test(type)){
+      split(hh,true);addV(c.topCenter||'O₁',0,0,hh);
+      best.forEach(function(bq){d.curves.push({points:[[bq.w[0],bq.w[1],0],[bq.w[0],bq.w[1],hh]],color:accent});});
+      d.segments.push({from:cen2,to:c.topCenter||'O₁',style:'dashed',color:'gray',label:c.heightLabel||''});
+    }else{
+      var apx=c.apex||'S';addV(apx,0,0,hh);
+      best.forEach(function(bq){d.curves.push({points:[[bq.w[0],bq.w[1],0],[0,0,hh]],color:accent});});
+      d.segments.push({from:apx,to:cen2,color:'accent',label:c.heightLabel||''});
+    }
+    if(c.radius!==false){addV('_R',best[1].w[0],best[1].w[1],0,'');d.segments.push({from:cen2,to:'_R',style:'dashed',color:'gray',label:c.radiusLabel||'R'});}
+  }
   function renderFigure(body,host){
     var d=parseLoose(body);if(!d||typeof d!=='object')return renderBroken(host,'чертёж',body);
     if(d.incline)expandIncline(d);
+    if(d.solid)expandSolid(d);
+    /* Объёмный чертёж: у точек есть z — проецируем (камера сверху-сбоку). */
+    var is3d=Boolean(d.solid)||(d.points||[]).some(function(p){return p&&p.z!=null;});
+    var V3=is3d?view3d(d.view):null;
     var P={};
-    (d.points||[]).forEach(function(p){if(p&&p.id!=null&&isFinite(+p.x)&&isFinite(+p.y))P[p.id]={x:+p.x,y:+p.y,label:p.label!=null?p.label:p.id,hidden:!!p.hidden,color:p.color};});
-    function pt(v){if(Array.isArray(v)&&isFinite(+v[0])&&isFinite(+v[1]))return {x:+v[0],y:+v[1]};if(typeof v==='string'&&P[v])return P[v];if(v&&isFinite(+v.x)&&isFinite(+v.y))return {x:+v.x,y:+v.y};return null;}
+    (d.points||[]).forEach(function(p){if(!p||p.id==null||!isFinite(+p.x)||!isFinite(+p.y))return;var q=V3?V3.p(+p.x,+p.y,+p.z||0):{x:+p.x,y:+p.y};P[p.id]={x:q.x,y:q.y,label:p.label!=null?p.label:p.id,hidden:!!p.hidden,color:p.color};});
+    function pt(v){if(Array.isArray(v)&&v.length>=3&&V3&&isFinite(+v[2]))return V3.p(+v[0],+v[1],+v[2]);
+      if(Array.isArray(v)&&isFinite(+v[0])&&isFinite(+v[1]))return {x:+v[0],y:+v[1]};if(typeof v==='string'&&P[v])return P[v];if(v&&isFinite(+v.x)&&isFinite(+v.y))return {x:+v.x,y:+v.y};return null;}
     var xs=[],ys=[];function addB(x,y){if(isFinite(x)&&isFinite(y)){xs.push(x);ys.push(y);}}
     Object.keys(P).forEach(function(k){addB(P[k].x,P[k].y);});
     var circles=(d.circles||[]).map(function(c){var o=pt(c.center);if(!o)return null;var r=+c.r;if(!(r>0)){var th=pt(c.through);if(th)r=Math.hypot(th.x-o.x,th.y-o.y);}if(!(r>0))return null;addB(o.x-r,o.y-r);addB(o.x+r,o.y+r);return {o:o,r:r,label:c.label,dashed:c.style==='dashed',color:c.color};}).filter(Boolean);
     (d.vectors||[]).forEach(function(v){var a=pt(v.from),b=pt(v.to);if(a)addB(a.x,a.y);if(b)addB(b.x,b.y);});
+    var curves=(d.curves||[]).map(function(c){var ps=(c.points||[]).map(pt).filter(Boolean);ps.forEach(function(q){addB(q.x,q.y);});return {ps:ps,dashed:c.style==='dashed',color:c.color};}).filter(function(c){return c.ps.length>1;});
     (d.texts||[]).forEach(function(tx){addB(+tx.x,+tx.y);});
     var funcs=[];
     (d.functions||[]).forEach(function(f){try{var fn=compileExpr(exprToPlain(f.expr||f.f||''));funcs.push({fn:fn,dom:Array.isArray(f.domain)?f.domain.map(Number):null,label:f.label,color:f.color});}catch(e){}});
@@ -1095,9 +1202,12 @@
         var col=f.color?figColor(f.color):PALETTE[fi%PALETTE.length];
         o.push('<path class="hmr-fig-fn" style="stroke:'+col+'" d="'+path+'"/>');
         if(f.label){var yl=f.fn({x:f.b});if(isFinite(yl)&&yl<=maxY&&yl>=minY)o.push('<text class="hmr-fig-lbl" style="fill:'+col+'" x="'+(X(f.b)-4).toFixed(1)+'" y="'+(Y(yl)-8).toFixed(1)+'" text-anchor="end">'+esc(figText(f.label))+'</text>');}});
+      curves.forEach(function(c){o.push('<path class="hmr-fig-line'+(c.dashed?' is-dash':'')+'" style="stroke:'+figColor(c.color)+'" d="'+c.ps.map(function(q,i){return (i?'L':'M')+X(q.x).toFixed(1)+' '+Y(q.y).toFixed(1);}).join('')+'"/>');});
       (d.segments||[]).forEach(function(sg){var a=pt(sg.from),b=pt(sg.to);if(!a||!b)return;
         o.push('<line class="hmr-fig-line'+(sg.style==='dashed'?' is-dash':'')+'" style="stroke:'+figColor(sg.color)+'" x1="'+X(a.x)+'" y1="'+Y(a.y)+'" x2="'+X(b.x)+'" y2="'+Y(b.y)+'"/>');
-        var mx=(a.x+b.x)/2,my=(a.y+b.y)/2,dx=X(b.x)-X(a.x),dy=Y(b.y)-Y(a.y),L=Math.hypot(dx,dy)||1,nx=-dy/L,ny=dx/L;
+        // В середине отрезка стоит точка (например, M — середина AB) — подпись сдвигаем к краю.
+        var tpos=Object.keys(P).some(function(q){return Math.hypot(X(P[q].x)-X((a.x+b.x)/2),Y(P[q].y)-Y((a.y+b.y)/2))<8;})?0.28:0.5;
+        var mx=a.x+(b.x-a.x)*tpos,my=a.y+(b.y-a.y)*tpos,dx=X(b.x)-X(a.x),dy=Y(b.y)-Y(a.y),L=Math.hypot(dx,dy)||1,nx=-dy/L,ny=dx/L;
         var sx=X(mx)-X(cx),sy=Y(my)-Y(cy);if(nx*sx+ny*sy<0){nx=-nx;ny=-ny;}
         var tk=+sg.ticks||0;for(var q=0;q<tk;q++){var sh=(q-(tk-1)/2)*5;var px=X(mx)+dx/L*sh,py=Y(my)+dy/L*sh;o.push('<line class="hmr-fig-line" x1="'+(px-nx*6)+'" y1="'+(py-ny*6)+'" x2="'+(px+nx*6)+'" y2="'+(py+ny*6)+'"/>');}
         if(sg.label)o.push(lab(X(mx)+nx*14,Y(my)+ny*14+4,sg.label));});

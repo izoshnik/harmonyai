@@ -677,6 +677,15 @@ function needsFreshFacts(query = '') {
   return asks.test(clean) || (named && clean.split(/\s+/).length >= 3);
 }
 
+// Школьная задача с данными («Дана пирамида… Найди…», «Вычисли…», «Докажи…») —
+// её решают, а не ищут: поиск только тратил секунды и сбивал модель.
+function isSchoolTask(query = '') {
+  const clean = normalizeText(query).toLowerCase();
+  if (!/\d/.test(clean)) return false;
+  return /(^|[\s.,:;])(дан[аоы]?|дано|найди(те)?|найти|вычисли(те)?|докажи(те)?|реши(те)?|определи(те)?|упрости(те)?|построй(те)?)(?=[\s.,:;!?]|$)/.test(clean)
+    && /(найди|найти|вычисли|докажи|определи|чему равн|сколько|какой|какова|каков|упрости|реши|построй)/.test(clean);
+}
+
 // Задачи, где поиск ничего не добавит: работа с присланным текстом, код,
 // расчёты, сочинительство, короткие реплики без предмета.
 function searchAddsNothing(query = '') {
@@ -686,6 +695,7 @@ function searchAddsNothing(query = '') {
   if (/^(переведи|перепиши|исправь|сократи|перефразируй|отредактируй|проверь\s+(текст|орфограф|ошибк)|посчитай|вычисли|реши\s+(уравнени|пример|задач))/.test(clean)) return true;
   if (/(код|функци[юя]|скрипт|html|css|javascript|typescript|python|sql|регулярн|баг\b|ошибк[аиу]\s+в\s+коде)/.test(clean)) return true;
   if (/^[\d\s+\-*/^().,=x×÷%]+$/.test(clean)) return true;
+  if (isSchoolTask(raw)) return true;
   if (/(сочини|придумай|напиши)\s+(мне\s+)?(стих|песн|рассказ|сказк|шутк|анекдот|тост|поздравлени|имя|назван|слоган|рэп|текст\s+песни)/.test(clean)) return true;
   if (raw.length > 600 && /^(вот|текст|прочитай|оцени|что\s+думаешь)/.test(clean)) return true;
   // Короткая реплика без предмета разговора («ок», «понял, спасибо», «а ты?»).
@@ -703,6 +713,7 @@ function decideWebSearch({ query = '', searchEnabled = 'auto' } = {}) {
   if (!query || !query.trim()) return false;
   if (isDefinitelyOfflineQuery(query)) return false;
   if (isExplicitWebRequest(query)) return true;
+  if (isSchoolTask(query)) return false;
   // Вопрос о фактах реального мира (люди, каналы, компании, события, числа) —
   // ищем всегда: устаревшие или выдуманные факты хуже лишних пары секунд.
   if (needsFreshFacts(query)) return true;
