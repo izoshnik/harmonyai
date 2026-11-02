@@ -27,8 +27,8 @@
     return d < 31 ? d + ' дн назад' : dt(s);
   };
   const SERIES = ['var(--series-1)', 'var(--series-2)', 'var(--series-3)', 'var(--series-4)', 'var(--series-5)'];
-  const SOURCE_NAMES = { chat: 'Чат', api: 'Публичный API', image: 'Картинки', video_gen: 'Генерация видео', video_watch: 'Просмотр видео', recognize: 'Распознавание музыки', memory: 'Память', music: 'Музыка', client: 'Браузер' };
-  const KIND_NAMES = { timeout: 'Таймаут', unavailable: 'Модель недоступна', quota: 'Лимит провайдера', network: 'Сеть', policy: 'Правила контента', internal: 'Внутренняя', request: 'Запрос', config: 'Настройка сервера', other: 'Другое' };
+  const SOURCE_NAMES = { chat: 'Чат', api: 'Публичный API', image: 'Картинки', video_gen: 'Генерация видео', video_watch: 'Просмотр видео', recognize: 'Распознавание музыки', memory: 'Память', music: 'Музыка', client: 'Браузер', support: 'Поддержка' };
+  const KIND_NAMES = { timeout: 'Таймаут', unavailable: 'Модель недоступна', quota: 'Лимит провайдера', network: 'Сеть', policy: 'Правила контента', internal: 'Внутренняя', request: 'Запрос', config: 'Настройка сервера', user_report: 'Сообщение пользователя', other: 'Другое' };
   const MODEL_NAMES = { adanatos: 'Adan', dynatos: 'Dynatos', image: 'Картинки', video_gen: 'Видео' };
   const srcName = (s) => SOURCE_NAMES[s] || s || '—';
 
@@ -399,8 +399,13 @@
             const det = document.createElement('tr'); det.className = 'adm-detail';
             const td = document.createElement('td'); td.colSpan = 7;
             const pre = document.createElement('pre');
-            pre.textContent = `Код: ${r.code}\nКогда: ${dt(r.at)}\nПользователь: ${r.email || r.userId || '—'}\nГде: ${srcName(r.source)} · статус ${r.status || '—'} · ${KIND_NAMES[r.kind] || r.kind || ''}\nПричина: ${r.message || '—'}\n${r.userText ? 'Сообщение пользователя: ' + r.userText + '\n' : ''}${r.detail ? 'Подробности: ' + JSON.stringify(r.detail, null, 2) : ''}`;
-            td.appendChild(pre); det.appendChild(td); tr.after(det);
+            const detail = r.detail && typeof r.detail === 'object' ? { ...r.detail } : r.detail;
+            const shot = detail && typeof detail.image === 'string' && /^data:image\/(jpeg|png|webp);base64,/.test(detail.image) ? detail.image : null;
+            if (detail && detail.image) delete detail.image;
+            pre.textContent = `Код: ${r.code}\nКогда: ${dt(r.at)}\nПользователь: ${r.email || r.userId || (detail && detail.contact) || '—'}\nГде: ${srcName(r.source)} · статус ${r.status || '—'} · ${KIND_NAMES[r.kind] || r.kind || ''}\n${r.source === 'support' ? 'Обращение' : 'Причина'}: ${r.message || '—'}\n${r.userText && r.source !== 'support' ? 'Сообщение пользователя: ' + r.userText + '\n' : ''}${detail ? 'Подробности: ' + JSON.stringify(detail, null, 2) : ''}`;
+            td.appendChild(pre);
+            if (shot) { const img = document.createElement('img'); img.src = shot; img.alt = 'Скриншот пользователя'; img.style.cssText = 'display:block;max-width:min(100%,520px);border-radius:10px;margin-top:10px;border:1px solid var(--line)'; td.appendChild(img); }
+            det.appendChild(td); tr.after(det);
           };
         });
         if (code && rows.length === 1) { const tr = document.querySelector('[data-err]'); tr && tr.click(); }

@@ -156,6 +156,7 @@ if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127
 <script defer src="/js/video-player.js"></script>
 <script defer src="/js/hm-mentions.js"></script>
 <script defer src="/js/hm-memory.js"></script>
+<script defer src="/js/hm-support.js"></script>
 <script defer src="/js/audio-analyzer.js"></script>
 <script defer src="/js/hm-docgen.js"></script>
 <script defer src="/js/hm-rich.js"></script>
@@ -3534,6 +3535,19 @@ body.hm-dragging #chatInner::after{content:'Отпустите файлы, чт�
 .hm-step-empty .hm-step-chev{visibility:hidden;}
 .hm-step-live .hm-step-title{background:linear-gradient(90deg,var(--text2) 0%,var(--text2) 38%,var(--text) 50%,var(--text2) 62%,var(--text2) 100%);background-size:260% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:htsShimmer 2.2s linear infinite;}
 @media(prefers-reduced-motion:reduce){.hm-step-live .hm-step-title{animation:none;color:var(--text2);background:none;}}
+/* 0.8.71: выбор без синей подсветки и обводки — ровный нейтральный тёмно-серый
+   (выбранная модель и режим, активный чат, сообщение пользователя). Только
+   тёмная тема: светлая и «Мессенджер» живут своими цветами. */
+html:not([data-theme="light"]):not([data-theme="messenger"]) .sb-chat-item.active{background:#2a2a2e!important;border-color:transparent!important;box-shadow:none!important;opacity:1;}
+html:not([data-theme="light"]):not([data-theme="messenger"]) .sb-chat-item.active{border:0!important;}
+html:not([data-theme="light"]):not([data-theme="messenger"]) .mm-opt.active{background:#2a2a2e!important;}
+html:not([data-theme="light"]):not([data-theme="messenger"]) .mm-opt-check{color:#e8e8ec!important;}
+html:not([data-theme="light"]):not([data-theme="messenger"]) .mm-opt-badge{background:rgba(255,255,255,.10)!important;border-color:transparent!important;color:#d4d4da!important;}
+html:not([data-theme="light"]):not([data-theme="messenger"]) .ada-seg-btn.on{background:#2a2a2e!important;border-color:transparent!important;}
+html:not([data-theme="light"]):not([data-theme="messenger"]) .ada-seg-btn.on i{color:#a9a9b1!important;}
+html:not([data-theme="light"]):not([data-theme="messenger"]) .ada-eff-thumb{background:#3a3a40!important;box-shadow:none!important;}
+html:not([data-theme="light"]):not([data-theme="messenger"]) .mchip.on,html:not([data-theme="light"]):not([data-theme="messenger"]) .mchip-model.on{background:#2a2a2e!important;border-color:transparent!important;color:#fff!important;}
+html:not([data-theme="light"]):not([data-theme="messenger"]) .msg-user{background:#2a2a2e!important;border:0!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;background-image:none!important;}
 </style>
 <link rel="stylesheet" href="/css/hm-scrollbar.css">
 </head>
@@ -3594,7 +3608,7 @@ body.hm-dragging #chatInner::after{content:'Отпустите файлы, чт�
       <div class="auth-switch">Уже зарегистрированы? <a href="#" onclick="toggleLoginHint();return false;">Войти</a></div>
       <div class="auth-hint" id="loginHint" style="display:none;"></div>
       <div class="auth-tos">Продолжая, вы соглашаетесь с <a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Политикой Конфиденциальности</a> и <a href="/legal/terms.html" target="_blank" rel="noopener noreferrer">Условиями Пользователя</a> HarmonyAI</div>
-      <div class="auth-beta">Beta 0.8.4</div>
+      <div class="auth-beta">Beta 0.8.71</div>
     </div>
 
     <!-- Экран 2: Код подтверждения -->
@@ -3609,7 +3623,7 @@ body.hm-dragging #chatInner::after{content:'Отпустите файлы, чт�
       <div class="auth-resend" id="btnResend" onclick="resendOTP()">Не пришел код? Отправить снова</div>
       <div class="auth-switch">Уже зарегистрированы? <a href="#" onclick="toggleLoginHint();return false;">Войти</a></div>
       <div class="auth-tos">Продолжая, вы соглашаетесь с <a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Политикой Конфиденциальности</a> и <a href="/legal/terms.html" target="_blank" rel="noopener noreferrer">Условиями Пользователя</a> HarmonyAI</div>
-      <div class="auth-beta">Beta 0.8.4</div>
+      <div class="auth-beta">Beta 0.8.71</div>
     </div>
 
   </div>
@@ -14014,20 +14028,11 @@ function openHelpCenter(){
   }catch(e){}
   location.href=url;
 }
-function openSupportChat(){
-  const tgUrl='tg://resolve?domain=harmonyaisupport_bot';
-  const fallbackUrl='https://t.me/harmonyaisupport_bot';
-  try{
-    const ifr=document.createElement('iframe');
-    ifr.style.display='none';
-    ifr.src=tgUrl;
-    document.body.appendChild(ifr);
-    setTimeout(()=>{ifr.remove();},800);
-  }catch(e){}
-  window.location.href=tgUrl;
-  setTimeout(()=>{
-    if(document.hasFocus())window.open(fallbackUrl,'_blank');
-  },900);
+/* ИИ-поддержка (js/hm-support.js): токен берём из живой сессии Supabase. */
+window.hmSupportToken=async function(){try{const {data:{session}}=await sb.auth.getSession();return session?.access_token||'';}catch(e){return '';}};
+function openSupportChat(topic){
+  if(window.HmSupport){HmSupport.open(topic?{topic}:{});return;}
+  location.href='mailto:harmonyaisent@gmail.com';
 }
 
 /* ===== ПАМЯТЬ: просмотр / правка / удаление / полная очистка ==============
@@ -14265,7 +14270,7 @@ function renderSettingsSubscription(skipLoad){
   html+=`
     <div class="stp-hr"></div>
     <div class="stp-row" onclick="window.open('/subscribe','_blank','noopener')" role="link" tabindex="0"><div class="stp-row-label"><div class="stp-row-title">Тарифы и цены</div></div><span class="stp-link">›</span></div>
-    <div class="stp-row" onclick="openSupportChat()" role="button" tabindex="0"><div class="stp-row-label"><div class="stp-row-title">${isPro&&!staff?'Отмена подписки и вопросы об оплате':'Вопрос об оплате'}</div><div class="stp-row-desc">${isPro&&!staff?'Отменить подписку или вернуть оплату можно только через поддержку.':'Поддержка в Telegram или на harmonyaisent@gmail.com.'}</div></div><span class="stp-link">›</span></div>
+    <div class="stp-row" onclick="openSupportChat('sub')" role="button" tabindex="0"><div class="stp-row-label"><div class="stp-row-title">${isPro&&!staff?'Отмена подписки и вопросы об оплате':'Вопрос об оплате'}</div><div class="stp-row-desc">${isPro&&!staff?'Ответы на вопросы об отмене и возврате — в ИИ-поддержке.':'ИИ-поддержка или почта harmonyaisent@gmail.com.'}</div></div><span class="stp-link">›</span></div>
   </div>`;
   stpEnsure('subscription','Подписка',stpBackMain(),html);
   if(!skipLoad)hmLoadSubscriptionData().then(()=>{if(window.__setScreen==='subscription')renderSettingsSubscription(true);});
@@ -15051,7 +15056,7 @@ function renderAbout(){
       <div class="stp-about-hero">
         <div class="stp-about-logo"><svg width="26" height="26" viewBox="0 0 64 64"><path d="M18 14h8v18h12V14h8v36h-8V39H26v11h-8z" fill="currentColor"/></svg></div>
         <div class="stp-about-name">HarmonyAI</div>
-        <div class="stp-about-ver">Beta 0.8.4</div>
+        <div class="stp-about-ver">Beta 0.8.71</div>
       </div>
       <div class="stp-row" onclick="hmOpenDoc('/legal/privacy.html')" role="link" tabindex="0">
         <div class="stp-row-label"><div class="stp-row-title">Политика конфиденциальности</div></div>
@@ -15847,7 +15852,7 @@ async function hmSignOutEverywhere(){
   try{logOut();}catch(e){location.href='/login';}
 }
 
-/* ---------- Мини-меню профиля: Лимиты · Настройки · Язык · Выйти ---------- */
+/* ---------- Мини-меню профиля: Лимиты · Настройки · Язык · Поддержка · Выйти ---------- */
 const HM_LANGS=()=>{
   const names=(window.i18n&&window.i18n.names)||{ru:'Русский',en:'English',fr:'Français',de:'Deutsch',es:'Español'};
   const list=(window.i18n&&window.i18n.supported)||['ru','en','fr','de','es'];
@@ -15865,6 +15870,7 @@ function toggleProfileMenu(anchor){
     lim:'<svg viewBox="0 0 24 24" fill="none"><path d="M4 16a8 8 0 1116 0" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><path d="M12 16l4-5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><circle cx="12" cy="16" r="1.6" fill="currentColor"/></svg>',
     set:'<svg viewBox="0 0 24 24" fill="none"><path d="M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.7"/></svg>',
     lang:'<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"/><path d="M3.5 12h17M12 3.5c2.4 2.4 3.4 5.3 3.4 8.5s-1 6.1-3.4 8.5c-2.4-2.4-3.4-5.3-3.4-8.5s1-6.1 3.4-8.5z" stroke="currentColor" stroke-width="1.6"/></svg>',
+    sup:'<svg viewBox="0 0 24 24" fill="none"><path d="M4 12a8 8 0 1 1 3.2 6.4L4 19.5l1.1-3.2A7.96 7.96 0 0 1 4 12z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 10.5h6M9 13.5h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
     out:'<svg viewBox="0 0 24 24" fill="none"><path d="M14 4H6.5A1.5 1.5 0 005 5.5v13A1.5 1.5 0 006.5 20H14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M11 12h9m0 0l-3-3m3 3l-3 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     chev:'<svg class="hm-pm-chev" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
   };
@@ -15876,6 +15882,7 @@ function toggleProfileMenu(anchor){
       <button type="button" role="menuitem" onclick="closeProfileMenu();openSettings();setTimeout(()=>openSettingsSection('usage'),60)">${ic.lim}<span>Лимиты</span></button>
       <button type="button" role="menuitem" onclick="closeProfileMenu();openSettings()">${ic.set}<span>Настройки</span></button>
       <button type="button" role="menuitem" aria-haspopup="true" onclick="event.stopPropagation();this.closest('.hm-pm').classList.add('lang')">${ic.lang}<span>Язык</span><em>${cur?cur.name:''}</em>${ic.chev}</button>
+      <button type="button" role="menuitem" onclick="closeProfileMenu();openSupportChat()">${ic.sup}<span>Поддержка</span></button>
       <div class="hm-pm-sep"></div>
       <button type="button" role="menuitem" class="hm-pm-danger" onclick="closeProfileMenu();logOut()">${ic.out}<span>Выйти</span></button>
     </div>

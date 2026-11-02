@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Контакты — HarmonyAI</title>
-<meta name="description" content="Связаться с HarmonyAI: электронная почта harmonyaisent@gmail.com и Telegram-бот поддержки @harmonyaisupport_bot.">
+<meta name="description" content="Связаться с HarmonyAI: ИИ-поддержка, которая отвечает сразу, и электронная почта harmonyaisent@gmail.com.">
 <link rel="canonical" href="https://harmonyai.ru/contacts">
 <meta name="theme-color" content="#ffffff">
 <link rel="icon" href="/favicon.ico" sizes="any">
@@ -13,6 +13,8 @@
 <link rel="stylesheet" href="/css/site.css">
 <script src="/i18n.js"></script><script defer src="/js/i18n/common.js"></script><script defer src="/js/i18n/contacts.js"></script>
 <link rel="stylesheet" href="/css/hm-scrollbar.css">
+<script defer src="/js/hm-support.js"></script>
+<style>.hm-sup-card{display:block;width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;}</style>
 </head>
 <body>
 
@@ -49,7 +51,7 @@
       <p class="eyebrow" style="margin-bottom:14px;">Контакты</p>
       <h1 style="margin-bottom:20px;">Связаться с нами</h1>
       <p class="lead" style="margin-bottom:34px;">
-        Два канала связи — почта и Telegram. Пишите в любой, пожалуйста, на русском или английском.
+        Два канала связи — ИИ-поддержка и почта. ИИ-поддержка отвечает сразу, почта — для заявлений, которые рассматривает команда.
       </p>
 
       <div class="grid grid-2" style="margin-bottom:34px;">
@@ -63,14 +65,14 @@
           <p style="margin-top:8px;font-size:14px;">Оплата, доступ к аккаунту, вопросы по API, сообщения об ошибках.</p>
         </a>
 
-        <a class="card card-hover" href="https://t.me/harmonyaisupport_bot" target="_blank" rel="noopener noreferrer">
+        <button type="button" class="card card-hover hm-sup-card" onclick="window.HmSupport&&HmSupport.open()">
           <div class="card-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24"><path d="M21 4 3 11l5 2 2 6 3.5-4.5L18 18z" stroke-linejoin="round"/><path d="m10 13 8-7"/></svg>
+            <svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 1 3.2 6.4L4 19.5l1.1-3.2A7.96 7.96 0 0 1 4 12z" stroke-linejoin="round"/><path d="M9 10.5h6M9 13.5h4" stroke-linecap="round"/></svg>
           </div>
-          <h3>Telegram</h3>
-          <p style="color:var(--link);">@harmonyaisupport_bot</p>
-          <p style="margin-top:8px;font-size:14px;">Быстрые вопросы и короткие обращения — прямо в мессенджере.</p>
-        </a>
+          <h3>ИИ-поддержка</h3>
+          <p style="color:var(--link);">Открыть чат поддержки</p>
+          <p style="margin-top:8px;font-size:14px;">Ответит сразу: подписка, оплата, вход в аккаунт, ошибки. Можно приложить скриншот.</p>
+        </button>
 
       </div>
 
