@@ -23,7 +23,7 @@
 (function(){
   'use strict';
 
-  var KINDS=['quiz','chart','diagram','mermaid','photo','image','buttons','steps','compare','flow','timeline'];
+  var KINDS=['quiz','chart','diagram','mermaid','photo','image','buttons','steps','compare','flow','timeline','figure','molecule'];
   var FENCE_SRC='```[ \\t]*('+KINDS.join('|')+')[ \\t]*\\r?\\n([\\s\\S]*?)```';
   var OPEN_RE=new RegExp('```[ \\t]*('+KINDS.join('|')+')[ \\t]*(?:\\r?\\n[\\s\\S]*)?$','i');
 
@@ -54,6 +54,8 @@
     try{return JSON.parse(s);}catch(e){}
     // одинарные кавычки вместо двойных
     try{return JSON.parse(s.replace(/'([^'\\]*(?:\\.[^'\\]*)*)'/g,function(_,x){return '"'+x.replace(/"/g,'\\"')+'"';}));}catch(e){}
+    // LaTeX в строках (\approx, \perp) — недопустимые для JSON экранирования: удваиваем обратную косую.
+    try{return JSON.parse(s.replace(/\\(?!["\\/bfnrtu])/g,'\\\\'));}catch(e){}
     return null;
   }
 
@@ -974,6 +976,194 @@
     host.appendChild(card);return card;
   }
 
+  /* ======================================================================
+     ЧЕРТЁЖ (```figure) — геометрия, алгебра, физика: точки, отрезки, прямые,
+     многоугольники, окружности, углы, векторы сил, графики функций, подписи.
+     Координаты — математические (ось y вверх); масштаб по осям ОДИНАКОВЫЙ,
+     поэтому пропорции чертежа точные.
+     ====================================================================== */
+  var figSeq=0;
+  /* Подписи чертежа — простой текст: модель иногда пишет LaTeX ($F_{тр} \approx 9,8$ Н). */
+  var SUB={'0':'₀','1':'₁','2':'₂','3':'₃','4':'₄','5':'₅','6':'₆','7':'₇','8':'₈','9':'₉','x':'ₓ','+':'₊','-':'₋'};
+  var SUP={'0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹','-':'⁻','+':'⁺','n':'ⁿ'};
+  function figText(v){
+    var s=String(v==null?'':v).replace(/\$/g,'');
+    s=s.replace(/\\text\{([^}]*)\}|\\mathrm\{([^}]*)\}/g,function(_,a,b){return a||b||'';})
+       .replace(/\\approx/g,'≈').replace(/\\perp/g,'⊥').replace(/\\parallel/g,'∥').replace(/\\cdot|\\times/g,'·').replace(/\\angle/g,'∠').replace(/\\triangle/g,'△')
+       .replace(/\\alpha/g,'α').replace(/\\beta/g,'β').replace(/\\gamma/g,'γ').replace(/\\varphi|\\phi/g,'φ').replace(/\\mu/g,'μ').replace(/\\pi/g,'π').replace(/\\Delta/g,'Δ').replace(/\\omega/g,'ω').replace(/\\lambda/g,'λ')
+       .replace(/\^\{?\\circ\}?/g,'°').replace(/\\circ/g,'°').replace(/\\vec\{([^}]*)\}/g,'$1⃗').replace(/\\sqrt\{([^}]*)\}/g,'√$1').replace(/\\frac\{([^}]*)\}\{([^}]*)\}/g,'$1/$2')
+       .replace(/_\{([^}]*)\}/g,function(_,x){return /^[0-9x+\-]+$/.test(x)?x.split('').map(function(c){return SUB[c]||c;}).join(''):x;})
+       .replace(/_([0-9])/g,function(_,c){return SUB[c];}).replace(/\^\{([^}]*)\}/g,function(_,x){return x.split('').map(function(c){return SUP[c]||c;}).join('');})
+       .replace(/\^([0-9n])/g,function(_,c){return SUP[c];}).replace(/\\[a-zA-Z]+/g,'').replace(/[{}]/g,'').replace(/\s+/g,' ').trim();
+    return s;
+  }
+  var FIG_COLORS={accent:'var(--accent,#4f7cff)',red:'#e11d48',blue:'#2563eb',green:'#16a34a',orange:'#f97316',purple:'#a855f7',gray:'#8a8d95'};
+  function figColor(c){return FIG_COLORS[c]||(/^#[0-9a-f]{3,6}$/i.test(c||'')?c:'currentColor');}
+  /* Физика: тело на наклонной (angle>0) или горизонтальной (angle=0) плоскости.
+     Модель задаёт только угол и силы — направления считает код, поэтому N всегда
+     перпендикулярна опоре, mg — вертикально вниз, трение — вдоль поверхности. */
+  function expandIncline(d){
+    var c=d.incline||{};var a=Math.max(0,Math.min(75,+c.angle||0))*Math.PI/180;var B=6,H=B*Math.tan(a),s=1,F=1.9;
+    var dn={x:Math.cos(a),y:-Math.sin(a)},nn={x:Math.sin(a),y:Math.cos(a)};
+    var M0={x:B/2-dn.x*0.2,y:H/2-dn.y*0.2};
+    if(a<1e-6){M0={x:B/2,y:0};}
+    d.points=(d.points||[]);d.polygons=(d.polygons||[]);d.vectors=(d.vectors||[]);d.angles=(d.angles||[]);
+    if(a>1e-6){d.points.push({id:'_p0',x:0,y:0,label:''},{id:'_p1',x:B,y:0,label:''},{id:'_p2',x:0,y:H,label:''});d.polygons.push({points:['_p0','_p1','_p2'],color:'gray'});
+      d.angles.push({vertex:'_p1',from:'_p2',to:'_p0',label:(c.angle||0)+'°'});}
+    else{d.polygons.push({points:[[0,0],[B,0],[B,-0.35],[0,-0.35]],color:'gray'});}
+    var q=[[M0.x-dn.x*s/2,M0.y-dn.y*s/2],[M0.x+dn.x*s/2,M0.y+dn.y*s/2],[M0.x+dn.x*s/2+nn.x*s,M0.y+dn.y*s/2+nn.y*s],[M0.x-dn.x*s/2+nn.x*s,M0.y-dn.y*s/2+nn.y*s]];
+    d.polygons.push({points:q,color:'accent'});
+    var C={x:M0.x+nn.x*s/2,y:M0.y+nn.y*s/2};
+    var forces=Array.isArray(c.forces)?c.forces:[];
+    /* Направление «вверх по склону» (на столе — вправо) = +1. Трение всегда против тяги. */
+    var sgn=function(v,def){v=String(v||'').toLowerCase();if(/down|вниз|left|влево/.test(v))return a>1e-6?-1:-1;if(/up|вверх|right|вправо/.test(v))return 1;return def;};
+    var pull=forces.filter(function(f){return !/grav|тяж|weight|mg|norm|реакц|опор|fric|трен/.test(String(f.type||'').toLowerCase());})[0];
+    var pullS=pull?sgn(pull.dir,1):0;
+    var along=function(sg){return a>1e-6?(sg>0?{x:-dn.x,y:-dn.y}:dn):{x:sg,y:0};};
+    forces.forEach(function(f){
+      var t=String(f.type||'').toLowerCase(),k=+f.scale||1,lab=f.label,from=C,dir=null,col=f.color;
+      if(/grav|тяж|weight|mg/.test(t)){dir={x:0,y:-1};col=col||'red';lab=lab||'mg';}
+      else if(/norm|реакц|опор/.test(t)){dir=nn;from=M0;col=col||'blue';lab=lab||'N';}
+      else if(/fric|трен/.test(t)){dir=along(pull?-pullS:sgn(f.dir,1));from=M0;col=col||'orange';lab=lab||'Fтр';}
+      else{dir=along(f===pull?pullS:sgn(f.dir,1));col=col||'green';}
+      d.vectors.push({from:[from.x,from.y],to:[from.x+dir.x*F*k,from.y+dir.y*F*k],label:lab,color:col});
+    });
+  }
+  function renderFigure(body,host){
+    var d=parseLoose(body);if(!d||typeof d!=='object')return renderBroken(host,'чертёж',body);
+    if(d.incline)expandIncline(d);
+    var P={};
+    (d.points||[]).forEach(function(p){if(p&&p.id!=null&&isFinite(+p.x)&&isFinite(+p.y))P[p.id]={x:+p.x,y:+p.y,label:p.label!=null?p.label:p.id,hidden:!!p.hidden,color:p.color};});
+    function pt(v){if(Array.isArray(v)&&isFinite(+v[0])&&isFinite(+v[1]))return {x:+v[0],y:+v[1]};if(typeof v==='string'&&P[v])return P[v];if(v&&isFinite(+v.x)&&isFinite(+v.y))return {x:+v.x,y:+v.y};return null;}
+    var xs=[],ys=[];function addB(x,y){if(isFinite(x)&&isFinite(y)){xs.push(x);ys.push(y);}}
+    Object.keys(P).forEach(function(k){addB(P[k].x,P[k].y);});
+    var circles=(d.circles||[]).map(function(c){var o=pt(c.center);if(!o)return null;var r=+c.r;if(!(r>0)){var th=pt(c.through);if(th)r=Math.hypot(th.x-o.x,th.y-o.y);}if(!(r>0))return null;addB(o.x-r,o.y-r);addB(o.x+r,o.y+r);return {o:o,r:r,label:c.label,dashed:c.style==='dashed',color:c.color};}).filter(Boolean);
+    (d.vectors||[]).forEach(function(v){var a=pt(v.from),b=pt(v.to);if(a)addB(a.x,a.y);if(b)addB(b.x,b.y);});
+    (d.texts||[]).forEach(function(tx){addB(+tx.x,+tx.y);});
+    var funcs=[];
+    (d.functions||[]).forEach(function(f){try{var fn=compileExpr(exprToPlain(f.expr||f.f||''));funcs.push({fn:fn,dom:Array.isArray(f.domain)?f.domain.map(Number):null,label:f.label,color:f.color});}catch(e){}});
+    if(Array.isArray(d.x)){addB(+d.x[0],0);addB(+d.x[1],0);}
+    if(Array.isArray(d.y)){addB(0,+d.y[0]);addB(0,+d.y[1]);}
+    if(d.axes){addB(0,0);}
+    if(funcs.length){
+      var fx0=xs.length?Math.min.apply(null,xs):-5,fx1=xs.length?Math.max.apply(null,xs):5;if(fx1-fx0<1e-9){fx0-=5;fx1+=5;}
+      funcs.forEach(function(f){var a=f.dom?f.dom[0]:fx0,b=f.dom?f.dom[1]:fx1;f.a=a;f.b=b;addB(a,0);addB(b,0);
+        if(!Array.isArray(d.y)){for(var i=0;i<=60;i++){var x=a+(b-a)*i/60,y=f.fn({x:x});if(isFinite(y)&&Math.abs(y)<1e6)addB(x,y);}}});
+    }
+    if(!xs.length)return renderBroken(host,'чертёж',body);
+    var minX=Math.min.apply(null,xs),maxX=Math.max.apply(null,xs),minY=Math.min.apply(null,ys),maxY=Math.max.apply(null,ys);
+    if(Array.isArray(d.y)){minY=Math.min(+d.y[0],+d.y[1]);maxY=Math.max(+d.y[0],+d.y[1]);}
+    var spanX=Math.max(maxX-minX,1e-6),spanY=Math.max(maxY-minY,1e-6),pad=Math.max(spanX,spanY)*0.14+0.0001;
+    minX-=pad;maxX+=pad;minY-=pad;maxY+=pad;
+    var card=el('div','hmr-card hmr-figure');host.appendChild(card);
+    if(d.title)card.appendChild(el('div','hmr-chart-title',esc(d.title)));
+    var wrap=el('div','hmr-fig-wrap');card.appendChild(wrap);
+    if(d.caption)card.appendChild(el('div','hmr-fig-cap',esc(d.caption)));
+    var id='hmrfig'+(++figSeq);
+    function draw(){
+      var W=Math.max(240,Math.min(620,Math.round(wrap.clientWidth||card.clientWidth||520)));
+      var k=W/(maxX-minX);var H=(maxY-minY)*k;
+      if(H>460){k=460/(maxY-minY);H=460;}if(H<160){H=160;}
+      var offX=(W-(maxX-minX)*k)/2,offY=(H-(maxY-minY)*k)/2;
+      function X(x){return offX+(x-minX)*k;}function Y(y){return H-offY-(y-minY)*k;}
+      var cx=0,cy=0,n=0;Object.keys(P).forEach(function(q){cx+=P[q].x;cy+=P[q].y;n++;});if(n){cx/=n;cy/=n;}else{cx=(minX+maxX)/2;cy=(minY+maxY)/2;}
+      var o=[];
+      o.push('<defs><marker id="'+id+'a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker></defs>');
+      var lab=function(x,y,txt,anchor,cls){return '<text x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" text-anchor="'+(anchor||'middle')+'" class="'+(cls||'hmr-fig-lbl')+'">'+esc(figText(txt))+'</text>';};
+      if(d.grid||d.axes){
+        var tx=niceTicks(minX,maxX,Math.max(4,Math.round(W/70))),ty=niceTicks(minY,maxY,Math.max(4,Math.round(H/60)));
+        if(d.grid){tx.forEach(function(v){o.push('<line class="hmr-fig-grid" x1="'+X(v)+'" y1="0" x2="'+X(v)+'" y2="'+H+'"/>');});ty.forEach(function(v){o.push('<line class="hmr-fig-grid" x1="0" y1="'+Y(v)+'" x2="'+W+'" y2="'+Y(v)+'"/>');});}
+        if(d.axes){
+          var ax=Math.min(Math.max(0,minX),maxX),ay=Math.min(Math.max(0,minY),maxY);
+          o.push('<line class="hmr-fig-axis" x1="0" y1="'+Y(ay)+'" x2="'+W+'" y2="'+Y(ay)+'" marker-end="url(#'+id+'a)"/>');
+          o.push('<line class="hmr-fig-axis" x1="'+X(ax)+'" y1="'+H+'" x2="'+X(ax)+'" y2="0" marker-end="url(#'+id+'a)"/>');
+          tx.forEach(function(v){if(Math.abs(v)<1e-9)return;o.push('<line class="hmr-fig-axis" x1="'+X(v)+'" y1="'+(Y(ay)-3)+'" x2="'+X(v)+'" y2="'+(Y(ay)+3)+'"/>'+lab(X(v),Y(ay)+15,fmtNum(v),'middle','hmr-fig-tick'));});
+          ty.forEach(function(v){if(Math.abs(v)<1e-9)return;o.push('<line class="hmr-fig-axis" x1="'+(X(ax)-3)+'" y1="'+Y(v)+'" x2="'+(X(ax)+3)+'" y2="'+Y(v)+'"/>'+lab(X(ax)-6,Y(v)+4,fmtNum(v),'end','hmr-fig-tick'));});
+          o.push(lab(W-6,Y(ay)-8,d.xLabel||'x','end','hmr-fig-tick')+lab(X(ax)+8,12,d.yLabel||'y','start','hmr-fig-tick'));
+        }
+      }
+      (d.polygons||[]).forEach(function(pg){var pts=(pg.points||[]).map(pt).filter(Boolean);if(pts.length<3)return;
+        o.push('<polygon class="hmr-fig-poly'+(pg.fill===false?'':' is-fill')+'" style="--c:'+figColor(pg.color||'accent')+'" points="'+pts.map(function(q){return X(q.x).toFixed(1)+','+Y(q.y).toFixed(1);}).join(' ')+'"/>');});
+      circles.forEach(function(c){o.push('<circle class="hmr-fig-line'+(c.dashed?' is-dash':'')+'" style="stroke:'+figColor(c.color)+'" cx="'+X(c.o.x)+'" cy="'+Y(c.o.y)+'" r="'+(c.r*k)+'"/>');if(c.label)o.push(lab(X(c.o.x+c.r*0.72),Y(c.o.y+c.r*0.72)-4,c.label,'start'));});
+      (d.lines||[]).forEach(function(l){var th=l.through||[];var a=pt(th[0]),b=pt(th[1]);if(!a||!b)return;var dx=b.x-a.x,dy=b.y-a.y,L=Math.hypot(dx,dy);if(!L)return;var big=(maxX-minX+maxY-minY)*2;var ray=l.type==='ray';
+        var p1=ray?a:{x:a.x-dx/L*big,y:a.y-dy/L*big},p2={x:a.x+dx/L*big,y:a.y+dy/L*big};
+        o.push('<line class="hmr-fig-line'+(l.style==='dashed'?' is-dash':'')+'" style="stroke:'+figColor(l.color)+'" x1="'+X(p1.x)+'" y1="'+Y(p1.y)+'" x2="'+X(p2.x)+'" y2="'+Y(p2.y)+'"/>');
+        if(l.label){var lx=b.x+dx/L*(maxX-minX)*0.08,ly=b.y+dy/L*(maxY-minY)*0.08;o.push(lab(X(lx)+6,Y(ly)-6,l.label,'start'));}});
+      funcs.forEach(function(f,fi){var path='',pen=false,prev=null;for(var i=0;i<=400;i++){var x=f.a+(f.b-f.a)*i/400,y=f.fn({x:x});
+          if(!isFinite(y)||y<minY-(maxY-minY)*3||y>maxY+(maxY-minY)*3||(prev!=null&&Math.abs(y-prev)>(maxY-minY)*1.5)){pen=false;prev=isFinite(y)?y:null;continue;}
+          path+=(pen?'L':'M')+X(x).toFixed(1)+' '+Y(y).toFixed(1);pen=true;prev=y;}
+        var col=f.color?figColor(f.color):PALETTE[fi%PALETTE.length];
+        o.push('<path class="hmr-fig-fn" style="stroke:'+col+'" d="'+path+'"/>');
+        if(f.label){var yl=f.fn({x:f.b});if(isFinite(yl)&&yl<=maxY&&yl>=minY)o.push('<text class="hmr-fig-lbl" style="fill:'+col+'" x="'+(X(f.b)-4).toFixed(1)+'" y="'+(Y(yl)-8).toFixed(1)+'" text-anchor="end">'+esc(figText(f.label))+'</text>');}});
+      (d.segments||[]).forEach(function(sg){var a=pt(sg.from),b=pt(sg.to);if(!a||!b)return;
+        o.push('<line class="hmr-fig-line'+(sg.style==='dashed'?' is-dash':'')+'" style="stroke:'+figColor(sg.color)+'" x1="'+X(a.x)+'" y1="'+Y(a.y)+'" x2="'+X(b.x)+'" y2="'+Y(b.y)+'"/>');
+        var mx=(a.x+b.x)/2,my=(a.y+b.y)/2,dx=X(b.x)-X(a.x),dy=Y(b.y)-Y(a.y),L=Math.hypot(dx,dy)||1,nx=-dy/L,ny=dx/L;
+        var sx=X(mx)-X(cx),sy=Y(my)-Y(cy);if(nx*sx+ny*sy<0){nx=-nx;ny=-ny;}
+        var tk=+sg.ticks||0;for(var q=0;q<tk;q++){var sh=(q-(tk-1)/2)*5;var px=X(mx)+dx/L*sh,py=Y(my)+dy/L*sh;o.push('<line class="hmr-fig-line" x1="'+(px-nx*6)+'" y1="'+(py-ny*6)+'" x2="'+(px+nx*6)+'" y2="'+(py+ny*6)+'"/>');}
+        if(sg.label)o.push(lab(X(mx)+nx*14,Y(my)+ny*14+4,sg.label));});
+      (d.angles||[]).forEach(function(an){var v=pt(an.vertex),a=pt(an.from),b=pt(an.to);if(!v||!a||!b)return;
+        var a1=Math.atan2(-(Y(a.y)-Y(v.y)),X(a.x)-X(v.x)),a2=Math.atan2(-(Y(b.y)-Y(v.y)),X(b.x)-X(v.x));var dA=a2-a1;while(dA<=-Math.PI)dA+=2*Math.PI;while(dA>Math.PI)dA-=2*Math.PI;
+        var R=+an.radius||20;var vx=X(v.x),vy=Y(v.y);
+        if(an.right){var u1={x:Math.cos(a1),y:-Math.sin(a1)},u2={x:Math.cos(a2),y:-Math.sin(a2)},s=R*0.6;
+          o.push('<path class="hmr-fig-ang" d="M'+(vx+u1.x*s)+' '+(vy+u1.y*s)+'L'+(vx+(u1.x+u2.x)*s)+' '+(vy+(u1.y+u2.y)*s)+'L'+(vx+u2.x*s)+' '+(vy+u2.y*s)+'"/>');}
+        else{var x1=vx+R*Math.cos(a1),y1=vy-R*Math.sin(a1),x2=vx+R*Math.cos(a1+dA),y2=vy-R*Math.sin(a1+dA);
+          o.push('<path class="hmr-fig-ang" d="M'+x1.toFixed(1)+' '+y1.toFixed(1)+'A'+R+' '+R+' 0 0 '+(dA>0?0:1)+' '+x2.toFixed(1)+' '+y2.toFixed(1)+'"/>');}
+        if(an.label){var mid=a1+dA/2,lr=R+13;o.push(lab(vx+lr*Math.cos(mid),vy-lr*Math.sin(mid)+4,an.label,'middle','hmr-fig-lbl is-small'));}});
+      (d.vectors||[]).forEach(function(vc){var a=pt(vc.from),b=pt(vc.to);if(!a||!b)return;var col=figColor(vc.color||'accent');
+        o.push('<line class="hmr-fig-vec" style="stroke:'+col+'" x1="'+X(a.x)+'" y1="'+Y(a.y)+'" x2="'+X(b.x)+'" y2="'+Y(b.y)+'" marker-end="url(#'+id+'a)"/>');
+        if(vc.label){var dx=X(b.x)-X(a.x),dy=Y(b.y)-Y(a.y),L=Math.hypot(dx,dy)||1;o.push('<text class="hmr-fig-lbl" style="fill:'+col+'" x="'+(X(b.x)+dx/L*12-dy/L*10).toFixed(1)+'" y="'+(Y(b.y)+dy/L*12+dx/L*10+4).toFixed(1)+'" text-anchor="middle">'+esc(figText(vc.label))+'</text>');}});
+      Object.keys(P).forEach(function(q){var p=P[q];if(p.hidden)return;var px=X(p.x),py=Y(p.y);o.push('<circle class="hmr-fig-pt" style="fill:'+figColor(p.color)+'" cx="'+px+'" cy="'+py+'" r="3.2"/>');
+        if(p.label!==''&&p.label!=null){var dx=px-X(cx),dy=py-Y(cy),L=Math.hypot(dx,dy);if(L<1){dx=-1;dy=-1;L=Math.SQRT2;}o.push(lab(px+dx/L*14,py+dy/L*14+5,String(p.label),'middle','hmr-fig-pl'));}});
+      (d.texts||[]).forEach(function(tt){if(isFinite(+tt.x)&&isFinite(+tt.y)&&tt.text)o.push(lab(X(+tt.x),Y(+tt.y),tt.text,'middle'));});
+      wrap.innerHTML='<svg class="hmr-fig-svg" viewBox="0 0 '+W+' '+Math.round(H)+'" width="'+W+'" height="'+Math.round(H)+'" role="img" aria-label="'+esc(d.title||'Чертёж')+'">'+o.join('')+'</svg>';
+    }
+    draw();
+    var last=0;if(window.ResizeObserver){new ResizeObserver(function(){var w=wrap.clientWidth;if(Math.abs(w-last)>8){last=w;draw();}}).observe(wrap);}
+    return card;
+  }
+
+  /* ======================================================================
+     МОЛЕКУЛА (```molecule) — структурная формула по SMILES (smiles-drawer).
+     ====================================================================== */
+  var smilesLoad=null;
+  function loadSmiles(){
+    if(window.SmilesDrawer)return Promise.resolve(window.SmilesDrawer);
+    if(smilesLoad)return smilesLoad;
+    smilesLoad=new Promise(function(ok,no){var sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/npm/smiles-drawer@2.1.7/dist/smiles-drawer.min.js';sc.async=true;
+      sc.onload=function(){window.SmilesDrawer?ok(window.SmilesDrawer):no(new Error('smiles-drawer'));};sc.onerror=function(){smilesLoad=null;no(new Error('smiles-drawer'));};document.head.appendChild(sc);});
+    return smilesLoad;
+  }
+  function renderMolecule(body,host){
+    var d=parseLoose(body);var list=Array.isArray(d)?d:(d&&Array.isArray(d.molecules)?d.molecules:[d]);
+    list=(list||[]).filter(function(m){return m&&((typeof m.smiles==='string'&&m.smiles.length<400)||m.en);}).slice(0,4);
+    if(!list.length)return renderBroken(host,'формулу',body);
+    var card=el('div','hmr-card hmr-mol');host.appendChild(card);
+    var grid=el('div','hmr-mol-grid');card.appendChild(grid);
+    var dark=document.documentElement.getAttribute('data-theme')!=='light'&&document.documentElement.getAttribute('data-theme')!=='messenger';
+    list.forEach(function(m){
+      var cell=el('div','hmr-mol-cell');grid.appendChild(cell);
+      var svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('class','hmr-mol-svg');cell.appendChild(svg);
+      cell.appendChild(el('div','hmr-mol-name',esc(m.name||m.smiles)+(m.formula?' <span>'+esc(m.formula)+'</span>':'')));
+      /* Структуру по названию берём из PubChem: SMILES по памяти модель часто
+         пишет с ошибками (глюкоза превращалась во фруктозу). */
+      var en=String(m.en||m.english||'').trim();
+      var smilesP=en?fetch('https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/'+encodeURIComponent(en)+'/property/SMILES,MolecularFormula/JSON')
+        .then(function(r){return r.ok?r.json():null;}).then(function(j){var p=j&&j.PropertyTable&&j.PropertyTable.Properties&&j.PropertyTable.Properties[0];return p&&(p.SMILES||p.IsomericSMILES||p.CanonicalSMILES)||m.smiles;}).catch(function(){return m.smiles;})
+        :Promise.resolve(m.smiles);
+      Promise.all([loadSmiles(),smilesP]).then(function(r){var SD=r[0];m.smiles=r[1]||m.smiles;
+        var w=Math.min(300,Math.max(180,cell.clientWidth||240));
+        var opts={width:w,height:Math.round(w*0.8),bondThickness:1.1,fontSizeLarge:9,fontSizeSmall:6,padding:12,compactDrawing:false};
+        SD.parse(m.smiles,function(tree){
+          if(SD.SvgDrawer){new SD.SvgDrawer(opts).draw(tree,svg,dark?'dark':'light');}
+          else{var cv=document.createElement('canvas');cv.width=opts.width;cv.height=opts.height;svg.replaceWith(cv);new SD.Drawer(opts).draw(tree,cv,dark?'dark':'light',false);}
+          svg.removeAttribute('width');svg.removeAttribute('height');svg.style.width='100%';svg.style.height='auto';svg.style.maxHeight='240px';
+        },function(){cell.insertBefore(el('div','hmr-diagram-err',esc(t('Не удалось разобрать формулу'))+' «'+esc(m.smiles)+'»'),svg);svg.remove();});
+      }).catch(function(){cell.insertBefore(el('div','hmr-diagram-err',esc(t('Не удалось загрузить модуль формул'))),svg);svg.remove();});
+    });
+    if(d&&d.caption)card.appendChild(el('div','hmr-fig-cap',esc(d.caption)));
+    return card;
+  }
+
   /* ---------- общий вход ---------- */
   function render(kind,body,host,ctx){
     try{
@@ -986,6 +1176,8 @@
       if(kind==='compare')return renderCompare(body,host,ctx);
       if(kind==='timeline')return renderTimeline(body,host,ctx);
       if(kind==='flow')return renderFlow(body,host,ctx);
+      if(kind==='figure')return renderFigure(body,host,ctx);
+      if(kind==='molecule')return renderMolecule(body,host,ctx);
     }catch(e){console.warn('[hm-rich]',kind,e);return renderBroken(host,'блок',body);}
     return null;
   }
@@ -994,7 +1186,7 @@
     if(kind==='buttons')return null;
     var card=el('div','hmr-card hmr-skel');
     if(kind==='steps'||kind==='compare'||kind==='flow'||kind==='timeline')return blocksSkeleton(kind,host);
-    var label={chart:'Строю график…',diagram:'Рисую схему…',mermaid:'Рисую схему…',photo:'Подбираю фото…',image:'Подбираю фото…'}[kind]||'Готовлю…';
+    var label={figure:'Строю чертёж…',molecule:'Рисую формулу…',chart:'Строю график…',diagram:'Рисую схему…',mermaid:'Рисую схему…',photo:'Подбираю фото…',image:'Подбираю фото…'}[kind]||'Готовлю…';
     card.innerHTML='<div class="hmr-skel-label">'+ICON.spin+esc(t(label))+'</div><div class="hmr-bar" style="height:140px;border-radius:16px"></div>';
     host.appendChild(card);return card;
   }

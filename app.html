@@ -6262,14 +6262,20 @@ function renderUserAttachmentsMarkup(attachments=[]){
     `;
   }).join('')+`</div>`;
 }
+/* Вложения уже отправленного сообщения: из строки ввода они исчезают сразу,
+   хотя код ответа (агент, музыка, генерация) ещё читает их из pendingAttachments.
+   Раньше трек висел в строке ввода, пока ИИ решал, что с ним делать. */
+const hmSentAttachments=new Set();
 function renderComposerAttachments(){
   const host=document.getElementById('composerAttachments');
   if(!host)return;
   host.innerHTML='';
-  host.classList.toggle('has-items',pendingAttachments.length>0);
+  const visibleCount=pendingAttachments.filter(a=>!hmSentAttachments.has(a)).length;
+  host.classList.toggle('has-items',visibleCount>0);
   // Мобильный композер прячет «Отправить» при пустом поле; с вложениями кнопка нужна всегда.
-  document.getElementById('inputBox')?.classList.toggle('has-attachments',pendingAttachments.length>0);
+  document.getElementById('inputBox')?.classList.toggle('has-attachments',visibleCount>0);
   pendingAttachments.forEach((item,index)=>{
+    if(hmSentAttachments.has(item))return;
     const card=document.createElement('div');
     card.className='composer-attachment '+(item.kind==='image'?'image':(item.kind==='audio'?'document audio':'document'))+(item.loading?' is-loading':'');
     const removeLabel=item.kind==='image'?'Удалить фото':'Удалить файл';
@@ -8074,6 +8080,15 @@ expr — формула от x: + - * / ^, sin cos tan sqrt abs ln log exp, pi, 
 {"label":"Со стримингом","items":[{"label":"1 сек","text":"…"}],"result":{"text":"готово","tone":"good"}}
 \`\`\`
 — события по времени. Текст вокруг блоков пиши как обычно: заголовки ###, жирные ключевые слова, короткие абзацы.
+9) ЧЕРТЁЖ — задача по геометрии, физике (силы, векторы, оптика), графики функций с точками и отрезками: сначала вычисли точные координаты из условия (стороны, углы, длины), затем
+\`\`\`figure
+{"title":"…","axes":false,"grid":false,"points":[{"id":"A","x":0,"y":0},{"id":"B","x":4,"y":0},{"id":"C","x":0,"y":3}],"polygons":[{"points":["A","B","C"]}],"segments":[{"from":"A","to":"B","label":"4 см","ticks":0},{"from":"C","to":"H","style":"dashed"}],"angles":[{"vertex":"A","from":"B","to":"C","right":true},{"vertex":"B","from":"C","to":"A","label":"37°"}],"circles":[{"center":"O","r":2}],"lines":[{"through":["A","B"],"type":"line|ray"}],"vectors":[{"from":"A","to":[2,2],"label":"F"}],"functions":[{"expr":"x^2-2","domain":[-3,3],"label":"y = x²−2"}],"texts":[{"x":1,"y":1,"text":"m"}]}
+\`\`\`
+Масштаб осей одинаковый — координаты должны соответствовать условию; подпиши всё, что дано и что ищем; axes/grid — для координатных задач и графиков. Силы, скорости — vectors из точки приложения. Тело на наклонной или горизонтальной плоскости — только так (направления посчитает интерфейс): {"title":"…","incline":{"angle":30,"forces":[{"type":"gravity","label":"mg"},{"type":"normal","label":"N"},{"type":"friction","label":"Fтр","dir":"up"},{"type":"pull","label":"F","dir":"up"}]}} (angle 0 — горизонтальный стол). Подписи — простой текст без $ и LaTeX (F₁, mg, Fтр, 30°, 4,8 см). Ключи, которые не нужны, не пиши.
+10) ХИМИЯ — структурная формула вещества:
+\`\`\`molecule
+{"name":"Этанол","formula":"C₂H₅OH","en":"ethanol","smiles":"CCO"}
+\`\`\` (несколько — {"molecules":[…]}); en — английское название для поиска структуры в PubChem (обязательно для известных веществ), smiles — запасной вариант.
 8) КНОПКИ — в конце содержательного ответа (не на приветствия и короткие реплики) 2–3 следующих шага:
 \`\`\`buttons
 [{"label":"2–5 слов","prompt":"готовый запрос от первого лица пользователя"}]
@@ -12289,7 +12304,15 @@ async function sendMsg(opts){
   if(hmSendBusy&&Date.now()-hmSendBusySince<120000){if(fromEnter)hmNotifyBusy();return;}
   hmSendBusy=true;hmSendBusySince=Date.now();
   try{await sendMsgInner();}
-  finally{hmSendBusy=false;hmDropPreBubble();}
+  finally{
+    hmSendBusy=false;hmDropPreBubble();
+    // Отправленные вложения уходят из очереди в любом случае — заново они не прикрепятся.
+    if(hmSentAttachments.size){
+      pendingAttachments=pendingAttachments.filter(a=>!hmSentAttachments.has(a));
+      hmSentAttachments.clear();
+      renderComposerAttachments();updateComposerPlaceholder();
+    }
+  }
 }
 async function sendMsgInner(){
   if(isGenerating){stopGeneration();return;}
@@ -12314,6 +12337,8 @@ async function sendMsgInner(){
     try{await hmWaitAttachments();}finally{hideTyping();}
   }
   if(!text&&!pendingAttachments.length)return;
+  // Файл отправлен — сразу убираем его из строки ввода (в сообщении он уже виден).
+  if(pendingAttachments.length){pendingAttachments.forEach(a=>hmSentAttachments.add(a));renderComposerAttachments();updateComposerPlaceholder();}
   hmPreBubble(text,pendingAttachments.slice());
   /* «@Плагин …» — пользователь сам выбрал плагин: сразу туда, без угадывания. */
   {
@@ -16117,7 +16142,7 @@ async function hmAgentRoute(text){
   showTyping('text');
   try{
     decision=await withTimeout(hmUtil('agent',{body:{message:text,history:hmAgentHistory(),context:{
-      audioAttached:audios.length,recentAudio:recent.map(x=>x.name),
+      audioAttached:audios.length,attachedAudio:audios.map(a=>a.name||'трек'),recentAudio:recent.map(x=>x.name),
       yandexConnected:window.__hmYmConnected===true,nickname:hmAgentNick(),plan:isProUser()?'pro':'free'
     }}}),14000,'agent');
   }catch(e){decision=null;}
@@ -16248,6 +16273,14 @@ async function hmAgentRun(action,{text='',atts=[],intro='',files=null}={}){
     p.finish('Пришли мне трек файлом (mp3, m4a, wav, flac…) — '+({upload_track:'и я сразу загружу его в плейлист HarmonyAI в твоей Яндекс Музыке.',identify_track:'и я скажу, что это за трек.',transcribe_track:'и я запишу ноты мелодии.'}[action]||'и я его разберу.'));
     return true;
   }
+  /* Трек в этом сообщении не прислан, а последний из недавних уже загружен —
+     молча загружать его второй раз нельзя (так в плейлист попадал старый трек
+     вместо нового). Просим прислать нужный файл. */
+  if(action==='upload_track'&&!audioNow.length&&tracks.length&&tracks.every(f=>hmUploadedFiles.has(f))){
+    const p=hmPlugin('upload_track','');
+    p.finish('Трек «'+String(tracks[0].name||'трек').replace(/\.[a-z0-9]{2,5}$/i,'')+'» уже загружен в твою Яндекс Музыку. Пришли файл, который нужно добавить, — и я сразу его загружу.');
+    return true;
+  }
   if(action==='upload_track')return hmAgentUpload(tracks,intro||((nick?'Без проблем, '+nick+'. ':'Без проблем! ')+'Сейчас подключу плагин Яндекс Музыки и загружу твой трек в плейлист HarmonyAI.'));
   return hmAgentAudioAnswer(action,tracks,text,intro);
 }
@@ -16276,13 +16309,14 @@ async function hmAgentUpload(tracks,intro){
   await hmAgentUploadRun(p,tracks);
   return true;
 }
+const hmUploadedFiles=new WeakSet();
 async function hmAgentUploadRun(p,tracks){
   p.free();
   const done=[],fail=[];let title='HarmonyAI';
   for(const f of tracks){
     try{
       const r=await hmUploadTrackCore(f,k=>{p.set({upload:'Загружаю трек',send:'Отправляю трек в Яндекс',wait:'Добавляю трек в плейлист'}[k]||'Загружаю трек');});
-      title=r.title||title;done.push({name:f.name,state:r.state});
+      title=r.title||title;done.push({name:f.name,state:r.state});hmUploadedFiles.add(f);
     }catch(e){
       if(hmIsNeedAuth(e)){p.finish('Яндекс Музыка просит заново войти в аккаунт. Напиши «подключи Яндекс Музыку» — и я загружу трек.');return true;}
       fail.push({name:f.name,why:e&&e.message||'ошибка'});

@@ -274,3 +274,27 @@ html:not(#_) .code-block .code-pre,html:not(#_) .code-block .code-pre code.hljs{
 @keyframes hmrShine{from{background-position:120% 0}to{background-position:-120% 0}}
 @keyframes hmrRise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.hmr-step,.hmr-flow-node{animation:none;}.hmr-step-media.is-loading::after,.hmr-skel-thumb,.hmr-skel-lines i{animation:none;}}
+
+/* Чертёж (```figure) и молекула (```molecule) */
+.hmr-fig-wrap{width:100%;display:flex;justify-content:center;color:var(--text,#e2e2e6)}
+.hmr-fig-svg{max-width:100%;height:auto;overflow:visible}
+.hmr-fig-svg text{font:500 13px/1 system-ui,-apple-system,"Segoe UI",sans-serif;fill:currentColor}
+.hmr-fig-pl{font-weight:600!important;font-style:italic}
+.hmr-fig-lbl.is-small{font-size:12px!important}
+.hmr-fig-tick{font-size:11px!important;fill:var(--text2,#8a8d95)!important}
+.hmr-fig-grid{stroke:currentColor;stroke-opacity:.08;stroke-width:1}
+.hmr-fig-axis{stroke:currentColor;stroke-opacity:.55;stroke-width:1.2;fill:none}
+.hmr-fig-line{stroke:currentColor;stroke-width:1.8;fill:none;stroke-linecap:round}
+.hmr-fig-line.is-dash{stroke-dasharray:6 5;stroke-width:1.4}
+.hmr-fig-poly{stroke:var(--c);stroke-width:1.8;fill:none;stroke-linejoin:round}
+.hmr-fig-poly.is-fill{fill:var(--c);fill-opacity:.1}
+.hmr-fig-fn{fill:none;stroke-width:2.2;stroke-linejoin:round}
+.hmr-fig-ang{fill:none;stroke:var(--accent,#4f7cff);stroke-width:1.6}
+.hmr-fig-vec{stroke-width:2.4;fill:none}
+.hmr-fig-pt{stroke:var(--bg,#0b0b0d);stroke-width:1.5}
+.hmr-fig-cap{margin-top:10px;font-size:13px;color:var(--text2,#8a8d95);text-align:center}
+.hmr-mol-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px}
+.hmr-mol-cell{display:flex;flex-direction:column;align-items:center;gap:8px}
+.hmr-mol-svg{width:100%;max-width:300px;height:auto}
+.hmr-mol-name{font-size:14px;font-weight:600;text-align:center}
+.hmr-mol-name span{font-weight:400;color:var(--text2,#8a8d95);margin-left:6px}
