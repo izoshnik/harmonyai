@@ -5,7 +5,7 @@
 .hm-avatar-sm{width:40px;height:40px;font-size:15px;}
 
 /* ===== Настройки на телефоне: список вместо иконной рейки ===== */
-@media (max-width:768px){
+@media (max-width:768px), (hover:none) and (pointer:coarse){
   .settings-overlay .set-side{display:none!important;}
   .settings-overlay .set-main{padding:0 16px!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch;}
   .settings-overlay .stp-back{display:inline-flex!important;}

@@ -154,7 +154,7 @@ html.hv-lock,html.hv-lock body{overflow:hidden;}
 .hv-msg-intro{margin:0 0 4px;}
 .hv-msg-err{padding:12px 14px;border-radius:14px;background:color-mix(in srgb,var(--text) 5%,transparent);color:var(--text2);font-size:14px;}
 
-@media(max-width:768px){
+@media (max-width:768px), (hover:none) and (pointer:coarse){
   .hv{border-radius:16px;}
   .hv-volr{display:none;}
   .hv-bigplay{width:60px;height:60px;}

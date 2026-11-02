@@ -12,7 +12,7 @@
 
 .m-hints{display:none;}
 
-@media (max-width: 768px){
+@media (max-width:768px), (hover:none) and (pointer:coarse){
   html{
     --mc-bg:#000;--mc-text:#fff;--mc-muted:rgba(255,255,255,.62);
     --mc-pill:#4d4d4f;--mc-pill-text:#fff;--mc-ph:rgba(255,255,255,.62);
@@ -132,20 +132,20 @@
   /* Ответы и сообщения — цвета темы, чтобы на светлых темах текст был виден */
   html body .msg-ai{color:var(--mc-text)!important;}
 }
-@media (max-width: 768px){
+@media (max-width:768px), (hover:none) and (pointer:coarse){
   html body .input-box #sendBtn svg,html body .input-box #sendBtn svg *{stroke:var(--mc-accent-ink)!important;color:var(--mc-accent-ink)!important;}
   html body .input-box #sendBtn svg{width:18px!important;height:18px!important;}
 }
-@media (max-width: 768px){
+@media (max-width:768px), (hover:none) and (pointer:coarse){
   html body .main .topbar-btn::after{display:none!important;}
   html body .main .topbar-btn{-webkit-backdrop-filter:none!important;backdrop-filter:none!important;}
 }
-@media (max-width: 768px){
+@media (max-width:768px), (hover:none) and (pointer:coarse){
   /* Выбор модели на телефоне — через «+», строка-чип в капсуле не нужна */
   html body .input-box .mrow,html body #mRow,html body .input-box .model-pill,html body .ada-panel{display:none!important;}
   html body .sidebar:not(.open){box-shadow:none!important;}
 }
-@media (max-width: 768px){
+@media (max-width:768px), (hover:none) and (pointer:coarse){
   /* Сообщения не заезжают под ☰ / ••• */
   html body .chat-inner{padding-top:calc(60px + env(safe-area-inset-top))!important;}
 }

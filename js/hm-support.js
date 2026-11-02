@@ -31,6 +31,13 @@
   var ROOT = [['bug', 'Сообщить об ошибке'], ['sub', 'Вопрос по подписке'], ['refund', 'Возврат'], ['access', 'Вход в аккаунт'], ['limits', 'Лимиты'], ['other', 'Другой вопрос']];
   var SUB = [['proHow', 'Как оформить Pro'], ['proWhat', 'Что даёт Pro'], ['cancel', 'Отменить подписку'], ['paidNoPro', 'Оплатил, а Pro нет'], ['refund', 'Возврат'], ['root', 'Назад']];
   var AFTER = [['other', 'Другой вопрос'], ['root', 'В начало']];
+  /* Для вошедших эти кнопки отвечают по данным аккаунта (сервер передаёт
+     боту тариф, срок Pro, платежи, недавние ошибки) — не заготовкой. */
+  var LIVE = {
+    paidNoPro: 'Я оплатил подписку, а Pro не появился. Проверь мой аккаунт и платежи.',
+    limits: 'Какой у меня тариф и сколько сообщений я уже потратил?',
+    account: 'Расскажи, что с моим аккаунтом: тариф, срок Pro, последние платежи и недавние ошибки.'
+  };
 
   /* ---------------------------------------------------------------- токен */
   async function token() {
@@ -183,7 +190,7 @@
   async function pick(id, label) {
     if (state.busy) return;
     clearChips();
-    if (id === 'root') { say('bot', A.hello); chips(ROOT); showInput(false); state.mode = 'menu'; return; }
+    if (id === 'root') { say('bot', A.hello); chips(await rootChips()); showInput(false); state.mode = 'menu'; return; }
     if (label) say('user', label);
     if (id === 'sub') { say('bot', A.sub); chips(SUB); return; }
     if (id === 'bug') {
@@ -198,7 +205,11 @@
       say('bot', signed ? A.other : A.otherAnon);
       showInput(true, 'Ваш вопрос…'); chips([['root', 'В начало']]); return;
     }
+    if (LIVE[id] && await token()) { state.mode = 'ask'; await send(LIVE[id], null, { silentUser: true }); return; }
     if (A[id]) { say('bot', A[id]); chips(AFTER); }
+  }
+  async function rootChips() {
+    return (await token()) ? [['account', 'Мой аккаунт']].concat(ROOT) : ROOT;
   }
 
   /* Сжатие скриншота: до 1280 px по большей стороне, JPEG 0.72. */
@@ -230,11 +241,16 @@
     var text = el.ta.value.trim();
     if ((!text && !state.image) || state.busy) return;
     var image = state.image;
-    state.busy = true; el.send.disabled = true;
-    clearChips();
-    say('user', text || 'Скриншот', image);
     el.ta.value = ''; el.ta.style.height = 'auto';
     state.image = null; el.prev.hidden = true; el.prev.innerHTML = '';
+    await send(text, image);
+  }
+  async function send(text, image, o) {
+    o = o || {};
+    state.busy = true; el.send.disabled = true;
+    clearChips();
+    if (!o.silentUser) say('user', text || 'Скриншот', image);
+    else state.history.push({ role: 'user', text: text });
     var typing = document.createElement('div');
     typing.className = 'hm-sup-typing'; typing.textContent = state.mode === 'bug' ? 'Передаю команде…' : 'Печатаю ответ…';
     el.body.appendChild(typing); scroll();
@@ -264,7 +280,7 @@
     if (!el) build();
     el.back.classList.add('open');
     requestAnimationFrame(function () { el.box.classList.add('open'); });
-    if (!el.body.children.length) { say('bot', A.hello); chips(ROOT); }
+    if (!el.body.children.length) { say('bot', A.hello); rootChips().then(chips); }
     if (opts.topic) pick(opts.topic, null);
     setTimeout(function () { try { el.box.querySelector('.hm-sup-x').focus({ preventScroll: true }); } catch (e) {} }, 80);
   }
