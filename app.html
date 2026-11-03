@@ -746,6 +746,22 @@ html[data-boot="app"] .mobile-glossy{display:none;}
 .auth-back-link{background:none;border:none;padding:0;font-size:13px;color:var(--auth-accent);cursor:pointer;font-family:inherit;text-align:left;margin-bottom:16px;align-self:flex-start;}
 .auth-back-link:hover{text-decoration:underline;}
 .auth-tos{font-size:11.5px;color:var(--text2);text-align:center;line-height:1.6;margin-top:6px;}
+/* Согласие с документами: без галочки вход и регистрация не начинаются. */
+.auth-terms{display:flex;align-items:flex-start;gap:10px;margin-top:10px;font-size:12px;line-height:1.5;color:var(--text2);text-align:left;cursor:pointer;border-radius:12px;padding:6px 4px;transition:background .2s;}
+.auth-terms input{flex:0 0 auto;width:18px;height:18px;margin:1px 0 0;accent-color:#e8e8ec;cursor:pointer;}
+.auth-terms a{color:var(--text);text-decoration:underline;text-underline-offset:2px;}
+.auth-terms.need{background:rgba(239,68,68,.10);animation:hmTermsShake .32s ease;}
+@keyframes hmTermsShake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.hm-terms-gate{position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);}
+.hm-terms-card{width:100%;max-width:420px;background:var(--drop-bg,#1c1c20);color:var(--text);border:1px solid var(--border);border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:14px;box-shadow:0 24px 64px rgba(0,0,0,.5);}
+.hm-terms-card h3{margin:0;font-size:17px;}
+.hm-terms-card p{margin:0;font-size:13.5px;color:var(--text2);line-height:1.55;}
+.hm-terms-card .auth-terms{margin:0;font-size:13px;}
+.hm-terms-card button{border:0;border-radius:12px;padding:11px;font:inherit;font-weight:700;background:var(--send-bg,#fff);color:var(--send-txt,#111);cursor:pointer;}
+.hm-terms-card button:disabled{opacity:.45;cursor:default;}
+.stp-pay-terms{display:flex;gap:9px;align-items:flex-start;font-size:12.5px;line-height:1.5;color:var(--set-muted,var(--text2));margin:10px 2px 0;cursor:pointer;}
+.stp-pay-terms input{width:17px;height:17px;margin:1px 0 0;accent-color:#e8e8ec;flex:0 0 auto;}
+.stp-pay-terms a{color:inherit;text-decoration:underline;}
 .auth-tos a{color:var(--auth-accent);text-decoration:none;}
 .auth-tos a:hover{text-decoration:underline;}
 .auth-beta{font-size:12px;color:var(--text2);text-align:center;margin-top:22px;opacity:.55;}
@@ -959,13 +975,14 @@ html[data-theme="light"] .code-block{background:#1b1c1f;border-color:rgba(255,25
 .file-card-btn{flex:0 0 auto;border:none;border-radius:9px;padding:8px 16px;font-size:13px;font-weight:600;color:#fff;background:#2f6bff;cursor:pointer;transition:opacity .15s;}
 .file-card-btn:hover{opacity:.9;}
 .file-card-btn:disabled{opacity:.6;cursor:default;}
+.hm-live-st{margin-left:10px;font-size:14px;font-weight:500;}
 .hm-mem-ind{display:inline-flex;align-items:center;gap:7px;margin:0 0 8px;font-size:13px;color:var(--text2);user-select:none;}
 .hm-mem-ind svg{width:15px;height:15px;flex:0 0 auto;}
 .hm-mem-ind.done{cursor:pointer;}
 .hm-mem-ind.done:hover{color:var(--text);}
-.hm-shimmer{background:linear-gradient(90deg,var(--text2) 0%,var(--text2) 35%,var(--text) 50%,var(--text2) 65%,var(--text2) 100%);background-size:220% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:hmShimmer 1.4s linear infinite;}
+.hm-shim{background:linear-gradient(90deg,var(--text2) 0%,var(--text2) 35%,var(--text) 50%,var(--text2) 65%,var(--text2) 100%);background-size:220% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:hmShimmer 1.4s linear infinite;}
 @keyframes hmShimmer{from{background-position:110% 0}to{background-position:-110% 0}}
-@media(prefers-reduced-motion:reduce){.hm-shimmer{animation:none;color:var(--text2);background:none;}}
+@media(prefers-reduced-motion:reduce){.hm-shim{animation:none;color:var(--text2);background:none;}}
 .hm-svc-err{display:flex;align-items:center;gap:12px;flex-wrap:wrap;white-space:normal;padding:2px 0;}
 .hm-svc-err__txt{display:flex;flex-direction:column;gap:2px;min-width:0;}
 .hm-svc-err__txt b{font-weight:700;color:var(--text);}
@@ -3535,6 +3552,59 @@ body.hm-dragging #chatInner::after{content:'Отпустите файлы, чт�
 .hm-step-empty .hm-step-chev{visibility:hidden;}
 .hm-step-live .hm-step-title{background:linear-gradient(90deg,var(--text2) 0%,var(--text2) 38%,var(--text) 50%,var(--text2) 62%,var(--text2) 100%);background-size:260% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:htsShimmer 2.2s linear infinite;}
 @media(prefers-reduced-motion:reduce){.hm-step-live .hm-step-title{animation:none;color:var(--text2);background:none;}}
+/* 0.8.92: поиск в интернете — строка статуса, кнопка «Источники», шторка. */
+.ws2{display:flex;align-items:center;gap:9px;margin:2px 0 10px;font-size:14.5px;color:var(--text2);min-height:22px;transition:opacity .2s ease;}
+.ws2.out{opacity:0;}
+.ws2-ic{display:inline-flex;width:16px;height:16px;align-items:center;justify-content:center;color:var(--text2);flex:0 0 auto;}
+.ws2-ic svg{width:15px;height:15px;}
+.ws2-spin{width:14px;height:14px;border-radius:50%;border:2px solid color-mix(in srgb,var(--text2) 30%,transparent);border-top-color:var(--text2);animation:ws2Spin .8s linear infinite;}
+@keyframes ws2Spin{to{transform:rotate(360deg)}}
+.ws2-t{font-weight:500;}
+.src-pill{display:inline-flex;align-items:center;gap:7px;height:28px;padding:0 11px 0 5px;margin-left:4px;border:1px solid var(--border);border-radius:999px;background:transparent;color:var(--text2);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;}
+.src-pill:hover{color:var(--text);background:var(--bg3,rgba(255,255,255,.05));}
+.src-pill-icons{display:inline-flex;}
+.src-pill-icons img,.src-pill-icons i{width:18px;height:18px;border-radius:50%;background:#fff;border:2px solid var(--bg,#0d0d0f);object-fit:cover;margin-left:-6px;display:inline-flex;align-items:center;justify-content:center;font-style:normal;font-size:9px;font-weight:800;color:#222;}
+.src-pill-icons>:first-child{margin-left:0;}
+.src-sheet{position:fixed;inset:0;z-index:4000;background:rgba(0,0,0,0);transition:background .22s ease;}
+.src-sheet.open{background:rgba(0,0,0,.45);}
+.src-sheet-panel{position:absolute;top:0;right:0;bottom:0;width:min(400px,100%);background:var(--drop-bg,#161618);color:var(--text);border-left:1px solid var(--border);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .26s cubic-bezier(.2,.8,.2,1);}
+.src-sheet.open .src-sheet-panel{transform:none;}
+.src-sheet-handle{display:none;}
+.src-sheet-head{display:flex;align-items:center;justify-content:space-between;padding:16px 16px 10px 18px;}
+.src-sheet-head b{font-size:16px;}
+.src-sheet-x{width:34px;height:34px;border:0;border-radius:50%;background:transparent;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.src-sheet-x:hover{background:var(--bg3,rgba(255,255,255,.06));}.src-sheet-x svg{width:16px;height:16px;}
+.src-sheet-list{flex:1;overflow-y:auto;padding:0 10px 20px;overscroll-behavior:contain;}
+.src-row{display:block;padding:11px 10px;border-radius:12px;text-decoration:none;color:inherit;}
+.src-row:hover{background:var(--bg3,rgba(255,255,255,.05));}
+.src-row-site{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text2);margin-bottom:3px;}
+.src-row-site img{width:16px;height:16px;border-radius:4px;background:#fff;}
+.src-row-title{font-size:14px;font-weight:600;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.src-row-snip{font-size:12.5px;color:var(--text2);line-height:1.4;margin-top:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+@media (max-width:768px), (hover:none) and (pointer:coarse){
+  .src-sheet-panel{top:auto;left:0;right:0;width:auto;height:min(78vh,640px);height:min(78dvh,640px);border-left:0;border-top:1px solid var(--border);border-radius:22px 22px 0 0;transform:translateY(100%);padding-bottom:env(safe-area-inset-bottom,0px);}
+  .src-sheet-handle{display:block;width:40px;height:5px;border-radius:3px;background:color-mix(in srgb,var(--text2) 45%,transparent);margin:8px auto 0;}
+}
+@media(prefers-reduced-motion:reduce){.ws2-spin{animation:none;}.src-sheet-panel{transition:none;}}
+/* 0.8.92: коллаж из 2–4 картинок и листание в просмотрщике. */
+.hm-collage{display:grid;gap:3px;width:min(440px,100%);border-radius:16px;overflow:hidden;}
+.hm-collage.n2{grid-template-columns:1fr 1fr;}
+.hm-collage.n3{grid-template-columns:1.4fr 1fr;grid-template-rows:1fr 1fr;}
+.hm-collage.n3>:first-child{grid-row:1/3;}
+.hm-collage.n4{grid-template-columns:1fr 1fr;}
+.hm-collage .hm-col-img{display:block;width:100%;height:100%;aspect-ratio:1/1;object-fit:cover;border-radius:0!important;margin:0!important;max-width:none!important;cursor:zoom-in;background:var(--bg3,#1b1b1e);}
+.hm-collage.n3 .hm-col-img:first-child{aspect-ratio:auto;}
+.hm-collage.igGrid{width:min(440px,100%);}
+.hm-collage.igGrid .igCell{width:100%!important;max-width:none!important;border-radius:0!important;aspect-ratio:1/1;}
+.hm-collage.igGrid.n3 .igCell:first-child{aspect-ratio:auto!important;}
+.pv-stage{position:relative;}
+.pv-gal{position:absolute;inset:0;pointer-events:none;}
+.pv-gal[hidden]{display:none;}
+.pv-gal-btn{pointer-events:auto;position:absolute;top:50%;transform:translateY(-50%);width:42px;height:42px;border:0;border-radius:50%;background:rgba(20,20,22,.55);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
+.pv-gal-btn svg{width:20px;height:20px;}
+.pv-gal-btn.prev{left:10px;}.pv-gal-btn.next{right:10px;}
+.pv-gal-count{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);padding:4px 11px;border-radius:999px;background:rgba(20,20,22,.55);color:#fff;font-size:12.5px;font-variant-numeric:tabular-nums;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
+@media (max-width:768px), (hover:none) and (pointer:coarse){.pv-gal-btn{width:36px;height:36px;background:rgba(20,20,22,.4);}}
 /* 0.8.81: анимация создания изображения — монохромная и спокойная. */
 .igCanvas{background:var(--igm-bg,#141416)!important;box-shadow:inset 0 0 0 1px var(--igm-line,rgba(255,255,255,.06))!important;border-radius:16px!important;}
 .igm{position:absolute;inset:0;overflow:hidden;border-radius:inherit;color:var(--igm-ink,rgba(255,255,255,.38));
@@ -3639,8 +3709,8 @@ html:not([data-theme="light"]):not([data-theme="messenger"]) .msg-user{backgroun
       </div>
       <div class="auth-switch">Уже зарегистрированы? <a href="#" onclick="toggleLoginHint();return false;">Войти</a></div>
       <div class="auth-hint" id="loginHint" style="display:none;"></div>
-      <div class="auth-tos">Продолжая, вы соглашаетесь с <a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Политикой Конфиденциальности</a> и <a href="/legal/terms.html" target="_blank" rel="noopener noreferrer">Условиями Пользователя</a> HarmonyAI</div>
-      <div class="auth-beta">Beta 0.8.91</div>
+      <label class="auth-terms" id="authTermsWrap"><input type="checkbox" id="authTerms" onchange="hmTermsChanged()"><span>Я прочитал(а) и принимаю <a href="/legal/terms.html" target="_blank" rel="noopener noreferrer">Условия использования</a>, <a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Политику конфиденциальности</a> и <a href="/legal/ofera.html" target="_blank" rel="noopener noreferrer">Оферту</a></span></label>
+      <div class="auth-beta">Beta 0.8.92</div>
     </div>
 
     <!-- Экран 2: Код подтверждения -->
@@ -3655,7 +3725,7 @@ html:not([data-theme="light"]):not([data-theme="messenger"]) .msg-user{backgroun
       <div class="auth-resend" id="btnResend" onclick="resendOTP()">Не пришел код? Отправить снова</div>
       <div class="auth-switch">Уже зарегистрированы? <a href="#" onclick="toggleLoginHint();return false;">Войти</a></div>
       <div class="auth-tos">Продолжая, вы соглашаетесь с <a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Политикой Конфиденциальности</a> и <a href="/legal/terms.html" target="_blank" rel="noopener noreferrer">Условиями Пользователя</a> HarmonyAI</div>
-      <div class="auth-beta">Beta 0.8.91</div>
+      <div class="auth-beta">Beta 0.8.92</div>
     </div>
 
   </div>
@@ -4988,10 +5058,45 @@ function toggleLoginHint(){
    Supabase использует implicit flow, сохраняет сессию в localStorage и обрабатывает
    callback на /chat через detectSessionInUrl. */
 const PRODUCTION_AUTH_REDIRECT='https://harmonyai.ru/chat';
+/* Согласие с Условиями, Политикой и Офертой: без отметки вход не начинается.
+   Отметка запоминается локально и после входа сохраняется в профиле
+   (settings.terms_accepted_at) — см. hmEnsureTerms. */
+function hmTermsChanged(){
+  const c=document.getElementById('authTerms');
+  if(c&&c.checked){document.getElementById('authTermsWrap')?.classList.remove('need');const e=document.getElementById('emailErr');if(e&&e.dataset.terms){e.style.display='none';delete e.dataset.terms;}}
+}
+function hmTermsOk(){
+  const c=document.getElementById('authTerms');
+  if(!c||c.checked){try{localStorage.setItem('hm_terms_ok',new Date().toISOString());}catch(e){}return true;}
+  const w=document.getElementById('authTermsWrap');
+  if(w){w.classList.remove('need');void w.offsetWidth;w.classList.add('need');}
+  const e=document.getElementById('emailErr');
+  if(e){e.textContent='Отметьте, что прочитали и принимаете Условия, Политику и Оферту';e.style.display='block';e.dataset.terms='1';}
+  return false;
+}
+async function hmEnsureTerms(tries){
+  tries=tries||0;
+  if(!curUser)return;
+  if(!curUser.settings&&tries<10){setTimeout(()=>hmEnsureTerms(tries+1),800);return;}
+  const s=getSettings();
+  if(s.terms_accepted_at)return;
+  let local='';try{local=localStorage.getItem('hm_terms_ok')||'';}catch(e){}
+  if(local){saveSetting('terms_accepted_at',local);return;}
+  if(document.getElementById('hmTermsGate'))return;
+  const g=document.createElement('div');g.id='hmTermsGate';g.className='hm-terms-gate';g.setAttribute('role','dialog');g.setAttribute('aria-modal','true');
+  g.innerHTML='<div class="hm-terms-card"><h3>Документы сервиса</h3><p>Чтобы продолжить пользоваться HarmonyAI, подтвердите, что прочитали и принимаете документы сервиса.</p>'
+    +'<label class="auth-terms"><input type="checkbox" id="hmTermsGateCb"><span>Я прочитал(а) и принимаю <a href="/legal/terms.html" target="_blank" rel="noopener noreferrer">Условия использования</a>, <a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Политику конфиденциальности</a> и <a href="/legal/ofera.html" target="_blank" rel="noopener noreferrer">Оферту</a></span></label>'
+    +'<button type="button" id="hmTermsGateOk" disabled>Продолжить</button></div>';
+  document.body.appendChild(g);
+  const cb=g.querySelector('#hmTermsGateCb'),ok=g.querySelector('#hmTermsGateOk');
+  cb.onchange=()=>{ok.disabled=!cb.checked;};
+  ok.onclick=()=>{const at=new Date().toISOString();try{localStorage.setItem('hm_terms_ok',at);}catch(e){}saveSetting('terms_accepted_at',at);g.remove();};
+}
 async function signInWithOAuthProvider(provider,btnId){
   const h=document.getElementById('loginHint');
   const err=document.getElementById('emailErr');
   if(err)err.style.display='none';
+  if(!hmTermsOk())return;
   const btn=btnId?document.getElementById(btnId):null;
   try{
     if(!sb)throw new Error('Авторизация ещё загружается — попробуйте через секунду');
@@ -5163,7 +5268,7 @@ async function saveSurveySource(val){
  finally{surveySaving=false;document.querySelectorAll('#surveyOverlay button').forEach(b=>b.disabled=false);}
 }
 async function maybeShowOnboardingModals(){if(maybeShowSurveyModal()||maybeShowNicknameModal())return;await revealReadyChat();}
-async function revealReadyChat(){updateUserUI();refreshModelUI();await syncSignedInRoute();window.__appShown=true;document.getElementById('app').classList.add('show');document.documentElement.removeAttribute('data-boot');window.HmStats?.start();setTimeout(hmRedeemPendingInvite,600);}
+async function revealReadyChat(){updateUserUI();refreshModelUI();await syncSignedInRoute();window.__appShown=true;document.getElementById('app').classList.add('show');document.documentElement.removeAttribute('data-boot');window.HmStats?.start();setTimeout(hmRedeemPendingInvite,600);setTimeout(hmEnsureTerms,1200);}
 /* ===== ПРИГЛАШЕНИЕ В PRO (реферальная программа, lib/referrals.js) =====
    Ссылка вида /chat?invite=КОД. Код запоминаем сразу (человек может быть ещё не
    вошёл), убираем из адресной строки и активируем после входа: Pro на 3 дня +
@@ -5409,6 +5514,7 @@ async function sendOTP(){
   const err=document.getElementById('emailErr');
   err.style.display='none';
   if(!isEmail(email)){err.textContent='Введите корректный email';err.style.display='block';return;}
+  if(!hmTermsOk())return;
   if(isDevAccountEmail(email))return devInstantLogin(email.toLowerCase());
   document.getElementById('devKeyInp')?.remove();
   const btn=document.getElementById('btnSend');
@@ -7246,6 +7352,11 @@ async function openChat(id,opts){
         try{renderMd(ans,normalizeReplyNotation(txt));}catch(e){ans.textContent=txt;}
       }
     }
+    else if(m.tempMail){
+      const shell=createAiBubbleShell({showActions:false,createdAt:m.createdAt,historyIndex:idx});
+      if(m.tempMailIntro){const p=document.createElement('div');renderMd(p,m.tempMailIntro);shell.msg.appendChild(p);}
+      hmRenderTempMail(shell.msg,m.tempMail,{poll:Date.now()-Date.parse(m.createdAt||0)<3600000});
+    }
     else if(m.videoGen||m.videoGenToken){
       const shell=createAiBubbleShell({showActions:true,createdAt:m.createdAt,historyIndex:idx});
       if(m.videoGen)hmRenderGenVideo(shell,m.videoGen,m.videoGenAspect);
@@ -7254,10 +7365,12 @@ async function openChat(id,opts){
     else if(m.image){
       // Сообщение с сгенерированной картинкой — рендерим <img> по URL из Storage.
       const shell=createAiBubbleShell({showActions:false,createdAt:m.createdAt,historyIndex:idx});
-      appendImageToShell(shell.msg,m.image);
+      if(Array.isArray(m.images)&&m.images.length>1)appendImagesToShell(shell.msg,m.images);
+      else appendImageToShell(shell.msg,m.image);
       attachImageMessageActions(shell,imagePromptFromHistory(m));
     }else{
       const result=addAiBubble(normalizeReplyNotation(txt||''),false,{createdAt:m.createdAt,historyIndex:idx});
+      if(Array.isArray(m.sources)&&m.sources.length)result.then(shell=>hmAddSourcesPill(shell.wrap||shell.msg.closest('.msg-ai-wrap'),m.sources));
       if(m.generatedFile)result.then(shell=>shell.msg.appendChild(buildFileCard(m.generatedFile,m.generatedFile.format)));
       if(m.thinking&&m.thinking.text)result.then(shell=>hmRestoreThinking(shell.msg,m.thinking));
     }
@@ -8156,6 +8269,11 @@ expr — формула от x: + - * / ^, sin cos tan sqrt abs ln log exp, pi, 
 \`\`\`molecule
 {"name":"Этанол","formula":"C₂H₅OH","en":"ethanol","smiles":"CCO"}
 \`\`\` (несколько — {"molecules":[…]}); en — английское название для поиска структуры в PubChem (обязательно для известных веществ), smiles — запасной вариант.
+11) ПИСЬМО: если просят написать, составить или ответить на письмо (email, обращение, заявление, претензию по почте) — сначала одна короткая фраза, затем само письмо блоком:
+\`\`\`email
+{"to":"адрес@если.известен","subject":"Тема","body":"Текст письма с приветствием, абзацами (\\n\\n) и подписью"}
+\`\`\`
+Пользователь отредактирует его и отправит кнопкой через Gmail, Mail.ru, Яндекс, Outlook или iCloud. Адрес не выдумывай: неизвестен — "to":"". Не дублируй текст письма вне блока.
 8) КНОПКИ — в конце содержательного ответа (не на приветствия и короткие реплики) 2–3 следующих шага:
 \`\`\`buttons
 [{"label":"2–5 слов","prompt":"готовый запрос от первого лица пользователя"}]
@@ -8561,7 +8679,7 @@ async function hmAutoMemory(text){
       const w=await findWrap();if(!w)return;
       const m=w.querySelector('.msg-ai');if(!m||!m.parentNode)return;
       ind=document.createElement('div');ind.className='hm-mem-ind';ind.setAttribute('role','status');
-      ind.innerHTML=HM_BOOK_SVG+'<span class="hm-mem-ind__t hm-shimmer">Обновляю память</span>';
+      ind.innerHTML=HM_BOOK_SVG+'<span class="hm-mem-ind__t hm-shim">Обновляю память</span>';
       m.parentNode.insertBefore(ind,m);shownAt=Date.now();
     },
     onDone:(changed)=>{
@@ -8569,7 +8687,7 @@ async function hmAutoMemory(text){
       if(!changed){ind.remove();return;}
       setTimeout(()=>{
         const t=ind.querySelector('.hm-mem-ind__t');if(!t)return;
-        t.classList.remove('hm-shimmer');t.textContent='Память обновлена';
+        t.classList.remove('hm-shim');t.textContent='Память обновлена';
         ind.classList.add('done');ind.title='Открыть память';ind.tabIndex=0;
         const open=()=>{try{openSettings();openSettingsSection('pers');setTimeout(()=>{try{renderSettingsMemory();}catch(_){}} ,80);}catch(_){}};
         ind.onclick=open;ind.onkeydown=(e)=>{if(e.key==='Enter')open();};
@@ -8689,6 +8807,152 @@ function normalizeHistoryTimestamps(history,fallback){
   const base=fallback||messageNow();
   history.forEach(m=>{if(!m.createdAt)m.createdAt=base;});
   return history;
+}
+/* ===== ВРЕМЕННАЯ ПОЧТА (/api/util?op=tempmail, lib/util-tempmail.js) =====
+   ИИ создаёт одноразовый ящик, показывает адрес, сам проверяет входящие
+   (каждые 5 с, пока карточка на экране, до 15 минут), читает письма и
+   выносит коды подтверждения крупными кнопками «нажми — скопируется».
+   Временный ящик только принимает письма — отправлять из него нельзя. */
+const HM_TM_CREATE=/(временн|одноразов|анонимн|фейков|запасн|левую|левый|temp|disposable|10[\s-]?минутн)\S*\s+(почт|e-?mail|имейл|мейл|ящик|адрес)/i;
+const HM_TM_CREATE2=/(создай|сделай|дай|выдай|заведи|сгенерируй|нужн\S*)\s+(мне\s+)?(нов\S+\s+)?(почт[ау]|почтов\S*\s+ящик|ящик|e-?mail|имейл)(?![\p{L}])/iu;
+const HM_TM_CHECK=/(проверь|посмотри|глянь|обнови)\S*\s+(мою\s+|временн\S*\s+)?(почт|ящик|входящ)|что\s+пришло\s+на\s+почт|пришл[оиа]?\s+(ли\s+)?(уже\s+)?(письм|код|сообщени)|(письм|код)\S*\s+(уже\s+)?(пришл|пришё|прише)|какой\s+(там\s+)?код\s*(пришёл|пришел|прислали|\?|$)|код\s+(из|с)\s+(письм|почт)|прочитай\s+(последн\S*\s+)?письм|что\s+в\s+письме|есть\s+(ли\s+)?(нов\S*\s+)?письм/i;
+const HM_TM_ICON='<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="3" stroke="currentColor" stroke-width="1.8"/><path d="M4 7l8 6 8-6" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>';
+const HM_TM_REFRESH='<svg viewBox="0 0 24 24" fill="none"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const HM_TM_COPY='<svg viewBox="0 0 24 24" fill="none"><rect x="8" y="8" width="12" height="12" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H8" stroke="currentColor" stroke-width="1.8"/></svg>';
+const HM_TM_DONE='<svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+function hmLastTempMail(){
+  for(let i=chatHistory.length-1;i>=0;i--){const m=chatHistory[i];if(m&&m.tempMail&&m.tempMail.handle)return m.tempMail;}
+  return null;
+}
+async function hmTempMailRoute(text){
+  if(!curUser)return false;
+  const t=String(text||'');
+  // «Напиши письмо…» — это черновик письма (блок email), а не временный ящик.
+  if(/(напиши|составь|сочини|ответь)\S*/i.test(t)&&/письм|обращени|заявлени/i.test(t))return false;
+  const box=hmLastTempMail();
+  if(HM_TM_CREATE.test(t)||(HM_TM_CREATE2.test(t)&&t.length<140&&!/письм|рассылк|шаблон|маркетинг|поддержк|сайт|лендинг|верстк|html|код\s+для/i.test(t))){await hmTempMailCreate(t);return true;}
+  if(box&&HM_TM_CHECK.test(t)){await hmTempMailCheck(t,box);return true;}
+  return false;
+}
+function hmTmUserTurn(text){
+  const gw=document.getElementById('greetingWrap');if(gw)gw.style.display='none';
+  addUserBubble(text,[],{createdAt:messageNow()});
+  chatHistory.push({role:'user',content:text,attachments:[],createdAt:messageNow()});
+  saveChat().catch(()=>{});
+}
+async function hmTempMailCreate(text){
+  hmTmUserTurn(text);
+  const shell=createAiBubbleShell({showActions:false});
+  shell.msg.innerHTML='<span class="hm-shim">'+escapeHtml(hmVary('tm_wait',['Создаю временный ящик…','Завожу одноразовую почту…','Получаю свежий адрес…']))+'</span>';
+  setGeneratingState(true);
+  try{
+    const d=await hmUtil('tempmail',{body:{action:'create'}});
+    const box={handle:d.handle,address:d.address,provider:d.provider,createdAt:new Date().toISOString()};
+    const intro=hmVary('tm_intro',[
+      'Готово — вот твой временный адрес. Используй его для регистрации: письма появятся ниже, а коды подтверждения я сразу покажу крупно.',
+      'Держи одноразовую почту. Как только придёт письмо, я его прочитаю и вытащу код — он будет ниже, нажми, чтобы скопировать.',
+      'Ящик создан. Вставляй адрес куда нужно — входящие проверяю сам, код подтверждения появится здесь.']);
+    shell.msg.innerHTML='';
+    const p=document.createElement('div');renderMd(p,intro);shell.msg.appendChild(p);
+    hmRenderTempMail(shell.msg,box,{poll:true});
+    chatHistory.push({role:'assistant',content:'[Создана временная почта: '+box.address+'. Письма и коды подтверждения показываются в карточке под этим сообщением. Отправлять письма с неё нельзя — только принимать.]',tempMail:box,tempMailIntro:intro,createdAt:messageNow()});
+    saveChat().catch(()=>{});
+  }catch(e){
+    hmRenderChatError(shell.msg,e.message,{where:'tempmail',onRetry:()=>{shell.wrap.remove();hmTempMailCreate(text);}});
+  }finally{setGeneratingState(false);scrollChat();}
+}
+async function hmTmRead(box,id){return hmUtil('tempmail',{body:{action:'read',handle:box.handle,id}});}
+async function hmTempMailCheck(text,box){
+  hmTmUserTurn(text);
+  const shell=createAiBubbleShell({showActions:true,hiddenActions:true});
+  shell.msg.innerHTML='<span class="hm-shim">'+escapeHtml(hmVary('tm_check',['Проверяю входящие…','Смотрю, что пришло…','Открываю ящик…']))+'</span>';
+  setGeneratingState(true);
+  let md='';
+  try{
+    const inbox=await hmUtil('tempmail',{body:{action:'inbox',handle:box.handle}});
+    const list=inbox.messages||[];
+    if(!list.length){
+      md=hmVary('tm_empty',['На **'+box.address+'** пока ничего не пришло. Карточка с ящиком выше обновляется сама — как придёт письмо, код появится там.','Писем на **'+box.address+'** ещё нет. Подожди минуту — проверка идёт автоматически.']);
+    }else{
+      const last=list[0];
+      const r=await hmTmRead(box,last.id);
+      const codes=r.codes||[],links=r.links||[];
+      const wantText=/что\s+в\s+письме|прочитай|перескажи|о\s+ч[её]м/i.test(text);
+      md='Последнее письмо — от **'+(last.from||'неизвестного отправителя')+'**, тема «'+(last.subject||'без темы')+'».';
+      if(codes.length)md+='\n\nКод подтверждения: **'+codes[0]+'**'+(codes.length>1?' (ещё: '+codes.slice(1).join(', ')+')':'')+'.';
+      if(links.length)md+='\n\nСсылка для подтверждения: '+links[0];
+      if(wantText||(!codes.length&&!links.length))md+='\n\n> '+String(r.message&&r.message.text||'').replace(/\s+/g,' ').slice(0,600);
+      if(list.length>1)md+='\n\nВсего писем в ящике: '+list.length+'.';
+    }
+  }catch(e){
+    md=/истёк|создайте новый/i.test(e.message)?'Срок жизни этого ящика истёк. Напиши «создай временную почту» — заведу новый.':'';
+    if(!md){hmRenderChatError(shell.msg,e.message,{where:'tempmail',retry:false});setGeneratingState(false);return;}
+  }
+  renderMd(shell.msg,md);
+  setMessageActionsVisible(shell.actions,true);
+  chatHistory.push({role:'assistant',content:md,createdAt:messageNow()});
+  saveChat().catch(()=>{});
+  setGeneratingState(false);scrollChat();
+}
+function hmRenderTempMail(host,box,opts){
+  opts=opts||{};
+  const card=document.createElement('div');card.className='tm-card';
+  card.innerHTML='<div class="tm-head">'+HM_TM_ICON+'<b>Временная почта</b><span class="tm-prov"></span><button type="button" class="tm-refresh" aria-label="Проверить входящие" title="Проверить входящие">'+HM_TM_REFRESH+'</button></div>'
+    +'<div class="tm-addr"><span class="tm-addr-v"></span><button type="button" class="tm-copy" aria-label="Копировать" title="Копировать">'+HM_TM_COPY+'</button></div><div class="tm-list"></div>';
+  card.querySelector('.tm-prov').textContent=box.provider||'';
+  card.querySelector('.tm-addr-v').textContent=box.address||'';
+  const list=card.querySelector('.tm-list');
+  const copyBtn=card.querySelector('.tm-copy');
+  copyBtn.onclick=()=>{navigator.clipboard?.writeText(box.address||'').then(()=>{copyBtn.innerHTML=HM_TM_DONE;copyBtn.classList.add('ok');if(typeof toast==='function')toast('Адрес скопирован');setTimeout(()=>{copyBtn.innerHTML=HM_TM_COPY;copyBtn.classList.remove('ok');},1400);}).catch(()=>{});};
+  const seen=new Map();let busy=false,stopped=false;
+  const setEmpty=(txt,shim)=>{if(seen.size)return;list.innerHTML='';const e=document.createElement('div');e.className='tm-empty'+(shim?' hm-shim':'');e.textContent=txt;list.appendChild(e);};
+  setEmpty(opts.poll?'Жду письма…':'Нажмите ↻, чтобы проверить входящие',opts.poll);
+  const addMsg=(m)=>{
+    if(seen.has(m.id))return;
+    if(!seen.size)list.innerHTML='';
+    const row=document.createElement('div');row.className='tm-msg';
+    const top=document.createElement('div');top.className='tm-msg-top';
+    const fr=document.createElement('span');fr.textContent=m.from||'';
+    const tm=document.createElement('span');try{tm.textContent=m.at?new Date(m.at).toLocaleTimeString(hmLocale(),{hour:'2-digit',minute:'2-digit'}):'';}catch(e){}
+    top.append(fr,tm);
+    const sj=document.createElement('div');sj.className='tm-msg-subj';sj.textContent=m.subject||'(без темы)';
+    const codes=document.createElement('div');codes.className='tm-codes';
+    const tx=document.createElement('div');tx.className='tm-msg-text';tx.textContent=m.intro||'';
+    row.append(top,sj,codes,tx);
+    row.addEventListener('click',e=>{if(e.target.closest('.tm-code,.tm-link'))return;row.classList.toggle('open');});
+    list.prepend(row);seen.set(m.id,row);
+    // Письмо читаем сразу: код подтверждения — крупно, по нажатию копируется.
+    hmTmRead(box,m.id).then(r=>{
+      tx.textContent=String(r.message&&r.message.text||m.intro||'').slice(0,8000);
+      (r.codes||[]).forEach(c=>{const b=document.createElement('button');b.type='button';b.className='tm-code';b.innerHTML='<span></span><small>копировать</small>';b.firstChild.textContent=c;
+        b.onclick=()=>{navigator.clipboard?.writeText(c).then(()=>{b.lastChild.textContent='скопировано';setTimeout(()=>{b.lastChild.textContent='копировать';},1200);}).catch(()=>{});};codes.appendChild(b);});
+      (r.links||[]).slice(0,2).forEach(u=>{const a=document.createElement('a');a.className='tm-link';a.href=u;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Открыть ссылку подтверждения';codes.appendChild(a);});
+      scrollChat();
+    }).catch(()=>{});
+  };
+  const refresh=async(manual)=>{
+    if(busy||stopped)return;busy=true;
+    const btn=card.querySelector('.tm-refresh');btn.classList.add('spin');
+    try{
+      const d=await hmUtil('tempmail',{body:{action:'inbox',handle:box.handle}});
+      (d.messages||[]).slice().reverse().forEach(addMsg);
+      if(manual&&!seen.size)setEmpty('Писем пока нет',false);
+    }catch(e){
+      if(/истёк|создайте новый/i.test(e.message)){stopped=true;setEmpty('Срок жизни ящика истёк — попросите создать новый.',false);}
+    }finally{busy=false;btn.classList.remove('spin');}
+  };
+  card.querySelector('.tm-refresh').onclick=()=>refresh(true);
+  host.appendChild(card);
+  if(opts.poll){
+    const t0=Date.now();
+    const timer=setInterval(()=>{
+      if(!card.isConnected||stopped||Date.now()-t0>15*60000){clearInterval(timer);if(!seen.size&&card.isConnected&&!stopped)setEmpty('Писем не было. Нажмите ↻, чтобы проверить ещё раз.',false);return;}
+      if(document.visibilityState==='visible')refresh(false);
+    },5000);
+    refresh(false);
+  }
+  scrollChat();
+  return card;
 }
 function createAiBubbleShell({showActions=true,hiddenActions=false,createdAt=null,historyIndex=null}={}){ 
   const inner=getChatInner();
@@ -9792,7 +10056,7 @@ async function regenMsg(item){
   setGeneratingState(true);
   try{
     const result=await requestChatReplyLive(msgEl,actionsEl);
-    if(result?.text)chatHistory.push({role:'assistant',content:result.text,createdAt:messageNow()});
+    if(result?.text)chatHistory.push({role:'assistant',content:result.text,createdAt:messageNow(),...(result.sources?{sources:result.sources}:{})});
     await saveChat();
     await autoContinueIfNeeded(result,wrap,msgEl,actionsEl);
   }catch(e){
@@ -9846,247 +10110,148 @@ function wsSubtitleOf(site){
   }catch(e){return String(site&&site.host||'');}
 }
 
-function setWsOpen(ws,open){
-  if(!ws||!ws._coll)return;
-  ws._coll.classList.toggle('isCollapsed',!open);
-  if(ws._chevron){
-    ws._chevron.setAttribute('aria-expanded',open?'true':'false');
-    ws._chevron.setAttribute('aria-label',open?'Свернуть список сайтов':'Показать список сайтов');
-  }
+/* ===== ВЕБ-ПОИСК 0.8.92 — как в ChatGPT =====
+   Во время поиска — одна строка: «Поиск в интернете…» (глобус), затем
+   «Поиск на N сайтах» (крутилка), затем статусы от ИИ, пока пишется ответ.
+   Когда пошёл текст, строка исчезает, а в строке действий под ответом
+   появляется кнопка «Источники» с иконками сайтов; по нажатию — шторка
+   со списком (телефон — снизу, компьютер — панель справа). */
+function wsFavicon(host){return 'https://icons.duckduckgo.com/ip3/'+encodeURIComponent(String(host||''))+'.ico';}
+function wsSiteName(host){
+  const h=String(host||'').replace(/^www\./,'');
+  const parts=h.split('.');
+  const core=parts.length>=2?parts[parts.length-2]:h;
+  const name=(['co','com','org','net','gov','edu','ac'].includes(core)&&parts.length>=3)?parts[parts.length-3]:core;
+  return name?name.charAt(0).toUpperCase()+name.slice(1):h;
 }
-// Пока пользователь сам не трогал шеврон, список раскрыт ровно тогда, когда
-// есть что показывать и поиск ещё идёт.
-function wsSyncOpen(ws){
-  if(!ws||ws._userToggled)return;
-  setWsOpen(ws,!ws._done&&ws._sites.length>0);
-}
-function wsSetLabel(ws,lead,query){
+function wsSitesWord(n){const n10=n%10,n100=n%100;return (n10===1&&n100!==11)?'сайте':'сайтах';}
+const WS_SPIN='<span class="ws2-spin" aria-hidden="true"></span>';
+function wsSetLine(ws,icon,text){
   if(!ws)return;
-  if(ws._lead)ws._lead.textContent=lead;
-  if(ws._quote)ws._quote.textContent=query?('«'+query+'»'):'';
+  if(icon&&ws._iconKind!==icon){ws._iconKind=icon;ws._ic.innerHTML=icon==='globe'?WS_ICON_GLOBE:WS_SPIN;}
+  if(ws._t.textContent!==text){ws._t.textContent=text;}
 }
-
+function wsSetLabel(ws,lead){wsSetLine(ws,null,lead);}
 function ensureSearchTraceLine(msgEl){
   const wrap=msgEl&&msgEl.closest?msgEl.closest('.msg-ai-wrap'):null;
   if(!wrap)return null;
-  const existing=wrap.querySelector('.ws');
+  const existing=wrap.querySelector('.ws2');
   if(existing)return existing;
-
   const ws=document.createElement('div');
-  ws.className='ws';
-  ws._sites=[];    // [{host,url,title,state,el}]
-  ws._sources=[];  // финальный список источников от сервера (search_sources)
-  ws._done=false;
-  ws._userToggled=false;
-  ws._lastQuery='';
-
-  const row=document.createElement('div');
-  row.className='wsRow';
-  // Иконка вставляется как настоящий <svg>, а не внутрь span: на неё нацелен
-  // селектор .wsRow>svg.
-  row.insertAdjacentHTML('beforeend',WS_ICON_GLOBE);
-
-  const label=document.createElement('span');
-  label.className='wsLabel';
-  const lead=document.createElement('span');
-  lead.className='wsShimmer wsLead';
-  lead.textContent='Ищу в интернете';
-  const quote=document.createElement('span');
-  quote.className='wsShimmer wsQuote';
-  label.appendChild(lead);
-  label.appendChild(quote);
-
-  const chevron=document.createElement('button');
-  chevron.type='button';
-  chevron.className='wsChevron';
-  chevron.innerHTML=WS_ICON_CHEVRON;
-
-  row.appendChild(label);
-  row.appendChild(chevron);
-
-  const coll=document.createElement('div');
-  coll.className='wsCollapsible';
-  const collInner=document.createElement('div');
-  collInner.className='wsCollapsibleInner';
-  const results=document.createElement('div');
-  results.className='wsResults';
-  const rail=document.createElement('span');
-  rail.className='wsRail';
-  const list=document.createElement('div');
-  list.className='wsList';
-  results.appendChild(rail);
-  results.appendChild(list);
-  collInner.appendChild(results);
-  coll.appendChild(collInner);
-
-  ws.appendChild(row);
-  ws.appendChild(coll);
-
-  ws._lead=lead;
-  ws._quote=quote;
-  ws._chevron=chevron;
-  ws._coll=coll;
-  ws._list=list;
-  // Сайтов ещё нет — стартуем свёрнутыми (до вставки в DOM, чтобы не мигнуло).
-  setWsOpen(ws,false);
-
-  const toggle=function(e){
-    if(e){e.preventDefault();e.stopPropagation();}
-    if(!ws._sites.length)return;
-    ws._userToggled=true;
-    setWsOpen(ws,coll.classList.contains('isCollapsed'));
-  };
-  chevron.addEventListener('click',toggle);
-  row.addEventListener('click',function(e){
-    if(e.target.closest('.wsChevron'))return;
-    toggle(e);
-  });
-
+  ws.className='ws2';ws.setAttribute('role','status');
+  ws._hosts=new Set();ws._sources=[];ws._done=false;ws._sites=[];
+  ws.innerHTML='<span class="ws2-ic"></span><span class="ws2-t hm-shim"></span>';
+  ws._ic=ws.querySelector('.ws2-ic');ws._t=ws.querySelector('.ws2-t');
+  wsSetLine(ws,'globe','Поиск в интернете…');
   wrap.insertBefore(ws,msgEl);
-  requestAnimationFrame(function(){ws.classList.add('is-in');});
   return ws;
 }
-
-function wsFindSite(ws,host,state){
-  const sites=(ws&&ws._sites)||[];
-  for(let i=0;i<sites.length;i++){
-    if(sites[i].host!==host)continue;
-    if(state&&sites[i].state!==state)continue;
-    return sites[i];
-  }
-  return null;
+function wsCount(ws){
+  const n=ws._hosts.size;
+  if(n)wsSetLine(ws,'spin','Поиск на '+n+' '+wsSitesWord(n));
 }
-function wsSetSiteState(entry,state){
-  if(!entry||entry.state===state)return;
-  entry.state=state;
-  entry.el.dataset.state=state;
-  // Ссылку даём только просмотренному сайту: у pending/loading и курсор не
-  // pointer, а <a> без href не фокусируется и не открывается по Enter.
-  if(state==='done'&&entry.url)entry.el.setAttribute('href',entry.url);
-  else entry.el.removeAttribute('href');
+function wsAddHost(ws,host){
+  host=String(host||'').replace(/^www\./,'');
+  if(!host||ws._hosts.has(host))return;
+  ws._hosts.add(host);ws._sites.push({host});
 }
-function wsAddSite(ws,site){
-  const host=String(site&&site.host||'')||wsHostOf(site&&site.url);
-  if(!ws||!host)return null;
-  const el=document.createElement('a');
-  el.className='wsSite';
-  el.dataset.state='pending';
-  el.target='_blank';
-  el.rel='noopener noreferrer';
-
-  const bullet=document.createElement('span');
-  bullet.className='wsBullet';
-  const dots=document.createElement('span');
-  dots.className='wsDots';
-  dots.innerHTML=WS_ICON_DOTS;
-  const globe=document.createElement('span');
-  globe.className='wsGlobe';
-  globe.innerHTML=WS_ICON_GLOBE_SM;
-  const check=document.createElement('span');
-  check.className='wsCheck';
-  check.innerHTML=WS_ICON_CHECK;
-  bullet.appendChild(dots);
-  bullet.appendChild(globe);
-  bullet.appendChild(check);
-
-  const titleEl=document.createElement('span');
-  titleEl.className='wsTitle';
-  titleEl.textContent=host;
-  const sep=document.createElement('span');
-  sep.className='wsSep';
-  sep.textContent='·';
-  const urlEl=document.createElement('span');
-  urlEl.className='wsUrl';
-  urlEl.textContent=wsSubtitleOf(site);
-  const arrow=document.createElement('span');
-  arrow.className='wsArrow';
-  arrow.innerHTML=WS_ICON_ARROW;
-
-  el.appendChild(bullet);
-  el.appendChild(titleEl);
-  el.appendChild(sep);
-  el.appendChild(urlEl);
-  el.appendChild(arrow);
-
-  const entry={host:host,url:String(site&&site.url||''),title:String(site&&site.title||''),state:'pending',el:el,urlEl:urlEl};
-  ws._sites.push(entry);
-  ws._list.appendChild(el);
-  return entry;
-}
-
-// search_found: сервер нашёл сайты и только собирается их читать.
 function showSearchFound(msgEl,sites){
-  const ws=ensureSearchTraceLine(msgEl);
-  if(!ws)return;
-  const arr=Array.isArray(sites)?sites:[];
-  for(let i=0;i<arr.length;i++){
-    const site=arr[i];
-    if(!site)continue;
-    const url=String(site.url||'');
-    if(url&&ws._sites.some(function(s){return s.url===url;}))continue;
-    wsAddSite(ws,site);
-  }
-  wsSyncOpen(ws);
-  scrollChat();
+  const ws=ensureSearchTraceLine(msgEl);if(!ws||ws._done)return;
+  (Array.isArray(sites)?sites:[]).forEach(site=>wsAddHost(ws,site&&(site.host||wsHostOf(site.url))));
+  wsCount(ws);scrollChat();
 }
-// search_browse_done: конкретная страница прочитана.
-function markSearchSiteDone(msgEl,host){
-  const wrap=msgEl&&msgEl.closest?msgEl.closest('.msg-ai-wrap'):null;
-  const ws=wrap&&wrap.querySelector('.ws');
-  if(!ws||!host)return;
-  const entry=wsFindSite(ws,host,'loading')||wsFindSite(ws,host,'pending');
-  if(entry)wsSetSiteState(entry,'done');
-}
-
+function markSearchSiteDone(msgEl,host){/* счётчик уже учёл сайт */}
 function showSearchTrace(msgEl,phase,query,browsed,total){
-  const ws=ensureSearchTraceLine(msgEl);
-  if(!ws)return;
-  if(phase==='query'){
-    ws._lastQuery=String(query||'');
-    wsSetLabel(ws,'Ищу в интернете',ws._lastQuery);
-  }else if(phase==='browse'){
-    const host=String(query||'');
-    let entry=host?wsFindSite(ws,host,'pending'):null;
-    // Хоста может не быть в списке (например сервер ещё старой версии и
-    // search_found не приходил) — тогда добавляем строку на ходу. Если хост
-    // уже есть, но не в pending, ничего не трогаем: это повтор события.
-    if(!entry&&host&&!wsFindSite(ws,host))entry=wsAddSite(ws,{host:host,url:'https://'+host,title:''});
-    if(entry)wsSetSiteState(entry,'loading');
-    wsSyncOpen(ws);
-  }else if(phase==='sources'){
-    const n=browsed||total||0;
-    wsSetLabel(ws,n?('Просмотрел '+n+' '+sourcesWord(n)):'Просмотрел сайты',ws._lastQuery);
+  const ws=ensureSearchTraceLine(msgEl);if(!ws||ws._done)return;
+  if(phase==='query'){if(!ws._hosts.size)wsSetLine(ws,'globe','Поиск в интернете…');}
+  else if(phase==='browse'){wsAddHost(ws,query);wsCount(ws);}
+  else if(phase==='sources'){
+    (ws._sources||[]).forEach(s=>wsAddHost(ws,wsHostOf(s.url)));
+    wsCount(ws);
   }
   scrollChat();
 }
-
-// Поиск закончился. Страницы, которые не успели прочитать, всё равно попали в
-// контекст сниппетами — поэтому закрываем галочкой все строки, а не часть.
-function wsSettle(ws){
+// Поиск закончен — модель пишет ответ: в строке статусы от ИИ (или ровное «Читаю найденное…»).
+function markSearchTraceThinking(msgEl){
+  const wrap=msgEl&&msgEl.closest?msgEl.closest('.msg-ai-wrap'):null;
+  const ws=wrap&&wrap.querySelector('.ws2');
   if(!ws||ws._done)return;
   ws._done=true;
-  for(let i=0;i<ws._sites.length;i++)wsSetSiteState(ws._sites[i],'done');
-  if(ws._lead)ws._lead.classList.add('isDone');
-  if(ws._quote)ws._quote.classList.add('isDone');
+  if(ws._phrases&&ws._phrases.length)hmWsCycle(ws);
+  else wsSetLine(ws,'spin','Читаю найденное…');
 }
-function markSearchTraceThinking(msgEl){
-  // search_done: сайты просмотрены, дальше модель думает над ответом. Мерцание
-  // гасим, но список пока оставляем раскрытым — он ещё интересен.
+function hmWsCycle(ws){
+  let i=0;wsSetLine(ws,'spin',ws._phrases[0]);
+  clearInterval(ws._timer);
+  ws._timer=setInterval(()=>{if(!ws.isConnected){clearInterval(ws._timer);return;}i=(i+1)%ws._phrases.length;wsSetLine(ws,'spin',ws._phrases[i]);},3200);
+}
+/* Статусы от ИИ: пока идёт поиск — запоминаем, после поиска — показываем. */
+function hmWsLiveStatus(msgEl,phrases){
   const wrap=msgEl&&msgEl.closest?msgEl.closest('.msg-ai-wrap'):null;
-  const ws=wrap&&wrap.querySelector('.ws');
-  if(ws)wsSettle(ws);
+  const ws=wrap&&wrap.querySelector('.ws2');
+  if(!ws)return;
+  ws._phrases=(phrases||[]).filter(Boolean);
+  if(ws._done&&ws._phrases.length)hmWsCycle(ws);
 }
 function finalizeSearchTrace(msgEl){
   const wrap=msgEl&&msgEl.closest?msgEl.closest('.msg-ai-wrap'):null;
-  const ws=wrap&&wrap.querySelector('.ws');
-  if(!ws)return;
-  wsSettle(ws);
-  const sources=(ws._sources&&ws._sources.length)?ws._sources:((msgEl&&msgEl._searchSources)||[]);
-  // Считаем реально открытые страницы — ровно те, что видно в списке.
-  const n=ws._sites.length||sources.length;
-  if(!n){ws.remove();return;}
-  wsSetLabel(ws,'Просмотрел '+n+' '+sourcesWord(n),'');
-  if(!ws._userToggled)setWsOpen(ws,false);
+  const ws=wrap&&wrap.querySelector('.ws2');
+  const sources=(ws&&ws._sources&&ws._sources.length)?ws._sources:((msgEl&&msgEl._searchSources)||[]);
+  if(ws){clearInterval(ws._timer);ws.classList.add('out');setTimeout(()=>ws.remove(),220);}
+  if(wrap&&sources.length)hmAddSourcesPill(wrap,sources);
+}
+/* Кнопка «Источники» в строке действий: до трёх иконок сайтов внахлёст. */
+function hmAddSourcesPill(wrap,sources){
+  const list=(sources||[]).filter(s=>s&&s.url);
+  if(!wrap||!list.length)return;
+  wrap._sources=list;
+  const place=()=>{
+    const actions=wrap.querySelector('.msg-actions');
+    if(!actions){setTimeout(place,300);return;}
+    if(actions.querySelector('.src-pill'))return;
+    const hosts=[];list.forEach(s=>{const h=wsHostOf(s.url);if(h&&!hosts.includes(h))hosts.push(h);});
+    const b=document.createElement('button');
+    b.type='button';b.className='src-pill';b.setAttribute('aria-label','Источники: '+list.length);
+    const icons=document.createElement('span');icons.className='src-pill-icons';
+    hosts.slice(0,3).forEach(h=>{const im=document.createElement('img');im.alt='';im.loading='lazy';im.referrerPolicy='no-referrer';im.src=wsFavicon(h);im.onerror=()=>{im.replaceWith(Object.assign(document.createElement('i'),{textContent:wsSiteName(h).charAt(0)}));};icons.appendChild(im);});
+    const t=document.createElement('span');t.textContent='Источники';
+    b.append(icons,t);
+    b.onclick=(e)=>{e.stopPropagation();hmOpenSourcesSheet(wrap._sources);};
+    const more=actions.querySelector('.more-menu');
+    actions.insertBefore(b,more||null);
+  };
+  place();
+}
+function hmOpenSourcesSheet(sources){
+  const list=(sources||[]).filter(s=>s&&s.url);
+  document.getElementById('srcSheet')?.remove();
+  const ov=document.createElement('div');ov.id='srcSheet';ov.className='src-sheet';
+  const panel=document.createElement('div');panel.className='src-sheet-panel';panel.setAttribute('role','dialog');panel.setAttribute('aria-label','Источники');
+  panel.innerHTML='<div class="src-sheet-handle" aria-hidden="true"></div><div class="src-sheet-head"><b>Источники</b><button type="button" class="src-sheet-x" aria-label="Закрыть"><svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></div><div class="src-sheet-list"></div>';
+  const box=panel.querySelector('.src-sheet-list');
+  list.forEach(s=>{
+    const host=wsHostOf(s.url);
+    const a=document.createElement('a');a.className='src-row';a.href=s.url;a.target='_blank';a.rel='noopener noreferrer';
+    const top=document.createElement('div');top.className='src-row-site';
+    const im=document.createElement('img');im.alt='';im.loading='lazy';im.referrerPolicy='no-referrer';im.src=wsFavicon(host);im.onerror=()=>{im.style.visibility='hidden';};
+    const nm=document.createElement('span');nm.textContent=wsSiteName(host);
+    top.append(im,nm);
+    const ti=document.createElement('div');ti.className='src-row-title';ti.textContent=String(s.title||host||s.url).slice(0,200);
+    a.append(top,ti);
+    if(s.snippet){const sn=document.createElement('div');sn.className='src-row-snip';sn.textContent=String(s.snippet).slice(0,240);a.appendChild(sn);}
+    box.appendChild(a);
+  });
+  ov.appendChild(panel);
+  const close=()=>{ov.classList.remove('open');setTimeout(()=>ov.remove(),240);document.removeEventListener('keydown',onKey);};
+  const onKey=(e)=>{if(e.key==='Escape')close();};
+  ov.addEventListener('click',e=>{if(e.target===ov)close();});
+  panel.querySelector('.src-sheet-x').onclick=close;
+  document.addEventListener('keydown',onKey);
+  // Свайп вниз по ручке закрывает шторку на телефоне.
+  let sy=0;panel.addEventListener('touchstart',e=>{sy=e.touches[0].clientY;},{passive:true});
+  panel.addEventListener('touchend',e=>{if(box.scrollTop<=0&&e.changedTouches[0].clientY-sy>80)close();},{passive:true});
+  document.body.appendChild(ov);
+  requestAnimationFrame(()=>ov.classList.add('open'));
 }
 
 // --- REASONING (Думать) --- HM-REASONING-V2
@@ -10326,7 +10491,7 @@ function ensureReasoningBlock(msgEl,opts){
   },{passive:true});
 
   // Блок размышления встаёт под списком веб-поиска, если тот есть.
-  const searchLine=wrap.querySelector('.ws')||wrap.querySelector('.search-trace');
+  const searchLine=wrap.querySelector('.ws2')||wrap.querySelector('.search-trace');
   if(searchLine&&searchLine.parentNode===wrap)searchLine.after(tr);
   else wrap.insertBefore(tr,msgEl);
 
@@ -10707,6 +10872,26 @@ function shouldShowThinkingLabel(){
   return isComplexTask(trReadLastUserText());
 }
 
+/* Статусы, которые ИИ придумал под конкретный запрос («Сверяю аккорды…»).
+   Встают в текущий индикатор ожидания: в анимацию «Думаю» — через setPhrases,
+   рядом с пульсирующей точкой — отдельной переливающейся строкой. */
+function hmApplyLiveStatus(phrases){
+  const list=(Array.isArray(phrases)?phrases:[]).map(x=>String(x||'').trim()).filter(Boolean).slice(0,5);
+  if(!list.length)return;
+  const t=document.getElementById('typEl');
+  if(!t)return;
+  if(t._staff&&typeof t._staff.setPhrases==='function'){t._staff.setPhrases(list);return;}
+  let s=t.querySelector('.hm-live-st');
+  if(!s){
+    s=t.querySelector('.hmThinkLabel,.hga-mini-label');
+    if(!s){s=document.createElement('span');t.appendChild(s);}
+    s.classList.add('hm-live-st','hm-shim');
+    t.classList.add('think-text');
+  }
+  let i=0;s.textContent=list[0];
+  clearInterval(t._liveTimer);
+  t._liveTimer=setInterval(()=>{if(!t.isConnected){clearInterval(t._liveTimer);return;}i=(i+1)%list.length;s.textContent=list[i];},3200);
+}
 function showTyping(kind='text',steps=[]){
   const inner=getChatInner();
   if(!inner)return;
@@ -11028,6 +11213,8 @@ function toWireHistory(history,opts={}){
     if(forStorage&&m.music)base.music=m.music;
     if(forStorage&&m.video)base.video=m.video;
     if(forStorage&&m.videoLabel)base.videoLabel=m.videoLabel;
+    if(forStorage&&m.tempMail)base.tempMail=m.tempMail;
+    if(forStorage&&m.tempMailIntro)base.tempMailIntro=m.tempMailIntro;
     // Размышления модели («Думал N с») — чтобы блок открывался и после перезагрузки.
     if(forStorage&&m.thinking&&m.thinking.text)base.thinking={text:String(m.thinking.text).slice(0,24000),ms:Number(m.thinking.ms)||0};
     // Без этого флага после перезагрузки чата служебная подпись «Включаю: …»
@@ -11043,6 +11230,8 @@ function toWireHistory(history,opts={}){
     // Для модели URL картинки не нужен — только текстовая метка в content.
     // При сохранении в базу (keepImage=true) сохраняем URL, чтобы восстановить картинку при открытии чата.
     if(keepImage&&m.image)base.image=m.image;
+    if(keepImage&&Array.isArray(m.images)&&m.images.length>1)base.images=m.images.slice(0,4);
+    if(keepImage&&Array.isArray(m.sources)&&m.sources.length)base.sources=m.sources.slice(0,20);
     return base;
   });
 }
@@ -11193,6 +11382,12 @@ async function hmFitPayload(payload){
     throw e;
   }
 }
+/* Источники ответа хранятся в истории чата (без лишних полей), чтобы кнопка
+   «Источники» была и после перезагрузки. */
+function hmSlimSources(list){
+  const out=(Array.isArray(list)?list:[]).filter(s=>s&&s.url).slice(0,20).map(s=>({url:String(s.url).slice(0,500),title:String(s.title||'').slice(0,200),snippet:String(s.snippet||'').slice(0,240)}));
+  return out.length?out:undefined;
+}
 async function requestChatReplyLive(msgEl,actionsEl,extraMessages=[],prefixText='',opts={}){
   activeAbortController=new AbortController();
   const payload={
@@ -11280,6 +11475,12 @@ async function requestChatReplyLive(msgEl,actionsEl,extraMessages=[],prefixText=
               let payloadChunk=null;
               try{payloadChunk=JSON.parse(raw);}catch(e){continue;}
               if(!payloadChunk||typeof payloadChunk!=='object')continue;
+              if(payloadChunk.type==='status'){
+                // Статусы от ИИ под этот запрос — переливаются, пока нет ответа.
+                hmApplyLiveStatus(payloadChunk.phrases);
+                if(!gotSearchTrace&&!document.getElementById('typEl'))hmWsLiveStatus(msgEl,payloadChunk.phrases);
+                continue;
+              }
               if(payloadChunk.type==='search_query'){
                 // ИИ начала поиск: показываем блок «Ищу в интернете «запрос»».
                 if(!gotSearchTrace){hideTyping();gotSearchTrace=true;}
@@ -11301,7 +11502,7 @@ async function requestChatReplyLive(msgEl,actionsEl,extraMessages=[],prefixText=
                 lastSearchSources=sources;
                 msgEl._searchSources=sources;
                 const wrap=msgEl.closest('.msg-ai-wrap');
-                const searchLine=wrap&&wrap.querySelector('.ws');
+                const searchLine=wrap&&wrap.querySelector('.ws2');
                 if(searchLine)searchLine._sources=sources;
                 showSearchTrace(msgEl,'sources',null,payloadChunk.browsed||sources.length,sources.length);
               }else if(payloadChunk.type==='search_done'){
@@ -11353,7 +11554,7 @@ async function requestChatReplyLive(msgEl,actionsEl,extraMessages=[],prefixText=
                 if(!fullFinal.trim())fullFinal='Не удалось получить полный ответ от модели. Попробуйте ещё раз.';
                 const finalText=await typer.complete(fullFinal);
                 setMessageActionsVisible(actionsEl,true);
-                return {text:finalText,truncated:Boolean(payloadChunk.truncated)};
+                return {text:finalText,truncated:Boolean(payloadChunk.truncated),sources:hmSlimSources(msgEl._searchSources)};
               }else if(payloadChunk.type==='error'){
                 throw new Error(payloadChunk.message||'Ошибка потоковой генерации');
               }
@@ -11509,8 +11710,9 @@ function hmImgGenAnim(host,opts){
   },1000);
   return {stop(){clearInterval(timer);box.remove();}};
 }
-function renderImageGenPlaceholder(msgEl,prompt,resolution){
+function renderImageGenPlaceholder(msgEl,prompt,resolution,count){
   if(!msgEl)return null;
+  count=Math.max(1,Math.min(4,Number(count)||1));
   const wrap=document.createElement('div');
   wrap.className='igWrap';
 
@@ -11532,13 +11734,21 @@ function renderImageGenPlaceholder(msgEl,prompt,resolution){
   // а готовая картинка потом занимает свой настоящий размер.
   // Новая анимация генерации: цветная мозаика «проявляется» волнами + таймер.
   // Цикл гаснет сам, когда плейсхолдер заменяется готовой картинкой.
-  try{wrap._hga=hmImgGenAnim(canvas);}catch(e){}
+  // Несколько картинок — та же раскладка, что у будущего коллажа.
+  let stage=canvas;
+  if(count>1){
+    stage=document.createElement('div');
+    stage.className='hm-collage igGrid n'+count;
+    for(let i=0;i<count;i++){const c=document.createElement('div');c.className='igCanvas igCell';try{hmImgGenAnim(c,{mini:i>0});}catch(e){}stage.appendChild(c);}
+  }else{
+    try{wrap._hga=hmImgGenAnim(canvas);}catch(e){}
+  }
 
   const meta=document.createElement('div');
   meta.className='igMeta';
   const label=document.createElement('span');
   label.className='igLabel';
-  label.textContent='Генерирую изображение';
+  label.textContent=count>1?('Генерирую '+count+' изображения'):'Генерирую изображение';
   meta.appendChild(label);
   const clean=String(prompt==null?'':prompt).trim();
   if(clean){
@@ -11548,7 +11758,7 @@ function renderImageGenPlaceholder(msgEl,prompt,resolution){
     meta.appendChild(promptEl);
   }
 
-  wrap.appendChild(canvas);
+  wrap.appendChild(stage);
   wrap.appendChild(meta);
   msgEl.innerHTML='';
   // Пузырь по умолчанию pre-wrap (текстовые ответы) — для блочной вёрстки это
@@ -11634,6 +11844,28 @@ function appendImageToShell(msgEl,src){
   }
   scrollChat();
 }
+/* Несколько картинок одного запроса — коллаж: 2 рядом, 3 — большая слева и две
+   справа, 4 — сеткой 2×2. Нажатие открывает просмотр с листанием. */
+function appendImagesToShell(msgEl,urls){
+  const list=(urls||[]).filter(Boolean).slice(0,4);
+  if(list.length<=1){appendImageToShell(msgEl,list[0]);return;}
+  if(!msgEl)return;
+  msgEl.style.whiteSpace='normal';
+  const col=document.createElement('div');
+  col.className='hm-collage n'+list.length;
+  const imgs=[];
+  list.forEach((src,i)=>{
+    const img=document.createElement('img');
+    img.className='msg-ai-img hm-col-img';img.alt='Сгенерированное изображение '+(i+1);
+    HM_IMG_URLS.set(img,src);hmGuardImage(img);
+    if(/^(data|blob):/.test(String(src)))img.src=src;
+    else hmImgBlob(src).then(b=>{img.src=URL.createObjectURL(b);}).catch(()=>{img.src=src;});
+    img.addEventListener('click',()=>openPhotoViewer(src,img,{list:list.slice(),imgs:imgs,index:i}));
+    imgs.push(img);col.appendChild(img);
+  });
+  msgEl.innerHTML='';msgEl.appendChild(col);
+  scrollChat();
+}
 /* Скопировать саму картинку (а не ссылку на неё). */
 async function hmCopyImage(img){
   const url=hmImgUrl(img)||img.src;
@@ -11653,9 +11885,10 @@ async function hmCopyImage(img){
 // кнопка «Удалить» знала, какое именно сообщение заменить заглушкой.
 let _pvState={url:null,imgEl:null,savedOverflow:null};
 
-function openPhotoViewer(url,imgEl){
+function openPhotoViewer(url,imgEl,gallery){
   if(!url)return;
-  _pvState={url,imgEl:imgEl||null,savedOverflow:document.body.style.overflow};
+  _pvState={url,imgEl:imgEl||null,savedOverflow:document.body.style.overflow,list:gallery&&gallery.list||null,imgs:gallery&&gallery.imgs||null,index:gallery?gallery.index||0:0};
+  pvSetupGallery();
   const ov=document.getElementById('photoViewerOverlay');
   const img=document.getElementById('pvImage');
   if(!ov||!img)return;
@@ -11675,14 +11908,48 @@ function closePhotoViewer(){
   if(!ov||!ov.classList.contains('open'))return;
   ov.classList.remove('open');
   document.body.style.overflow=_pvState.savedOverflow||'';
-  _pvState.url=null;_pvState.imgEl=null;_pvState.savedOverflow=null;
+  _pvState.url=null;_pvState.imgEl=null;_pvState.savedOverflow=null;_pvState.list=null;_pvState.imgs=null;
   closePhotoViewerMenu();
   document.removeEventListener('keydown',_pvKeyHandler);
   // Очищаем src, чтобы не мигала прошлая картинка при следующем открытии.
   const img=document.getElementById('pvImage');
   if(img)img.src='';
 }
+/* Листание в просмотрщике: стрелки по бокам, счётчик «2 / 4», свайп и ← →. */
+function pvSetupGallery(){
+  const stage=document.querySelector('#photoViewerOverlay .pv-stage');
+  if(!stage)return;
+  let nav=stage.querySelector('.pv-gal');
+  if(!nav){
+    nav=document.createElement('div');nav.className='pv-gal';
+    nav.innerHTML='<button type="button" class="pv-gal-btn prev" aria-label="Предыдущее фото"><svg viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>'
+      +'<button type="button" class="pv-gal-btn next" aria-label="Следующее фото"><svg viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>'
+      +'<div class="pv-gal-count"></div>';
+    stage.appendChild(nav);
+    nav.querySelector('.prev').addEventListener('click',e=>{e.stopPropagation();pvGo(-1);});
+    nav.querySelector('.next').addEventListener('click',e=>{e.stopPropagation();pvGo(1);});
+    let sx=0,sy=0;
+    stage.addEventListener('touchstart',e=>{const t=e.touches[0];sx=t.clientX;sy=t.clientY;},{passive:true});
+    stage.addEventListener('touchend',e=>{const t=e.changedTouches[0];const dx=t.clientX-sx,dy=t.clientY-sy;if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)*1.3)pvGo(dx<0?1:-1);},{passive:true});
+  }
+  const many=Boolean(_pvState.list&&_pvState.list.length>1);
+  nav.hidden=!many;
+  if(many)pvUpdateCount();
+}
+function pvUpdateCount(){
+  const c=document.querySelector('#photoViewerOverlay .pv-gal-count');
+  if(c&&_pvState.list)c.textContent=(_pvState.index+1)+' / '+_pvState.list.length;
+}
+function pvGo(step){
+  const list=_pvState.list;if(!list||list.length<2)return;
+  const i=(_pvState.index+step+list.length)%list.length;
+  _pvState.index=i;_pvState.url=list[i];_pvState.imgEl=(_pvState.imgs&&_pvState.imgs[i])||null;
+  const img=document.getElementById('pvImage');
+  if(img){const el=_pvState.imgEl;img.src=(el&&/^blob:/.test(el.src))?el.src:list[i];}
+  pvUpdateCount();
+}
 function _pvKeyHandler(e){
+  if(_pvState.list&&_pvState.list.length>1&&(e.key==='ArrowRight'||e.key==='ArrowLeft')){e.preventDefault();pvGo(e.key==='ArrowRight'?1:-1);return;}
   if(e.key==='Escape'){
     // Если открыто меню «три точки» — сначала закрываем его, потом саму модалку.
     const menu=document.getElementById('pvMenu');
@@ -11778,6 +12045,25 @@ async function pvEdit(){
 // «Фото удалено». Сохраняем обновлённую историю в базу.
 function pvDelete(){
   const imgEl=_pvState.imgEl;if(!imgEl){closePhotoViewer();return;}
+  // Фото из коллажа: убираем только его, остальные остаются.
+  const col=imgEl.closest('.hm-collage');
+  if(col&&_pvState.list&&_pvState.list.length>1){
+    const url=_pvState.url;
+    const rest=_pvState.list.filter(u=>u!==url);
+    for(let i=chatHistory.length-1;i>=0;i--){
+      const m=chatHistory[i];
+      if(m&&m.role==='assistant'&&Array.isArray(m.images)&&m.images.includes(url)){
+        m.images=m.images.filter(u=>u!==url);m.image=m.images[0];
+        if(m.images.length<2)delete m.images;
+        break;
+      }
+    }
+    const msgEl=col.parentElement;
+    if(msgEl)appendImagesToShell(msgEl,rest);
+    saveChat().catch(()=>{});
+    closePhotoViewer();
+    return;
+  }
   // Поднимаемся до бабла ассистента (.msg-ai-wrap) и заменяем содержимое заглушкой.
   const wrap=imgEl.closest('.msg-ai-wrap');
   if(wrap){
@@ -11971,69 +12257,95 @@ async function handleVideoGeneration(text){
   saveChat().catch(()=>{});
 }
 
+/* Сколько картинок просят за раз: «нарисуй 3 варианта», «4 картинки»,
+   «несколько вариантов». Не больше 4; редактирование фото — всегда одна. */
+function hmImageCount(text){
+  const t=String(text||'').toLowerCase();
+  const W={'две':2,'два':2,'пару':2,'пара':2,'три':3,'трёх':3,'трех':3,'четыре':4,'четырёх':4,'четырех':4};
+  const m=t.match(/(?:^|[^\p{L}\d])(\d{1,2}|две|два|пару|пара|три|тр[её]х|четыре|четыр[её]х)\s+(?:разн\S*\s+|разных\s+|ещё\s+)?(вариант|изображени|картин|фото|рисун|арт|иллюстрац|верси|штук|обо[ия]|аватар|логотип|постер|стикер|обложк|кадр)/u);
+  let n=0;
+  if(m)n=/^\d+$/.test(m[1])?parseInt(m[1],10):(W[m[1]]||0);
+  else if(/(несколько|пару)\s+(вариант|изображени|картин|фото|рисун|верси)/u.test(t))n=3;
+  return Math.max(1,Math.min(4,n||1));
+}
+/* Сколько картинок ещё можно сделать по локальному учёту лимитов. */
+function hmImagesLeft(){
+  if(hasTrainingAccess())return 4;
+  const u=getImgUsage(),L=imgPlanLimits();
+  return Math.max(0,Math.min(L.daily-u.dayImages,L.weekly-u.weekImages,L.monthly-u.monthImages));
+}
+/* Один запрос к /api/generate-image (с перебором запасных адресов). */
+async function hmRequestOneImage(payload,signal){
+  const endpoints=buildImageApiCandidates();
+  let lastError=null;
+  for(let i=0;i<endpoints.length;i++){
+    try{
+      const res=await withTimeout(
+        fetch(endpoints[i],{method:'POST',headers:await hmAuthHeaders(),body:JSON.stringify(payload),cache:'no-store',credentials:'omit',signal}),
+        CHAT_TIMEOUT_MS,'Сервер слишком долго отвечает');
+      let data=null;try{data=await res.json();}catch(e){data=null;}
+      if(!res.ok||data?.error){
+        const err=new Error(data?.error?.message||`Ошибка сервера (${res.status})`);
+        if(res.status===429&&data?.error?.scope)err.limit=data.error;
+        throw err;
+      }
+      if(!data?.image)throw new Error('Сервер не вернул изображение');
+      return data.image;
+    }catch(e){
+      if(e?.name==='AbortError')throw new Error('Генерация остановлена');
+      lastError=e;
+      const msg=String(e?.message||'').toLowerCase();
+      if(!e.limit&&i<endpoints.length-1&&(msg.includes('failed to fetch')||msg.includes('load failed')||msg.includes('network')))continue;
+      throw e;
+    }
+  }
+  throw lastError||new Error('Не удалось сгенерировать изображение');
+}
 async function handleImageGeneration(promptText,opts={}){
   const limit=checkImageLimit();
   if(limit.blocked){showImageLimitReached(Object.assign({kind:'image'},limit));return;}
+  // До 4 картинок за раз — столько, сколько попросили и сколько позволяет лимит.
+  const count=opts.image?1:Math.max(1,Math.min(hmImageCount(promptText),hmImagesLeft()||1));
   setGeneratingState(true);
   activeAbortController=new AbortController();
+  const signal=activeAbortController.signal;
   const shell=createAiBubbleShell({showActions:false});
-  // Вместо безликого «печатает…» — плейсхолдер с самим промптом и разрешением.
   hideTyping();
-  renderImageGenPlaceholder(shell.msg,promptText);
-  const endpoints=buildImageApiCandidates();
+  renderImageGenPlaceholder(shell.msg,promptText,null,count);
   const payload={prompt:promptText,userId:curUser?.id||null,model:curModel};
   if(opts.image){payload.image=opts.image;payload.mode='edit';}
-  let lastError=null;
   try{
-    for(let i=0;i<endpoints.length;i++){
-      const endpoint=endpoints[i];
-      try{
-        const res=await withTimeout(
-          fetch(endpoint,{method:'POST',headers:await hmAuthHeaders(),body:JSON.stringify(payload),cache:'no-store',credentials:'omit',signal:activeAbortController.signal}),
-          CHAT_TIMEOUT_MS,
-          'Сервер слишком долго отвечает'
-        );
-        let data=null;try{data=await res.json();}catch(e){data=null;}
-        if(!res.ok||data?.error){
-          // Серверный лимит (429 со scope) — красивая плашка вместо текста ошибки.
-          if(res.status===429&&data?.error?.scope){
-            hideTyping();
-            const scopeMap={burst:'burst',day:'day',week:'week',window_limit:'window',day_limit:'window',week_limit:'week',month_limit:'month',month:'month'};
-            const check={scope:scopeMap[data.error.scope]||'day',reason:data.error.message,resetAt:data.error.resetAt,kind:'image'};
-            // Запоминаем серверный лимит: до сброса пункт «Сгенерировать изображение» в «+» серый.
-            try{
-              const until=Date.parse(data.error.resetAt||'')||(Date.now()+(data.error.scope==='burst'?180000:3600000));
-              const iu=getImgUsage();iu.serverBlock={until,scope:check.scope};writeImgUsage(iu);
-            }catch(_){}
-            const holder=document.createElement('div');
-            holder.innerHTML=limitMessageHtml(check);
-            shell.wrap.replaceWith(holder.firstElementChild);
-            scrollChat();
-            return;
-          }
-          throw new Error(data?.error?.message||`Ошибка сервера (${res.status})`);
-        }
-        if(!data?.image)throw new Error('Сервер не вернул изображение');
+    const settled=await Promise.allSettled(Array.from({length:count},()=>hmRequestOneImage(payload,signal)));
+    if(signal.aborted)throw new Error('Генерация остановлена');
+    const urls=settled.filter(r=>r.status==='fulfilled').map(r=>r.value);
+    const errs=settled.filter(r=>r.status==='rejected').map(r=>r.reason);
+    if(!urls.length){
+      const lim=errs.find(e=>e&&e.limit);
+      if(lim){
+        // Серверный лимит (429 со scope) — плашка вместо текста ошибки.
         hideTyping();
-        appendImageToShell(shell.msg,data.image);
-        attachImageMessageActions(shell,promptText);
-        recordImageUsage();
-        // Промо-уведомление после каждой генерации (~78% для не-Pro, не чаще 1 раза за сессию).
-        showNotification('promo_img',1/8);
-        chatHistory.push({role:'assistant',content:'['+(opts.image?'Отредактировано фото':'Сгенерировано изображение')+' по запросу: «'+promptText+'». Адрес картинки для вставки в документ или презентацию: '+data.image+']',image:data.image,createdAt:messageNow()});
-        await saveChat();
+        const d=lim.limit;
+        const scopeMap={burst:'burst',day:'day',week:'week',window_limit:'window',day_limit:'window',week_limit:'week',month_limit:'month',month:'month'};
+        const check={scope:scopeMap[d.scope]||'day',reason:d.message,resetAt:d.resetAt,kind:'image'};
+        try{const until=Date.parse(d.resetAt||'')||(Date.now()+(d.scope==='burst'?180000:3600000));const iu=getImgUsage();iu.serverBlock={until,scope:check.scope};writeImgUsage(iu);}catch(_){}
+        const holder=document.createElement('div');
+        holder.innerHTML=limitMessageHtml(check);
+        shell.wrap.replaceWith(holder.firstElementChild);
+        scrollChat();
         return;
-      }catch(e){
-        if(e?.name==='AbortError')throw new Error('Генерация остановлена');
-        lastError=e;
-        const msg=String(e?.message||'').toLowerCase();
-        if(i<endpoints.length-1&&(msg.includes('failed to fetch')||msg.includes('load failed')||msg.includes('network'))){
-          continue;
-        }
-        throw e;
       }
+      throw errs[0]||new Error('Не удалось сгенерировать изображение');
     }
-    throw lastError||new Error('Не удалось сгенерировать изображение');
+    hideTyping();
+    appendImagesToShell(shell.msg,urls);
+    attachImageMessageActions(shell,promptText);
+    urls.forEach(()=>recordImageUsage());
+    showNotification('promo_img',1/8);
+    const what=opts.image?'Отредактировано фото':(urls.length>1?'Сгенерировано '+urls.length+' изображения':'Сгенерировано изображение');
+    const note={role:'assistant',content:'['+what+' по запросу: «'+promptText+'». '+(urls.length>1?'Адреса картинок для вставки в документ или презентацию: '+urls.join(' , '):'Адрес картинки для вставки в документ или презентацию: '+urls[0])+']',image:urls[0],createdAt:messageNow()};
+    if(urls.length>1)note.images=urls;
+    chatHistory.push(note);
+    await saveChat();
   }catch(e){
     hideTyping();
     if(e.message==='Генерация остановлена'){
@@ -12590,6 +12902,13 @@ async function sendMsgInner(){
     let videoHandled=false;
     try{videoHandled=await hmVideoRoute(text);}catch(e){videoHandled=false;}
     if(videoHandled)return;
+  }
+
+  // ВРЕМЕННАЯ ПОЧТА: «создай временную почту», «какой код пришёл».
+  if(text&&!pendingAttachments.length){
+    let tmHandled=false;
+    try{tmHandled=await hmTempMailRoute(text);}catch(e){tmHandled=false;}
+    if(tmHandled)return;
   }
 
   // МУЗЫКА — САМЫЙ ПЕРВЫЙ ПРОВЕРЯЕМЫЙ ПУТЬ.
@@ -13573,7 +13892,7 @@ async function runAssistantReply(displayText){
     if(result?.text){
       const trEl=aiShell.wrap.querySelector('.tr');
       const thinking=trEl&&String(trEl._text||'').trim()?{text:String(trEl._text).slice(0,24000),ms:Math.round(trEl._durationMs||trEl._serverDurationMs||0)}:null;
-      chatHistory.push({role:'assistant',content:result.text,createdAt:messageNow(),...(thinking?{thinking}:{})});
+      chatHistory.push({role:'assistant',content:result.text,createdAt:messageNow(),...(thinking?{thinking}:{}),...(result.sources?{sources:result.sources}:{})});
       recordUsage(displayText,result.text);
     }
     if(hmPaused){const h=document.createElement('div');h.innerHTML=hmLimitPauseHtml();aiShell.wrap.appendChild(h.firstElementChild);scrollChat();}
@@ -14232,9 +14551,11 @@ async function hmLoadSubscriptionData(){
 
 /* Оплата/продление прямо из настроек: тот же /api/payment/create, что и на /subscribe. */
 async function hmBuyPro(plan,btn){
+  const terms=document.getElementById('stpPayTerms');
+  if(terms&&!terms.checked){terms.closest('.stp-pay-terms')?.classList.add('need');toast('Отметьте, что прочитали Оферту, Условия и Политику');return;}
   if(btn){btn.disabled=true;btn.dataset.label=btn.innerHTML;btn.textContent='Открываю оплату…';}
   try{
-    const res=await fetch('/api/payment/create',{method:'POST',headers:await hmAuthHeaders(),body:JSON.stringify({type:'subscription',plan})});
+    const res=await fetch('/api/payment/create',{method:'POST',headers:await hmAuthHeaders(),body:JSON.stringify({type:'subscription',plan,accept_terms:true})});
     const data=await res.json().catch(()=>({}));
     if(!res.ok||!data.confirmationUrl)throw new Error(data.error||'Не удалось создать платёж');
     location.href=data.confirmationUrl;
@@ -14302,6 +14623,7 @@ function renderSettingsSubscription(skipLoad){
         <button type="button" class="stp-renew-btn primary" onclick="hmBuyPro('month',this)"><span>+30 дней</span><b>${hmRub(sub&&sub.discount?refRub:monthRub)}</b>${sub&&sub.discount?`<s>${hmRub(monthRub)}</s>`:''}</button>
       </div>
       ${sub&&sub.discount?`<div class="stp-note">Скидка ${sub.prices.discountPercent}% на первый месяц по приглашению.</div>`:''}
+      <label class="stp-pay-terms"><input type="checkbox" id="stpPayTerms"><span>Я прочитал(а) и принимаю <a href="/legal/ofera.html" target="_blank" rel="noopener noreferrer">Оферту</a>, <a href="/legal/terms.html" target="_blank" rel="noopener noreferrer">Условия использования</a> и <a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Политику конфиденциальности</a></span></label>
     </div>
     <div class="stp-hr"></div>`;
     }
@@ -15139,7 +15461,7 @@ function renderAbout(){
       <div class="stp-about-hero">
         <div class="stp-about-logo"><svg width="26" height="26" viewBox="0 0 64 64"><path d="M18 14h8v18h12V14h8v36h-8V39H26v11h-8z" fill="currentColor"/></svg></div>
         <div class="stp-about-name">HarmonyAI</div>
-        <div class="stp-about-ver">Beta 0.8.91</div>
+        <div class="stp-about-ver">Beta 0.8.92</div>
       </div>
       <div class="stp-row" onclick="hmOpenDoc('/legal/privacy.html')" role="link" tabindex="0">
         <div class="stp-row-label"><div class="stp-row-title">Политика конфиденциальности</div></div>
@@ -15922,7 +16244,7 @@ async function hmExportChats(btn){
     for(;;){
       const {data,error}=await sb.from('chats').select('id,title,history,updated_at').eq('user_id',curUser.id).order('updated_at',{ascending:false}).range(from,from+49);
       if(error)throw error;
-      (data||[]).forEach(c=>out.push({id:c.id,title:c.title,updated_at:c.updated_at,messages:(c.history||[]).map(m=>({role:m.role,content:m.content,image:m.image||undefined,createdAt:m.createdAt||undefined}))}));
+      (data||[]).forEach(c=>out.push({id:c.id,title:c.title,updated_at:c.updated_at,messages:(c.history||[]).map(m=>({role:m.role,content:m.content,image:m.image||undefined,images:m.images||undefined,createdAt:m.createdAt||undefined}))}));
       if(!data||data.length<50)break;from+=50;
     }
     const blob=new Blob([JSON.stringify({exported_at:new Date().toISOString(),email:curUser.email,chats:out},null,2)],{type:'application/json'});

@@ -298,3 +298,52 @@ html:not(#_) .code-block .code-pre,html:not(#_) .code-block .code-pre code.hljs{
 .hmr-mol-svg{width:100%;max-width:300px;height:auto}
 .hmr-mol-name{font-size:14px;font-weight:600;text-align:center}
 .hmr-mol-name span{font-weight:400;color:var(--text2,#8a8d95);margin-left:6px}
+
+/* ===== Письмо (```email) — карточка черновика, как в ChatGPT ===== */
+.hmr-mail{position:relative;margin:12px 0;padding:14px 18px 18px;border-radius:22px;background:var(--bg2,#1b1b1e);border:1px solid var(--border);max-width:640px;}
+.hmr-mail-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;}
+.hmr-mail-head>span{font-size:14px;font-weight:600;color:var(--text2);}
+.hmr-mail-tools{display:flex;align-items:center;gap:6px;}
+.hmr-mail-btn{width:36px;height:36px;border:0;border-radius:50%;background:transparent;color:var(--text);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;}
+.hmr-mail-btn:hover{background:color-mix(in srgb,var(--text) 8%,transparent);}
+.hmr-mail-btn svg{width:19px;height:19px;}
+.hmr-mail-btn.hmr-mail-send{width:44px;height:44px;background:var(--text);color:var(--bg,#0d0d0f);}
+.hmr-mail-btn.hmr-mail-send:hover{opacity:.9;background:var(--text);}
+.hmr-mail-row{padding:10px 0;border-bottom:1px solid var(--border);font-size:15px;line-height:1.4;min-height:20px;outline:none;word-break:break-word;}
+.hmr-mail-to{color:var(--text2);}
+.hmr-mail-subj{font-weight:600;}
+.hmr-mail-row:empty::before{content:attr(data-ph);color:var(--text2);opacity:.75;}
+.hmr-mail-body{padding-top:12px;font-size:15px;line-height:1.6;white-space:pre-wrap;outline:none;word-break:break-word;}
+.hmr-mail.editing [data-f]{background:color-mix(in srgb,var(--text) 5%,transparent);border-radius:8px;padding-left:8px;padding-right:8px;}
+.hmr-mail-menu{position:absolute;right:12px;top:58px;z-index:30;min-width:230px;background:var(--drop-bg,#1c1c20);border:1px solid var(--border);border-radius:16px;padding:6px;box-shadow:0 18px 44px rgba(0,0,0,.45);}
+.hmr-mail-menu-h{font-size:12px;color:var(--text2);padding:6px 10px 4px;}
+.hmr-mail-opt{display:block;width:100%;text-align:left;border:0;background:transparent;color:var(--text);font:inherit;font-size:14px;padding:9px 10px;border-radius:10px;cursor:pointer;}
+.hmr-mail-opt:hover{background:color-mix(in srgb,var(--text) 8%,transparent);}
+
+/* ===== Временная почта ===== */
+.tm-card{margin:10px 0 4px;padding:14px 16px;border-radius:20px;background:var(--bg2,#1b1b1e);border:1px solid var(--border);max-width:560px;}
+.tm-head{display:flex;align-items:center;gap:9px;}
+.tm-head svg{width:18px;height:18px;color:var(--text2);}
+.tm-head b{font-size:14.5px;}
+.tm-prov{font-size:11.5px;color:var(--text2);}
+.tm-refresh{margin-left:auto;width:32px;height:32px;border:0;border-radius:50%;background:transparent;color:var(--text2);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;}
+.tm-refresh:hover{background:color-mix(in srgb,var(--text) 8%,transparent);color:var(--text);}
+.tm-refresh svg{width:16px;height:16px;}
+.tm-refresh.spin svg{animation:tmSpin .8s linear infinite;}
+@keyframes tmSpin{to{transform:rotate(360deg)}}
+.tm-addr{display:flex;align-items:center;gap:8px;margin:10px 0 12px;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--text) 6%,transparent);}
+.tm-addr-v{flex:1;min-width:0;font:600 13.5px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:-.2px;overflow-wrap:anywhere;color:var(--text);user-select:all;-webkit-user-select:all;}
+.tm-copy{flex:0 0 auto;width:34px;height:34px;display:grid;place-items:center;border:1px solid var(--border);background:transparent;color:var(--text);border-radius:999px;padding:0;cursor:pointer;transition:background .15s;}
+.tm-copy:hover{background:color-mix(in srgb,var(--text) 8%,transparent);}
+.tm-copy svg{width:16px;height:16px;}
+.tm-list{display:flex;flex-direction:column;gap:8px;}
+.tm-empty{font-size:13.5px;}
+.tm-msg{border-radius:12px;border:1px solid var(--border);padding:10px 12px;cursor:pointer;}
+.tm-msg-top{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:var(--text2);}
+.tm-msg-subj{font-size:14px;font-weight:600;margin-top:2px;}
+.tm-msg-text{margin-top:8px;font-size:13px;line-height:1.5;white-space:pre-wrap;color:var(--text2);max-height:320px;overflow:auto;display:none;overflow-wrap:anywhere;}
+.tm-msg.open .tm-msg-text{display:block;}
+.tm-codes{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
+.tm-code{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:12px;padding:8px 12px;background:var(--text);color:var(--bg,#0d0d0f);font:700 18px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.08em;cursor:copy;}
+.tm-code small{font:600 11px/1 inherit;letter-spacing:0;opacity:.6;font-family:inherit;}
+.tm-link{display:inline-flex;align-items:center;border:1px solid var(--border);border-radius:999px;padding:7px 12px;font-size:12.5px;font-weight:600;color:var(--text);text-decoration:none;}

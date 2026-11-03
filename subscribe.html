@@ -69,6 +69,9 @@
   .done h3{font-size:25px;margin:0 0 10px;}
   .done p{font-size:16px;line-height:1.55;color:var(--muted);margin:0;}
   .done .pro-button{margin-top:26px;}
+  .terms-check{display:flex;gap:10px;align-items:flex-start;text-align:left;cursor:pointer;border-radius:10px;padding:6px 4px;transition:background .2s;}
+  .terms-check input{width:18px;height:18px;margin:1px 0 0;flex:0 0 auto;cursor:pointer;}
+  .terms-check.need{background:rgba(239,68,68,.12);}
   .pay-error{display:none;margin-top:12px;color:#c62828;font-size:13px;text-align:center;line-height:1.45;}
   .terms{margin-top:12px;color:#838383;font-size:11.5px;line-height:1.5;text-align:center;}
   .terms a{color:inherit;text-decoration:underline;}
@@ -158,7 +161,7 @@
         <button type="button" class="pro-button" id="payBtn" onclick="pay(event)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2.7l1.6 6.1L19.7 10l-6.1 1.6L12 17.7l-1.6-6.1L4.3 10l6.1-1.2L12 2.7z" fill="currentColor"/><path d="M19 15.3l.7 2.4 2.3.8-2.3.7-.7 2.5-.7-2.5-2.3-.7 2.3-.8.7-2.4z" fill="currentColor"/></svg><span id="payLabel">Перейти на Pro</span></button>
         <div class="plan-status" id="proStatus"></div>
       </div>
-      <div class="terms">Оформляя подписку, вы принимаете <a href="/legal/ofera.html" target="_blank" rel="noopener noreferrer">Платёжную оферту</a>, <a href="/legal/terms.html" target="_blank" rel="noopener noreferrer">Условия использования</a> и <a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Политику конфиденциальности</a>.</div>
+      <label class="terms terms-check" id="payTermsWrap"><input type="checkbox" id="payTerms"><span>Я прочитал(а) и принимаю <a href="/legal/ofera.html" target="_blank" rel="noopener noreferrer">Платёжную оферту</a>, <a href="/legal/terms.html" target="_blank" rel="noopener noreferrer">Условия использования</a> и <a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Политику конфиденциальности</a></span></label>
       <div id="payError" class="pay-error"></div>
     </section>
   </div>
@@ -265,13 +268,20 @@
     const btn=e.currentTarget;
     const note=document.getElementById('payError');
     if(note)note.style.display='none';
+    const terms=document.getElementById('payTerms');
+    if(terms&&!terms.checked){
+      document.getElementById('payTermsWrap')?.classList.add('need');
+      if(note){note.textContent='Отметьте, что прочитали и принимаете Оферту, Условия и Политику.';note.style.display='block';}
+      return;
+    }
+    document.getElementById('payTermsWrap')?.classList.remove('need');
     const s=await session();
     if(!s?.access_token){location.href='/login';return;}
     btn.disabled=true;
     const original=btn.innerHTML;
     btn.textContent='Обработка…';
     try{
-      const res=await fetch('/api/payment/create',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+s.access_token},body:JSON.stringify({type:'subscription',plan:state.plan})});
+      const res=await fetch('/api/payment/create',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+s.access_token},body:JSON.stringify({type:'subscription',plan:state.plan,accept_terms:true})});
       const data=await res.json().catch(()=>({}));
       if(!res.ok||!data.confirmationUrl)throw new Error(data.error||'Ошибка создания платежа');
       location.href=data.confirmationUrl;

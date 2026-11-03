@@ -23,7 +23,7 @@
 (function(){
   'use strict';
 
-  var KINDS=['quiz','chart','diagram','mermaid','photo','image','buttons','steps','compare','flow','timeline','figure','molecule'];
+  var KINDS=['quiz','chart','diagram','mermaid','photo','image','buttons','steps','compare','flow','timeline','figure','molecule','email'];
   var FENCE_SRC='```[ \\t]*('+KINDS.join('|')+')[ \\t]*\\r?\\n([\\s\\S]*?)```';
   var OPEN_RE=new RegExp('```[ \\t]*('+KINDS.join('|')+')[ \\t]*(?:\\r?\\n[\\s\\S]*)?$','i');
 
@@ -971,6 +971,65 @@
     host.appendChild(row);return row;
   }
 
+  /* ======================================================================
+     ПИСЬМО (```email) — карточка: получатели, тема, текст. «Изменить» —
+     правка прямо в карточке, «Копировать» — тема и текст, «Отправить» —
+     открыть черновик в выбранной почте (Gmail, Почта Mail.ru, Яндекс Почта,
+     Outlook) или в почтовом приложении (iCloud / системная почта — mailto).
+     ====================================================================== */
+  var MAIL_ICONS={
+    edit:'<svg viewBox="0 0 24 24" fill="none"><path d="M4 20h4L19 9l-4-4L4 16v4z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M13.5 6.5l4 4" stroke="currentColor" stroke-width="1.8"/></svg>',
+    copy:'<svg viewBox="0 0 24 24" fill="none"><rect x="8" y="8" width="12" height="12" rx="3" stroke="currentColor" stroke-width="1.8"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="currentColor" stroke-width="1.8"/></svg>',
+    send:'<svg viewBox="0 0 24 24" fill="none"><path d="M21 3L10 14" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><path d="M21 3l-7 18-4-7-7-4 18-7z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/></svg>',
+    ok:'<svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.2 4.2L19 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+  };
+  var MAIL_TARGETS=[
+    {id:'gmail',name:'Gmail',url:function(m){return 'https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(m.to)+(m.cc?'&cc='+encodeURIComponent(m.cc):'')+'&su='+encodeURIComponent(m.subject)+'&body='+encodeURIComponent(m.body);}},
+    {id:'mailru',name:'Почта Mail.ru',url:function(m){return 'https://e.mail.ru/compose/?to='+encodeURIComponent(m.to)+(m.cc?'&cc='+encodeURIComponent(m.cc):'')+'&subject='+encodeURIComponent(m.subject)+'&body='+encodeURIComponent(m.body);}},
+    {id:'yandex',name:'Яндекс Почта',url:function(m){return 'https://mail.yandex.ru/compose?to='+encodeURIComponent(m.to)+(m.cc?'&cc='+encodeURIComponent(m.cc):'')+'&subject='+encodeURIComponent(m.subject)+'&body='+encodeURIComponent(m.body);}},
+    {id:'outlook',name:'Outlook',url:function(m){return 'https://outlook.live.com/mail/0/deeplink/compose?to='+encodeURIComponent(m.to)+(m.cc?'&cc='+encodeURIComponent(m.cc):'')+'&subject='+encodeURIComponent(m.subject)+'&body='+encodeURIComponent(m.body);}},
+    {id:'icloud',name:'iCloud Mail / Почта Apple',url:mailto},
+    {id:'other',name:'Другое приложение',url:mailto}
+  ];
+  function mailto(m){return 'mailto:'+encodeURIComponent(m.to).replace(/%40/g,'@').replace(/%2C/g,',')+'?'+(m.cc?'cc='+encodeURIComponent(m.cc)+'&':'')+'subject='+encodeURIComponent(m.subject)+'&body='+encodeURIComponent(m.body);}
+  function renderEmail(body,host){
+    var d=parseLoose(body)||{};
+    var asList=function(v){return (Array.isArray(v)?v:String(v||'').split(/[,;]/)).map(function(x){return String(x).trim();}).filter(Boolean).join(', ');};
+    var m={to:asList(d.to||d.recipients||d.recipient),cc:asList(d.cc),subject:String(d.subject||d.title||'').trim(),body:String(d.body||d.text||d.content||'').replace(/\r/g,'').trim()};
+    if(!m.subject&&!m.body)return null;
+    var card=el('div','hmr-mail');
+    card.innerHTML='<div class="hmr-mail-head"><span>'+esc(t('Электронная почта'))+'</span><div class="hmr-mail-tools">'
+      +'<button type="button" class="hmr-mail-btn" data-a="edit" aria-label="'+esc(t('Изменить'))+'" title="'+esc(t('Изменить'))+'">'+MAIL_ICONS.edit+'</button>'
+      +'<button type="button" class="hmr-mail-btn" data-a="copy" aria-label="'+esc(t('Копировать'))+'" title="'+esc(t('Копировать'))+'">'+MAIL_ICONS.copy+'</button>'
+      +'<button type="button" class="hmr-mail-btn hmr-mail-send" data-a="send" aria-label="'+esc(t('Отправить'))+'" title="'+esc(t('Отправить'))+'">'+MAIL_ICONS.send+'</button></div></div>'
+      +'<div class="hmr-mail-row hmr-mail-to" data-f="to" data-ph="'+esc(t('Получатели'))+'"></div>'
+      +'<div class="hmr-mail-row hmr-mail-subj" data-f="subject" data-ph="'+esc(t('Тема'))+'"></div>'
+      +'<div class="hmr-mail-body" data-f="body"></div>';
+    card.querySelector('[data-f=to]').textContent=m.to;
+    card.querySelector('[data-f=subject]').textContent=m.subject;
+    card.querySelector('[data-f=body]').textContent=m.body;
+    var read=function(){['to','subject','body'].forEach(function(f){var n=card.querySelector('[data-f='+f+']');m[f]=String(n.innerText||n.textContent||'').trim();});return m;};
+    var flash=function(b){var old=b.innerHTML;b.innerHTML=MAIL_ICONS.ok;setTimeout(function(){b.innerHTML=old;},1100);};
+    card.querySelector('[data-a=edit]').onclick=function(){
+      var on=!card.classList.contains('editing');card.classList.toggle('editing',on);
+      card.querySelectorAll('[data-f]').forEach(function(n){n.contentEditable=on?'plaintext-only':'false';});
+      if(on){var f=card.querySelector('[data-f=to]');try{f.focus();}catch(e){}}else read();
+    };
+    card.querySelector('[data-a=copy]').onclick=function(){read();var b=this;
+      navigator.clipboard.writeText((m.subject?m.subject+'\n\n':'')+m.body).then(function(){flash(b);}).catch(function(){});};
+    card.querySelector('[data-a=send]').onclick=function(e){e.stopPropagation();read();openMailMenu(card,m);};
+    host.appendChild(card);return card;
+  }
+  function openMailMenu(card,m){
+    var old=document.querySelector('.hmr-mail-menu');if(old){old.remove();return;}
+    var menu=el('div','hmr-mail-menu');menu.setAttribute('role','menu');
+    var head=el('div','hmr-mail-menu-h',t('Открыть черновик в'));menu.appendChild(head);
+    MAIL_TARGETS.forEach(function(x){var b=el('button','hmr-mail-opt');b.type='button';b.setAttribute('role','menuitem');b.textContent=x.name;
+      b.onclick=function(){menu.remove();var url=x.url(m);if(/^mailto:/.test(url))location.href=url;else window.open(url,'_blank','noopener');};menu.appendChild(b);});
+    card.appendChild(menu);
+    setTimeout(function(){document.addEventListener('click',function off(ev){if(!menu.contains(ev.target)){menu.remove();document.removeEventListener('click',off);}});},0);
+  }
+
   function renderBroken(host,what,body){
     var card=el('div','hmr-card');card.innerHTML='<div class="hmr-diagram-err">'+esc(t('Не удалось показать'))+' '+esc(t(what))+'.</div>';
     host.appendChild(card);return card;
@@ -1288,6 +1347,7 @@
       if(kind==='flow')return renderFlow(body,host,ctx);
       if(kind==='figure')return renderFigure(body,host,ctx);
       if(kind==='molecule')return renderMolecule(body,host,ctx);
+      if(kind==='email')return renderEmail(body,host,ctx);
     }catch(e){console.warn('[hm-rich]',kind,e);return renderBroken(host,'блок',body);}
     return null;
   }
@@ -1296,7 +1356,7 @@
     if(kind==='buttons')return null;
     var card=el('div','hmr-card hmr-skel');
     if(kind==='steps'||kind==='compare'||kind==='flow'||kind==='timeline')return blocksSkeleton(kind,host);
-    var label={figure:'Строю чертёж…',molecule:'Рисую формулу…',chart:'Строю график…',diagram:'Рисую схему…',mermaid:'Рисую схему…',photo:'Подбираю фото…',image:'Подбираю фото…'}[kind]||'Готовлю…';
+    var label={email:'Пишу письмо…',figure:'Строю чертёж…',molecule:'Рисую формулу…',chart:'Строю график…',diagram:'Рисую схему…',mermaid:'Рисую схему…',photo:'Подбираю фото…',image:'Подбираю фото…'}[kind]||'Готовлю…';
     card.innerHTML='<div class="hmr-skel-label">'+ICON.spin+esc(t(label))+'</div><div class="hmr-bar" style="height:140px;border-radius:16px"></div>';
     host.appendChild(card);return card;
   }
