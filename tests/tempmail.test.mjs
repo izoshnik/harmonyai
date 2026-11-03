@@ -34,3 +34,21 @@ test('mail.tm collections are read in both JSON shapes', () => {
   assert.deepEqual(members({ 'hydra:member': [{ id: 1 }] }), [{ id: 1 }]);
   assert.deepEqual(members(null), []);
 });
+
+test('tempmail.lol inbox is mapped to letters with stable ids, expiry is a 404', async () => {
+  const { PROVIDERS } = await import('../lib/util-tempmail.js');
+  const realFetch = globalThis.fetch;
+  let reply = { emails: [{ from: 'Instagram <security@mail.instagram.com>', subject: '482913 — ваш код', body: 'Ваш код: 482913', html: '', date: 1793707253000 }], expired: false };
+  globalThis.fetch = async () => new Response(JSON.stringify(reply), { status: 200 });
+  try {
+    const h = { p: 'tl', a: 'x@y.z', t: 'tok' };
+    const list = await PROVIDERS.tl.inbox(h);
+    assert.equal(list.length, 1);
+    assert.match(list[0].id, /^[0-9a-f]{16}$/);
+    assert.equal(list[0].intro, 'Ваш код: 482913');
+    const m = await PROVIDERS.tl.read(h, list[0].id);
+    assert.equal(m.text, 'Ваш код: 482913');
+    reply = { emails: [], expired: true };
+    await assert.rejects(PROVIDERS.tl.inbox(h), (e) => e.status === 404);
+  } finally { globalThis.fetch = realFetch; }
+});
