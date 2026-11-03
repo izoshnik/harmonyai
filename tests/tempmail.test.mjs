@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { signHandle, readHandle, extractCodes, htmlToText } from '../lib/util-tempmail.js';
+import { signHandle, readHandle, extractCodes, htmlToText, members } from '../lib/util-tempmail.js';
 
 test('mailbox handle is signed and bound to its owner', () => {
   const h = signHandle({ p: 'mt', a: 'x@y.z', t: 'tok', u: 'user-1', c: 1 });
@@ -27,4 +27,10 @@ test('html letters become readable text', () => {
   assert.match(t, /Привет !/);
   assert.match(t, /ссылка \(https:\/\/a\.b\/c\)/);
   assert.ok(!t.includes('p{}'));
+});
+
+test('mail.tm collections are read in both JSON shapes', () => {
+  assert.deepEqual(members([{ domain: 'a.com' }]), [{ domain: 'a.com' }]);
+  assert.deepEqual(members({ 'hydra:member': [{ id: 1 }] }), [{ id: 1 }]);
+  assert.deepEqual(members(null), []);
 });
