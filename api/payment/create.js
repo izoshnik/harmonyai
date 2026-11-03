@@ -127,6 +127,11 @@ export default async function handler(req, res) {
       description = `Пополнение баланса API HarmonyAI на ${kopecksToRublesString(amountKopecks)} ₽`;
       returnUrl = siteUrl() + '/api/dashboard?topup=1';
     } else if (type === PAYMENT_TYPES.SUBSCRIPTION) {
+      // Подписка оформляется только с согласием с Офертой, Условиями и Политикой
+      // (галочка у кнопки оплаты). Отметка уходит в metadata платежа.
+      if (body.accept_terms !== true) {
+        return res.status(400).json({ error: 'Подтвердите, что прочитали и принимаете Оферту, Условия использования и Политику конфиденциальности' });
+      }
       // Цена подписки живёт в lib/pricing.js и не приходит от клиента.
       plan = normalizePlanId(body.plan);
       amountKopecks = planPriceKopecks(plan);
@@ -160,7 +165,7 @@ export default async function handler(req, res) {
         // userId дублируем в metadata для совместимости со старыми платежами:
         // вебхук раньше читал именно это поле. Доверять ему нельзя — вебхук
         // берёт владельца из нашей записи по internalPaymentId.
-        metadata: { type, userId: user.id, internalPaymentId: internalId, ...(plan ? { plan } : {}), ...(referralCode ? { referralCode } : {}) },
+        metadata: { type, userId: user.id, internalPaymentId: internalId, ...(type === PAYMENT_TYPES.SUBSCRIPTION ? { termsAcceptedAt: new Date().toISOString() } : {}), ...(plan ? { plan } : {}), ...(referralCode ? { referralCode } : {}) },
         idempotenceKey: generateIdempotenceKey(),
         receiptEmail: user.email || String(body.email || '')
       });

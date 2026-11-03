@@ -282,7 +282,8 @@
       if(cvAnim)cvAnim.frame(reduced?0.6:e/1000);
       var s=Math.floor(e/1000);
       if(s!==lastSec){lastSec=s;time.textContent=s>0?fmtSecs(s*1000):'';}
-      if(sched&&s!==lastVerb){lastVerb=s;var want=verbAt(sched,e);if(want!==label.textContent)setLabel(want);}
+      if(phr){var pi=Math.floor((now-phrT0)/3200)%phr.length;if(phr[pi]!==label.textContent)setLabel(phr[pi]);}
+      else if(sched&&s!==lastVerb){lastVerb=s;var want=verbAt(sched,e);if(want!==label.textContent)setLabel(want);}
       raf=requestAnimationFrame(frame);
     }
     function setLabel(str){
@@ -291,8 +292,15 @@
       label.classList.add('out');
       timers.push(setTimeout(function(){label.textContent=str;label.classList.remove('out');},180));
     }
+    var phr=null,phrT0=0;
     var api={
       el:root,key:key,startedAt:t0,verb:verb,anim:anim,
+      /* Статусы, которые придумал ИИ под этот запрос: сменяются каждые ~3 с. */
+      setPhrases:function(list){
+        list=(list||[]).map(function(x){return String(x||'').trim();}).filter(Boolean);
+        if(!list.length)return;
+        phr=list;phrT0=performance.now();setLabel(list[0]);
+      },
       start:function(){if(running)return;running=true;raf=requestAnimationFrame(frame);},
       setLabel:setLabel,
       /* Заголовок из НАСТОЯЩИХ рассуждений модели: «Сравниваю гармонический минор с мелодическим». */

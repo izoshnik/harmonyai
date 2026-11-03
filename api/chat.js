@@ -5,7 +5,7 @@ import { readChatImages, withReading, isDocumentReading } from '../lib/image-rea
 import { createReasoningRelay, isNativeReasoner } from '../lib/reasoning-relay.js';
 import { applyDevAccountProfile } from '../lib/dev-account.js';
 import { searchWeb } from '../lib/web-search.js';
-import { planSearchQueries } from '../lib/ai-tasks.js';
+import { planSearchQueries, planStatusPhrases } from '../lib/ai-tasks.js';
 import { findVideoLink, videoFromHistory, watchVideo, watchErrorText, linkTimestamps, checkVideoQuota, recordVideoWatch } from '../lib/video-watch.js';
 export const config = {
   maxDuration: 300
@@ -2431,6 +2431,22 @@ export default async function handler(req, res) {
         error: { message: allowance.message, status: allowance.status || 429, scope: allowance.scope, code: 'limit_reached', resetAt: allowance.resetAt || null, plan: allowance.plan || null }
       });
     }
+    /* Живые статусы («Сверяю аккорды…»): служебная модель придумывает их
+       параллельно с основной работой; клиент показывает их переливом, пока
+       не пришло первое слово ответа. Короткие быстрые вопросы — без них. */
+    const statusP = stream && !(isQuick && String(query || '').length < 60)
+      ? planStatusPhrases({ message: query, context: { search: Boolean(shouldSearch), think: Boolean(think), image: lastUserHasImage(messages), file: /\[ФАЙЛ \d+:/.test(query || ''), memory: Boolean(wantsContext), fileOut: /(презентаци|документ|файл|pdf|docx|pptx|таблиц)/i.test(query || '') } }).catch(() => [])
+      : null;
+    let statusHooked = false;
+    const hookStatus = () => {
+      if (!statusP || statusHooked) return;
+      statusHooked = true;
+      statusP.then((phrases) => {
+        if (Array.isArray(phrases) && phrases.length && !res.writableEnded) {
+          try { writeSseEvent(res, { type: 'status', phrases }); } catch (e) { /* поток закрыт */ }
+        }
+      });
+    };
     // Лимит почти исчерпан: сообщаем клиенту (заголовок) и модели (системная заметка).
     if (allowance.low) {
       try { res.setHeader('X-HM-Limit-Low', '1'); if (allowance.resetAt) res.setHeader('X-HM-Limit-Reset', allowance.resetAt); } catch (e) {}
@@ -2446,6 +2462,7 @@ export default async function handler(req, res) {
       res.setHeader('Cache-Control', 'no-cache, no-transform');
       res.setHeader('Connection', 'keep-alive');
       if (typeof res.flushHeaders === 'function') res.flushHeaders();
+      hookStatus();
       const pro = isProRole(profile);
       const quota = await checkVideoQuota(userId, videoLink.key, pro);
       let result;
@@ -2572,6 +2589,7 @@ export default async function handler(req, res) {
         res.setHeader('Connection', 'keep-alive');
         if (typeof res.flushHeaders === 'function') res.flushHeaders();
         webHeadersSent = true;
+        hookStatus();
       }
       /* Что именно искать, решает ИИ: ключевые слова, язык по теме, месяц и
          год для свежих данных. Не ответил за 4 с — ищем по очищенному вопросу. */
@@ -2724,6 +2742,7 @@ export default async function handler(req, res) {
         try { res.write(': start\n\n'); } catch (e) { /* закрыто */ }
         sseOpen = true;
       }
+      if (sseOpen) hookStatus();
       // Общий предел на всю цепочку: лучше честная ошибка через 2,5 минуты,
       // чем ответ, который не приходит вовсе (Vercel обрывает функцию на 300 с).
       const chainDeadline = Date.now() + 150000;
