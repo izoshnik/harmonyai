@@ -1507,6 +1507,7 @@ html[data-theme="light"] .attach-opt:hover{background:rgba(20,18,12,.05);}
 .send-btn:hover{opacity:.8;}
 
 /* Disclaimer */
+.hm-cut-note{margin-top:10px;font-size:12.5px;line-height:1.45;color:var(--text2);opacity:.85;}
 .disclaimer{font-size:11px;color:var(--text2);text-align:center;padding:4px 0 0;opacity:.5;}
 
 /* ===================== MODEL DROPDOWN ===================== */
@@ -4232,6 +4233,12 @@ html:not([data-theme="light"]):not([data-theme="messenger"]) .msg-user{backgroun
      Эти два скрипта критичны для первого кадра — их нельзя ставить на чужой CDN. -->
 <!-- Existing ensureSupabase loader below restores SDK with CDN failover. -->
 <script defer src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js" onload="buildMarkedRenderer()"></script>
+<script>
+/* Тексты сообщений (пользователя и ИИ) и названия чатов — не интерфейс: их
+   словарь интерфейса не переводит и не «восстанавливает». Иначе сообщение,
+   совпавшее с фразой из словаря (например «Источники»), менялось на перевод. */
+window.I18N_SKIP_SELECTOR='.msg-user,[data-raw] > div:not([class]),.hm-plug-intro,.sb-chat-item-label';
+</script>
 <script src="/i18n.js"></script>
 <script src="/i18_dict.js"></script>
 
@@ -5945,6 +5952,16 @@ function greetingTitleText(){
 /* Смена языка интерфейса — приветствие сразу на новом языке.
    Обновляем только видимое приветствие пустого чата (не историю). */
 window.addEventListener('hai-lang-change',function(){
+  /* Выпадающий список языка в открытых настройках: язык сменили из меню
+     профиля — подпись и галочка должны совпадать с выбранным языком. */
+  try{
+    const dd=document.getElementById('ddLang');
+    if(dd&&window.i18n){
+      const l=window.i18n.get(),v=dd.querySelector('.stp-dd-val');
+      if(v){v.setAttribute('data-i18n-skip','');v.textContent=(window.i18n.names||{})[l]||l;}
+      dd.querySelectorAll('.stp-dd-opt').forEach(b=>b.classList.toggle('on',b.getAttribute('data-lang')===l));
+    }
+  }catch(e){}
   try{
     if(!window.__appShown)return;
     var gw=document.getElementById('greetingWrap');
@@ -5987,8 +6004,15 @@ function writeKb(key,docs){
     return false;
   }
 }
+/* В подсказку модели с клиента идут только ЛИЧНЫЕ документы пользователя.
+   Общую базу (учебники) подбирает сервер (api/chat.js) — точнее и без дублей.
+   Раньше клиент брал 30 самых новых общих документов, а это были «заметки
+   разработчика» (каждая его реплика в чате), и они попадали в ответы всем. */
+const HM_KB_SKIP_KINDS=new Set(['note','developer_note','training','training_note']);
+function hmKbUsable(doc){return Boolean(doc)&&!HM_KB_SKIP_KINDS.has(String(doc.kind||''));}
 function loadKnowledgeDocs(){
-  knowledgeDocs=[...readKb(KB_GLOBAL_KEY),...readKb(kbUserKey())];
+  knowledgeDocs=readKb(kbUserKey()).filter(hmKbUsable);
+  try{localStorage.removeItem(KB_GLOBAL_KEY);}catch(e){}
 }
 async function loadKnowledgeDocsFromSupabase(){
   if(!curUser)return;
@@ -5997,11 +6021,12 @@ async function loadKnowledgeDocsFromSupabase(){
       .from('knowledge_documents')
       .select('id,title,scope,source_type,owner_user_id,created_at,knowledge_chunks(chunk_index,content)')
       .eq('is_active',true)
-      .or(`scope.eq.global,and(scope.eq.user,owner_user_id.eq.${curUser.id})`)
+      .eq('scope','user')
+      .eq('owner_user_id',curUser.id)
       .order('created_at',{ascending:false})
       .limit(30);
     if(error)throw error;
-    knowledgeDocs=(data||[]).map(doc=>({
+    knowledgeDocs=(data||[]).filter(doc=>hmKbUsable({kind:doc.source_type})).map(doc=>({
       id:doc.id,
       name:doc.title,
       kind:doc.source_type||'document',
@@ -6087,11 +6112,9 @@ async function syncKnowledgeDocToSupabase(doc,scope='user'){
   loadKnowledgeDocsFromSupabase().catch(e=>console.warn(e));
   return true;
 }
-function rememberDeveloperMessage(text){
-  const clean=normalizeDocText(text);
-  if(!hasTrainingAccess()||clean.length<12)return;
-  storeKnowledgeDoc(makeKnowledgeDoc('Developer note',clean,'note'),'global');
-}
+/* Обычные сообщения разработчика в общую базу знаний больше НЕ пишутся:
+   «сделай фон чёрным» или «пиши от лица мужчины» становились источниками
+   для всех пользователей. Учить ИИ можно только в режиме «Обучение». */
 /* ===== Учебники по ссылке и файлом (режим «Обучение», lib/textbook-ingestor.js) =====
    Сервер скачивает FB2/TXT/MD/HTML/DOCX сам; PDF отдаёт байтами частями, его
    разбирает браузер (parsePdfFile). Затем «Дистиллятор правил» выжимает из глав
@@ -6233,7 +6256,7 @@ function tokenizeForSearch(text){
   });
   return Array.from(result);
 }
-function topChunksFromDocs(query,docs,limit=4,maxChars=8000,requireScore=true){
+function topChunksFromDocs(query,docs,limit=4,maxChars=8000,requireScore=true,fallback=true){
   const tokens=tokenizeForSearch(query);
   const scored=[];
   docs.forEach(doc=>{
@@ -6241,14 +6264,13 @@ function topChunksFromDocs(query,docs,limit=4,maxChars=8000,requireScore=true){
       const low=chunk.toLowerCase();
       let score=0;
       tokens.forEach(token=>{if(low.includes(token))score+=token.length>5?3:2;});
-      if(doc.kind==='note')score+=1;
       // requireScore=false → always include (for attached/recent docs that are all relevant)
       // requireScore=true  → only include if matched, but fallback to first chunks if nothing matched
       if(!requireScore||score>0||!tokens.length)scored.push({score,chunk,name:doc.name,idx});
     });
   });
   // Fallback for global knowledge base: if nothing matched, include first chunk from each doc
-  if(requireScore&&!scored.length&&docs.length){
+  if(fallback&&requireScore&&!scored.length&&docs.length){
     docs.forEach(doc=>{
       (doc.chunks||[]).slice(0,Math.max(1,Math.ceil(limit/docs.length))).forEach((chunk,idx)=>{
         scored.push({score:0,chunk,name:doc.name,idx});
@@ -6268,7 +6290,8 @@ function topChunksFromDocs(query,docs,limit=4,maxChars=8000,requireScore=true){
 }
 function buildKnowledgeContext(query){
   if(!knowledgeDocs.length)return '';
-  const selected=topChunksFromDocs(query,knowledgeDocs,24,200000);
+  // Только совпавшие по теме фрагменты (без «первого куска каждого документа»).
+  const selected=topChunksFromDocs(query,knowledgeDocs,8,40000,true,false);
   if(!selected.length)return '';
   return '\nБАЗА ЗНАНИЙ / ЗАГРУЖЕННЫЕ МАТЕРИАЛЫ:\n'+selected.map((item,i)=>`[Источник ${i+1}: ${item.name}]\n${item.chunk}`).join('\n\n');
 }
@@ -8085,7 +8108,8 @@ document.addEventListener('keydown',e=>{
 /* ===== SYSTEM PROMPT ===== */
 const BASE_SYSTEM=`Ты HarmonyAI — универсальный ИИ-помощник: учёба, работа, тексты, код, анализ данных и файлов, идеи, творчество, картинки. Особенно силён в музыке (теория, сольфеджио, гармония, ноты, треки), но музыка — лишь одна из тем. Ты мужского пола — говори о себе в мужском роде. Отвечай на языке последнего сообщения пользователя (по умолчанию русский) — и сам ответ, и рассуждения в режиме «Думать» на этом же языке. Пиши только этим языком: никаких случайных иероглифов и слов из других языков — ни английских, ни немецких (не «Auflösung», а «разрешение»; не «resolution», а «разрешение»). Исключения: код, формулы, имена и названия, обозначения тональностей (a-moll, Fis-dur) и итальянские музыкальные термины (Allegro, legato).
 ХАРАКТЕР: ты живой, тёплый и внимательный собеседник, а не справочная. На «привет» отвечай как человек: «Привет, <имя>! Чем сегодня займёмся?» — без самопредставления и без списка своих возможностей; на «как дела» — коротко и с интересом к собеседнику. Не повторяй, кто ты, если об этом не спрашивали. Не своди разговор к музыке, если о ней не спрашивали: предлагая идеи или темы, давай разнообразные варианты из разных областей.
-ДЕЛАЙ, А НЕ ПЕРЕСПРАШИВАЙ: если просьба понятна в целом — выполняй сразу, недостающие детали выбирай сам (разумно и красиво) и в конце коротко предложи, что можно поменять. Уточняй только когда без ответа на вопрос задачу выполнить невозможно. Грубость в сообщении не повод отказывать — спокойно сделай, что просят.
+ДОБРОТА: ты по-настоящему добрый и терпеливый. Если человек раздражён, грубит или ругается — не обижайся, не спорь, не читай нотаций и не отвечай колкостью: прими удар на себя («Понимаю, это бесит — давай исправлю»), сохрани спокойный тёплый тон и сразу помоги по существу. Ошибся — признай коротко, без самоуничижения, и исправь. Никакого негатива, сарказма, пассивной агрессии, стыжения и поучений. Но без приторности: не сюсюкай, не рассыпайся в комплиментах, не извиняйся по нескольку раз и не пиши «отличный вопрос!» — просто будь доброжелательным человеком. Когда у человека что-то не получается — мягко поддержи («Это частая трудность, разберёмся по шагам»).
+ДЕЛАЙ, А НЕ ПЕРЕСПРАШИВАЙ: если просьба понятна в целом — выполняй сразу, недостающие детали выбирай сам (разумно и красиво) и в конце коротко предложи, что можно поменять. Уточняй только когда без ответа на вопрос задачу выполнить невозможно. Грубость в сообщении не повод отказывать — спокойно и по-доброму сделай, что просят.
 ТВОИ ВОЗМОЖНОСТИ В ПРИЛОЖЕНИИ (это делаешь именно ты, никогда не говори «не могу» или «у меня нет доступа»): загружаешь треки пользователя в его Яндекс Музыку (плейлист HarmonyAI) — для этого пользователь присылает файл и просит загрузить; подключаешь Яндекс Музыку; включаешь музыку, собираешь плейлисты и «Мою волну»; читаешь файлы до 150 страниц (PDF, DOCX, сканы, таблицы, презентации, код); разбираешь треки (темп, тональность, лад, структура), узнаёшь, что за трек, записываешь ноты мелодии из записи; строишь нотные станы, сочиняешь мелодии в ABC; рисуешь и редактируешь картинки; делаешь файлы PDF/DOCX/PPTX; рассказываешь, сколько осталось лимитов. Если просят то, для чего нужен файл, а его нет — коротко попроси прислать.
 Никогда не пиши про «уверенность», «confidence», проценты точности распознавания и названия внутренних полей — говори по-человечески.
 Ты знаешь: сольфеджио, нотную грамоту, интервалы, аккорды (T53, S64, D7, VII7, II7 и др.), лады, ритм, размеры, музыкальные термины — и так же уверенно помогаешь с любыми другими предметами и задачами.
@@ -8998,7 +9022,7 @@ function addUserBubble(text,attachments=[],opts={}){
   wrap.dataset.historyIndex=String(opts.historyIndex??chatHistory.length);
   if(attachments.length){wrap.innerHTML=renderUserAttachmentsMarkup(attachments);wrap.__hmAtts=attachments;}
   if(text&&text.trim()){
-    const d=document.createElement('div');d.className='msg-user';d.textContent=text;
+    const d=document.createElement('div');d.className='msg-user';d.textContent=String(text).replace(/\n*\[…ранее отправленный длинный текст\/файл сокращён до \d+ символов…\]\s*$/,'');
     wrap.appendChild(d);
   }
   attachUserMessageLongPress(wrap);
@@ -9342,6 +9366,15 @@ function hmCloseDanglingAbc(text){
   return head+(head?'\n\n':'')+'```abc\n'+body.trimEnd()+'\n```';
 }
 function renderMd(el,text){
+  /* Старые сохранения обрезали длинные ответы и дописывали служебную пометку —
+     прямо внутрь блока кода. Пометку убираем, блок закрываем, а под ответом
+     пишем по-человечески, что конец не сохранился. */
+  let hmCutNote=false;
+  const cutRe=/\n*\[…ранее отправленный длинный текст\/файл сокращён до \d+ символов…\]\s*$/;
+  if(cutRe.test(String(text||''))){
+    text=String(text).replace(cutRe,'');hmCutNote=true;
+    if((text.match(/```/g)||[]).length%2)text+='\n```';
+  }
   // Готовый (не стримящийся) ответ: недописанные блоки не оставляем висеть.
   if(!el.classList.contains('is-streaming'))text=hmCloseDanglingAbc(text);
   el.dataset.raw=text;
@@ -9393,6 +9426,11 @@ function renderMd(el,text){
     ph.className='file-card hm-file-building';
     ph.innerHTML='<div class="file-card-ic"><span class="hga-doc" aria-hidden="true"><i style="--i:0"></i><i style="--i:1"></i><i style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i></span></div><div class="file-card-info"><div class="file-card-name">Собираю файл…</div><div class="file-card-sub">Сейчас появится кнопка «Скачать»</div></div><span class="hga-bar" aria-hidden="true"><i></i></span>';
     el.appendChild(ph);
+  }
+  if(hmCutNote){
+    const n=document.createElement('div');n.className='hm-cut-note';
+    n.textContent='Конец этого ответа не сохранился: раньше длинные сообщения обрезались при сохранении. Теперь они сохраняются целиком.';
+    el.appendChild(n);
   }
   // Кнопки копирования активны только у завершённого ответа (не во время стрима).
   if(!el.classList.contains('is-streaming'))enableCodeCopy(el);
@@ -11165,13 +11203,24 @@ async function classifyImageIntent(text,forceImage){
 // тексты/документы обрезаются. Так каждый запрос к модели остаётся лёгким независимо от того,
 // сколько фото/файлов уже было в чате — повторные вопросы не таскают за собой мегабайты.
 const PRIOR_TURN_TEXT_BUDGET=6000;
+// Последний ответ ИИ модель видит почти целиком: «исправь строку 40 в коде выше»
+// не должно упираться в обрезанный код.
+const LAST_ASSISTANT_TEXT_BUDGET=16000;
+/* В БАЗУ сообщения сохраняются полностью. Раньше сохранение шло через тот же
+   «облегчённый» вид, что и запрос к модели, — и любой ответ длиннее 6000
+   символов (код, разбор, конспект) навсегда обрезался после следующего
+   сообщения, а в чате появлялась служебная пометка об обрезке. Предел здесь —
+   только защита от гигантских вставок. */
+const STORE_USER_TEXT_LIMIT=60000;
+const STORE_ASSISTANT_TEXT_LIMIT=150000;
+const HM_CUT_MARK_RE=/\n*\[…ранее отправленный длинный текст\/файл сокращён до \d+ символов…\]\s*$/;
 function capLongText(text,budget){
   const s=String(text||'');
   if(s.length<=budget)return s;
   return s.slice(0,budget)+`\n\n[…ранее отправленный длинный текст/файл сокращён до ${budget} символов…]`;
 }
-function slimPriorContent(content){
-  if(typeof content==='string')return capLongText(content,PRIOR_TURN_TEXT_BUDGET);
+function slimPriorContent(content,budget=PRIOR_TURN_TEXT_BUDGET){
+  if(typeof content==='string')return capLongText(content,budget);
   if(Array.isArray(content)){
     const out=[];let imgIdx=0;
     for(const part of content){
@@ -11179,7 +11228,7 @@ function slimPriorContent(content){
         imgIdx++;
         out.push({type:'text',text:`[ранее было отправлено фото ${imgIdx}]`});
       }else if(part.type==='text'){
-        out.push({type:'text',text:capLongText(part.text||'',PRIOR_TURN_TEXT_BUDGET)});
+        out.push({type:'text',text:capLongText(part.text||'',budget)});
       }else{
         out.push(part);
       }
@@ -11204,9 +11253,10 @@ function slimAttachments(attachments){
 function toWireHistory(history,opts={}){
   const keepImage=Boolean(opts.keepImage);
   const forStorage=Boolean(opts.forStorage);
-  let lastUserIdx=-1;
+  let lastUserIdx=-1,lastAssistantIdx=-1;
   for(let i=history.length-1;i>=0;i--){if(history[i].role==='user'){lastUserIdx=i;break;}}
-  return history.map((m,i)=>{
+  for(let i=history.length-1;i>=0;i--){if(history[i].role==='assistant'){lastAssistantIdx=i;break;}}
+  const wire=history.map((m,i)=>{
     const base={role:m.role};
     if(forStorage)base.createdAt=m.createdAt||messageNow();
     if(forStorage&&m.generatedFile)base.generatedFile=m.generatedFile;
@@ -11225,7 +11275,13 @@ function toWireHistory(history,opts={}){
       base.attachments=slimAttachments(m.attachments);
       return base;
     }
-    base.content=slimPriorContent(m.content);
+    if(forStorage){
+      // Фото (base64) в базу не кладём — метка вместо картинки; текст — целиком.
+      const lim=m.role==='assistant'?STORE_ASSISTANT_TEXT_LIMIT:STORE_USER_TEXT_LIMIT;
+      base.content=typeof m.content==='string'?capLongText(m.content,lim):slimPriorContent(m.content,lim);
+    }else{
+      base.content=slimPriorContent(m.content,(m.role==='assistant'&&i===lastAssistantIdx)?LAST_ASSISTANT_TEXT_BUDGET:PRIOR_TURN_TEXT_BUDGET);
+    }
     if(m.role==='user')base.attachments=slimAttachments(m.attachments);
     // Для модели URL картинки не нужен — только текстовая метка в content.
     // При сохранении в базу (keepImage=true) сохраняем URL, чтобы восстановить картинку при открытии чата.
@@ -11234,6 +11290,31 @@ function toWireHistory(history,opts={}){
     if(keepImage&&Array.isArray(m.sources)&&m.sources.length)base.sources=m.sources.slice(0,20);
     return base;
   });
+  return forStorage?wire:hmFitContext(wire);
+}
+/* Окно контекста. Длинный чат целиком не помещался в окно бесплатных моделей:
+   провайдер молча отрезал НАЧАЛО запроса — вместе с инструкциями, — и ИИ
+   «глупел» и забывал правила. Теперь в модель уходят последние сообщения в
+   пределах бюджета (текущий вопрос — всегда целиком), а самые старые ходы
+   отбрасываются. Память и сводка «О вас» при этом остаются в системной части. */
+const HM_CONTEXT_BUDGET={lite:60000,pro:120000};
+function hmMsgChars(m){
+  const c=m&&m.content;
+  if(typeof c==='string')return c.length;
+  if(Array.isArray(c))return c.reduce((n,p)=>n+(p&&p.type==='text'?String(p.text||'').length:2000),0);
+  return 0;
+}
+function hmFitContext(wire){
+  if(!Array.isArray(wire)||wire.length<3)return wire;
+  const budget=HM_CONTEXT_BUDGET[curModel==='pro'?'pro':'lite'];
+  let lastUser=-1;
+  for(let i=wire.length-1;i>=0;i--){if(wire[i].role==='user'){lastUser=i;break;}}
+  let total=wire.reduce((n,m)=>n+hmMsgChars(m),0);
+  let start=0;
+  while(total>budget&&start<lastUser){total-=hmMsgChars(wire[start]);start++;}
+  // Диалог должен начинаться с сообщения пользователя.
+  while(start<lastUser&&wire[start].role!=='user')start++;
+  return start?wire.slice(start):wire;
 }
 // Определяет, есть ли в последнем ходе пользователя прикреплённые фото или файлы —
 // используется, чтобы дать модели инструкцию «сначала проанализируй, потом ответь».
@@ -13479,14 +13560,14 @@ function showAiPlaylist(sh,text,data,note){
 }
 
 /* Главный перехватчик. Возвращает true, если сообщение обработано музыкой. */
-async function handleMusicMessage(text){
+async function handleMusicMessage(text,opts){
   /* Один музыкальный сценарий за раз. Второй вызов (быстрый двойной Enter,
      клик по кнопке поверх Enter) молча глотаем — именно он давал второй
      пузырь, второй поиск и вторую карточку того же трека. */
   if(window.__musicBusy)return true;
   window.__musicBusy=true;
   window.__hmLastMusicShell=null;
-  try{ return await runMusicMessage(text); }
+  try{ return await runMusicMessage(text,opts||{}); }
   finally{
     window.__musicBusy=false;
     // Ответ готов — показываем копировать / нравится / не нравится / «ещё», как у обычных ответов.
@@ -13495,7 +13576,11 @@ async function handleMusicMessage(text){
   }
 }
 
-async function runMusicMessage(text){
+/* opts.forced — запрос уже понят (например, ИИ-агент вытащил из истории
+   «The Weeknd Starboy» для «найди этот трек»): без локального разбора и
+   без классификатора сразу ищем. */
+async function runMusicMessage(text,opts){
+  opts=opts||{};
   /* curUser объявлен в этом же инлайн-скрипте и невидим файлам из js/.
      Без этой строки сервер не знает, чей токен сохранять и чей искать,
      и авторизация зацикливается. */
@@ -13517,11 +13602,11 @@ async function runMusicMessage(text){
   }
 
   /* --- 0. «Собери плейлист …» — отдельный сценарий: подбор треков моделью. --- */
-  const plSpec=hmDetectPlaylistBuild(text);
+  const plSpec=opts.forced?null:hmDetectPlaylistBuild(text);
   if(plSpec)return runAiPlaylist(text,plSpec);
 
   /* --- 1. Быстрый локальный разбор. --- */
-  let intent=window.MusicIntents.detect(text);
+  let intent=opts.forced?Object.assign({},opts.forced):window.MusicIntents.detect(text);
 
   /* Пузырь пользователя и три точки ожидания — одной функцией, потому что вызывается из
      двух мест: до обращения к классификатору (чтобы фраза не исчезала в
@@ -13560,7 +13645,7 @@ async function runMusicMessage(text){
      «Найди в интернете, как получить карту» решалось регэкспом: он снимал
      «Найди», а остаток отправлял в поиск по Яндекс.Музыке — отсюда ответ
      «Не нашёл ничего по запросу…» на обычный вопрос. */
-  const needModel=intent
+  const needModel=opts.forced?false:intent
     ? intent.type!=='control'
     : (typeof window.MusicIntents.looksMusicRelated==='function'
         ? window.MusicIntents.looksMusicRelated(text)
@@ -13970,7 +14055,6 @@ async function handleTextReply(pendingText){
   const wasTraining=Boolean(trainingMode&&hasTrainingAccess());
   const trainingUrls=wasTraining&&text?(text.match(HM_URL_RE)||[]):[];
   if(wasTraining){if(text&&!trainingUrls.length)rememberTrainingMessage(text);}
-  else if(hasTrainingAccess()&&text)rememberDeveloperMessage(text);
   function buildDocInlineText(att,idx){
     const chunks=att.doc?.chunks||[];
     if(!chunks.length)return `[ФАЙЛ ${idx+1}: ${att.name}]\n(текст не удалось извлечь)`;
@@ -14809,7 +14893,7 @@ function renderSettingsGeneral(){
   const webSearch=(s.webSearch===true);
   const curLang=(window.i18n&&window.i18n.get&&window.i18n.get())||localStorage.getItem('hai_lang')||'ru';
   const names=(window.i18n&&window.i18n.names)||{ru:'Русский',en:'English',fr:'Français',de:'Deutsch',es:'Español'};
-  const dd=stpDdHtml('ddLang',names[curLang]||'Русский',((window.i18n&&window.i18n.supported)||['ru','en','fr','de','es']).map(l=>`<button type="button" class="stp-dd-opt${l===curLang?' on':''}" onclick="pickLang('${l}')">${names[l]||l}</button>`).join(''));
+  const dd=stpDdHtml('ddLang',names[curLang]||'Русский',((window.i18n&&window.i18n.supported)||['ru','en','fr','de','es']).map(l=>`<button type="button" class="stp-dd-opt${l===curLang?' on':''}" data-lang="${l}" data-i18n-skip onclick="pickLang('${l}')">${names[l]||l}</button>`).join(''));
   stpEnsure('general','Общие',stpBackMain(),`
       <div class="stp-row">
         <div class="stp-row-label"><div class="stp-row-title">Язык приложения</div></div>
@@ -14821,6 +14905,13 @@ function renderSettingsGeneral(){
           <div class="stp-row-desc">Искать актуальную информацию в реальном времени.</div>
         </div>
         ${stpToggleCtrl('webSearch',webSearch)}
+      </div>
+      <div class="stp-row">
+        <div class="stp-row-label">
+          <div class="stp-row-title">Новости на почту</div>
+          <div class="stp-row-desc">Редкие письма о новых функциях HarmonyAI. Письма об оплате приходят всегда.</div>
+        </div>
+        ${stpToggleCtrl('news_opt_in',s.news_opt_in===true)}
       </div>
       <div class="stp-row">
         <div class="stp-row-label">
@@ -16687,11 +16778,40 @@ async function hmAgentRoute(text){
     else return false;
   }
   if(action==='ask_audio'&&!audios.length&&!recent.length)return false;
+  // «Найди этот трек» — название известно (из сообщения или из прошлого ответа): ищем, а не просим файл.
+  if(action==='find_track'){
+    if(audios.length||!decision.query)return false;
+    return await hmFindTrack(text,decision.query,decision.reply||'');
+  }
   await hmAgentRun(action,{text,atts:pendingAttachments.slice(),intro:decision&&decision.reply||''});
+  return true;
+}
+/* Поиск трека по названию. Яндекс Музыка подключена — ищет и показывает
+   музыкальный модуль (с плеером). Не подключена — карточка «Где послушать»
+   со ссылками на сервисы и кнопкой подключения. Раньше на «найди этот трек»
+   ИИ просил прислать файл, хотя сам только что назвал песню. */
+async function hmFindTrack(text,query,intro){
+  const play=/(включ|постав|сыгра|запуст|play)/i.test(text||'');
+  let connected=window.__hmYmConnected===true;
+  if(!connected&&window.MusicClient){try{connected=await hmYandexConnected();}catch(e){connected=false;}}
+  if(connected&&typeof handleMusicMessage==='function'){
+    window.__hmYmConnected=true;
+    try{
+      if(await handleMusicMessage(text,{forced:{type:'play',kind:'track',query,autoplay:play,explicit:true,confidence:'high'}}))return true;
+    }catch(e){}
+  }
+  const g=document.getElementById('greetingWrap');if(g)g.style.display='none';
+  addUserBubble(text,[],{createdAt:messageNow()});
+  chatHistory.push({role:'user',content:text,attachments:[],createdAt:messageNow()});
+  const p=hmPlugin('find_track','');
+  await new Promise(r=>setTimeout(r,350));
+  const lead=intro||hmVary('tl_intro',['Нашёл — вот где его послушать.','Вот где включить этот трек.','Держи ссылки — открывай, где удобнее.','Готово, вот где он есть.']);
+  p.finish(lead+'\n\n```tracks\n'+JSON.stringify({query:String(query).slice(0,160),connect:!connected})+'\n```');
   return true;
 }
 
 const HM_PLUG_WORDS={
+  find_track:['Ищу трек','Подбираю, где послушать'],
   upload_track:['Подключаю Яндекс Музыку','Загружаю трек','Отправляю трек в Яндекс','Добавляю трек в плейлист','Жду, пока Яндекс обработает трек','Почти готово'],
   connect_yandex:['Подключаю Яндекс Музыку','Открываю вход в Яндекс','Жду подтверждения'],
   analyze_track:['Слушаю трек','Считаю темп','Определяю тональность','Разбираю структуру','Слушаю динамику'],

@@ -36,6 +36,7 @@ import { handler as videoGenHandler } from '../lib/util-video-gen.js';
 import { handler as memoryHandler } from '../lib/util-memory.js';
 import { handler as supportHandler } from '../lib/util-support.js';
 import { handler as tempmailHandler } from '../lib/util-tempmail.js';
+import { unsubscribeHandler } from '../lib/mailer.js';
 import { handleIngestUrl, handleIngestText, handleIngestProxy, handleIngestDistill } from '../lib/textbook-ingestor.js';
 
 const OPS = {
@@ -51,6 +52,7 @@ const OPS = {
   'memory': memoryHandler,
   'support': supportHandler,
   'tempmail': tempmailHandler,
+  'unsubscribe': unsubscribeHandler,
   'ingest-url': handleIngestUrl,
   'ingest-text': handleIngestText,
   'ingest-proxy': handleIngestProxy,
