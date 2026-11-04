@@ -328,8 +328,10 @@
         </div>
         <div class="adm-cards">
           ${card('Последние ошибки', table([{ t: 'Когда', v: (r) => dt(r.at) }, { t: 'Код', html: (r) => `<a class="mono" href="#errors/${esc(r.code)}">${esc(r.code)}</a>` }, { t: 'Где', v: (r) => srcName(r.source) }, { t: 'Причина', v: (r) => r.message, cls: 'wrap' }], d.errors || [], { empty: 'Ошибок не было.' }))}
-          ${card('Действия персонала', table([{ t: 'Когда', v: (r) => dt(r.at) }, { t: 'Кто', v: (r) => r.admin || '—' }, { t: 'Действие', v: (r) => ({ grant_pro: 'Выдан Pro', revoke_pro: 'Снят Pro', block: 'Блокировка', unblock: 'Разблокировка', reset_limits: 'Сброс лимита' }[r.action] || r.action) + (r.detail?.days ? ` (${r.detail.days} дн.)` : '') + (r.detail?.reason ? ` — ${r.detail.reason}` : '') }], d.actions || [], { empty: 'Действий не было.' }))}
-        </div>`;
+          ${card('Действия персонала', table([{ t: 'Когда', v: (r) => dt(r.at) }, { t: 'Кто', v: (r) => r.admin || (r.action === 'auto_block' ? 'автоматически' : '—') }, { t: 'Действие', v: (r) => ({ grant_pro: 'Выдан Pro', revoke_pro: 'Снят Pro', block: 'Блокировка', unblock: 'Разблокировка', reset_limits: 'Сброс лимита', auto_block: 'Автоблокировка (рейтинг 0)' }[r.action] || r.action) + (r.detail?.days ? ` (${r.detail.days} дн.)` : '') + (r.detail?.reason ? ` — ${r.detail.reason}` : '') }], d.actions || [], { empty: 'Действий не было.' }))}
+        </div>
+        ${d.moderation ? `<div class="adm-cards">${card('Рейтинг и нарушения', `<p class="adm-trust"><b>${fmt(d.moderation.score)}</b> из 100 · пользователь рейтинга не видит. Оскорбление ИИ −34, попытка обойти защиту −50 (за 30 дней); 0 — блокировка навсегда. Разблокировка прощает нарушения.</p>`
+          + table([{ t: 'Когда', v: (r) => dt(r.created_at) }, { t: 'Что', v: (r) => (r.kind === 'insult' ? 'Оскорбление ИИ' : 'Обход защиты') + (r.pardoned ? ' (прощено)' : '') }, { t: 'Сообщение', v: (r) => r.excerpt || '', cls: 'wrap' }, { t: 'Почему', v: (r) => r.reason || '', cls: 'wrap' }], d.moderation.incidents || [], { empty: 'Нарушений нет.' }))}</div>` : ''}`;
     },
 
     async api() {
@@ -563,6 +565,50 @@
         + card('Последние дизлайки', list(d.dislikedRecent, (r) => `<div class="it"><div class="m">${esc(dt(r.at))} · ${esc(MODEL_NAMES[r.model] || r.model || '')} · ${esc(r.email || '')}</div><p>${esc(r.excerpt || '')}</p></div>`))
         + '</div>'
         + card('Исправления ответов', list(d.corrections, (r) => `<div class="it"><div class="m">${esc(dt(r.at))} · ${esc(r.email || '')}</div><p><b>Ответ:</b> ${esc(r.answer || '')}</p><p><b>Исправление:</b> ${esc(r.correction || '')}</p>${r.note ? `<p><b>Комментарий:</b> ${esc(r.note)}</p>` : ''}</div>`));
+    },
+
+    /* Почта (lib/mailer.js): служебные письма уходят сами, здесь — рассылки
+       тем, кто включил «Новости на почту», с учётом суточного лимита Resend. */
+    async mail() {
+      const d = await api('mail');
+      setTimeout(() => {
+        const subj = document.getElementById('admMailSubj'), body = document.getElementById('admMailBody'), msg = document.getElementById('admMailMsg');
+        const say = (t, bad) => { msg.textContent = t; msg.className = bad ? 'adm-err' : 'adm-note'; msg.hidden = false; };
+        const send = async (action, payload, okText) => {
+          document.querySelectorAll('.adm-mail [data-mail]').forEach((b) => { b.disabled = true; });
+          const r = await window.hmAuth.account('admin.' + action, payload);
+          document.querySelectorAll('.adm-mail [data-mail]').forEach((b) => { b.disabled = false; });
+          if (!r.ok) { say(r.error || 'Не получилось', true); return null; }
+          const x = r.data && r.data.data;
+          say(okText(x || {}));
+          return x;
+        };
+        const tst = document.querySelector('[data-mail=test]'), all = document.querySelector('[data-mail=send]');
+        if (tst) tst.onclick = () => send('mail_test', { subject: subj.value, body: body.value }, (x) => 'Тестовое письмо отправлено на ' + (x.sentTo || 'вашу почту') + '.');
+        if (all) all.onclick = async () => {
+          if (!confirm(`Отправить рассылку подписчикам (${fmt(d.subscribers || 0)})? Отменить будет нельзя.`)) return;
+          const x = await send('mail_send', { subject: subj.value, body: body.value }, (r) => `Отправлено ${fmt(r.sent)} из ${fmt(r.total)}.` + (r.left ? ` Осталось ${fmt(r.left)} — суточный лимит писем исчерпан, нажмите «Продолжить» завтра.` : ''));
+          if (x) setTimeout(render, 1500);
+        };
+        document.querySelectorAll('[data-mail=continue]').forEach((b) => {
+          b.onclick = async () => { const x = await send('mail_continue', { id: b.dataset.id }, (r) => `Отправлено ещё ${fmt(r.sent)}. Всего ${fmt(r.sentTotal)} из ${fmt(r.total)}.`); if (x) setTimeout(render, 1500); };
+        });
+      }, 0);
+      const status = d.enabled
+        ? `Почта подключена · отправитель <span class="mono">${esc(d.from)}</span> · за сутки отправлено ${fmt(d.sent24h)} из ${fmt(d.limit)}`
+        : 'Почта не подключена: добавьте переменную <span class="mono">RESEND_API_KEY</span> в Vercel (инструкция — в описании обновления).';
+      const camp = (d.campaigns || []);
+      return head('Рассылки', 'Письма об оплате и блокировке уходят сами. Здесь — новости тем, кто включил «Новости на почту».', '')
+        + `<div class="${d.enabled ? 'adm-note' : 'adm-err'}">${status}</div>`
+        + (d.migrated ? '' : '<div class="adm-note">Для рассылок выполните миграцию <span class="mono">supabase/2026-11-04-mail.sql</span>.</div>')
+        + '<div class="adm-grid">' + tile('Подписчиков на новости', d.subscribers == null ? '—' : fmt(d.subscribers)) + tile('Писем за сутки', fmt(d.sent24h), 'лимит ' + fmt(d.limit)) + '</div>'
+        + '<div class="adm-stack">' + (FULL ? card('Новая рассылка', `<div class="adm-mail">
+            <input id="admMailSubj" maxlength="150" placeholder="Тема письма" aria-label="Тема письма">
+            <textarea id="admMailBody" rows="9" placeholder="Текст. Пустая строка — новый абзац, **жирный**, [ссылка](https://…)" aria-label="Текст письма"></textarea>
+            <div class="adm-actions"><button class="adm-btn" data-mail="test">Отправить тест себе</button><button class="adm-btn danger" data-mail="send">Отправить подписчикам</button></div>
+            <div id="admMailMsg" hidden></div></div>`, 'Сначала отправьте тест себе — проверьте, как письмо выглядит.') : '')
+        + card('Прошлые рассылки', table([{ t: 'Когда', v: (r) => dt(r.created_at) }, { t: 'Тема', v: (r) => r.subject, cls: 'wrap' }, { t: 'Отправлено', v: (r) => fmt(r.sent) + ' из ' + fmt(r.total), num: true },
+          { t: '', html: (r) => (!r.finished_at && FULL ? `<button class="adm-btn" data-mail="continue" data-id="${esc(r.id)}">Продолжить</button>` : (r.finished_at ? 'готово' : '')) }], camp, { empty: 'Рассылок ещё не было.' })) + '</div>';
     }
   };
   const okIcon = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 6.5l2.2 2.2 4.8-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';

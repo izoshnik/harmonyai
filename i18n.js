@@ -82,6 +82,44 @@
     return DICT[key] || (window.__I18N_DICT && window.__I18N_DICT[key]) || (window.__I18N_SITE && window.__I18N_SITE[key]);
   }
 
+  /* Обратный словарь «перевод → русский оригинал».
+     Зачем: скрипты приложения иногда пишут в DOM уже переведённую строку
+     (подпись приветствия, восстановленный placeholder и т.п.). Раньше такой
+     текст запоминался как «русский оригинал», и после возврата на русский
+     интерфейс застревал на прежнем языке (китайская строка ввода при меню на
+     русском). Теперь оригинал всегда восстанавливается через словарь. */
+  var REV = null, revSig = '';
+  function dictSig(){
+    var a = window.__I18N_DICT, b = window.__I18N_SITE;
+    return Object.keys(DICT).length + ':' + (a ? Object.keys(a).length : 0) + ':' + (b ? Object.keys(b).length : 0);
+  }
+  function buildRev(){
+    var sig = dictSig();
+    if (REV && sig === revSig) return;
+    revSig = sig; REV = Object.create(null);
+    [DICT, window.__I18N_DICT, window.__I18N_SITE].forEach(function(d){
+      if (!d) return;
+      for (var k in d){
+        var e = d[k];
+        if (!e || typeof e !== 'object') continue;
+        for (var l in e){
+          var v = norm(e[l]);
+          if (v && v !== k && !(v in REV)) REV[v] = k;
+        }
+      }
+    });
+  }
+  // Переведённая строка → русский оригинал (с исходными пробелами); иначе как есть.
+  function toRu(str){
+    if (!REV) return str;
+    var raw = String(str == null ? '' : str);
+    var key = norm(raw);
+    if (!key || lookup(key)) return str;
+    var ru = REV[key];
+    if (!ru) return str;
+    return raw.match(/^\s*/)[0] + ru + raw.match(/\s*$/)[0];
+  }
+
   // Перевод одной строки. Сохраняет ведущие/замыкающие пробелы исходника.
   function translate(str){
     if (current === 'ru') return str;
@@ -101,7 +139,19 @@
   // Узлы, содержимое которых нельзя переводить
   var SKIP_TAGS = { SCRIPT:1, STYLE:1, TEXTAREA:1, CODE:1, PRE:1 };
 
-  function skipped(el){ return !!(el && el.closest && el.closest('[data-i18n-skip]')); }
+  /* Что не переводится никогда: явно помеченное [data-i18n-skip] и то, что
+     страница перечислила в window.I18N_SKIP_SELECTOR (в приложении — тексты
+     сообщений и названия чатов: это слова пользователя и ИИ, а не интерфейс). */
+  var skipSel = null;
+  function skipSelector(){
+    if (skipSel == null){
+      var extra = String(window.I18N_SKIP_SELECTOR || '').trim();
+      skipSel = '[data-i18n-skip]' + (extra ? ',' + extra : '');
+      try { document.createElement('div').closest(skipSel); } catch(e){ skipSel = '[data-i18n-skip]'; }
+    }
+    return skipSel;
+  }
+  function skipped(el){ return !!(el && el.closest && el.closest(skipSelector())); }
 
   function translateEl(el){
     if (!el || el.nodeType !== 1) return;
@@ -112,7 +162,7 @@
         var cur = el.getAttribute(a);
         var last = el.__i18nAttr && el.__i18nAttr[a];
         // Атрибут переписан скриптом после перевода — это новый оригинал.
-        if (orig == null || (last != null && cur !== last)){ orig = cur; el.setAttribute('data-i18n-'+a, orig); }
+        if (orig == null || (last != null && cur !== last)){ orig = toRu(cur); el.setAttribute('data-i18n-'+a, orig); }
         var t = translate(orig);
         (el.__i18nAttr || (el.__i18nAttr = {}))[a] = t;
         if (cur !== t) el.setAttribute(a, t);
@@ -140,6 +190,7 @@
     rootEl = rootEl || document.body;
     if (!rootEl) return;
     if (current === 'ru'){ restoreRu(rootEl); return; }
+    buildRev();
     var walker = document.createTreeWalker(rootEl, NodeFilter.SHOW_TEXT, {
       acceptNode: function(node){
         var p = node.parentNode;
@@ -155,7 +206,7 @@
     for (var i=0;i<textNodes.length;i++){
       var tn = textNodes[i];
       // Текст поменяли скриптом после перевода — это новый оригинал.
-      if (tn.__i18nOrig == null || (tn.__i18nVal != null && tn.nodeValue !== tn.__i18nVal)) tn.__i18nOrig = tn.nodeValue;
+      if (tn.__i18nOrig == null || (tn.__i18nVal != null && tn.nodeValue !== tn.__i18nVal)) tn.__i18nOrig = toRu(tn.nodeValue);
       var t = translate(tn.__i18nOrig);
       if (t !== tn.nodeValue) tn.nodeValue = t;
       tn.__i18nVal = t;
@@ -167,29 +218,46 @@
     }
   }
 
-  // Возврат к русскому: восстанавливаем сохранённые оригиналы.
+  // Возврат к русскому: восстанавливаем оригиналы. Текст, который скрипт
+  // записал уже переведённым (оригинала у узла нет или он «отравлен»),
+  // возвращаем через обратный словарь — кроме пользовательского содержимого.
   function restoreRu(rootEl){
     rootEl = rootEl || document.body;
+    if (!rootEl) return;
+    buildRev();
     var walker = document.createTreeWalker(rootEl, NodeFilter.SHOW_TEXT, null);
     var n; while ((n = walker.nextNode())){
-      if (n.__i18nOrig != null){
-        if (n.__i18nVal != null && n.nodeValue !== n.__i18nVal) n.__i18nOrig = n.nodeValue;
-        if (n.nodeValue !== n.__i18nOrig) n.nodeValue = n.__i18nOrig;
-        n.__i18nVal = n.__i18nOrig;
+      var cur = n.nodeValue, base;
+      if (n.__i18nOrig != null) base = (n.__i18nVal != null && cur !== n.__i18nVal) ? cur : n.__i18nOrig;
+      else {
+        var p = n.parentNode;
+        if (!p || SKIP_TAGS[p.nodeName] || !norm(cur)) continue;
+        base = cur;
       }
+      var ru = toRu(base);
+      if (ru !== base && skipped(n.parentNode)) ru = base;   // слова пользователя/ИИ не трогаем
+      if (n.__i18nOrig == null && ru === cur) continue;
+      if (cur !== ru) n.nodeValue = ru;
+      n.__i18nOrig = ru; n.__i18nVal = ru;
     }
     if (!rootEl.querySelectorAll) return;
-    var els = rootEl.querySelectorAll('*');
+    var els = [rootEl.nodeType === 1 ? rootEl : null].concat([].slice.call(rootEl.querySelectorAll('*')));
     for (var i=0;i<els.length;i++){
       var el = els[i];
+      if (!el || !el.getAttribute) continue;
       for (var k=0;k<ATTRS.length;k++){
-        var a = ATTRS[k], keep = el.getAttribute && el.getAttribute('data-i18n-'+a);
-        if (keep == null) continue;
-        var last = el.__i18nAttr && el.__i18nAttr[a], cur = el.getAttribute(a);
-        if (last != null && cur !== last) keep = cur;     // переписан скриптом
-        if (cur !== keep && cur != null) el.setAttribute(a, keep);
-        el.setAttribute('data-i18n-'+a, keep);
-        (el.__i18nAttr || (el.__i18nAttr = {}))[a] = keep;
+        var a = ATTRS[k], cur2 = el.getAttribute(a);
+        if (cur2 == null) continue;
+        var keep = el.getAttribute('data-i18n-'+a);
+        var last = el.__i18nAttr && el.__i18nAttr[a];
+        if (keep == null || (last != null && cur2 !== last)) keep = cur2;   // переписан скриптом
+        var ruA = toRu(keep);
+        if (ruA !== keep && skipped(el)) ruA = keep;
+        if (cur2 !== ruA) el.setAttribute(a, ruA);
+        if (ruA !== cur2 || el.hasAttribute('data-i18n-'+a)){
+          el.setAttribute('data-i18n-'+a, ruA);
+          (el.__i18nAttr || (el.__i18nAttr = {}))[a] = ruA;
+        }
       }
     }
   }

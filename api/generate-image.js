@@ -1,4 +1,5 @@
 import { hasProAccess, requireUser } from '../lib/auth.js';
+import { utilityChat } from '../lib/ai-tasks.js';
 import { logRequest, reportError, serviceErrorText, isBlockedProfile, BLOCKED_MESSAGE, allowsTextLogging } from '../lib/observe.js';
 export const config = {
   maxDuration: 60
@@ -236,19 +237,11 @@ async function isPromptAllowedByAI(prompt) {
     { role: 'user', content: `Запрос: ${prompt}` }
   ];
   try {
-    const response = await withTimeout(
-      fetch(`${baseUrl}/chat/completions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-        body: JSON.stringify({ model: utilityModel('IMAGE_MODERATOR_MODEL'), messages, max_tokens: 5, temperature: 0 })
-      }),
-      20000, 'AI moderator timed out'
-    );
-    if (!response.ok) return true;
-    let data = {};
-    try { data = await response.json(); } catch (e) { data = {}; }
-    const verdict = String(data?.choices?.[0]?.message?.content || '').trim().toUpperCase();
-    return !verdict.startsWith('DENY');
+    // При сбое основной модели отвечает запасная — модерация не «пропускает всё» во время сбоя.
+    const r = await utilityChat(messages, { envNames: ['IMAGE_MODERATOR_MODEL'], maxTokens: 5, temperature: 0, timeoutMs: 12000, lowReasoning: true });
+    if (!r.text) return true;
+    const verdict = String(r.text).trim().toUpperCase();
+    return !/DENY/.test(verdict.slice(0, 40));
   } catch (e) {
     console.warn('[generate-image] AI moderator error, fail-open:', compactErrorValue(e?.message, 200));
     return true;
@@ -501,16 +494,11 @@ async function toEnglishImagePrompt(prompt) {
   const ep = utilityEndpoint();
   if (!ep.apiKey || isPlaceholderValue(ep.apiKey)) return prompt;
   try {
-    const response = await withTimeout(fetch(`${ep.baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ep.apiKey}` },
-      body: JSON.stringify({ model: utilityModel('IMAGE_MODERATOR_MODEL'), temperature: 0, max_tokens: 120, messages: [
-        { role: 'system', content: 'Rewrite the user\'s photo editing instruction as a short English prompt for an image-to-image model describing the desired result. Output only the prompt.' },
-        { role: 'user', content: prompt }
-      ] })
-    }), 15000, 'translate timed out');
-    const data = await response.json().catch(() => ({}));
-    const out = String(data?.choices?.[0]?.message?.content || '').trim().replace(/^["']|["']$/g, '');
+    const r = await utilityChat([
+      { role: 'system', content: 'Rewrite the user\'s photo editing instruction as a short English prompt for an image-to-image model describing the desired result. Output only the prompt.' },
+      { role: 'user', content: prompt }
+    ], { envNames: ['IMAGE_MODERATOR_MODEL'], temperature: 0, maxTokens: 120, timeoutMs: 12000, lowReasoning: true });
+    const out = String(r.text || '').trim().replace(/^["']|["']$/g, '');
     return out && out.length < 600 ? out : prompt;
   } catch (e) { return prompt; }
 }

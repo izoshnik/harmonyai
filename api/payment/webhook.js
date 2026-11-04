@@ -31,6 +31,7 @@
 
 export const config = { maxDuration: 15 };
 
+import { notifyPayment } from '../../lib/mailer.js';
 import { supabaseRest } from '../../lib/auth.js';
 import { fetchPayment, paymentAmountKopecks, PAYMENT_TYPES, yookassaConfigured } from '../../lib/yookassa.js';
 import { PRO_PLAN, kopecksToRublesString, periodDaysForPayment } from '../../lib/pricing.js';
@@ -198,6 +199,8 @@ export default async function handler(req, res) {
 
       console.log('[webhook] баланс пополнен:', paymentId, kopecksToRublesString(amountKopecks), '₽');
       await logEvent({ userId: internal.user_id, paymentId, amount: payment.amount?.value, status: 'topup_credited' });
+      // Письмо о пополнении (если почта настроена). Сбой письма не влияет на зачисление.
+      await notifyPayment({ userId: internal.user_id, kind: 'topup', amountKop: Number(amountKopecks), paymentId }).catch(() => null);
       return res.status(200).end();
     }
 
@@ -270,6 +273,8 @@ export default async function handler(req, res) {
 
     console.log('[webhook] Pro активирован до', expiresAt, 'по платежу', paymentId, `(${periodDays} дн.)`);
     await logEvent({ userId: internal.user_id, paymentId, amount: payment.amount?.value, status: 'activated' });
+    // Письмо «Оплата прошла» (если почта настроена). Сбой письма не влияет на активацию.
+    await notifyPayment({ userId: internal.user_id, kind: 'subscription', amountKop: Number(amountKopecks), periodDays, expiresAt, paymentId }).catch(() => null);
     return res.status(200).end();
   } catch (error) {
     console.error('[webhook]', String(error?.message || error).slice(0, 300));

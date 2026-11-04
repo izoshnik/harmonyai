@@ -14,6 +14,8 @@ export const config = {
 import { FREE_TEXT_MODEL, PRO_TEXT_MODEL, envModel, currentModelName, LONG_CONTEXT_THRESHOLD, longContextModel, providerForModel, providerBaseUrl, isOpenRouterModel, supportsReasoningEffort, noteUnaskedReasoning, responseHasReasoning, fastReasoningEffort } from '../lib/models.js';
 import { authenticateRequest } from '../lib/auth.js';
 import { logRequest, reportError, serviceErrorText, allowsTextLogging, isBlockedProfile, BLOCKED_MESSAGE, estimateTokens } from '../lib/observe.js';
+import { moderateMessage } from '../lib/moderation.js';
+import { notifyAccountBlocked } from '../lib/mailer.js';
 
 // Adan (free) отвечает на claude-haiku-4-5, Dynatos (pro) — на gpt-5.6-luna (см. lib/models.js).
 // Режим low/max НЕ меняют модель, они меняют только таймаут/глубину (см. selectRoute/handler).
@@ -393,7 +395,7 @@ async function fetchProfileCached(userId, { fresh = false } = {}) {
 async function fetchGlobalKnowledgeCached() {
   return cachedLoad('knowledge:global', GLOBAL_KNOWLEDGE_TTL_MS, async () => {
     const documents = await supabaseRequest(
-      `/rest/v1/knowledge_documents?select=id,title,scope,source_type,owner_user_id,created_at,chunk_count,is_active&is_active=eq.true&scope=eq.global&source_type=neq.developer_note&order=created_at.desc&limit=500`
+      `/rest/v1/knowledge_documents?select=id,title,scope,source_type,owner_user_id,created_at,chunk_count,is_active&is_active=eq.true&scope=eq.global&source_type=not.in.(developer_note,note)&order=created_at.desc&limit=500`
     ) || [];
     const chunks = documents.length ? (await fetchChunksForDocuments(documents.map((d) => d.id)) || []) : [];
     return { documents, chunks };
@@ -430,7 +432,7 @@ async function fetchAccessibleDocuments(userId) {
     ? `or=(scope.eq.global,and(scope.eq.user,owner_user_id.eq.${userId}))`
     : `scope=eq.global`;
   return await supabaseRequest(
-    `/rest/v1/knowledge_documents?select=id,title,scope,source_type,owner_user_id,created_at,chunk_count,is_active&is_active=eq.true&source_type=neq.developer_note&${encodeURI(orClause)}&order=created_at.desc&limit=500`
+    `/rest/v1/knowledge_documents?select=id,title,scope,source_type,owner_user_id,created_at,chunk_count,is_active&is_active=eq.true&source_type=not.in.(developer_note,note)&${encodeURI(orClause)}&order=created_at.desc&limit=500`
   );
 }
 
@@ -514,15 +516,41 @@ function selectTopItems(items, pickText, queryText, limit = 50, maxChars = 30000
 /* deep=false — обычный вопрос: несколько самых точных фрагментов (быстро и дёшево).
    deep=true — «Думать»/max/обучение/личный контекст: прежний большой объём.
    Правила, выжатые из учебников (source_type=textbook_rules), идут первыми. */
+/* Один и тот же учебник загружали по 2–3 раза (PDF и TXT, повторные загрузки) —
+   тогда одинаковые фрагменты занимали места друг друга в подсказке. Оставляем
+   по одному документу с названием (самый новый) и по одному одинаковому фрагменту. */
+export function dedupeKnowledge(documents = [], chunks = []) {
+  const byTitle = new Map();
+  for (const doc of documents) {
+    const key = String(doc.title || '').toLowerCase().replace(/\.(pdf|txt|docx?|fb2|md|html?)$/i, '').replace(/[^a-zа-яё0-9]+/gi, '');
+    const prev = byTitle.get(key);
+    if (!key || !prev || String(doc.created_at || '') > String(prev.created_at || '')) byTitle.set(key || doc.id, doc);
+  }
+  const keep = new Set([...byTitle.values()].map((d) => d.id));
+  const seen = new Set();
+  const outChunks = [];
+  for (const ch of chunks) {
+    if (!keep.has(ch.document_id)) continue;
+    const sig = String(ch.content || '').replace(/\s+/g, ' ').trim().slice(0, 400).toLowerCase();
+    if (!sig || seen.has(sig)) continue;
+    seen.add(sig);
+    outChunks.push(ch);
+  }
+  return { documents: documents.filter((d) => keep.has(d.id)), chunks: outChunks };
+}
+
 function buildKnowledgeContext(documents, chunks, query, { deep = true } = {}) {
   if (!documents.length || !chunks.length) return '';
+  ({ documents, chunks } = dedupeKnowledge(documents, chunks));
   const docMap = new Map(documents.map((doc) => [doc.id, doc]));
   const items = chunks
     .map((chunk) => ({ ...chunk, document: docMap.get(chunk.document_id) }))
-    .filter((row) => row.document);
+    .filter((row) => row.document && !['developer_note', 'note'].includes(row.document.source_type));
   const bonus = (item) => (item.document.source_type === 'textbook_rules' ? 8 : item.document.source_type === 'textbook' ? 3 : 0);
   const picked = deep
-    ? selectTopItems(items, (item) => item.content, query, 80, 350000, bonus)
+    // 350 000 символов не помещались в окно бесплатных моделей: начало подсказки
+    // (инструкции) обрезалось, и ответы становились «глупее». 120 000 хватает с запасом.
+    ? selectTopItems(items, (item) => item.content, query, 36, 120000, bonus)
     : selectTopItems(items, (item) => item.content, query, 8, 24000, bonus);
   if (!picked.length) return '';
   return '\nБАЗА ЗНАНИЙ (учебники и материалы, загруженные преподавателями; правила учебника важнее общих знаний). ' +
@@ -2297,6 +2325,26 @@ async function handleWarm(req, res) {
   return res.status(204).end();
 }
 
+/* Задача, которую нужно доделать до закрытия ответа: после res.end Vercel
+   может заморозить функцию, и запись нарушения потерялась бы. Конец ответа
+   откладывается до её завершения (но не дольше 9 с). */
+function holdResponseFor(res, promise) {
+  if (!promise) return;
+  const list = res.__hmHold || (res.__hmHold = []);
+  list.push(Promise.resolve(promise).catch(() => {}));
+  if (res.__hmEndWrapped) return;
+  res.__hmEndWrapped = true;
+  const end = res.end.bind(res);
+  res.end = function (...args) {
+    Promise.race([Promise.allSettled(res.__hmHold), new Promise((r) => setTimeout(r, 9000))]).finally(() => end(...args));
+    return res;
+  };
+}
+async function onAutoBlocked(userId) {
+  console.warn('[moderation] user auto-blocked', String(userId).slice(0, 8));
+  try { await notifyAccountBlocked(userId); } catch (e) { /* письмо — не критично */ }
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -2389,6 +2437,12 @@ export default async function handler(req, res) {
       return res.status(403).json({ error: { message: BLOCKED_MESSAGE, status: 403, code: 'blocked' } });
     }
     const planTag = ['developer', 'admin', 'moderator'].includes(String(profile?.role || '').toLowerCase()) ? 'staff' : (isProRole(profile) ? 'pro' : 'free');
+    /* Скрытый рейтинг (lib/moderation.js): оскорбления ИИ и попытки обойти
+       защиту. Проверка идёт параллельно с ответом и его не задерживает; ИИ
+       отвечает как обычно — спокойно и по-доброму. Сотрудников не трогаем. */
+    if (planTag !== 'staff' && !applyDevAccountProfile.isDev(authedUser)) {
+      holdResponseFor(res, moderateMessage({ userId, text: query }).then((m) => (m.blocked ? onAutoBlocked(userId) : null)));
+    }
     const publicModel = () => (model === 'pro' ? 'dynatos' : 'adanatos');
 
     // Max и «Думать» разрешены всем. Только Dynatos остаётся серверно защищённым.

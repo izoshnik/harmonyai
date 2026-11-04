@@ -23,7 +23,7 @@
 (function(){
   'use strict';
 
-  var KINDS=['quiz','chart','diagram','mermaid','photo','image','buttons','steps','compare','flow','timeline','figure','molecule','email'];
+  var KINDS=['quiz','chart','diagram','mermaid','photo','image','buttons','steps','compare','flow','timeline','figure','molecule','email','tracks'];
   var FENCE_SRC='```[ \\t]*('+KINDS.join('|')+')[ \\t]*\\r?\\n([\\s\\S]*?)```';
   var OPEN_RE=new RegExp('```[ \\t]*('+KINDS.join('|')+')[ \\t]*(?:\\r?\\n[\\s\\S]*)?$','i');
 
@@ -1030,6 +1030,43 @@
     setTimeout(function(){document.addEventListener('click',function off(ev){if(!menu.contains(ev.target)){menu.remove();document.removeEventListener('click',off);}});},0);
   }
 
+  /* ======================================================================
+     ГДЕ ПОСЛУШАТЬ (```tracks) — {"query":"The Weeknd Starboy","connect":true}.
+     Ссылки на поиск трека в музыкальных сервисах; если Яндекс Музыка не
+     подключена — кнопка «Слушать прямо здесь».
+     ====================================================================== */
+  var TRACK_SERVICES=[
+    {name:'Яндекс Музыка',host:'music.yandex.ru',url:function(q){return 'https://music.yandex.ru/search?text='+encodeURIComponent(q);}},
+    {name:'VK Музыка',host:'vk.com',url:function(q){return 'https://vk.com/search/music?q='+encodeURIComponent(q);}},
+    {name:'YouTube',host:'youtube.com',url:function(q){return 'https://www.youtube.com/results?search_query='+encodeURIComponent(q);}},
+    {name:'YouTube Music',host:'music.youtube.com',url:function(q){return 'https://music.youtube.com/search?q='+encodeURIComponent(q);}},
+    {name:'Spotify',host:'open.spotify.com',url:function(q){return 'https://open.spotify.com/search/'+encodeURIComponent(q);}},
+    {name:'Apple Music',host:'music.apple.com',url:function(q){return 'https://music.apple.com/ru/search?term='+encodeURIComponent(q);}},
+    {name:'SoundCloud',host:'soundcloud.com',url:function(q){return 'https://soundcloud.com/search?q='+encodeURIComponent(q);}}
+  ];
+  var NOTE_ICON='<svg viewBox="0 0 24 24" fill="none"><path d="M9 18V6l11-2v12" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="6.5" cy="18" r="2.5" stroke="currentColor" stroke-width="1.8"/><circle cx="17.5" cy="16" r="2.5" stroke="currentColor" stroke-width="1.8"/></svg>';
+  function renderTracks(body,host){
+    var d=parseLoose(body)||{};
+    var q=String(d.query||d.title||'').replace(/\s+/g,' ').trim().slice(0,160);
+    if(!q)return null;
+    var card=el('div','hmr-tl');
+    card.innerHTML='<div class="hmr-tl-head">'+NOTE_ICON+'<div class="hmr-tl-q"></div></div><div class="hmr-tl-sub">'+esc(t('Где послушать'))+'</div><div class="hmr-tl-list"></div>';
+    card.querySelector('.hmr-tl-q').textContent=q;
+    var list=card.querySelector('.hmr-tl-list');
+    TRACK_SERVICES.forEach(function(x){
+      var a=el('a','hmr-tl-row');a.href=x.url(q);a.target='_blank';a.rel='noopener noreferrer';
+      a.innerHTML='<img alt="" loading="lazy" referrerpolicy="no-referrer" src="https://icons.duckduckgo.com/ip3/'+x.host+'.ico"><span>'+esc(x.name)+'</span><svg class="hmr-tl-go" viewBox="0 0 24 24" fill="none"><path d="M7 17L17 7M9 7h8v8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      var img=a.querySelector('img');img.onerror=function(){img.style.visibility='hidden';};
+      list.appendChild(a);
+    });
+    if(d.connect){
+      var b=el('button','hmr-tl-connect');b.type='button';b.textContent=t('Слушать прямо здесь — подключить Яндекс Музыку');
+      b.onclick=function(){sendPrompt('Подключи Яндекс Музыку');};
+      card.appendChild(b);
+    }
+    host.appendChild(card);return card;
+  }
+
   function renderBroken(host,what,body){
     var card=el('div','hmr-card');card.innerHTML='<div class="hmr-diagram-err">'+esc(t('Не удалось показать'))+' '+esc(t(what))+'.</div>';
     host.appendChild(card);return card;
@@ -1348,6 +1385,7 @@
       if(kind==='figure')return renderFigure(body,host,ctx);
       if(kind==='molecule')return renderMolecule(body,host,ctx);
       if(kind==='email')return renderEmail(body,host,ctx);
+      if(kind==='tracks')return renderTracks(body,host,ctx);
     }catch(e){console.warn('[hm-rich]',kind,e);return renderBroken(host,'блок',body);}
     return null;
   }
