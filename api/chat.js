@@ -11,7 +11,8 @@ export const config = {
   maxDuration: 300
 };
 
-import { FREE_TEXT_MODEL, PRO_TEXT_MODEL, envModel, currentModelName, LONG_CONTEXT_THRESHOLD, longContextModel, providerForModel, providerFetch, providerBaseUrl, isOpenRouterModel, supportsReasoningEffort, noteUnaskedReasoning, responseHasReasoning, fastReasoningEffort, isGeminiModel, geminiApiKey, geminiChatModel, geminiProModel, coolDownModel, isCoolingDown, isProviderOutage } from '../lib/models.js';
+import { FREE_TEXT_MODEL, PRO_TEXT_MODEL, envModel, currentModelName, LONG_CONTEXT_THRESHOLD, longContextModel, providerForModel, providerFetch, providerBaseUrl, isOpenRouterModel, supportsReasoningEffort, noteUnaskedReasoning, responseHasReasoning, fastReasoningEffort, isGeminiModel, geminiApiKey, geminiChatModel, geminiProModel, coolDownModel, isCoolingDown, isProviderOutage, isExtraModel } from '../lib/models.js';
+import { rankedFreeChain, warmCatalogFor } from '../lib/model-catalog.js';
 import { authenticateRequest } from '../lib/auth.js';
 import { logRequest, reportError, serviceErrorText, allowsTextLogging, isBlockedProfile, BLOCKED_MESSAGE, estimateTokens } from '../lib/observe.js';
 import { moderateMessage } from '../lib/moderation.js';
@@ -156,16 +157,16 @@ function detectJailbreak(messages) {
 /* Бесплатные модели OpenRouter (октябрь 2026): сначала самые сильные и быстрые
    без обязательных рассуждений (на Low reasoning выключается — ответ сразу),
    в конце — платный запасной deepseek с pro-ai.online. */
-/* Основная бесплатная модель — Gemini 3.5 Flash Lite по ключу GEMINI_API_KEY
-   (видит фото, хорошо пишет по-русски, большие лимиты). У бесплатных моделей
-   OpenRouter без пополнения счёта всего 50 запросов в сутки на ВЕСЬ сервис —
-   они остаются запасными. Без ключа Gemini первой идёт nemotron-3.5-super-vl.
-   Основная всегда первая в цепочке, даже если в Vercel задан старый
-   ADAN_MODELS; поменять можно переменной ADAN_PRIMARY_MODEL. */
+/* ЦЕПОЧКА ADAN — ОТ СИЛЬНОЙ МОДЕЛИ К СЛАБОЙ (lib/model-catalog.js):
+   NVIDIA NIM, Cerebras, Groq (ключи NVIDIA_API_KEY, CEREBRAS_API_KEY,
+   GROQ_API_KEY — каких нет, тех нет в цепочке), Gemini 3.5 Flash Lite
+   (GEMINI_API_KEY) и бесплатные модели OpenRouter сортируются по силе модели.
+   Сильные упираются в свои лимиты первыми — тогда ответ даёт следующая, и за
+   день модели постепенно сменяются от сильной к слабой. Платная запасная
+   (deepseek-v4-flash на pro-ai.online) — всегда последней.
+   ADAN_PRIMARY_MODEL ставит одну модель первой; ADAN_CHAIN задаёт порядок целиком. */
 const ADAN_PRIMARY_DEFAULT = 'nvidia/nemotron-3.5-super-vl:free';
-function adanPrimary() {
-  return currentModelName(readEnv('ADAN_PRIMARY_MODEL')) || (geminiApiKey() ? geminiChatModel() : ADAN_PRIMARY_DEFAULT);
-}
+function adanPrimary() { return currentModelName(readEnv('ADAN_PRIMARY_MODEL')); }
 const ADAN_DEFAULT_MODELS = [
   ADAN_PRIMARY_DEFAULT,
   'thinkingmachines/inkling:free',
@@ -181,12 +182,17 @@ function adanModels() {
   // Свои модели из ADAN_MODELS — первыми, встроенные — запасными после них:
   // короткий список в Vercel (две модели) оставлял цепочку без запаса, когда
   // одна упиралась в лимит, а другая лежала у провайдера.
-  return [...new Set([adanPrimary(), ...fromEnv, ...ADAN_DEFAULT_MODELS])];
+  const pool = [...fromEnv, ...ADAN_DEFAULT_MODELS];
+  // Платные модели pro-ai.online (без «/» и префикса провайдера) — в самый конец.
+  const paid = pool.filter((m) => !isOpenRouterModel(m) && !isExtraModel(m) && !isGeminiModel(m));
+  const free = rankedFreeChain(pool.filter((m) => !paid.includes(m)));
+  const primary = adanPrimary();
+  return [...new Set([...(primary ? [primary] : []), ...free, ...paid])];
 }
 const isFreeOpenRouter = (name) => isOpenRouterModel(name) && /:free$/i.test(String(name || ''));
 /* Модель из цепочки Adan: при лимите/обрыве переключаемся на следующую. */
 // Gemini (и Flash Lite для Adan, и Flash — запасная Pro) ведёт себя как модель цепочки: лимит → следующая.
-function isAdanModel(name) { const n = String(name || ''); return isOpenRouterModel(n) || isGeminiModel(n) || adanModels().includes(n); }
+function isAdanModel(name) { const n = String(name || ''); return isOpenRouterModel(n) || isGeminiModel(n) || isExtraModel(n) || adanModels().includes(n); }
 function nextMskReset() {
   // 03:00 МСК = 00:00 UTC
   const d = new Date(); d.setUTCHours(24, 0, 0, 0); return d.getTime();
@@ -203,9 +209,10 @@ function markModelExhausted(name, reason) {
     console.warn(`[harmonyai] OpenRouter free daily limit reached — all :free models skipped until 03:00 MSK`);
     return;
   }
-  /* Gemini: поминутный лимит (RPM/TPM) — пауза на минуту; суточный — до сброса. */
-  if (isGeminiModel(name)) {
-    const perDay = /per.?day|perday|daily|requests per day/i.test(why);
+  /* Gemini, NIM, Cerebras, Groq: поминутный лимит (RPM/TPM) — пауза на минуту;
+     суточный (RPD/TPD, «per day») — до сброса в 03:00 МСК. */
+  if (isGeminiModel(name) || isExtraModel(name)) {
+    const perDay = /per.?day|perday|daily|requests per day|tokens per day|\bRPD\b|\bTPD\b/i.test(why);
     exhaustedModels.set(name, perDay ? nextMskReset() : Date.now() + 60 * 1000);
     console.warn(`[harmonyai] gemini limit | model=${name} | ${perDay ? 'daily' : '1 min'} | ${why.slice(0, 160)}`);
     return;
@@ -237,7 +244,8 @@ const ADAN_VISION_DEFAULT = [ADAN_PRIMARY_DEFAULT, 'thinkingmachines/inkling:fre
 function adanVisionModels() {
   const fromEnv = readEnv('ADAN_VISION_MODELS').split(',').map(x => x.trim()).filter(Boolean);
   // Основная модель мультимодальная — для фото она тоже первая.
-  return [...new Set([adanPrimary(), ...(fromEnv.length ? fromEnv : ADAN_VISION_DEFAULT)])];
+  // Gemini видит фото и не упирается в дневной лимит OpenRouter — первой.
+  return [...new Set([...(geminiApiKey() ? [geminiChatModel()] : []), ...(fromEnv.length ? fromEnv : ADAN_VISION_DEFAULT)])];
 }
 function lastUserHasImage(messages) {
   const list = Array.isArray(messages) ? messages : [];
@@ -1217,6 +1225,23 @@ function providerBodyVariants(modelName, messages, maxTokens, reasoningEffort, s
     variants.push(v);
     const plain = { ...base };
     if (maxTokens > 0) plain.max_tokens = Math.max(maxTokens, 4096);
+    variants.push(plain);
+    return variants;
+  }
+  /* NVIDIA NIM, Cerebras, Groq: стандартный OpenAI-формат. Многие их модели
+     (GLM, Qwen, DeepSeek, gpt-oss) рассуждают сами, и рассуждения входят в лимит
+     ответа — даём запас. reasoning_effort понимает только gpt-oss: без «Думать»
+     просим 'low', чтобы ответ начинался быстрее. */
+  if (isExtraModel(modelName)) {
+    const gptOss = /gpt-oss/i.test(modelName);
+    const effort = gptOss ? (reasoningEffort ? (reasoningEffort === 'xhigh' ? 'high' : reasoningEffort) : 'low') : '';
+    const reserve = reasoningEffort ? reasoningReserve(reasoningEffort) : 3000;
+    const v = { ...base, temperature: 0.6, top_p: 0.95 };
+    if (maxTokens > 0) v.max_tokens = maxTokens + reserve;
+    if (effort) v.reasoning_effort = effort;
+    variants.push(v);
+    const plain = { ...base };
+    if (maxTokens > 0) plain.max_tokens = maxTokens + reserve;
     variants.push(plain);
     return variants;
   }
@@ -2623,6 +2648,8 @@ export default async function handler(req, res) {
     // Режим «Обучение» developer/admin — запись в базу знаний в фоне, ответ её не ждёт.
     maybeSaveDeveloperNote(profile, query, Boolean(trainingMode)).catch(() => {});
 
+    // Список моделей NIM/Cerebras/Groq (кэш на час): на холодном сервере ждём его недолго.
+    await warmCatalogFor(700);
     const route = selectRoute(profile, model, messages);
     const systemText = messages.find(m => m.role === 'system')?.content || '';
     // Определяем размер контекста — если в чате есть большой документ, нужны увеличенные таймауты
@@ -2981,4 +3008,4 @@ export default async function handler(req, res) {
 }
 
 /* Для тестов маршрутизации моделей (tests/gemini-provider.test.mjs); Vercel использует только default. */
-export const __routing = { selectRoute, providerBodyVariants, markModelExhausted, adanChain, isModelExhausted };
+export const __routing = { selectRoute, providerBodyVariants, markModelExhausted, adanChain, isModelExhausted, adanModels };

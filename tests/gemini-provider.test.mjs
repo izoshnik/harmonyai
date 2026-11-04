@@ -79,17 +79,17 @@ test('служебная задача: основная упала 502 → от�
   } finally { globalThis.fetch = realFetch; }
 });
 
-test('чат: Adan начинается с Gemini Flash Lite, Pro — glm → Gemini Flash → Adan', async () => {
+test('чат: Adan — от сильной модели к слабой, платная последней; Pro — glm → Gemini Flash → Adan', async () => {
   const { __routing: R } = await import('../api/chat.js');
-  const free = R.selectRoute({}, 'lite', [{ role: 'user', content: 'привет' }]).models;
-  assert.equal(free[0], 'gemini-3.5-flash-lite');
-  assert.ok(free.includes('nvidia/nemotron-3.5-super-vl:free'));
+  const free = R.adanModels();
+  // Без ключей NIM/Cerebras/Groq: nemotron-ultra (88) → Gemini Flash Lite (83) → nemotron-super (81) → … → deepseek (платная)
+  assert.equal(free[0], 'nvidia/nemotron-3-ultra-550b-a55b:free');
+  assert.equal(free[1], 'gemini-3.5-flash-lite');
+  assert.equal(free[2], 'nvidia/nemotron-3.5-super-vl:free');
+  assert.equal(free[free.length - 1], 'deepseek-v4-flash');
   const pro = R.selectRoute({ plan: 'pro', pro_until: new Date(Date.now() + 864e5).toISOString(), is_pro: true, role: 'pro' }, 'pro', [{ role: 'user', content: 'привет' }]).models;
-  if (pro[0] !== 'gemini-3.5-flash-lite') { // профиль распознан как Pro
-    assert.equal(pro[0], 'glm-5.3-flash');
-    assert.equal(pro[1], 'gemini-3.5-flash');
-  }
-  // С фото первой тоже Gemini (видит изображения).
+  if (pro[0] === 'glm-5.3-flash') assert.equal(pro[1], 'gemini-3.5-flash'); // профиль распознан как Pro
+  // С фото первой идёт модель со зрением — Gemini.
   const img = R.selectRoute({}, 'lite', [{ role: 'user', content: [{ type: 'text', text: 'что тут' }, { type: 'image_url', image_url: { url: 'data:image/png;base64,AA' } }] }]).models;
   assert.equal(img[0], 'gemini-3.5-flash-lite');
 });
@@ -98,7 +98,7 @@ test('чат: «free-models-per-day» у одной :free модели выкл�
   const { __routing: R } = await import('../api/chat.js');
   R.markModelExhausted('nvidia/nemotron-3.5-super-vl:free', 'Rate limit exceeded: free-models-per-day. Add 10 credits');
   const chain = R.selectRoute({}, 'lite', [{ role: 'user', content: 'привет' }]).models;
-  assert.equal(chain[0], 'gemini-3.5-flash-lite');
+  assert.equal(chain[0], 'gemini-3.5-flash-lite', 'живые модели впереди: ' + chain.join(','));
   const firstFree = chain.findIndex((m) => /:free$/.test(m));
   assert.ok(firstFree > chain.indexOf('gemini-3.5-flash-lite'), 'все :free — после живых моделей: ' + chain.join(','));
   assert.equal(R.isModelExhausted('thinkingmachines/inkling:free'), true);
@@ -116,4 +116,43 @@ test('чат: тело запроса к Gemini — без параметров 
   const deep = R.providerBodyVariants('gemini-3.5-flash-lite', msgs, 800, 'xhigh', true);
   assert.equal(deep[0].reasoning_effort, 'high');
   assert.equal(deep[1].reasoning_effort, undefined);
+});
+
+test('каталог NIM/Cerebras/Groq: лучшие модели ключа, общий порядок по силе, префикс снимается', async () => {
+  process.env.NVIDIA_API_KEY = 'nv'; process.env.GROQ_API_KEY = 'gq'; process.env.CEREBRAS_API_KEY = 'cb';
+  const cat = await import('../lib/model-catalog.js');
+  cat.__setCatalog('nim', ['z-ai/glm-5.2', 'meta/llama-3.1-8b-instruct', 'nvidia/llama-3.1-nemoguard-8b', 'qwen/qwen3-235b-a22b', 'nvidia/nv-embedqa-e5-v5', 'deepseek-ai/deepseek-v4-flash']);
+  cat.__setCatalog('groq', ['openai/gpt-oss-120b', 'qwen/qwen3-32b', 'whisper-large-v3', 'llama-3.3-70b-versatile']);
+  cat.__setCatalog('cerebras', ['gpt-oss-120b', 'zai-glm-4.7', 'gemma-4-31b']);
+  assert.deepEqual(cat.providerModels('nim'), ['nim:z-ai/glm-5.2', 'nim:deepseek-ai/deepseek-v4-flash', 'nim:qwen/qwen3-235b-a22b']);
+  assert.deepEqual(cat.providerModels('groq'), ['groq:openai/gpt-oss-120b', 'groq:qwen/qwen3-32b', 'groq:llama-3.3-70b-versatile']);
+  const chain = cat.rankedFreeChain(['nvidia/nemotron-3.5-super-vl:free']);
+  assert.equal(chain[0], 'nim:z-ai/glm-5.2');
+  const pos = (m) => chain.indexOf(m);
+  assert.ok(pos('groq:openai/gpt-oss-120b') < pos('gemini-3.5-flash-lite'));
+  assert.ok(pos('gemini-3.5-flash-lite') < pos('nvidia/nemotron-3.5-super-vl:free'));
+  assert.ok(pos('nvidia/nemotron-3.5-super-vl:free') < pos('groq:llama-3.3-70b-versatile'));
+  assert.deepEqual(cat.fastUtilityModels(), ['groq:openai/gpt-oss-120b', 'cerebras:gpt-oss-120b']);
+
+  const seen = [];
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async (url, init) => { seen.push({ url, body: JSON.parse(init.body), auth: init.headers.Authorization }); return new Response('{}', { status: 200 }); };
+  try {
+    const pr = models.providerForModel('groq:openai/gpt-oss-120b');
+    await models.providerFetch(pr, '/chat/completions', { method: 'POST', body: JSON.stringify({ model: 'groq:openai/gpt-oss-120b', messages: [{ role: 'user', content: 'groq:openai/gpt-oss-120b' }] }) });
+    assert.equal(seen[0].url, 'https://api.groq.com/openai/v1/chat/completions');
+    assert.equal(seen[0].body.model, 'openai/gpt-oss-120b');
+    assert.equal(seen[0].body.messages[0].content, 'groq:openai/gpt-oss-120b', 'текст сообщения не трогаем');
+    assert.equal(seen[0].auth, 'Bearer gq');
+  } finally { globalThis.fetch = realFetch; }
+
+  const { __routing: R } = await import('../api/chat.js');
+  const v = R.providerBodyVariants('groq:openai/gpt-oss-120b', [{ role: 'user', content: 'hi' }], 800, '', true);
+  assert.equal(v[0].reasoning_effort, 'low');
+  assert.equal(v[0].max_tokens, 3800);
+  assert.equal(v[1].reasoning_effort, undefined);
+  const g = R.providerBodyVariants('nim:z-ai/glm-5.2', [{ role: 'user', content: 'hi' }], 800, 'high', true);
+  assert.equal(g[0].reasoning_effort, undefined, 'GLM reasoning_effort не понимает');
+  assert.equal(R.adanModels()[0], 'nim:z-ai/glm-5.2');
+  delete process.env.NVIDIA_API_KEY; delete process.env.GROQ_API_KEY; delete process.env.CEREBRAS_API_KEY;
 });
