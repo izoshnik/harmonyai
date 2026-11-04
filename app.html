@@ -13125,6 +13125,8 @@ async function sendMsgInner(){
     const hasAudio=pendingAttachments.some(a=>a.kind==='audio');
     let plainMusic=false;
     try{plainMusic=!hasAudio&&!hmRecentAudioList().length&&Boolean(window.MusicIntents&&window.MusicIntents.detect(text));}catch(e){}
+    // «Добавь Believer в плейлист Тренировка» — не «включи», а работа с плейлистом: решает ИИ-агент.
+    if(plainMusic&&/(добав|закин|кинь|сохрани|положи|внеси|add)\S*\s[\s\S]{0,80}(плейлист|подборк|playlist)/i.test(text||''))plainMusic=false;
     if(!plainMusic){
       resetChatScrollFollow();
       if(await hmAgentRoute(text))return;
@@ -16931,7 +16933,8 @@ async function hmAgentRoute(text){
   try{
     decision=await withTimeout(hmUtil('agent',{body:{message:text,history:hmAgentHistory(),context:{
       audioAttached:audios.length,attachedAudio:audios.map(a=>a.name||'трек'),recentAudio:recent.map(x=>x.name),
-      yandexConnected:window.__hmYmConnected===true,nickname:hmAgentNick(),plan:isProUser()?'pro':'free'
+      yandexConnected:window.__hmYmConnected===true,nickname:hmAgentNick(),plan:isProUser()?'pro':'free',
+      nowPlaying:hmNowPlayingLabel(),playlists:hmPlaylistTitles()
     }}}),14000,'agent');
   }catch(e){decision=null;}
   finally{hideTyping();}
@@ -16947,7 +16950,59 @@ async function hmAgentRoute(text){
     if(audios.length||!decision.query)return false;
     return await hmFindTrack(text,decision.query,decision.reply||'');
   }
+  if(action==='add_to_playlist'){
+    if(audios.length)return false;
+    return await hmAddToPlaylist(text,decision.query||'',decision.playlist||'',decision.reply||'');
+  }
   await hmAgentRun(action,{text,atts:pendingAttachments.slice(),intro:decision&&decision.reply||''});
+  return true;
+}
+/* ИИ ДОБАВЛЯЕТ ТРЕК В ПЛЕЙЛИСТ (агент: add_to_playlist). Трек — из каталога
+   Яндекса (если подключён), иначе Audius/Jamendo; пустой запрос — тот, что
+   играет. Плейлист ищется по названию, нет такого — создаётся. Плейлисты
+   общие для всех сервисов (js/music-playlists.js). */
+function hmNowPlayingLabel(){
+  try{const t=window.MusicPlayer&&window.MusicPlayer.isActive&&window.MusicPlayer.isActive()&&window.MusicPlayer.currentTrack();return t?((t.artist?t.artist+' — ':'')+(t.title||'')):'';}catch(e){return '';}
+}
+function hmPlaylistTitles(){
+  try{return((window.MusicPlaylists&&window.MusicPlaylists.getStore().custom)||[]).map(p=>p.title).slice(0,20);}catch(e){return [];}
+}
+async function hmFindCatalogTrack(query){
+  const C=window.MusicClient;if(!C)return null;
+  if(window.__hmYmConnected===true){
+    try{const r=await C.search(query,3);const t=r&&r.items&&r.items.find(x=>x&&x.playable!==false);if(t)return t;}catch(e){}
+  }
+  try{const items=await C.extSearch(query,3);if(items&&items[0])return items[0];}catch(e){}
+  return null;
+}
+async function hmAddToPlaylist(text,query,playlistName,intro){
+  const MP=window.MusicPlaylists;
+  if(!MP||!window.MusicClient)return false;
+  addUserBubble(text,[],{createdAt:messageNow()});
+  chatHistory.push({role:'user',content:text,attachments:[],createdAt:messageNow()});
+  const p=hmPlugin('add_to_playlist','');
+  let track=null;
+  if(query)track=await hmFindCatalogTrack(query);
+  else{try{track=window.MusicPlayer&&window.MusicPlayer.isActive()?window.MusicPlayer.currentTrack()||null:null;}catch(e){track=null;}}
+  if(!track){
+    p.finish(query?('Не нашёл «'+query+'» ни в Яндекс Музыке, ни в Audius и Jamendo. Проверьте название — и я добавлю.'):'Сейчас ничего не играет — назовите трек, и я добавлю его в плейлист.');
+    return true;
+  }
+  const want=String(playlistName||'').trim()||'Мои треки';
+  const low=want.toLowerCase();
+  const all=(MP.getStore().custom||[]);
+  let pl=all.find(x=>String(x.title).toLowerCase()===low)||all.find(x=>String(x.title).toLowerCase().includes(low)||low.includes(String(x.title).toLowerCase()));
+  let created=false;
+  if(!pl){pl=MP.createPlaylist(want);created=true;}
+  if(!pl){p.finish('Не получилось создать плейлист. Попробуйте ещё раз.');return true;}
+  const added=MP.addToPlaylist(pl.id,track);
+  try{if(MP.remember)MP.remember([track]);}catch(e){}
+  const name='«'+(track.title||'трек')+'»'+(track.artist?' — '+track.artist:'');
+  const src=track.source==='audius'?' (Audius)':track.source==='jamendo'?' (Jamendo)':'';
+  const msg=added
+    ?((intro?intro+'\n\n':'')+'Добавил '+name+src+' в '+(created?'новый ':'')+'плейлист «'+pl.title+'».')
+    :(name+' уже есть в плейлисте «'+pl.title+'».');
+  p.finish(msg+'\n\n```tracks\n'+JSON.stringify({query:((track.artist?track.artist+' ':'')+(track.title||'')).slice(0,160),connect:window.__hmYmConnected!==true})+'\n```');
   return true;
 }
 /* Поиск трека по названию. Яндекс Музыка подключена — ищет и показывает
@@ -16975,6 +17030,7 @@ async function hmFindTrack(text,query,intro){
 }
 
 const HM_PLUG_WORDS={
+  add_to_playlist:['Ищу трек','Добавляю в плейлист'],
   find_track:['Ищу трек','Подбираю, где послушать'],
   upload_track:['Подключаю Яндекс Музыку','Загружаю трек','Отправляю трек в Яндекс','Добавляю трек в плейлист','Жду, пока Яндекс обработает трек','Почти готово'],
   connect_yandex:['Подключаю Яндекс Музыку','Открываю вход в Яндекс','Жду подтверждения'],

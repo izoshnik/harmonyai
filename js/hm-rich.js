@@ -1092,6 +1092,33 @@
       var img=a.querySelector('img');img.onerror=function(){img.style.visibility='hidden';};
       list.appendChild(a);
     });
+    // Слушать прямо здесь: полные треки Audius и Jamendo в общем плеере,
+    // «Скачать» — где разрешил автор, «+» — в свой плейлист.
+    if(window.MusicClient&&typeof window.MusicClient.extSearch==='function'){
+      var ext=el('div','hmr-tl-ext');
+      ext.innerHTML='<div class="hmr-tl-sub">'+esc(t('Слушать здесь'))+' · Audius, Jamendo</div><div class="hmr-tl-ext-list"><div class="hmr-tl-ext-ph">'+ICON.spin+esc(t('Ищу…'))+'</div></div>';
+      card.insertBefore(ext,card.querySelector('.hmr-tl-sub'));
+      window.MusicClient.extSearch(q,4).then(function(items){
+        var box=ext.querySelector('.hmr-tl-ext-list');
+        if(!items||!items.length){ext.remove();return;}
+        box.innerHTML='';
+        try{if(window.MusicPlaylists&&window.MusicPlaylists.remember)window.MusicPlaylists.remember(items);}catch(e){}
+        items.forEach(function(tr,i){
+          var row=el('div','hmr-tl-ext-row');
+          row.innerHTML='<img alt="" loading="lazy" referrerpolicy="no-referrer"><div class="hmr-tl-ext-meta"><b></b><span></span></div>'+
+            '<button type="button" class="hmr-tl-ext-btn" data-a="play" aria-label="'+esc(t('Слушать'))+'"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M8 5.14v13.72c0 .83.92 1.33 1.62.88l10.5-6.86a1.05 1.05 0 0 0 0-1.76L9.62 4.26A1.05 1.05 0 0 0 8 5.14Z"/></svg></button>'+
+            (tr.downloadable?'<button type="button" class="hmr-tl-ext-btn" data-a="dl" aria-label="'+esc(t('Скачать'))+'"><svg viewBox="0 0 24 24" fill="none"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></button>':'<span class="hmr-tl-ext-gap" aria-hidden="true"></span>')+
+            '<button type="button" class="hmr-tl-ext-btn" data-a="pl" aria-label="'+esc(t('В плейлист'))+'"><svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg></button>';
+          var img=row.querySelector('img');if(tr.cover)img.src=tr.cover;else img.style.visibility='hidden';img.onerror=function(){img.style.visibility='hidden';};
+          row.querySelector('b').textContent=tr.title;
+          row.querySelector('span').textContent=(tr.artist||'')+' · '+(tr.source==='jamendo'?'Jamendo':'Audius');
+          row.querySelector('[data-a="play"]').onclick=function(){if(window.MusicPlayer)window.MusicPlayer.setQueue(items,i);};
+          var dl=row.querySelector('[data-a="dl"]');if(dl)dl.onclick=function(){if(window.hmDownloadTrack)window.hmDownloadTrack(tr);};
+          row.querySelector('[data-a="pl"]').onclick=function(ev){if(window.MusicPlaylists&&window.MusicPlaylists.openAddTrackMenu)window.MusicPlaylists.openAddTrackMenu(ev,tr);};
+          box.appendChild(row);
+        });
+      }).catch(function(){ext.remove();});
+    }
     if(d.connect){
       var b=el('button','hmr-tl-connect');b.type='button';b.textContent=t('Слушать прямо здесь — подключить Яндекс Музыку');
       b.onclick=function(){sendPrompt('Подключи Яндекс Музыку');};

@@ -367,3 +367,20 @@ html:not(#_) .code-block .code-pre,html:not(#_) .code-block .code-pre code.hljs{
 .hmr-tl-go{width:16px;height:16px;color:var(--text2);flex:0 0 auto;}
 .hmr-tl-connect{display:block;width:100%;margin-top:8px;padding:11px 14px;border-radius:999px;border:1px solid var(--border);background:transparent;color:var(--text);font:inherit;font-size:14px;font-weight:600;cursor:pointer;}
 .hmr-tl-connect:hover{background:color-mix(in srgb,var(--text) 6%,transparent);}
+
+/* «Слушать здесь» — треки Audius и Jamendo в карточке «Где послушать» */
+.hmr-tl-ext{margin:2px 0 10px;}
+.hmr-tl-ext-list{display:flex;flex-direction:column;gap:2px;}
+.hmr-tl-ext-ph{display:flex;align-items:center;gap:8px;color:var(--text2);font-size:13px;padding:8px 2px;}
+.hmr-tl-ext-row{display:flex;align-items:center;gap:10px;padding:6px 4px;border-radius:12px;}
+.hmr-tl-ext-row:hover{background:var(--bg3);}
+.hmr-tl-ext-row img{width:40px;height:40px;border-radius:8px;object-fit:cover;flex:none;background:var(--bg3);}
+.hmr-tl-ext-meta{min-width:0;flex:1;display:flex;flex-direction:column;gap:2px;}
+.hmr-tl-ext-meta b{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hmr-tl-ext-meta span{font-size:12.5px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hmr-tl-ext-btn{flex:none;width:34px;height:34px;border:0;border-radius:50%;background:transparent;color:var(--text);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;}
+.hmr-tl-ext-btn:hover{background:var(--bg3);}
+.hmr-tl-ext-btn svg{width:18px;height:18px;}
+.hmr-tl-ext-btn[data-a="play"]{background:var(--text);color:var(--bg);}
+.hmr-tl-ext-btn[data-a="play"] svg{width:15px;height:15px;margin-left:2px;}
+.hmr-tl-ext-gap{flex:none;width:34px;}

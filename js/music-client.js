@@ -87,7 +87,23 @@
    * Яндекса: байты тянет сервер, поэтому воспроизведение работает одинаково
    * с VPN и без. Прямую ссылку Яндекса наружу не отдаём вовсе.
    */
+  /* Треки Audius и Jamendo («au:…», «jm:…»): звук и скачивание — по своей
+     ссылке (сервер редиректит на файл сервиса), Яндекс для них не нужен. */
+  function isExt(trackId) { return /^(au|jm):/.test(String(trackId || '')); }
+  function apiBase() {
+    var base = '/api/music';
+    try {
+      if (typeof global.buildEndpointCandidates === 'function') {
+        var list = global.buildEndpointCandidates('/api/music');
+        if (list && list.length) base = list[0];
+      }
+    } catch (e) { /* запасной вариант */ }
+    return base;
+  }
+  function downloadUrl(trackId) { return isExt(trackId) ? apiBase() + '?ext=' + encodeURIComponent(trackId) + '&dl=1' : null; }
+
   function streamUrl(trackId) {
+    if (isExt(trackId)) return apiBase() + '?ext=' + encodeURIComponent(trackId);
     var base = '/api/music';
     try {
       if (typeof global.buildEndpointCandidates === 'function') {
@@ -139,6 +155,7 @@
    * Тогда воспроизведение начинается без единого запроса в сеть.
    */
   function playback(trackId, nextTrackId) {
+    if (isExt(trackId)) return Promise.resolve({ url: streamUrl(trackId), ext: true });
     var key = 'play:' + trackId;
     var cached = C.get(key);
     if (cached) {
@@ -154,7 +171,7 @@
   /** Фоновый прогрев — ответ не ждём и ошибки игнорируем. */
   function prefetch(trackIds) {
     if (!trackIds || !trackIds.length) return;
-    var need = trackIds.filter(function (id) { return id && !C.get('play:' + id); });
+    var need = trackIds.filter(function (id) { return id && !isExt(id) && !C.get('play:' + id); });
     if (!need.length) return;
     call('prefetch', { trackIds: need.slice(0, 3) }).catch(function () { /* noop */ });
   }
@@ -174,7 +191,18 @@
   function authToken(token) { return call('auth_token', { token: token }); }
   function authDisconnect() { return call('auth_disconnect', {}); }
 
+  /* Лайки треков Audius/Jamendo живут у нас (localStorage): в «Мне нравится»
+     Яндекса их не положить. Сердечко в плеере работает одинаково. */
+  var EXT_LIKES = 'hm_ext_likes_v1';
+  function extLikes() { try { return JSON.parse(global.localStorage.getItem(EXT_LIKES) || '[]') || []; } catch (e) { return []; } }
   function like(trackId, liked) {
+    if (isExt(trackId)) {
+      var l = extLikes().filter(function (x) { return x !== String(trackId); });
+      if (liked !== false) l.unshift(String(trackId));
+      try { global.localStorage.setItem(EXT_LIKES, JSON.stringify(l.slice(0, 500))); } catch (e) { /* нет места */ }
+      likedCache.at = 0;
+      return Promise.resolve({ ok: true, liked: liked !== false });
+    }
     return call('like', { trackId: trackId, like: liked !== false });
   }
 
@@ -188,7 +216,7 @@
     likedCache.at = now;
     likedCache.promise = call('liked_ids', {}).then(function (d) {
       return (d && Array.isArray(d.ids)) ? d.ids : [];
-    }).catch(function () { return []; });
+    }).catch(function () { return []; }).then(function (ids) { return ids.concat(extLikes()); });
     return likedCache.promise;
   }
   function forgetLiked() { likedCache.at = 0; likedCache.promise = null; }
@@ -217,10 +245,32 @@
     return call('ai_playlist', { prompt: prompt, count: count, context: context || '' }, { timeout: 65000 });
   }
 
+  /** Поиск в Audius и Jamendo (полные треки, скачивание — где разрешил автор). */
+  function extSearch(query, limit) {
+    var key = 'ext:' + String(query).toLowerCase() + ':' + (limit || 6);
+    return C.wrap(key, function () {
+      return call('ext_search', { query: query, limit: limit || 6 });
+    }, C.TTL.SEARCH).then(function (d) { return (d && Array.isArray(d.items)) ? d.items : []; });
+  }
+
   /** «Моя волна»: очередная порция треков радио (queue — id последнего трека). */
   function wave(opts) {
     var o = opts || {};
-    return call('wave', { station: o.station || '', queue: o.queue || '', seeds: o.seeds || [], exclude: o.exclude || [] }, { timeout: 25000 });
+    /* Волна без Яндекса (не подключён или модуль выключен) — из Audius и Jamendo;
+       следующие порции такой волны тоже берутся оттуда. */
+    var extWave = function () {
+      return call('ext_wave', { limit: 10, offset: Math.floor(Math.random() * 40) }, { timeout: 20000 }).then(function (d) {
+        var ex = {}; (o.exclude || []).forEach(function (x) { ex[String(x)] = true; });
+        var items = (d && Array.isArray(d.items) ? d.items : []).filter(function (t) { return !ex[String(t.trackId)]; });
+        return { station: 'ext', batchId: '', items: items, personal: false };
+      });
+    };
+    if (o.station === 'ext') return extWave();
+    return call('wave', { station: o.station || '', queue: o.queue || '', seeds: o.seeds || [], exclude: o.exclude || [] }, { timeout: 25000 })
+      .catch(function (e) {
+        if (e && (e.status === 503 || e.status === 401 || e.type === 'music_auth_required' || e.type === 'music_disabled')) return extWave();
+        throw e;
+      });
   }
   function waveFeedback(data) {
     return call('wave_feedback', data || {}).catch(function () { return { ok: false }; });
@@ -247,7 +297,11 @@
     likedIds: likedIds,
     likedTracks: likedTracks,
     tracksByIds: tracksByIds,
-    forgetLiked: forgetLiked
+    forgetLiked: forgetLiked,
+    isExt: isExt,
+    extSearch: extSearch,
+    downloadUrl: downloadUrl,
+    extLikes: extLikes
   };
 
 })(typeof window !== 'undefined' ? window : globalThis);
