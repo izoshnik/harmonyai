@@ -11,7 +11,7 @@ export const config = {
   maxDuration: 300
 };
 
-import { FREE_TEXT_MODEL, PRO_TEXT_MODEL, envModel, currentModelName, LONG_CONTEXT_THRESHOLD, longContextModel, providerForModel, providerBaseUrl, isOpenRouterModel, supportsReasoningEffort, noteUnaskedReasoning, responseHasReasoning, fastReasoningEffort } from '../lib/models.js';
+import { FREE_TEXT_MODEL, PRO_TEXT_MODEL, envModel, currentModelName, LONG_CONTEXT_THRESHOLD, longContextModel, providerForModel, providerFetch, providerBaseUrl, isOpenRouterModel, supportsReasoningEffort, noteUnaskedReasoning, responseHasReasoning, fastReasoningEffort, isGeminiModel, geminiApiKey, geminiChatModel, geminiProModel, coolDownModel, isCoolingDown, isProviderOutage } from '../lib/models.js';
 import { authenticateRequest } from '../lib/auth.js';
 import { logRequest, reportError, serviceErrorText, allowsTextLogging, isBlockedProfile, BLOCKED_MESSAGE, estimateTokens } from '../lib/observe.js';
 import { moderateMessage } from '../lib/moderation.js';
@@ -86,6 +86,10 @@ const MODEL_CHAINS = {
     envModel('DYNATOS_FALLBACK', PRO_TEXT_MODEL)
   ]
 };
+/* Pro: если pro-ai.online не отвечает — Gemini Flash (ключ GEMINI_API_KEY), потом цепочка Adan. */
+function dynatosChain() {
+  return [...new Set(MODEL_CHAINS.dynatos.concat(geminiApiKey() ? [geminiProModel()] : []))];
+}
 
 function readEnv(name) {
   return String(process.env[name] || '').trim();
@@ -94,7 +98,12 @@ function readEnv(name) {
 /* ============================================================================
    ADAN — бесплатная модель (Tokenator больше не используется).
    Переменные окружения Vercel:
-     ADAN_PRIMARY_MODEL  — основная (по умолчанию nvidia/nemotron-3.5-super-vl:free), всегда первая.
+     ADAN_PRIMARY_MODEL  — основная, всегда первая. По умолчанию gemini-3.5-flash-lite
+                           (если задан GEMINI_API_KEY — ключ Google AI Studio; у бесплатных
+                           моделей OpenRouter всего 50 запросов в сутки на весь сервис),
+                           иначе nvidia/nemotron-3.5-super-vl:free.
+     GEMINI_CHAT_MODEL   — модель Gemini для Adan (gemini-3.5-flash-lite);
+     GEMINI_PRO_MODEL    — запасная для Pro, если pro-ai.online не отвечает (gemini-3.5-flash).
      ADAN_MODELS         — запасные через запятую, идут после основной. По умолчанию:
                            thinkingmachines/inkling:free, google/gemma-4-31b-it:free,
                            nvidia/nemotron-3-ultra-550b-a55b:free, nvidia/nemotron-3.5-lightning:free
@@ -147,11 +156,16 @@ function detectJailbreak(messages) {
 /* Бесплатные модели OpenRouter (октябрь 2026): сначала самые сильные и быстрые
    без обязательных рассуждений (на Low reasoning выключается — ответ сразу),
    в конце — платный запасной deepseek с pro-ai.online. */
-/* Основная бесплатная модель — nvidia/nemotron-3.5-super-vl:free (видит фото,
-   умеет рассуждать). Она всегда первая в цепочке, даже если в Vercel задан
-   старый ADAN_MODELS; поменять можно переменной ADAN_PRIMARY_MODEL. */
+/* Основная бесплатная модель — Gemini 3.5 Flash Lite по ключу GEMINI_API_KEY
+   (видит фото, хорошо пишет по-русски, большие лимиты). У бесплатных моделей
+   OpenRouter без пополнения счёта всего 50 запросов в сутки на ВЕСЬ сервис —
+   они остаются запасными. Без ключа Gemini первой идёт nemotron-3.5-super-vl.
+   Основная всегда первая в цепочке, даже если в Vercel задан старый
+   ADAN_MODELS; поменять можно переменной ADAN_PRIMARY_MODEL. */
 const ADAN_PRIMARY_DEFAULT = 'nvidia/nemotron-3.5-super-vl:free';
-function adanPrimary() { return currentModelName(readEnv('ADAN_PRIMARY_MODEL')) || ADAN_PRIMARY_DEFAULT; }
+function adanPrimary() {
+  return currentModelName(readEnv('ADAN_PRIMARY_MODEL')) || (geminiApiKey() ? geminiChatModel() : ADAN_PRIMARY_DEFAULT);
+}
 const ADAN_DEFAULT_MODELS = [
   ADAN_PRIMARY_DEFAULT,
   'thinkingmachines/inkling:free',
@@ -169,20 +183,40 @@ function adanModels() {
   // одна упиралась в лимит, а другая лежала у провайдера.
   return [...new Set([adanPrimary(), ...fromEnv, ...ADAN_DEFAULT_MODELS])];
 }
+const isFreeOpenRouter = (name) => isOpenRouterModel(name) && /:free$/i.test(String(name || ''));
 /* Модель из цепочки Adan: при лимите/обрыве переключаемся на следующую. */
-function isAdanModel(name) { const n = String(name || ''); return isOpenRouterModel(n) || adanModels().includes(n); }
+// Gemini (и Flash Lite для Adan, и Flash — запасная Pro) ведёт себя как модель цепочки: лимит → следующая.
+function isAdanModel(name) { const n = String(name || ''); return isOpenRouterModel(n) || isGeminiModel(n) || adanModels().includes(n); }
 function nextMskReset() {
   // 03:00 МСК = 00:00 UTC
   const d = new Date(); d.setUTCHours(24, 0, 0, 0); return d.getTime();
 }
 function markModelExhausted(name, reason) {
   if (!name) return;
+  const why = String(reason || '');
+  /* У бесплатных моделей OpenRouter общий суточный лимит на ключ
+     («free-models-per-day»): кончился у одной — кончился у всех :free.
+     Не перебираем их по очереди до 03:00 МСК. */
+  if (isFreeOpenRouter(name) && /free-models-per-day/i.test(why)) {
+    const until = nextMskReset();
+    for (const m of adanModels().concat(adanVisionModels())) if (isFreeOpenRouter(m)) exhaustedModels.set(m, until);
+    console.warn(`[harmonyai] OpenRouter free daily limit reached — all :free models skipped until 03:00 MSK`);
+    return;
+  }
+  /* Gemini: поминутный лимит (RPM/TPM) — пауза на минуту; суточный — до сброса. */
+  if (isGeminiModel(name)) {
+    const perDay = /per.?day|perday|daily|requests per day/i.test(why);
+    exhaustedModels.set(name, perDay ? nextMskReset() : Date.now() + 60 * 1000);
+    console.warn(`[harmonyai] gemini limit | model=${name} | ${perDay ? 'daily' : '1 min'} | ${why.slice(0, 160)}`);
+    return;
+  }
   // Суточная квота — до 03:00 МСК; поминутный лимит или обрыв — на 5 минут.
-  const daily = /quota|daily|day|сутк|insufficient|exhaust|402/i.test(String(reason || ''));
+  const daily = /quota|daily|day|сутк|insufficient|exhaust|402/i.test(why);
   exhaustedModels.set(name, daily ? nextMskReset() : Date.now() + 5 * 60 * 1000);
-  console.warn(`[harmonyai] model exhausted until 03:00 MSK | model=${name} | ${String(reason || '').slice(0, 160)}`);
+  console.warn(`[harmonyai] model exhausted until 03:00 MSK | model=${name} | ${why.slice(0, 160)}`);
 }
 function isModelExhausted(name) {
+  if (isCoolingDown(name)) return true; // минутная пауза после 502/503 провайдера (lib/models.js)
   const until = exhaustedModels.get(name);
   if (!until) return false;
   if (Date.now() >= until) { exhaustedModels.delete(name); return false; }
@@ -191,7 +225,9 @@ function isModelExhausted(name) {
 function adanChain() {
   const all = adanModels();
   const live = all.filter(m => !isModelExhausted(m));
-  return live.length ? live : all; // если «кончились» все — всё равно пробуем по кругу
+  // Модели на паузе — в конце как последний шанс (отказ у них быстрый), а не выкинуты:
+  // если живые не ответят, лучше попробовать ещё раз, чем сразу показать ошибку.
+  return live.concat(all.filter(m => isModelExhausted(m)));
 }
 /* Фото на Free: первая модель цепочки (glm-flash) картинки не видит и честно
    отвечала «я не вижу изображение». Если в последнем сообщении пользователя есть
@@ -226,11 +262,10 @@ function looksLikeLimit(status, text) {
 }
 function providerFor(modelName, apiKeyFallback) {
   const p = providerForModel(modelName);
-  return { bases: [p.baseUrl], apiKey: p.openrouter ? p.apiKey : (p.apiKey || apiKeyFallback), headers: p.headers };
+  return { ...p, apiKey: p.openrouter || p.gemini ? p.apiKey : (p.apiKey || apiKeyFallback) };
 }
 async function postProviderAny(modelName, apiKey, body, timeoutMs, label, signal = null) {
-  const p = providerFor(modelName, apiKey);
-  return postProvider(p.bases[0], p.apiKey, body, timeoutMs, label, p.headers, signal);
+  return postProvider(providerFor(modelName, apiKey), body, timeoutMs, label, signal);
 }
 
 function isPlaceholderValue(value = '') {
@@ -1185,6 +1220,19 @@ function providerBodyVariants(modelName, messages, maxTokens, reasoningEffort, s
     variants.push(plain);
     return variants;
   }
+  /* Gemini (OpenAI-совместимый шлюз Google): reasoning_effort low|medium|high;
+     скрытые рассуждения входят в лимит ответа — к нему всегда добавляем запас.
+     Параметров OpenRouter (min_p, repetition_penalty) шлюз не знает. */
+  if (isGeminiModel(modelName) && providerForModel(modelName).gemini) {
+    const effort = reasoningEffort ? (reasoningEffort === 'xhigh' ? 'high' : reasoningEffort) : '';
+    const reserve = effort ? reasoningReserve(effort) : 2048;
+    const v = { ...base };
+    if (maxTokens > 0) v.max_tokens = maxTokens + reserve;
+    if (effort) v.reasoning_effort = effort;
+    variants.push(v);
+    if (effort) { const plain = { ...base }; if (maxTokens > 0) plain.max_tokens = maxTokens + reserve; variants.push(plain); }
+    return variants;
+  }
   if (isReasoningModel(modelName) && maxTokens > 0) {
     const v = { ...base, max_completion_tokens: maxTokens + reasoningReserve(reasoningEffort) };
     if (reasoningEffort) v.reasoning_effort = reasoningEffort;
@@ -1216,7 +1264,7 @@ function providerBodyVariants(modelName, messages, maxTokens, reasoningEffort, s
    обрывает сам запрос, а не только перестаёт его ждать: раньше зависший запрос
    продолжал жить в фоне и держал соединение. Отмена действует и на тело ответа
    (поток), поэтому слушатель signal не снимается после заголовков. */
-async function postProvider(baseUrl, apiKey, body, timeoutMs, label, extraHeaders = {}, signal = null) {
+async function postProvider(provider, body, timeoutMs, label, signal = null) {
   const ctrl = new AbortController();
   if (signal) {
     if (signal.aborted) ctrl.abort();
@@ -1225,12 +1273,8 @@ async function postProvider(baseUrl, apiKey, body, timeoutMs, label, extraHeader
   let timedOut = false;
   const timer = setTimeout(() => { timedOut = true; ctrl.abort(); }, timeoutMs);
   try {
-    return await fetch(`${baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}`, ...extraHeaders },
-      body: JSON.stringify(body),
-      signal: ctrl.signal
-    });
+    // Авторизация зависит от провайдера (Bearer; у Gemini — x-goog-api-key или ?key=).
+    return await providerFetch(provider, '/chat/completions', { method: 'POST', body: JSON.stringify(body), signal: ctrl.signal });
   } catch (error) {
     if (timedOut) throw new Error(label);
     throw error;
@@ -2129,15 +2173,18 @@ function selectRoute(profile, requestedModel, messages) {
   // Если запрошена Pro-модель, но роль не Pro — тихо откатываемся на Adan.
   const allowedPro = wantsPro && isProRole(profile);
   // С фото сначала модель со зрением: ни glm-5.3-flash (Pro), ни deepseek картинки не видят.
-  let baseChain = allowedPro ? MODEL_CHAINS.dynatos.concat(adanChain()) : adanChain();
+  let baseChain = allowedPro ? dynatosChain().concat(adanChain()) : adanChain();
   /* Длинный контекст (больше ~120K токенов): модели pro-ai.online держат только
      128K и упали бы с ошибкой. Берём ту же модель через OpenRouter (~1M) и
      оставляем в цепочке только модели OpenRouter. */
   if (estimateTokensFromMessages(messages) > LONG_CONTEXT_THRESHOLD) {
     const long = allowedPro ? [longContextModel(MODEL_CHAINS.dynatos[0])] : [];
-    baseChain = long.concat(baseChain.filter((m) => isOpenRouterModel(m) && !/gemma/i.test(m)), [longContextModel(FREE_TEXT_MODEL)]);
+    // Gemini держит ~1M токенов контекста — остаётся в цепочке.
+    baseChain = long.concat(baseChain.filter((m) => (isOpenRouterModel(m) && !/gemma/i.test(m)) || isGeminiModel(m)), [longContextModel(FREE_TEXT_MODEL)]);
   }
-  const modelChain = lastUserHasImage(messages) ? visionFirst(baseChain) : baseChain;
+  let modelChain = lastUserHasImage(messages) ? visionFirst(baseChain) : baseChain;
+  // Модели на паузе (лимит, 502 провайдера минуту назад) — в конец: сначала те, что отвечают.
+  modelChain = modelChain.filter((m) => !isModelExhausted(m)).concat(modelChain.filter((m) => isModelExhausted(m)));
 
   return {
     provider: 'openai',
@@ -2846,6 +2893,8 @@ export default async function handler(req, res) {
             model: streamResult.model || modelName
           };
           const errorMessage = lastError.message || '';
+          // Провайдер лежит (502/503 «could not be verified») — минуту эту модель не зовём.
+          if (!isFreeOpenRouter(modelName) && isProviderOutage(lastError.status, errorMessage)) coolDownModel(modelName, 60000);
           if (isModelUnavailable(errorMessage)) {
             // Пробуем следующую модель цепочки (fallback), а не сдаёмся сразу.
             console.error(`[harmonyai] model unavailable | model=${modelName} | reason=${compactErrorValue(errorMessage, 500)}`);
@@ -2867,6 +2916,7 @@ export default async function handler(req, res) {
         const errorMessage = data?.error?.message || '';
         if (!response.ok || data.error) {
           lastError = { status: response.status || 500, message: errorMessage || `Ошибка модели ${modelName}`, model: modelName };
+          if (!isFreeOpenRouter(modelName) && isProviderOutage(lastError.status, errorMessage)) coolDownModel(modelName, 60000);
           if (isModelUnavailable(errorMessage)) {
             console.error(`[harmonyai] model unavailable | model=${modelName} | reason=${compactErrorValue(errorMessage, 500)}`);
             lastError.unavailable = true;
@@ -2929,3 +2979,6 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: { message: text, status: 500, code } });
   }
 }
+
+/* Для тестов маршрутизации моделей (tests/gemini-provider.test.mjs); Vercel использует только default. */
+export const __routing = { selectRoute, providerBodyVariants, markModelExhausted, adanChain, isModelExhausted };

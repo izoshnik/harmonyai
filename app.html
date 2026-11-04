@@ -147,7 +147,7 @@ if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127
 <link rel="stylesheet" href="/css/music-player.css">
 <link rel="stylesheet" href="/css/video-player.css">
 <link rel="stylesheet" href="/css/stats.css">
-<script defer src="/js/stats.js?ver=20260912"></script>
+<script defer src="/js/stats.js?ver=20261104"></script>
 <script defer src="/js/music-cache.js"></script>
 <script defer src="/js/music-intents.js"></script>
 <script defer src="/js/music-client.js"></script>
@@ -3584,6 +3584,15 @@ body.hm-dragging #chatInner::after{content:'Отпустите файлы, чт�
 .src-pill-icons{display:inline-flex;}
 .src-pill-icons img,.src-pill-icons i{width:18px;height:18px;border-radius:50%;background:#fff;border:2px solid var(--bg,#0d0d0f);object-fit:cover;margin-left:-6px;display:inline-flex;align-items:center;justify-content:center;font-style:normal;font-size:9px;font-weight:800;color:#222;}
 .src-pill-icons>:first-child{margin-left:0;}
+/* Телефон: кнопки под ответом (копировать, лайк, дизлайк, «…», «Источники») —
+   без обводки и стеклянной подложки, только иконка; лёгкая подсветка при нажатии. */
+@media (max-width:768px), (hover:none) and (pointer:coarse){
+  .main .msg-actions .mac-btn{border:0!important;background:transparent!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;}
+  .main .msg-actions .mac-btn::before,.main .msg-actions .mac-btn::after{content:none!important;display:none!important;}
+  .main .msg-actions .mac-btn:hover{background:transparent!important;}
+  .main .msg-actions .mac-btn:active{background:color-mix(in srgb,var(--text) 10%,transparent)!important;box-shadow:none!important;}
+  .msg-actions .src-pill{border-color:transparent;background:color-mix(in srgb,var(--text) 7%,transparent);}
+}
 .src-sheet{position:fixed;inset:0;z-index:4000;background:rgba(0,0,0,0);transition:background .22s ease;}
 .src-sheet.open{background:rgba(0,0,0,.45);}
 .src-sheet-panel{position:absolute;top:0;right:0;bottom:0;width:min(400px,100%);background:var(--drop-bg,#161618);color:var(--text);border-left:1px solid var(--border);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .26s cubic-bezier(.2,.8,.2,1);}
@@ -3729,7 +3738,7 @@ html:not([data-theme="light"]):not([data-theme="messenger"]) .msg-user{backgroun
       <div class="auth-switch">Уже зарегистрированы? <a href="#" onclick="toggleLoginHint();return false;">Войти</a></div>
       <div class="auth-hint" id="loginHint" style="display:none;"></div>
       <label class="auth-terms" id="authTermsWrap"><input type="checkbox" id="authTerms" onchange="hmTermsChanged()"><span>Я прочитал(а) и принимаю <a href="/legal/terms.html" target="_blank" rel="noopener noreferrer">Условия использования</a>, <a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Политику конфиденциальности</a> и <a href="/legal/ofera.html" target="_blank" rel="noopener noreferrer">Оферту</a></span></label>
-      <div class="auth-beta">Beta 0.8.98</div>
+      <div class="auth-beta">Beta 0.8.99</div>
     </div>
 
     <!-- Экран 2: Код подтверждения -->
@@ -3744,7 +3753,7 @@ html:not([data-theme="light"]):not([data-theme="messenger"]) .msg-user{backgroun
       <div class="auth-resend" id="btnResend" onclick="resendOTP()">Не пришел код? Отправить снова</div>
       <div class="auth-switch">Уже зарегистрированы? <a href="#" onclick="toggleLoginHint();return false;">Войти</a></div>
       <div class="auth-tos">Продолжая, вы соглашаетесь с <a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Политикой Конфиденциальности</a> и <a href="/legal/terms.html" target="_blank" rel="noopener noreferrer">Условиями Пользователя</a> HarmonyAI</div>
-      <div class="auth-beta">Beta 0.8.98</div>
+      <div class="auth-beta">Beta 0.8.99</div>
     </div>
 
   </div>
@@ -8831,6 +8840,10 @@ function stopGeneration(){
   hmFailBuildingCards(document.getElementById('chatInner'),'Генерация файла остановлена. Попросите сделать файл ещё раз.');
 }
 
+/* getChatInner() — для ДОБАВЛЕНИЯ сообщений: убирает приветствие пустого чата.
+   Для чтения/измерений (прокрутка, кнопка «Вниз») — только chatInnerEl(),
+   иначе приветствие пропадало бы уже при наборе текста, до отправки. */
+function chatInnerEl(){return document.getElementById('chatInner');}
 function getChatInner(){
   const inner=document.getElementById('chatInner');
   const gr=document.getElementById('greetingWrap');if(gr)gr.remove();
@@ -9888,7 +9901,7 @@ function hmPinTurn(){
 }
 function hmPinUpdate(scroll){
   if(!hmPinActive())return;
-  const a=document.getElementById('chatArea'),inner=getChatInner();
+  const a=document.getElementById('chatArea'),inner=chatInnerEl();
   const {user,spacer}=hmPin;
   if(spacer.nextElementSibling)inner.appendChild(spacer);
   const v=hmChatView(a);
@@ -9907,7 +9920,7 @@ function hmPinUpdate(scroll){
   }
 }
 function hmContentEnd(a){
-  const inner=getChatInner();
+  const inner=chatInnerEl();
   const sp=inner&&inner.querySelector('.hm-turn-spacer');
   const ar=a.getBoundingClientRect();
   if(sp)return sp.getBoundingClientRect().top-ar.top+a.scrollTop;
@@ -9938,7 +9951,7 @@ function hmToBottomSync(){
   const v=hmChatView(a);
   const ar=a.getBoundingClientRect();
   const endOnScreen=hmContentEnd(a)-a.scrollTop+ar.top;
-  const show=endOnScreen>v.bottom+48&&!!getChatInner()?.querySelector('.msg-ai-wrap,.msg-user-wrap');
+  const show=endOnScreen>v.bottom+48&&!!chatInnerEl()?.querySelector('.msg-ai-wrap,.msg-user-wrap');
   hmToBottomBtn.classList.toggle('show',Boolean(show));
 }
 function resetChatScrollFollow(){
@@ -15616,7 +15629,7 @@ function renderAbout(){
       <div class="stp-about-hero">
         <div class="stp-about-logo"><svg width="26" height="26" viewBox="0 0 64 64"><path d="M18 14h8v18h12V14h8v36h-8V39H26v11h-8z" fill="currentColor"/></svg></div>
         <div class="stp-about-name">HarmonyAI</div>
-        <div class="stp-about-ver">Beta 0.8.98</div>
+        <div class="stp-about-ver">Beta 0.8.99</div>
       </div>
       <div class="stp-row" onclick="hmOpenDoc('/legal/privacy.html')" role="link" tabindex="0">
         <div class="stp-row-label"><div class="stp-row-title">Политика конфиденциальности</div></div>
