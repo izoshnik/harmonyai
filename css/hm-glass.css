@@ -1,0 +1,119 @@
+/* ============================================================================
+   LIQUID GLASS (только телефон) — включается классом html.hm-glass
+   (js/hm-glass.js ставит его в мобильной раскладке).
+   • Панели меню — матовое стекло: полупрозрачный фон, сильное размытие и
+     насыщенность того, что под ним, светлая кромка сверху, мягкая тень.
+   • Кнопки шапки — стеклянные «капли»; при нажатии набухают и светлеют,
+     при отпускании пружинят обратно.
+   • Появление/исчезновение меню — «капля» из кнопки (анимацию делает JS).
+   ========================================================================== */
+html.hm-glass {
+  --g-bg: rgba(34, 34, 38, .56);
+  --g-bg-strong: rgba(30, 30, 34, .72);
+  --g-edge: rgba(255, 255, 255, .14);
+  --g-hi: rgba(255, 255, 255, .17);
+  --g-sheen: linear-gradient(180deg, rgba(255, 255, 255, .11), rgba(255, 255, 255, .025) 38%, rgba(255, 255, 255, 0) 70%);
+  --g-shadow: 0 22px 60px rgba(0, 0, 0, .5), 0 2px 10px rgba(0, 0, 0, .25);
+  --g-btn: rgba(255, 255, 255, .085);
+  --g-btn-down: rgba(255, 255, 255, .2);
+  --g-hot: rgba(255, 255, 255, .12);
+  --g-blur: blur(28px) saturate(1.8);
+}
+html.hm-glass[data-theme="light"],
+html.hm-glass[data-theme="messenger"] {
+  --g-bg: rgba(255, 255, 255, .6);
+  --g-bg-strong: rgba(255, 255, 255, .78);
+  --g-edge: rgba(255, 255, 255, .75);
+  --g-hi: rgba(255, 255, 255, .95);
+  --g-sheen: linear-gradient(180deg, rgba(255, 255, 255, .55), rgba(255, 255, 255, .12) 40%, rgba(255, 255, 255, 0) 70%);
+  --g-shadow: 0 20px 50px rgba(20, 18, 12, .18), 0 2px 8px rgba(20, 18, 12, .08);
+  --g-btn: rgba(255, 255, 255, .55);
+  --g-btn-down: rgba(255, 255, 255, .9);
+  --g-hot: rgba(20, 18, 12, .07);
+}
+
+/* ---------------------------------------------------------------- панели */
+html.hm-glass .chat-menu-pop,
+html.hm-glass .chat-ctx-menu,
+html.hm-glass .hm-pm,
+html.hm-glass .hm-plus,
+html.hm-glass .more-menu,
+html.hm-glass .mm-sheet {
+  background: var(--g-sheen), var(--g-bg) !important;
+  border: 1px solid var(--g-edge) !important;
+  -webkit-backdrop-filter: var(--g-blur) !important;
+  backdrop-filter: var(--g-blur) !important;
+  box-shadow: inset 0 1px 0 var(--g-hi), inset 0 -1px 0 rgba(255, 255, 255, .04), var(--g-shadow) !important;
+}
+html.hm-glass .mm-sheet { background: var(--g-sheen), var(--g-bg-strong) !important; }
+html.hm-glass .hm-plus,
+html.hm-glass .chat-ctx-menu,
+html.hm-glass .chat-menu-pop,
+html.hm-glass .hm-pm { border-radius: 28px !important; }
+html.hm-glass .hm-plus { padding: 8px !important; min-width: 236px; }
+html.hm-glass .hm-plus button { padding: 12px 14px; border-radius: 20px; }
+
+/* Закрытие рисует «призрак» (JS) — сама панель исчезает сразу, без своей анимации. */
+html.hm-glass .chat-menu-pop:not(.open),
+html.hm-glass .chat-ctx-menu:not(.open),
+html.hm-glass .hm-pm:not(.open),
+html.hm-glass .hm-plus:not(.open) { transition: none !important; }
+
+/* Пока панель «вытекает» из кнопки — нажатия в неё не проходят (см. hm-glass.js). */
+html.hm-glass .hm-g-opening,
+html.hm-glass .hm-g-opening * { pointer-events: none !important; }
+
+/* Пункт под пальцем (палец ведут по меню, не отпуская). */
+html.hm-glass .hm-g-hot { background: var(--g-hot) !important; transition: background .12s ease; }
+
+/* ---------------------------------------------------------------- кнопки шапки */
+html.hm-glass .topbar .topbar-btn,
+html.hm-glass .topbar .m-model-btn {
+  background: var(--g-sheen), var(--g-btn) !important;
+  border: 1px solid var(--g-edge) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(1.6);
+  backdrop-filter: blur(18px) saturate(1.6);
+  box-shadow: inset 0 1px 0 var(--g-hi), 0 4px 16px rgba(0, 0, 0, .22);
+}
+html.hm-glass[data-theme="light"] .topbar .topbar-btn,
+html.hm-glass[data-theme="light"] .topbar .m-model-btn,
+html.hm-glass[data-theme="messenger"] .topbar .topbar-btn,
+html.hm-glass[data-theme="messenger"] .topbar .m-model-btn { box-shadow: inset 0 1px 0 var(--g-hi), 0 4px 14px rgba(20, 18, 12, .1); }
+
+/* Нажатие: набухание и свет вместо «вдавливания». */
+html.hm-glass .topbar-btn:active,
+html.hm-glass .m-model-btn:active,
+html.hm-glass .bar-icon:active,
+html.hm-glass .send-btn:active,
+html.hm-glass .msg-actions button:active { transform: none; filter: none; }
+html.hm-glass .hm-g-swell {
+  transition: transform .5s cubic-bezier(.3, 1.6, .5, 1), background-color .25s ease, filter .25s ease, box-shadow .25s ease !important;
+}
+html.hm-glass .hm-g-swell.hm-g-down {
+  transform: scale(1.12) !important;
+  filter: brightness(1.25) saturate(1.1) !important;
+  transition: transform .16s cubic-bezier(.2, .8, .2, 1), background-color .12s ease, filter .12s ease, box-shadow .12s ease !important;
+}
+html.hm-glass .topbar .hm-g-swell.hm-g-down { background: var(--g-sheen), var(--g-btn-down) !important; box-shadow: inset 0 1px 0 var(--g-hi), 0 8px 26px rgba(0, 0, 0, .3); }
+
+/* ---------------------------------------------------------------- строка ввода */
+html.hm-glass .input-box {
+  background: var(--g-sheen), var(--g-bg) !important;
+  border: 1px solid var(--g-edge) !important;
+  -webkit-backdrop-filter: var(--g-blur);
+  backdrop-filter: var(--g-blur);
+  box-shadow: inset 0 1px 0 var(--g-hi), 0 10px 34px rgba(0, 0, 0, .28) !important;
+}
+
+/* ---------------------------------------------------------------- «капля» */
+.hm-g-ghost { position: fixed !important; margin: 0 !important; pointer-events: none !important; z-index: 2000 !important; transition: none !important; animation: none !important; }
+.hm-g-ghost * { pointer-events: none !important; }
+
+/* Без blur на старых браузерах — просто плотный фон. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  html.hm-glass { --g-bg: rgba(36, 36, 40, .97); }
+  html.hm-glass[data-theme="light"], html.hm-glass[data-theme="messenger"] { --g-bg: rgba(255, 255, 255, .98); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html.hm-glass .hm-g-swell, html.hm-glass .hm-g-swell.hm-g-down { transform: none !important; transition: none !important; }
+}

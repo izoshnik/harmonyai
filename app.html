@@ -146,6 +146,7 @@ if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127
      главным инлайн-скриптом): первый кадр больше не ждёт их загрузку и парсинг. -->
 <link rel="stylesheet" href="/css/music-player.css">
 <link rel="stylesheet" href="/css/video-player.css">
+<link rel="stylesheet" href="/css/hm-glass.css">
 <link rel="stylesheet" href="/css/stats.css">
 <script defer src="/js/stats.js?ver=20260912"></script>
 <script defer src="/js/music-cache.js"></script>
@@ -154,6 +155,7 @@ if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127
 <script defer src="/js/music-player.js"></script>
 <script defer src="/js/music-playlists.js"></script>
 <script defer src="/js/video-player.js"></script>
+<script defer src="/js/hm-glass.js"></script>
 <script defer src="/js/hm-mentions.js"></script>
 <script defer src="/js/hm-memory.js"></script>
 <script defer src="/js/hm-support.js"></script>
@@ -1506,6 +1508,24 @@ html[data-theme="light"] .attach-opt:hover{background:rgba(20,18,12,.05);}
 .send-btn{width:40px;height:40px;border-radius:50%;background:#2563eb;color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:opacity .15s;flex-shrink:0;box-shadow:0 2px 8px rgba(37,99,235,.35);}
 .send-btn:hover{opacity:.8;}
 
+/* Временный чат */
+/* id + html body: сильнее «html body .topbar .topbar-btn{display:flex!important}» из css/mobile-chat.css. */
+html body .topbar #tempChatBtn.is-hidden{display:none!important;}
+/* «…» и кнопка временного чата видны по очереди: скрытая «…» уступает место
+   кнопке временного чата. Если скрыты обе (чужой чат), «…» держит место —
+   иначе центральная кнопка шапки съехала бы. */
+.topbar #tempChatBtn:not(.is-hidden)~#chatMenuBtn.is-hidden{display:none!important;}
+#tempChatBtn .hm-temp-on{display:none!important;}
+html.hm-temp #tempChatBtn .hm-temp-off{display:none!important;}
+html.hm-temp #tempChatBtn .hm-temp-on{display:block!important;}
+/* По центру экрана, как в пустом чате на ПК (на телефоне приветствие прижато к верху). */
+html.hm-temp .greeting-wrap{justify-content:center!important;}
+.hm-temp-hero{display:none;}
+html.hm-temp .greeting-wrap>:not(.hm-temp-hero){display:none!important;}
+html.hm-temp .greeting-wrap .hm-temp-hero{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;max-width:340px;margin:0 auto;animation:hmTempIn .35s ease both;}
+.hm-temp-title{font-size:20px;font-weight:650;color:var(--text);}
+.hm-temp-sub{font-size:14px;line-height:1.5;color:var(--text2);}
+@keyframes hmTempIn{from{opacity:0;transform:translateY(6px) scale(.98);}to{opacity:1;transform:none;}}
 /* Disclaimer */
 .hm-cut-note{margin-top:10px;font-size:12.5px;line-height:1.45;color:var(--text2);opacity:.85;}
 .disclaimer{font-size:11px;color:var(--text2);text-align:center;padding:4px 0 0;opacity:.5;}
@@ -3411,8 +3431,8 @@ html[data-accent="white"]:not([data-theme="dark"]) .model-pill b,html[data-accen
   .main>.topbar{display:flex!important;position:absolute!important;top:12px;right:14px;left:auto;padding:0!important;background:none!important;z-index:40!important;pointer-events:none;}
   .main>.topbar>*{display:none!important;}
   .main>.topbar>div:last-child{display:flex!important;pointer-events:auto;}
-  .main>.topbar #chatMenuBtn{width:36px;height:36px;border-radius:10px;color:var(--text2);background:transparent;border:0;display:flex;align-items:center;justify-content:center;}
-  .main>.topbar #chatMenuBtn:hover{background:var(--bg3,rgba(127,127,127,.12));color:var(--text);}
+  .main>.topbar #chatMenuBtn,.main>.topbar #tempChatBtn{width:36px;height:36px;border-radius:10px;color:var(--text2);background:transparent;border:0;display:flex;align-items:center;justify-content:center;}
+  .main>.topbar #chatMenuBtn:hover,.main>.topbar #tempChatBtn:hover{background:var(--bg3,rgba(127,127,127,.12));color:var(--text);}
   .main>.topbar #chatMenuBtn svg{transform:rotate(90deg);}
   .main>.topbar #chatMenuBtn.is-hidden{visibility:hidden;}
   .m-model-btn{display:none!important;}
@@ -3711,7 +3731,7 @@ html:not([data-theme="light"]):not([data-theme="messenger"]) .msg-user{backgroun
       <div class="auth-switch">Уже зарегистрированы? <a href="#" onclick="toggleLoginHint();return false;">Войти</a></div>
       <div class="auth-hint" id="loginHint" style="display:none;"></div>
       <label class="auth-terms" id="authTermsWrap"><input type="checkbox" id="authTerms" onchange="hmTermsChanged()"><span>Я прочитал(а) и принимаю <a href="/legal/terms.html" target="_blank" rel="noopener noreferrer">Условия использования</a>, <a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Политику конфиденциальности</a> и <a href="/legal/ofera.html" target="_blank" rel="noopener noreferrer">Оферту</a></span></label>
-      <div class="auth-beta">Beta 0.8.96</div>
+      <div class="auth-beta">Beta 0.8.97</div>
     </div>
 
     <!-- Экран 2: Код подтверждения -->
@@ -3726,7 +3746,7 @@ html:not([data-theme="light"]):not([data-theme="messenger"]) .msg-user{backgroun
       <div class="auth-resend" id="btnResend" onclick="resendOTP()">Не пришел код? Отправить снова</div>
       <div class="auth-switch">Уже зарегистрированы? <a href="#" onclick="toggleLoginHint();return false;">Войти</a></div>
       <div class="auth-tos">Продолжая, вы соглашаетесь с <a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Политикой Конфиденциальности</a> и <a href="/legal/terms.html" target="_blank" rel="noopener noreferrer">Условиями Пользователя</a> HarmonyAI</div>
-      <div class="auth-beta">Beta 0.8.96</div>
+      <div class="auth-beta">Beta 0.8.97</div>
     </div>
 
   </div>
@@ -3787,6 +3807,10 @@ html:not([data-theme="light"]):not([data-theme="messenger"]) .msg-user{backgroun
       <div style="display:flex;align-items:center;gap:4px;">
         <!-- п.12: стартуем скрытой (новый чат всегда пуст) — иначе на загрузке
              кнопка мигала бы и тут же гасла. Показывает refreshChatMenuAvailability(). -->
+        <button class="topbar-btn hm-temp-btn is-hidden" id="tempChatBtn" onclick="toggleTempChat()" title="Временный чат" aria-label="Временный чат" aria-pressed="false">
+          <svg class="hm-temp-off" width="21" height="21" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8.6" stroke="currentColor" stroke-width="1.8" stroke-dasharray="3.4 2.6" stroke-linecap="round"/></svg>
+          <svg class="hm-temp-on" width="21" height="21" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8.6" stroke="currentColor" stroke-width="1.8" stroke-dasharray="3.4 2.6" stroke-linecap="round"/><path d="M8.3 12.3l2.5 2.5 5-5.2" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
         <button class="topbar-btn is-hidden" id="chatMenuBtn" onclick="toggleChatMenu(event)" title="Действия с чатом" aria-label="Действия с чатом" aria-haspopup="true" aria-hidden="true" tabindex="-1">
           <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
         </button>
@@ -4394,6 +4418,11 @@ function isImageRequest(text){
   return IMAGE_KEYWORDS.some(kw=>low.includes(kw));
 }
 let chatHistory=[],pendingAttachments=[],recentAttachmentDocs=[],curChatId=null;
+/* ВРЕМЕННЫЙ ЧАТ: не сохраняется (ни в истории, ни на устройстве), ничего не
+   пишет в память и сводку «О вас», но то, что ИИ уже знает о человеке, он
+   помнит (память читается как обычно). Уйти — новый чат, другой чат или
+   перезагрузка: переписка исчезает. Включается кнопкой справа вверху в пустом чате. */
+let hmTempChat=false;
 let chats=[];
 const CHAT_META_PREFIX='harmonyai_chat_meta_v1_';
 function chatMetaKey(){return CHAT_META_PREFIX+(curUser?.id||'guest');}
@@ -5973,6 +6002,7 @@ window.addEventListener('hai-lang-change',function(){
 });
 function updateUserUI(){
   if(!curUser)return;
+  try{refreshChatMenuAvailability();}catch(e){}
   const av=document.getElementById('sbAvatar');
   const un=document.getElementById('sbUsername');
   if(av)hmPaintAvatar(av);
@@ -6329,7 +6359,7 @@ function updateComposerPlaceholder(){
   else if(imageCount>1&&!docCount)ta.placeholder=`Прикреплено фото: ${imageCount} — напишите вопрос...`;
   // Дефолт должен совпадать с placeholder в разметке (#msgTa), иначе после
   // первой же отправки брендовая подпись подменялась старой строкой.
-  else ta.placeholder='Спросить HarmonyAI';
+  else ta.placeholder=hmTempChat?'Временный чат':'Спросить HarmonyAI';
 }
 function clearPendingAttachments(){
   pendingAttachments=[];
@@ -7015,6 +7045,32 @@ function closeChatMenu(){
   document.removeEventListener('mousedown',_chatMenuOutside,{capture:true});
   document.removeEventListener('touchstart',_chatMenuOutside,{capture:true});
 }
+async function toggleTempChat(){
+  if(hmTempChat){
+    if(chatHasMessages()){
+      const ok=await hmConfirm('Переписка исчезнет — временный чат нигде не сохраняется.',{title:'Выйти из временного чата?',okText:'Выйти',danger:false});
+      if(!ok)return;
+      newChat();return;
+    }
+    hmTempChat=false;applyTempChatUI();return;
+  }
+  if(chatHasMessages()||sharedView)return;
+  hmTempChat=true;applyTempChatUI();
+  try{document.getElementById('msgTa').focus({preventScroll:true});}catch(e){}
+}
+function applyTempChatUI(){
+  document.documentElement.classList.toggle('hm-temp',hmTempChat);
+  const tb=document.getElementById('tempChatBtn');
+  if(tb){tb.setAttribute('aria-pressed',hmTempChat?'true':'false');tb.title=hmTempChat?'Выйти из временного чата':'Временный чат';tb.setAttribute('aria-label',tb.title);}
+  const gw=document.getElementById('greetingWrap');
+  if(gw&&!gw.querySelector('.hm-temp-hero')){
+    const hero=document.createElement('div');hero.className='hm-temp-hero';
+    hero.innerHTML='<div class="hm-temp-title">Временный чат</div><div class="hm-temp-sub">Не появится в истории и ничего не добавит в память. То, что HarmonyAI уже знает о вас, он помнит.</div>';
+    gw.appendChild(hero);
+  }
+  try{updateComposerPlaceholder();}catch(e){}
+  try{refreshChatMenuAvailability();}catch(e){}
+}
 /* п.12: в пустом новом чате меню действий бессмысленно (нечего закреплять,
    удалять и искать), поэтому кнопку скрываем — но именно visibility, а не
    display:none: топбар трёхколоночный, и удаление кнопки из потока сдвинуло бы
@@ -7031,7 +7087,9 @@ function refreshChatMenuAvailability(){
   if(!btn)return;
   // В режиме чтения чужого чата действий нет: закреплять, удалять и делиться
   // чужой перепиской нельзя, поэтому кнопку меню просто не показываем.
-  const has=chatHasMessages()&&!sharedView;
+  const has=chatHasMessages()&&!sharedView&&!hmTempChat;
+  const tb=document.getElementById('tempChatBtn');
+  if(tb){const show=!sharedView&&Boolean(curUser)&&(hmTempChat||!chatHasMessages());tb.classList.toggle('is-hidden',!show);tb.tabIndex=show?0:-1;}
   btn.classList.toggle('is-hidden',!has);
   btn.setAttribute('aria-hidden',has?'false':'true');
   btn.tabIndex=has?0:-1;
@@ -7316,6 +7374,7 @@ function deleteChatConfirmed(chatId){
 async function openChat(id,opts){
   closeSidebar();
   trainingMode=false;
+  if(hmTempChat){hmTempChat=false;applyTempChatUI();}
   exitSharedView();
   /* Владение проверяется здесь фильтром user_id и, независимо от клиента,
      политиками RLS на таблице chats. Подменив ID в адресе, чужой чат получить
@@ -7486,6 +7545,7 @@ function exitTraining(){
 }
 function newChat(){
   trainingMode=false;
+  if(hmTempChat){hmTempChat=false;setTimeout(applyTempChatUI,0);}
   try{hmSetContinueMode(false);}catch(e){}
   try{window.HmBench&&HmBench.close&&HmBench.close();}catch(e){}
   exitSharedView();
@@ -7553,6 +7613,7 @@ function saveChat(title){
 }
 async function saveChatNow(title){
   if(!curUser||chatHistory.length===0)return;
+  if(hmTempChat)return; // временный чат не сохраняется никуда
   // В базу сохраняем ОБЛЕГЧЁННУЮ историю: фото — как текстовые метки, длинные тексты/файлы —
   // обрезаны. Иначе каждая запись таскала бы мегабайты base64 и полный текст документов,
   // что раздувало строки Supabase и замедляло перезагрузку чата. Локально chatHistory
@@ -7875,8 +7936,9 @@ function closePlusDrop(){
 // Открытие/закрытие bottom-sheet кнопки «+» (размышление / поиск в сети / добавить файлы).
 function togglePlusDrop(e){
   if(e){e.stopPropagation();}
-  // Компьютер: компактное меню над «+» (по макету), телефон — прежний нижний лист.
-  if(window.matchMedia('(min-width:769px)').matches){toggleDesktopPlus(e&&e.currentTarget);return;}
+  // Компактное меню над «+»: на компьютере по макету, на телефоне — стеклянная «капля»
+  // из кнопки, как в iOS (css/hm-glass.css, js/hm-glass.js). Нижний лист — только без стекла.
+  if(window.matchMedia('(min-width:769px)').matches||document.documentElement.classList.contains('hm-glass')){toggleDesktopPlus(e&&e.currentTarget);return;}
   // Закрываем прочие выпадающие меню, чтобы не накладывались.
   closeModelMenus();
   plusDropOpen=!plusDropOpen;
@@ -8540,7 +8602,7 @@ async function handleFiles(fileList){
           const doc=makeKnowledgeDoc(f.name,parsed.text,f.name.split('.').pop().toLowerCase());
           if(!doc.chunks.length)throw new Error('в файле не найден читаемый текст');
           if(trainingMode&&hasTrainingAccess())hmIngestFileText(f.name,parsed.text,doc);
-          else storeKnowledgeDoc(doc,hasTrainingAccess()?'global':'user');
+          else if(!hmTempChat)storeKnowledgeDoc(doc,hasTrainingAccess()?'global':'user');
           Object.assign(slot,{kind:'document',mime:f.type||'application/octet-stream',id:stored?.id||null,url:stored?.url||'',storagePath:stored?.storagePath||null,doc});
           window.HmStats?.file();
         }
@@ -8685,6 +8747,7 @@ function hmRecentOpenings(key,text){
 const HM_BOOK_SVG='<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5v-15Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M9 8h7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>';
 async function hmAutoMemory(text){
   if(!window.HmMemory||typeof HmMemory.auto!=='function')return;
+  if(hmTempChat)return; // временный чат память не меняет
   const inner=document.getElementById('chatInner');
   const before=inner?inner.querySelectorAll('.msg-ai-wrap').length:0;
   const chatAtStart=curChatId;
@@ -9134,6 +9197,7 @@ function openUserMessageMenu(anchor){
   menu.querySelector('[data-act="remember"]').onclick=()=>{
     closeUserMessageMenu();
     var rtxt=typeof item.content==='string'?item.content:(Array.isArray(item.content)?item.content.filter(p=>p.type==='text').map(p=>p.text||'').join('\n'):'');
+    if(hmTempChat){toast('Во временном чате память не меняется');return;}
     if(rtxt&&window.HmMemory)window.HmMemory.promptAdd(rtxt,{allowScope:true,chatId:curChatId});
   };
   menu.querySelector('[data-act="delete"]').onclick=async()=>{
@@ -11091,6 +11155,7 @@ function hmLocalTitle(text){
   return out.charAt(0).toUpperCase()+out.slice(1).replace(/[.,!?:;]+$/,'');
 }
 async function maybeGenerateChatTitle(){
+  if(hmTempChat)return;
   // Условия: есть чат, ровно один обмен (user+assistant), тема ещё не определена.
   const id=curChatId;
   if(!id||_titleInFlight||chatHasAiTitle(id))return;
@@ -11377,6 +11442,7 @@ async function requestChatReply(){
     model:curModel,
     effort:curMode,
     think:thinkOn,
+    temporary:hmTempChat||undefined,
     trainingMode:Boolean(trainingMode&&hasTrainingAccess()),
     memoryFromClient:Boolean(window.HmMemory&&(getSettings().memRecall!==false)),
     userId:curUser?.id||null,
@@ -11476,6 +11542,7 @@ async function requestChatReplyLive(msgEl,actionsEl,extraMessages=[],prefixText=
     model:curModel,
     effort:curMode,
     think:thinkOn,
+    temporary:hmTempChat||undefined,
     stream:true,
     // При тихом авто-продолжении оборванного ответа поиск не запускаем повторно,
     // чтобы не вставлять новый блок «Просмотрел сайты» в середину ответа.
@@ -14088,7 +14155,7 @@ async function handleTextReply(pendingText){
   /* Память: служебная модель сама решает, есть ли в сообщении факт о
      пользователе, и сохраняет его без окна (метка над ответом). */
   if(!wasTraining){try{hmAutoMemory(text);}catch(_){}}
-  if(!wasTraining){try{hmSumNoteMessage(text);}catch(_){}}
+  if(!wasTraining&&!hmTempChat){try{hmSumNoteMessage(text);}catch(_){}}
   // Запрос к модели уходит сразу, сохранение — параллельно (очередь в saveChat).
   saveChat().catch(()=>{});
 
@@ -15552,7 +15619,7 @@ function renderAbout(){
       <div class="stp-about-hero">
         <div class="stp-about-logo"><svg width="26" height="26" viewBox="0 0 64 64"><path d="M18 14h8v18h12V14h8v36h-8V39H26v11h-8z" fill="currentColor"/></svg></div>
         <div class="stp-about-name">HarmonyAI</div>
-        <div class="stp-about-ver">Beta 0.8.96</div>
+        <div class="stp-about-ver">Beta 0.8.97</div>
       </div>
       <div class="stp-row" onclick="hmOpenDoc('/legal/privacy.html')" role="link" tabindex="0">
         <div class="stp-row-label"><div class="stp-row-title">Политика конфиденциальности</div></div>

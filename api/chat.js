@@ -1,4 +1,4 @@
-import { proofreadRussian, fixMarkdownSpacing, looksBroken } from '../lib/proofread.js';
+import { proofreadRussian, fixMarkdownSpacing, looksBroken, wantsRussian, answeredInEnglish, translateToRussian } from '../lib/proofread.js';
 import { hasProAccess, requireUser } from '../lib/auth.js';
 import { buildMusicTheoryContext } from '../lib/music-theory-router.js';
 import { readChatImages, withReading, isDocumentReading } from '../lib/image-read.js';
@@ -94,7 +94,8 @@ function readEnv(name) {
 /* ============================================================================
    ADAN — бесплатная модель (Tokenator больше не используется).
    Переменные окружения Vercel:
-     ADAN_MODELS         — модели через запятую, первая — основная. По умолчанию:
+     ADAN_PRIMARY_MODEL  — основная (по умолчанию nvidia/nemotron-3.5-super-vl:free), всегда первая.
+     ADAN_MODELS         — запасные через запятую, идут после основной. По умолчанию:
                            thinkingmachines/inkling:free, google/gemma-4-31b-it:free,
                            nvidia/nemotron-3-ultra-550b-a55b:free, nvidia/nemotron-3.5-lightning:free
                            (OpenRouter), deepseek-v4-flash (pro-ai.online) — запасная.
@@ -146,7 +147,13 @@ function detectJailbreak(messages) {
 /* Бесплатные модели OpenRouter (октябрь 2026): сначала самые сильные и быстрые
    без обязательных рассуждений (на Low reasoning выключается — ответ сразу),
    в конце — платный запасной deepseek с pro-ai.online. */
+/* Основная бесплатная модель — nvidia/nemotron-3.5-super-vl:free (видит фото,
+   умеет рассуждать). Она всегда первая в цепочке, даже если в Vercel задан
+   старый ADAN_MODELS; поменять можно переменной ADAN_PRIMARY_MODEL. */
+const ADAN_PRIMARY_DEFAULT = 'nvidia/nemotron-3.5-super-vl:free';
+function adanPrimary() { return currentModelName(readEnv('ADAN_PRIMARY_MODEL')) || ADAN_PRIMARY_DEFAULT; }
 const ADAN_DEFAULT_MODELS = [
+  ADAN_PRIMARY_DEFAULT,
   'thinkingmachines/inkling:free',
   'google/gemma-4-31b-it:free',
   'nvidia/nemotron-3-ultra-550b-a55b:free',
@@ -160,7 +167,7 @@ function adanModels() {
   // Свои модели из ADAN_MODELS — первыми, встроенные — запасными после них:
   // короткий список в Vercel (две модели) оставлял цепочку без запаса, когда
   // одна упиралась в лимит, а другая лежала у провайдера.
-  return fromEnv.length ? [...new Set(fromEnv.concat(ADAN_DEFAULT_MODELS))] : ADAN_DEFAULT_MODELS;
+  return [...new Set([adanPrimary(), ...fromEnv, ...ADAN_DEFAULT_MODELS])];
 }
 /* Модель из цепочки Adan: при лимите/обрыве переключаемся на следующую. */
 function isAdanModel(name) { const n = String(name || ''); return isOpenRouterModel(n) || adanModels().includes(n); }
@@ -190,10 +197,11 @@ function adanChain() {
    отвечала «я не вижу изображение». Если в последнем сообщении пользователя есть
    фото — сначала идут мультимодальные модели (ADAN_VISION_MODELS, через запятую),
    остальные остаются запасными в конце цепочки. */
-const ADAN_VISION_DEFAULT = ['thinkingmachines/inkling:free', 'google/gemma-4-31b-it:free', 'nvidia/nemotron-3.5-super-vl:free'];
+const ADAN_VISION_DEFAULT = [ADAN_PRIMARY_DEFAULT, 'thinkingmachines/inkling:free', 'google/gemma-4-31b-it:free'];
 function adanVisionModels() {
   const fromEnv = readEnv('ADAN_VISION_MODELS').split(',').map(x => x.trim()).filter(Boolean);
-  return fromEnv.length ? fromEnv : ADAN_VISION_DEFAULT;
+  // Основная модель мультимодальная — для фото она тоже первая.
+  return [...new Set([adanPrimary(), ...(fromEnv.length ? fromEnv : ADAN_VISION_DEFAULT)])];
 }
 function lastUserHasImage(messages) {
   const list = Array.isArray(messages) ? messages : [];
@@ -2095,6 +2103,11 @@ async function streamOpenAIToClientInner(res, apiKey, modelName, messages, timeo
   /* Вычитка русского: бесплатные модели теряют буквы и вставляют английские
      слова. Текст пользователь уже видел потоком — исправленная версия придёт
      в done и тихо заменит показанную (см. lib/proofread.js). */
+  /* Вопрос на русском, а ответ пришёл по-английски (бесплатные модели иногда
+     «съезжают» на язык своих рассуждений) — переводим, не трогая код и ноты. */
+  if (!stalled && wantsRussian(query) && answeredInEnglish(finalText)) {
+    try { finalText = await translateToRussian(finalText, { timeoutMs: 9000 }); } catch (e) { /* остаётся исходный */ }
+  }
   if ((isOpenRouterModel(modelName) || looksBroken(finalText)) && !stalled) {
     try { finalText = await proofreadRussian(finalText, { timeoutMs: 7000 }); } catch (e) { /* остаётся исходный */ }
   } else {
@@ -2431,7 +2444,8 @@ export default async function handler(req, res) {
     const chunks = [...(globalKnowledge.chunks || []), ...(userKnowledge.chunks || [])];
     const memories = val(4, []);
     const feedbackRows = val(5, []);
-    errAllowText = allowsTextLogging(profile);
+    // Временный чат: текст сообщений не попадает даже в журнал ошибок.
+    errAllowText = allowsTextLogging(profile) && !(req.body && req.body.temporary === true);
     // Блокировка из панели управления (profiles.blocked_at).
     if (isBlockedProfile(profile) && !applyDevAccountProfile.isDev(authedUser)) {
       return res.status(403).json({ error: { message: BLOCKED_MESSAGE, status: 403, code: 'blocked' } });
