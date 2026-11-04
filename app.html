@@ -3660,7 +3660,7 @@ html[data-theme="light"] .hga-mini,html[data-theme="messenger"] .hga-mini{--igm-
    на холсте плывут размытые цветные пятна, сверху вниз идёт полоса «проявки». */
 .igx-wrap{gap:9px;}
 /* Пока картинка рисуется, под ней только «···» (Повторить); остальное — когда готово. */
-.img-pending .msg-actions .mac-btn:not([title="Ещё"]),.img-pending .msg-actions .src-pill{display:none!important;}
+.img-pending .msg-actions .mac-btn:not([onclick^="toggleMore"]),.img-pending .msg-actions .src-pill{display:none!important;}
 .igx-label{font-size:14px;font-weight:500;line-height:1.3;display:flex;align-items:baseline;min-width:0;}
 .igx-text{background:linear-gradient(90deg,var(--ig-text-45) 0%,var(--ig-text) 44%,var(--ig-text-45) 80%);background-size:220% 100%;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;animation:ws-shimmer 2.7s linear infinite;}
 .igx-sec{color:var(--ig-muted);font-variant-numeric:tabular-nums;white-space:pre;}
@@ -8845,8 +8845,7 @@ async function hmRenderChatError(msgEl,raw,opts={}){
   const text=String(raw||'');
   /* Строка поиска («Читаю найденное…») и блок «Думаю» не должны крутиться
      над ошибкой — ответ уже не придёт. */
-  try{finalizeSearchTrace(msgEl);}catch(e){}
-  try{hmFinalizeLiveReasoning();}catch(e){}
+  try{const ws=msgEl.closest&&msgEl.closest('.msg-ai-wrap')?.querySelector('.ws2');if(ws){clearInterval(ws._timer);ws.remove();}}catch(e){}
   if(navigator.onLine===false&&!HM_ERR_CODE_RE.test(text)){renderMd(msgEl,'Нет соединения с интернетом. Проверьте сеть и попробуйте ещё раз.');return;}
   if(hmIsPlainError(text)){renderMd(msgEl,(opts.prefix||'')+text.replace(/^Ошибка:\s*/,''));return;}
   msgEl.style.whiteSpace='normal';

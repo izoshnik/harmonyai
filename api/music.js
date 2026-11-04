@@ -353,7 +353,7 @@ export default async function handler(req, res) {
     const b = req.body || {};
     try {
       if (b.action === 'ext_search') return res.status(200).json({ items: await extSearch(b.query, Math.min(Math.max(Number(b.limit) || 8, 1), 20)) });
-      if (b.action === 'ext_wave') return res.status(200).json({ items: await extWave({ genre: b.genre, limit: b.limit, offset: b.offset }), station: 'ext', personal: false });
+      if (b.action === 'ext_wave') return res.status(200).json({ items: await extWave({ genre: String(b.genre || '').slice(0, 40), limit: Math.min(Math.max(Number(b.limit) || 10, 1), 30), offset: Math.min(Math.max(Number(b.offset) || 0, 0), 60) }), station: 'ext', personal: false });
       if (b.action === 'ext_tracks') return res.status(200).json({ items: await extTracksByIds(b.trackIds) });
     } catch (e) {
       return fail(res, 502, 'music_error', 'Сервис музыки не ответил');
@@ -548,7 +548,8 @@ export default async function handler(req, res) {
         const recent = new Set((Array.isArray(body.exclude) ? body.exclude : []).map(x => String(x || '').split(':')[0].replace(/\D/g, '')).filter(Boolean).slice(0, 400));
         let wave;
         try {
-          wave = await getWaveTracks({ token, station, queue: body.queue });
+          // Продолжение волны считаем от трека Яндекса: id Audius/Jamendo радио Яндекса не знает.
+          wave = await getWaveTracks({ token, station, queue: isExtTrackId(body.queue) ? '' : body.queue });
           let fresh = wave.items.filter(t => !recent.has(String(t.trackId)));
           for (let i = 0; i < 2 && fresh.length < 3 && wave.items.length; i++) {
             const more = await getWaveTracks({ token, station: wave.station, queue: wave.items[wave.items.length - 1].trackId }).catch(() => null);

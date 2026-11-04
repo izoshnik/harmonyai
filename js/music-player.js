@@ -1111,6 +1111,7 @@
     }).then(function () {
       state.retrying = false;
       state.failStreak = 0;
+      state.extRetried = null;
       if (state.wave) onWaveTrackStarted(track);
       prefetchNext();
       save();
@@ -1158,6 +1159,9 @@
 
     // Audius/Jamendo: ссылка не протухает так, как у Яндекса, — один повтор той же.
     if (isExtTrack(track)) {
+      // Один повтор на трек: недоступный файл не должен крутить повторы по кругу.
+      if (state.extRetried === track.trackId) { state.retrying = false; pause(); notify('Этот трек сейчас недоступен'); return; }
+      state.extRetried = track.trackId;
       audio.src = c.streamUrl(track.trackId) + '&r=' + Date.now();
       audio.currentTime = at;
       audio.play().then(function () { state.retrying = false; }).catch(function () {
@@ -1275,8 +1279,9 @@
     if (!w || w.loading || !c) return Promise.resolve(false);
     w.loading = true;
     w.buffer = w.buffer || [];
-    var lastBuf = w.buffer[w.buffer.length - 1];
-    var last = lastBuf || state.queue[state.queue.length - 1];
+    // Последний трек Яндекса (подмешанные Audius/Jamendo радио Яндекса не продолжит).
+    var isYm = function (t) { return t && !isExtTrack(t); };
+    var last = w.buffer.filter(isYm).pop() || state.queue.filter(isYm).pop();
     return c.wave({ station: w.station, queue: last ? last.trackId : '', seeds: waveSeeds(), exclude: waveRecent() }).then(function (d) {
       w.loading = false;
       if (state.wave !== w) return false;

@@ -12,7 +12,7 @@ export const config = {
 };
 
 import { FREE_TEXT_MODEL, PRO_TEXT_MODEL, envModel, currentModelName, LONG_CONTEXT_THRESHOLD, longContextModel, providerForModel, providerFetch, providerBaseUrl, isOpenRouterModel, supportsReasoningEffort, noteUnaskedReasoning, responseHasReasoning, fastReasoningEffort, isGeminiModel, geminiApiKey, geminiChatModel, geminiProModel, coolDownModel, isCoolingDown, isProviderOutage, isExtraModel } from '../lib/models.js';
-import { rankedFreeChain, warmCatalogFor } from '../lib/model-catalog.js';
+import { rankedFreeChain, warmCatalogFor, catalogStamp } from '../lib/model-catalog.js';
 import { authenticateRequest } from '../lib/auth.js';
 import { logRequest, reportError, serviceErrorText, allowsTextLogging, isBlockedProfile, BLOCKED_MESSAGE, estimateTokens } from '../lib/observe.js';
 import { moderateMessage } from '../lib/moderation.js';
@@ -177,7 +177,15 @@ const ADAN_DEFAULT_MODELS = [
 ];
 const exhaustedModels = new Map(); // model → время (ms), до которого модель не используем
 
+/* Цепочка нужна десятки раз за запрос (isAdanModel) — пересобираем не чаще раза в 2 с. */
+let _adanMemo = { at: 0, key: '', list: null };
 function adanModels() {
+  const key = catalogStamp();
+  if (_adanMemo.list && _adanMemo.key === key && Date.now() - _adanMemo.at < 2000) return _adanMemo.list;
+  _adanMemo = { at: Date.now(), key, list: buildAdanModels() };
+  return _adanMemo.list;
+}
+function buildAdanModels() {
   const fromEnv = readEnv('ADAN_MODELS').split(',').map(x => currentModelName(x)).filter(Boolean);
   // Свои модели из ADAN_MODELS — первыми, встроенные — запасными после них:
   // короткий список в Vercel (две модели) оставлял цепочку без запаса, когда
