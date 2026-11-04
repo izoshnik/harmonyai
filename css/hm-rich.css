@@ -102,6 +102,10 @@
 .hmr-photo figcaption{font-size:13.5px;color:var(--text2);margin-top:6px;line-height:1.4;}
 .hmr-photo figcaption a{color:var(--text2);}
 .hmr-photo-ph{aspect-ratio:4/3;border-radius:18px;background:var(--bg3);display:flex;align-items:center;justify-content:center;gap:8px;color:var(--text2);font-size:13.5px;}
+/* Иллюстрация рисуется: подпись над холстом, на холсте — анимация создания (app.html, .igx). */
+.hmr-photo .igx-label{margin:0 0 8px;--ig-text:var(--text);--ig-text-45:color-mix(in srgb,var(--text) 45%,transparent);--ig-muted:var(--text2);}
+.hmr-photo-gen{position:relative;aspect-ratio:4/3;border-radius:18px;overflow:hidden;background:var(--bg3);}
+.hmr-photo-fail{flex-direction:column;gap:10px;}
 
 /* ---------- кнопки следующих шагов ---------- */
 .hmr-chips{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 4px;}

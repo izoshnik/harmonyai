@@ -1,8 +1,10 @@
 import { hasProAccess, requireUser } from '../lib/auth.js';
 import { utilityChat } from '../lib/ai-tasks.js';
 import { logRequest, reportError, serviceErrorText, isBlockedProfile, BLOCKED_MESSAGE, allowsTextLogging } from '../lib/observe.js';
+/* 150 с: gpt-image иногда рисует 40–70 секунд. При 60 с первая модель съедала
+   всё время, и до запасных дело не доходило («closerouter timed out»). */
 export const config = {
-  maxDuration: 60
+  maxDuration: 150
 };
 
 import { PRO_IMAGE_MODEL, FREE_IMAGE_MODEL, UTILITY_MODEL, envModel, utilityEndpoint, utilityModel, providerBaseUrl } from '../lib/models.js';
@@ -435,19 +437,23 @@ async function closeRouterImage(model, prompt, image, deadline) {
   return await fetchRemoteImageAsBase64(found.url);
 }
 
-/* Pro: sunburst → flare (closerouter) → gpt-image-2.5 → gpt-image-2 (pro-ai.online). */
+/* Pro: sunburst → flare (closerouter) → gpt-image-2.5 → gpt-image-2 (pro-ai.online).
+   Одна модель не может занять всё время: у первой — не больше 70 с, у второй —
+   не больше 55 с, остальное — запасным pro-ai.online. */
 async function generatePro(prompt, image) {
-  const deadline = Date.now() + 52000; // функция живёт 60 с
+  const deadline = Date.now() + 140000; // функция живёт 150 с
   const errors = [];
   if (readEnv('CLOSEROUTER_API_KEY')) {
-    for (const model of CLOSEROUTER_MODELS) {
+    for (const [i, model] of CLOSEROUTER_MODELS.entries()) {
       if (Date.now() > deadline - 8000) break;
-      try { return await closeRouterImage(model, prompt, image, deadline); }
+      const attemptDeadline = Math.min(deadline, Date.now() + (i === 0 ? 70000 : 55000));
+      try { return await closeRouterImage(model, prompt, image, attemptDeadline); }
       catch (e) { errors.push(`${model}: ${e.message}`); console.warn('[generate-image] closerouter', model, 'failed:', compactErrorValue(e?.message, 200)); }
     }
   }
   for (const model of [readEnv('OPENAI_IMAGE_MODEL') || 'gpt-image-2.5', PRO_IMAGE_MODEL]) {
-    if (Date.now() > deadline - 8000) break;
+    // У pro-ai свой таймаут 40 с (правка — 90 с): начинаем, только если успеем до конца функции.
+    if (deadline - Date.now() < (image ? 92000 : 42000)) break;
     try { return image ? await editViaOpenAI(prompt, image, model) : await generateViaOpenAI(prompt, model); }
     catch (e) { errors.push(`${model}: ${e.message}`); console.warn('[generate-image] pro-ai', model, 'failed:', compactErrorValue(e?.message, 200)); if (e.code === 'NO_CREDENTIALS') break; }
   }

@@ -760,7 +760,29 @@
     for(var lang of ['ru','en']){try{var r=await wikiPhoto(query,lang);if(r)return r;}catch(e){}}
     return null;
   }
+  /* Фото в ответе ещё ищется или рисуется: data-gen="1". Когда готово (или не
+     вышло) — событие hm-photo-settled: приложение показывает строку действий
+     под ответом только после этого (см. setMessageActionsVisible в app.html). */
+  function photoBusy(fig,on){
+    if(on){fig.dataset.gen='1';return;}
+    if(fig.dataset.gen!=='1')return;
+    delete fig.dataset.gen;
+    try{fig.dispatchEvent(new CustomEvent('hm-photo-settled',{bubbles:true}));}catch(e){}
+  }
+  /* Подпись над холстом и анимация создания — те же, что у генерации картинок в чате. */
+  function genStage(fig,label){
+    fig.innerHTML='';
+    var lab=el('div','igx-label');lab.innerHTML='<span class="igx-text"></span>';lab.firstChild.textContent=label;
+    var stage=el('div','hmr-photo-gen');
+    fig.appendChild(lab);fig.appendChild(stage);
+    try{if(typeof window.hmImgGenAnim==='function')window.hmImgGenAnim(stage);else stage.innerHTML='<div class="hmr-photo-ph">'+ICON.spin+'</div>';}catch(e){}
+  }
   async function generateIllustration(prompt){
+    // Сбой (таймаут, ошибка шлюза) — одна повторная попытка.
+    try{return await generateIllustrationOnce(prompt);}
+    catch(e){if(/лимит|limit|модерац|правил|недопуст/i.test(String(e&&e.message||'')))throw e;return await generateIllustrationOnce(prompt);}
+  }
+  async function generateIllustrationOnce(prompt){
     var eps=typeof window.buildImageApiCandidates==='function'?window.buildImageApiCandidates():['/api/generate-image'];
     var headers=typeof window.hmAuthHeaders==='function'?await window.hmAuthHeaders():{'Content-Type':'application/json'};
     for(var i=0;i<eps.length;i++){
@@ -775,6 +797,7 @@
     var fig=el('figure','hmr-photo');host.appendChild(fig);
     var key='hm_photo_'+hash(body);var cached=store(key);
     function show(r){
+      photoBusy(fig,false);
       fig.innerHTML='';var img=el('img');img.loading='lazy';img.alt=d.caption||d.query||d.prompt||'';img.src=r.url;
       img.onerror=function(){fig.innerHTML='<div class="hmr-photo-ph">'+esc(t('Фото недоступно'))+'</div>';};
       fig.appendChild(img);
@@ -782,19 +805,29 @@
       if(cap)fig.appendChild(el('figcaption','',cap));
     }
     if(cached&&cached.url){show(cached);return fig;}
+    var live=Boolean(ctx&&ctx.live)||Boolean(photoInflight[key]);
+    if(live)photoBusy(fig,true);
     fig.innerHTML='<div class="hmr-photo-ph">'+ICON.spin+esc(t('Ищу фото…'))+'</div>';
     (async function(){
       var r=d.query?await findPhoto(d.query):null;
       if(r){store(key,r);show(r);return;}
-      if(!d.prompt){fig.innerHTML='<div class="hmr-photo-ph">'+esc(t('Подходящее фото не найдено'))+'</div>';return;}
+      if(!d.prompt){fig.innerHTML='<div class="hmr-photo-ph">'+esc(t('Подходящее фото не найдено'))+'</div>';photoBusy(fig,false);return;}
       // Генерация стоит лимитов: автоматически — только для свежего ответа, из истории — по кнопке.
       var start=function(){
-        fig.innerHTML='<div class="hmr-photo-ph">'+ICON.spin+esc(t('Рисую иллюстрацию…'))+'</div>';
+        photoBusy(fig,true);
+        genStage(fig,t('Рисую иллюстрацию'));
         var p=photoInflight[key]||(photoInflight[key]=generateIllustration(d.prompt));
         p.then(function(url){var rr={url:url,source:t('Иллюстрация создана ИИ')};store(key,rr);show(rr);})
-         .catch(function(e){fig.innerHTML='<div class="hmr-photo-ph">'+esc(e.message||t('Не удалось нарисовать иллюстрацию'))+'</div>';delete photoInflight[key];});
+         .catch(function(){
+           // Без «Ошибка сервиса №…» на полэкрана: короткая подпись и кнопка «Повторить».
+           delete photoInflight[key];
+           fig.innerHTML='';var ph=el('div','hmr-photo-ph hmr-photo-fail');
+           ph.appendChild(el('span','',esc(t('Не получилось нарисовать иллюстрацию'))));
+           var b=el('button','hmr-btn',t('Повторить'));b.type='button';b.onclick=start;ph.appendChild(b);fig.appendChild(ph);
+           photoBusy(fig,false);
+         });
       };
-      if(ctx&&ctx.live||photoInflight[key])start();
+      if(live)start();
       else{fig.innerHTML='';var b=el('button','hmr-btn',t('Показать иллюстрацию'));b.type='button';b.onclick=start;var ph=el('div','hmr-photo-ph');ph.appendChild(b);fig.appendChild(ph);}
     })();
     return fig;

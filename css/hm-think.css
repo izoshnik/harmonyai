@@ -12,7 +12,7 @@
 html[data-theme="dark"] .hts{--ns:88%;--nl:70%;--nl-lit:82%;}
 @media (max-width:768px), (hover:none) and (pointer:coarse){html:not([data-theme="light"]):not([data-theme="messenger"]) .hts{--ns:88%;--nl:70%;--nl-lit:82%;}}
 
-.hts-staff{width:26px;height:13px;flex:none;overflow:visible;color:var(--hts-faint);}
+.hts-staff{width:32px;height:16px;flex:none;overflow:visible;color:var(--hts-faint);}
 .hts-lines line{stroke:currentColor;stroke-width:.8;}
 .hts-clef{fill:none;stroke:currentColor;stroke-width:1.15;stroke-linecap:round;stroke-linejoin:round;opacity:.95;}
 .hts-playhead{stroke:var(--hts-accent);stroke-width:1.2;opacity:.45;transition:opacity .4s;}
@@ -134,7 +134,7 @@ html[data-theme="dark"] .hts{--ns:88%;--nl:70%;--nl-lit:82%;}
 .tr .trHeader .hts{min-width:0;flex:1 1 auto;}
 
 /* ===== Canvas-анимации «Думаю» — высотой на пару пикселей больше заглавной буквы ===== */
-.hts-cv{display:inline-block;width:13px;height:13px;flex:none;}
+.hts-cv{display:inline-block;width:16px;height:16px;flex:none;} /* +3px по просьбе: сферы и др. чуть крупнее */
 .hts-cv canvas{display:block;width:100%;height:100%;}
 .hts[data-state="done"] .hts-cv{opacity:.55;}
 /* Цветные анимации — подпись переливается теми же цветами */
