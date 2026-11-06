@@ -4520,7 +4520,7 @@ let authHydrationPromise=null,authHydratedUserId='';
 let knowledgeDocs=[];
 let isGenerating=false,activeAbortController=null,activeStreamStop=null;
 const CHAT_TIMEOUT_MS=280000;
-// Сервер шлёт keep-alive пинги каждые 15с: если 45с полной тишины — соединение реально умерло,
+// Сервер шлёт keep-alive пинги каждые 5с: если 45с полной тишины — соединение реально умерло,
 // нет смысла держать пользователя в ожидании дольше (раньше было 110с и стрим «застревал»).
 const STREAM_STALL_MS=45000;
 /* Фолбэк-адрес API: используется, только если запрос по относительному пути
@@ -7433,6 +7433,15 @@ async function openChat(id,opts){
   setChatRoute(id,!(opts&&opts.fromRoute));
   chatHistory=normalizeHistoryTimestamps(data.history||[],data.updated_at||messageNow());
   restoreRecentAttachmentsFromHistory(chatHistory);
+  {
+    // Черновик ответа, который сервер дописывал, пока вкладка была выгружена:
+    // старше 6 минут — дописывать уже нечего (пустой черновик убираем).
+    const lm=chatHistory[chatHistory.length-1];
+    if(lm&&lm.role==='assistant'&&lm.job&&!(Date.now()-Date.parse(lm.createdAt||0)<6*60*1000)){
+      delete lm.job;
+      if(!String(lm.content||'').trim())chatHistory.pop();
+    }
+  }
   const inner=document.getElementById('chatInner');inner.innerHTML='';
   chatHistory.forEach((m,idx)=>{
     const txt=typeof m.content==='string'?m.content:(Array.isArray(m.content)?m.content.find(c=>c.type==='text')?.text:'[фото]');
@@ -7497,6 +7506,10 @@ async function openChat(id,opts){
       if(m.thinking&&m.thinking.text)result.then(shell=>hmRestoreThinking(shell.msg,m.thinking));
     }
   });
+  {
+    const li=chatHistory.length-1,lm=chatHistory[li];
+    if(lm&&lm.role==='assistant'&&lm.job)hmResumeStoredJob(id,li);
+  }
   updateTrainingPillUI();
   renderChatList();
   /* История отрисована — прижимаем вид к последнему сообщению и сбрасываем
@@ -11619,8 +11632,131 @@ function hmSlimSources(list){
   const out=(Array.isArray(list)?list:[]).filter(s=>s&&s.url).slice(0,20).map(s=>({url:String(s.url).slice(0,500),title:String(s.title||'').slice(0,200),snippet:String(s.snippet||'').slice(0,240)}));
   return out.length?out:undefined;
 }
+/* ===== ОТВЕТ НЕ ТЕРЯЕТСЯ ПРИ ВЫХОДЕ ИЗ ВКЛАДКИ (lib/chat-jobs.js) =====
+   Телефон замораживает вкладку, как только пользователь уходит из браузера:
+   поток ответа рвётся («Load failed», «Сервер слишком долго отвечает», ответ на
+   полуслове). Сервер при этом дописывает ответ и сохраняет его по jobId.
+   Вернулись во вкладку — поток молчит — дочитываем ответ с сервера. */
+const HM_JOB_POLL_MS=1500;
+let hmLiveJob=null; // запрос, поток которого сейчас читается
+let hmHiddenAt=0;
+function hmNewJob(){
+  let id='';
+  try{id=crypto.randomUUID().replace(/-/g,'');}catch(e){id=Date.now().toString(36)+Math.random().toString(36).slice(2,12);}
+  return {id,startedAt:Date.now(),lastByteAt:Date.now(),http:0,kick:null,chatId:curChatId};
+}
+// Чтение потока: тишина дольше STREAM_STALL_MS или «пинок» после возврата во вкладку.
+function hmStreamRead(reader,job){
+  return new Promise((resolve,reject)=>{
+    let settled=false;
+    const fin=(fn,v)=>{if(settled)return;settled=true;clearTimeout(t);if(job)job.kick=null;fn(v);};
+    const t=setTimeout(()=>fin(reject,Object.assign(new Error('Сервер слишком долго отвечает'),{hmStall:true})),STREAM_STALL_MS);
+    if(job)job.kick=()=>fin(reject,Object.assign(new Error('Соединение потеряно'),{hmStall:true}));
+    reader.read().then(v=>{if(job)job.lastByteAt=Date.now();fin(resolve,v);},e=>fin(reject,e));
+  });
+}
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='hidden'){hmHiddenAt=Date.now();return;}
+  const job=hmLiveJob;
+  if(!job||!hmHiddenAt||Date.now()-hmHiddenAt<4000)return;
+  const back=Date.now();
+  // Сервер шлёт пинг каждые 5 с: живое соединение даст байты почти сразу.
+  setTimeout(()=>{if(hmLiveJob===job&&job.lastByteAt<back&&typeof job.kick==='function')job.kick();},7000);
+});
+function hmJobUrl(id){return buildApiCandidates()[0]+'?job='+encodeURIComponent(id);}
+function hmJobDelete(job){
+  if(!job||!job.id)return;
+  hmAuthHeaders().then(h=>fetch(hmJobUrl(job.id),{method:'DELETE',headers:h,keepalive:true,credentials:'omit'})).catch(()=>{});
+}
+async function hmJobFetch(id){
+  const r=await fetch(hmJobUrl(id),{method:'GET',headers:await hmAuthHeaders(),cache:'no-store',credentials:'omit'});
+  if(!r.ok)return {status:r.status===401?'auth':'missing'};
+  return r.json().catch(()=>({status:'missing'}));
+}
+/* Дочитать ответ с сервера в msgEl. Возвращает {text,truncated,sources} или
+   null, если сервер этот запрос не сохранил (тогда работает старая логика). */
+async function hmResumeJob(job,msgEl,actionsEl,prefixText){
+  if(!job||!job.id)return null;
+  const ctl=new AbortController();
+  activeAbortController=ctl;
+  try{if(typeof activeStreamStop==='function')activeStreamStop();}catch(_){}
+  activeStreamStop=null;
+  const t0=Date.now();
+  let shown=null,seen=false;
+  while(Date.now()-t0<6*60*1000){
+    if(ctl.signal.aborted){hmJobDelete(job);throw new Error('Генерация остановлена');}
+    let j=null;
+    try{j=await hmJobFetch(job.id);}catch(e){j=null;}
+    if(ctl.signal.aborted){hmJobDelete(job);throw new Error('Генерация остановлена');}
+    if(j&&j.status&&j.status!=='missing'&&j.status!=='auth'){
+      seen=true;
+      const text=normalizeReplyNotation(String(j.text||''));
+      if(text&&text!==shown){
+        hideTyping();
+        if(j.reasoningMs!=null)try{endReasoningBlock(msgEl,j.reasoningMs,false);}catch(_){}
+        else try{finalizeReasoningTrace(msgEl);}catch(_){}
+        try{finalizeSearchTrace(msgEl);}catch(_){}
+        msgEl.classList.remove('is-streaming');
+        try{renderMd(msgEl,prefixText+text);}catch(_){msgEl.textContent=prefixText+text;}
+        msgEl.dataset.raw=prefixText+text;
+        shown=text;
+        try{scrollChat();}catch(_){}
+      }
+      if(j.status==='done'||j.status==='lost'){
+        hideTyping();
+        try{hmFinalizeLiveReasoning();}catch(_){}
+        if(Array.isArray(j.sources)&&j.sources.length)msgEl._searchSources=j.sources;
+        hmJobDelete(job);
+        if(!shown)return null;
+        setMessageActionsVisible(actionsEl,true);
+        return {text:prefixText+shown,truncated:j.status==='lost'||Boolean(j.truncated),sources:hmSlimSources(j.sources)};
+      }
+      if(j.status==='error'){
+        hmJobDelete(job);
+        if(shown){setMessageActionsVisible(actionsEl,true);return {text:prefixText+shown,truncated:true};}
+        throw Object.assign(new Error(j.error?.message||'Ошибка потоковой генерации'),{hmServerErr:true});
+      }
+    }else if(!seen&&(Date.now()-t0>9000)){
+      // Сервер не сохранил запрос (не дошёл до него или таблицы ещё нет).
+      return null;
+    }
+    await new Promise(r=>setTimeout(r,HM_JOB_POLL_MS));
+  }
+  return shown?{text:prefixText+shown,truncated:true}:null;
+}
+/* Страница перезагрузилась, пока ИИ писал ответ (телефон выгрузил вкладку):
+   в истории остался черновик с job — дописываем его с сервера. */
+async function hmResumeStoredJob(chatId,idx){
+  const m=chatHistory[idx];
+  if(!m||!m.job)return;
+  const msgs=document.querySelectorAll('#chatInner .msg-ai-wrap .msg-ai');
+  const el=msgs[msgs.length-1];
+  if(el&&!String(m.content||'').trim())el.innerHTML='<span class="hm-resume-wait">'+escapeHtml(hmT('Дописываю ответ…'))+'</span>';
+  const t0=Date.now();
+  let shown=String(m.content||'');
+  while(Date.now()-t0<5*60*1000){
+    if(curChatId!==chatId||chatHistory[idx]!==m)return;
+    let j=null;try{j=await hmJobFetch(m.job);}catch(e){}
+    if(!j||j.status==='missing'||j.status==='auth'){
+      if(el&&!shown.trim())el.innerHTML='';
+      delete m.job;hmSaveHistoryTo(chatId,chatHistory).catch(()=>{});return;
+    }
+    const text=normalizeReplyNotation(String(j.text||''));
+    if(text&&text!==shown&&el){shown=text;try{renderMd(el,text);}catch(_){el.textContent=text;}el.dataset.raw=text;}
+    if(j.status!=='running'){
+      if(text){m.content=text;if(j.status==='done'&&!j.truncated)delete m.stopped;}
+      if(Array.isArray(j.sources)&&j.sources.length){m.sources=hmSlimSources(j.sources);try{hmAddSourcesPill(el&&el.closest('.msg-ai-wrap'),j.sources);}catch(_){}}
+      const jid=m.job;delete m.job;
+      hmJobDelete({id:jid});
+      await hmSaveHistoryTo(chatId,chatHistory).catch(()=>{});
+      return;
+    }
+    await new Promise(r=>setTimeout(r,HM_JOB_POLL_MS*2));
+  }
+}
 async function requestChatReplyLive(msgEl,actionsEl,extraMessages=[],prefixText='',opts={}){
   activeAbortController=new AbortController();
+  const hmJob=hmNewJob();
   const payload={
     messages:[{role:'system',content:buildSystem()},...toWireHistory(chatHistory),...extraMessages],
     model:curModel,
@@ -11632,6 +11768,7 @@ async function requestChatReplyLive(msgEl,actionsEl,extraMessages=[],prefixText=
     // чтобы не вставлять новый блок «Просмотрел сайты» в середину ответа.
     webSearch:opts.noSearch?'off':webSearchMode,
     trainingMode:Boolean(trainingMode&&hasTrainingAccess()),
+    jobId:hmJob.id,
     memoryFromClient:Boolean(window.HmMemory&&(getSettings().memRecall!==false)),
     userId:curUser?.id||null,
     userEmail:curUser?.email||null
@@ -11654,6 +11791,7 @@ async function requestChatReplyLive(msgEl,actionsEl,extraMessages=[],prefixText=
         'Сервер слишком долго отвечает'
       );
       const type=(res.headers.get('content-type')||'').toLowerCase();
+      hmJob.http=res.status;
       if(!res.ok){
         let data=null;
         try{data=await res.json();}catch(e){data=null;}
@@ -11673,6 +11811,7 @@ async function requestChatReplyLive(msgEl,actionsEl,extraMessages=[],prefixText=
       }
       if(type.includes('text/event-stream')&&res.body){
         streamStarted=true;
+        hmLiveJob=hmJob;hmJob.lastByteAt=Date.now();
         // Сервер сообщил, что лимиты почти исчерпаны (см. allowance.low в api/chat.js).
         try{window.__hmLimitLow=res.headers.get('X-HM-Limit-Low')==='1'?{resetAt:res.headers.get('X-HM-Limit-Reset')||null}:null;}catch(_){window.__hmLimitLow=null;}
         const reader=res.body.getReader();
@@ -11686,7 +11825,7 @@ async function requestChatReplyLive(msgEl,actionsEl,extraMessages=[],prefixText=
         while(true){
           let readRes;
           try{
-            readRes=await withTimeout(reader.read(),STREAM_STALL_MS,'Сервер слишком долго отвечает');
+            readRes=await hmStreamRead(reader,hmJob);
           }catch(readErr){
             // Тишина в потоке дольше STREAM_STALL_MS: читатель остался «висеть» —
             // освобождаем его явно, чтобы соединение не держалось зря.
@@ -11784,11 +11923,14 @@ async function requestChatReplyLive(msgEl,actionsEl,extraMessages=[],prefixText=
                 // показываем то, что уже настримилось, или честное пояснение.
                 if(!fullFinal.trim())fullFinal=normalizeReplyNotation(msgEl.dataset.raw||msgEl.textContent||'');
                 if(!fullFinal.trim())fullFinal='Не удалось получить полный ответ от модели. Попробуйте ещё раз.';
+                if(hmLiveJob===hmJob)hmLiveJob=null;
+                // Длинный ответ сервер успел сохранить — запись больше не нужна.
+                if(Date.now()-hmJob.startedAt>2500)hmJobDelete(hmJob);
                 const finalText=await typer.complete(fullFinal);
                 setMessageActionsVisible(actionsEl,true);
                 return {text:finalText,truncated:Boolean(payloadChunk.truncated),sources:hmSlimSources(msgEl._searchSources)};
               }else if(payloadChunk.type==='error'){
-                throw new Error(payloadChunk.message||'Ошибка потоковой генерации');
+                throw Object.assign(new Error(payloadChunk.message||'Ошибка потоковой генерации'),{hmServerErr:true});
               }
             }
           }
@@ -11813,9 +11955,19 @@ async function requestChatReplyLive(msgEl,actionsEl,extraMessages=[],prefixText=
       setMessageActionsVisible(actionsEl,true);
       return {text:streamed?.text||reply,truncated:false};
     }catch(e){
-      if(e?.name==='AbortError')throw new Error('Генерация остановлена');
+      if(hmLiveJob===hmJob)hmLiveJob=null;
+      if(e?.name==='AbortError'){hmJobDelete(hmJob);throw new Error('Генерация остановлена');}
       lastError=e;
       const msg=String(e?.message||'').toLowerCase();
+      /* Связь оборвалась (вкладка была в фоне, сеть пропала), а сервер
+         продолжал писать ответ: дочитываем его, а не показываем ошибку. */
+      const netLike=e?.hmStall||msg.includes('load failed')||msg.includes('failed to fetch')||msg.includes('network')||msg.includes('слишком долго')||msg.includes('оборвался');
+      if(netLike&&!e?.hmServerErr&&!e?.limitScope&&(!hmJob.http||hmJob.http===200)){
+        try{activeAbortController.abort();}catch(_){}
+        const resumed=await hmResumeJob(hmJob,msgEl,actionsEl,prefixText);
+        if(resumed)return resumed;
+        activeAbortController=new AbortController();
+      }
       // Стрим уже шёл — не начинаем ответ заново. Возвращаем то, что успело
       // прийти (пусть даже пусто): дальше autoContinueIfNeeded дотолкает
       // генерацию, а пользователь не увидит ни ошибки, ни дублей.
@@ -14102,10 +14254,15 @@ function hmSnapshotPartialReply(){
     if(!isGenerating||!curUser||!curChatId)return;
     const el=[...document.querySelectorAll('#chatInner .msg-ai-wrap .msg-ai')].pop();
     const partial=String(el?.dataset.raw||'').replace(/```\s*harmony-file[\s\S]*$/i,'').trim();
-    if(!partial)return;
+    // Сервер дописывает ответ (job) — черновик сохраняем даже пустым, чтобы
+    // после перезагрузки вкладки было куда дописать.
+    const job=hmLiveJob&&hmLiveJob.chatId===curChatId?hmLiveJob.id:null;
+    if(!partial&&!job)return;
     const last=chatHistory[chatHistory.length-1];
     if(!last||last.role!=='user')return;
-    hmSaveHistoryTo(curChatId,chatHistory.concat([{role:'assistant',content:partial,stopped:true,createdAt:messageNow()}]));
+    const draft={role:'assistant',content:partial,stopped:true,createdAt:messageNow()};
+    if(job)draft.job=job;
+    hmSaveHistoryTo(curChatId,chatHistory.concat([draft]));
   }catch(e){}
 }
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')hmSnapshotPartialReply();});
