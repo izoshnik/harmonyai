@@ -160,6 +160,7 @@ if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127
 <script defer src="/js/audio-analyzer.js"></script>
 <script defer src="/js/hm-docgen.js"></script>
 <script defer src="/js/hm-rich.js"></script>
+<script defer src="/js/hm-stems.js?v=1"></script>
 <script defer src="/js/thinking-loader.js"></script>
 <link rel="stylesheet" href="/css/hm-think.css">
 <link rel="stylesheet" href="/css/hm-rich.css">
@@ -3772,7 +3773,7 @@ html:not([data-theme="light"]):not([data-theme="messenger"]) .msg-user{backgroun
       <div class="auth-switch">Уже зарегистрированы? <a href="#" onclick="toggleLoginHint();return false;">Войти</a></div>
       <div class="auth-hint" id="loginHint" style="display:none;"></div>
       <label class="auth-terms" id="authTermsWrap"><input type="checkbox" id="authTerms" onchange="hmTermsChanged()"><span>Я прочитал(а) и принимаю <a href="/legal/terms.html" target="_blank" rel="noopener noreferrer">Условия использования</a>, <a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Политику конфиденциальности</a> и <a href="/legal/ofera.html" target="_blank" rel="noopener noreferrer">Оферту</a></span></label>
-      <div class="auth-beta">Beta 0.8.99</div>
+      <div class="auth-beta">Beta 0.8.100</div>
     </div>
 
     <!-- Экран 2: Код подтверждения -->
@@ -3787,7 +3788,7 @@ html:not([data-theme="light"]):not([data-theme="messenger"]) .msg-user{backgroun
       <div class="auth-resend" id="btnResend" onclick="resendOTP()">Не пришел код? Отправить снова</div>
       <div class="auth-switch">Уже зарегистрированы? <a href="#" onclick="toggleLoginHint();return false;">Войти</a></div>
       <div class="auth-tos">Продолжая, вы соглашаетесь с <a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Политикой Конфиденциальности</a> и <a href="/legal/terms.html" target="_blank" rel="noopener noreferrer">Условиями Пользователя</a> HarmonyAI</div>
-      <div class="auth-beta">Beta 0.8.99</div>
+      <div class="auth-beta">Beta 0.8.100</div>
     </div>
 
   </div>
@@ -7488,6 +7489,13 @@ async function openChat(id,opts){
         shell.msg.appendChild(ans);
         try{renderMd(ans,normalizeReplyNotation(txt));}catch(e){ans.textContent=txt;}
       }
+    }
+    else if(m.stems&&window.HmStems){
+      const shell=createAiBubbleShell({showActions:true,createdAt:m.createdAt,historyIndex:idx});
+      try{setMessageActionsVisible(shell.actions,true);}catch(e){}
+      try{renderMd(shell.msg,txt||'');}catch(e){shell.msg.textContent=txt||'';}
+      const st=m.stems;
+      window.HmStems.loadResult(st.id).then(blob=>{shell.msg.appendChild(window.HmStems.card({name:st.name,label:st.label,blob}));}).catch(()=>{});
     }
     else if(m.tempMail){
       const shell=createAiBubbleShell({showActions:false,createdAt:m.createdAt,historyIndex:idx});
@@ -11685,8 +11693,6 @@ async function hmResumeJob(job,msgEl,actionsEl,prefixText){
   if(!job||!job.id)return null;
   const ctl=new AbortController();
   activeAbortController=ctl;
-  try{if(typeof activeStreamStop==='function')activeStreamStop();}catch(_){}
-  activeStreamStop=null;
   const t0=Date.now();
   let shown=null,seen=false;
   while(Date.now()-t0<6*60*1000){
@@ -11698,6 +11704,8 @@ async function hmResumeJob(job,msgEl,actionsEl,prefixText){
       seen=true;
       const text=normalizeReplyNotation(String(j.text||''));
       if(text&&text!==shown){
+        // Печать оборванного потока останавливаем, только когда есть чем её заменить.
+        if(shown===null){try{if(typeof activeStreamStop==='function')activeStreamStop();}catch(_){}activeStreamStop=null;}
         hideTyping();
         if(j.reasoningMs!=null)try{endReasoningBlock(msgEl,j.reasoningMs,false);}catch(_){}
         else try{finalizeReasoningTrace(msgEl);}catch(_){}
@@ -11941,16 +11949,25 @@ async function requestChatReplyLive(msgEl,actionsEl,extraMessages=[],prefixText=
             }
           }
         }
+        if(hmLiveJob===hmJob)hmLiveJob=null;
+        /* Поток закрылся без события «done» (оно возвращает ответ раньше) —
+           соединение оборвали (телефон, прокси), а сервер, скорее всего, ещё
+           пишет: дочитываем ответ с сервера. */
+        {
+          const resumed=await hmResumeJob(hmJob,msgEl,actionsEl,prefixText);
+          if(resumed)return resumed;
+        }
         hideTyping();
         if(gotSearchTrace)finalizeSearchTrace(msgEl);
         const fallbackText=normalizeReplyNotation(msgEl.dataset.raw||msgEl.textContent||'');
         const finalText=await typer.complete(fallbackText);
         setMessageActionsVisible(actionsEl,true);
-        if(!streamFinished&&!finalText){
+        if(!finalText){
           throw new Error('Поток ответа оборвался до завершения');
         }
-        // Соединение оборвалось без явного done-события — считаем потенциально незавершённым
-        return {text:finalText,truncated:!streamFinished};
+        // Соединение оборвалось без события done — ответ мог прерваться на полуслове:
+        // autoContinueIfNeeded допишет его отдельным запросом.
+        return {text:finalText,truncated:true};
       }
       let data=null;
       try{data=await res.json();}catch(e){data=null;}
@@ -15880,7 +15897,7 @@ function renderAbout(){
       <div class="stp-about-hero">
         <div class="stp-about-logo"><svg width="26" height="26" viewBox="0 0 64 64"><path d="M18 14h8v18h12V14h8v36h-8V39H26v11h-8z" fill="currentColor"/></svg></div>
         <div class="stp-about-name">HarmonyAI</div>
-        <div class="stp-about-ver">Beta 0.8.99</div>
+        <div class="stp-about-ver">Beta 0.8.100</div>
       </div>
       <div class="stp-row" onclick="hmOpenDoc('/legal/privacy.html')" role="link" tabindex="0">
         <div class="stp-row-label"><div class="stp-row-title">Политика конфиденциальности</div></div>
@@ -17084,6 +17101,12 @@ async function hmAgentRoute(text){
   if(!audios.length&&HM_VIDEO_LINK.test(text||''))return false;
   if(!audios.length&&!(hasText&&(recent.length||HM_AGENT_HINT.test(text))))return false;
   if(!window.MusicClient&&!audios.length&&!/лимит|остал|сброс/i.test(text||''))return false;
+  /* «Убери вокал», «сделай минусовку», «оставь только голос» — разбор на партии
+     сразу, без похода к модели: просьба понятна из текста. */
+  if(hasText&&(audios.length||recent.length)&&window.HmStems&&window.HmStems.parse(text)){
+    await hmAgentRun('separate_stems',{text,atts:pendingAttachments.slice()});
+    return true;
+  }
   // Трек без слов — сразу спрашиваем, что с ним сделать (без похода к модели).
   if(audios.length&&!hasText){
     const nick=hmAgentNick();
@@ -17199,6 +17222,7 @@ const HM_PLUG_WORDS={
   analyze_track:['Слушаю трек','Считаю темп','Определяю тональность','Разбираю структуру','Слушаю динамику'],
   identify_track:['Слушаю трек','Ищу совпадения','Сверяю с каталогом Яндекс Музыки','Проверяю исполнителя'],
   transcribe_track:['Слушаю мелодию','Расшифровываю ноты','Расставляю длительности','Записываю партитуру'],
+  separate_stems:['Слушаю трек','Готовлю нейросеть','Разделяю трек на партии'],
   limits:['Проверяю лимиты']
 };
 /* «Плагин» в сообщении ИИ: фраза, черта, переливающийся статус. */
@@ -17260,6 +17284,7 @@ function hmLimitsText(){
 const HM_AUDIO_BUTTONS='\n\n```buttons\n'+JSON.stringify([
   {label:'Загрузить в Яндекс Музыку',prompt:'Загрузи этот трек в мою Яндекс Музыку'},
   {label:'Разобрать трек',prompt:'Разбери этот трек: тональность, темп, структура'},
+  {label:'Убрать вокал',prompt:'Убери вокал из этого трека'},
   {label:'Что это за трек?',prompt:'Что это за трек? Кто исполняет?'},
   {label:'Записать ноты',prompt:'Запиши ноты мелодии этого трека'}
 ])+'\n```';
@@ -17304,9 +17329,10 @@ async function hmAgentRun(action,{text='',atts=[],intro='',files=null}={}){
   }
   if(!tracks.length){
     const p=hmPlugin(action,'');
-    p.finish(hmVary('ask_file',['Пришли мне трек файлом (mp3, m4a, wav, flac…) — ','Нужен сам файл трека (mp3, m4a, wav, flac…) — пришли его, ','Скинь трек файлом — mp3, m4a, wav или flac, ','Прикрепи аудиофайл (mp3, m4a, wav, flac…) — '])+({upload_track:'и я сразу загружу его в плейлист HarmonyAI в твоей Яндекс Музыке.',identify_track:'и я скажу, что это за трек.',transcribe_track:'и я запишу ноты мелодии.'}[action]||'и я его разберу.'));
+    p.finish(hmVary('ask_file',['Пришли мне трек файлом (mp3, m4a, wav, flac…) — ','Нужен сам файл трека (mp3, m4a, wav, flac…) — пришли его, ','Скинь трек файлом — mp3, m4a, wav или flac, ','Прикрепи аудиофайл (mp3, m4a, wav, flac…) — '])+({upload_track:'и я сразу загружу его в плейлист HarmonyAI в твоей Яндекс Музыке.',identify_track:'и я скажу, что это за трек.',transcribe_track:'и я запишу ноты мелодии.',separate_stems:'и напиши, что убрать: вокал, бас или ударные (или что оставить).'}[action]||'и я его разберу.'));
     return true;
   }
+  if(action==='separate_stems')return hmStemsRun(tracks[0],text,intro);
   /* Трек в этом сообщении не прислан, а последний из недавних уже загружен —
      молча загружать его второй раз нельзя (так в плейлист попадал старый трек
      вместо нового). Просим прислать нужный файл. */
@@ -17323,6 +17349,64 @@ async function hmAgentRun(action,{text='',atts=[],intro='',files=null}={}){
   return hmAgentAudioAnswer(action,tracks,text,intro);
 }
 
+/* РАЗБОР ТРЕКА НА ПАРТИИ (js/hm-stems.js): нейросеть работает в браузере,
+   результат — плеер и «Скачать» прямо в сообщении. Флейту, скрипку и другие
+   отдельные инструменты нейросеть не отделяет — честно говорим об этом. */
+function hmStemsMin(sec){
+  if(sec==null||!isFinite(sec))return '';
+  if(sec<60)return 'меньше минуты';
+  const m=Math.round(sec/60);return '≈ '+m+' мин';
+}
+async function hmStemsRun(file,text,intro){
+  const H=window.HmStems;
+  const req=H?H.parse(text):null;
+  const name=H?H.baseName(file&&file.name):'трек';
+  const p=hmPlugin('separate_stems',intro||'');
+  const finishText=(md,stems)=>{
+    p.finish(md);
+    const last=chatHistory[chatHistory.length-1];
+    if(stems&&last&&last.role==='assistant'){last.stems=stems;saveChat().catch(()=>{});}
+  };
+  if(!H||!H.supported()){
+    finishText('Этот браузер не умеет запускать нейросеть для разбора треков. Откройте HarmonyAI в свежем Chrome, Safari или Edge.');
+    return true;
+  }
+  const unsup=req&&req.unsupported&&req.unsupported.length?req.unsupported:[];
+  const unsupNote=unsup.length?'Отдельно убрать '+unsup.join(', ')+' пока не получится: нейросеть делит трек на вокал, ударные, бас и остальные инструменты вместе. ':'';
+  if(!req||!req.keep){
+    finishText(unsupNote+'Могу убрать вокал (сделать минусовку), бас или ударные — или, наоборот, оставить только их. Напиши, что сделать с треком «'+name+'».'
+      +'\n\n```buttons\n'+JSON.stringify([{label:'Убрать вокал',prompt:'Убери вокал из этого трека'},{label:'Только вокал',prompt:'Оставь только вокал'},{label:'Убрать бас',prompt:'Убери бас'},{label:'Убрать ударные',prompt:'Убери ударные'}])+'\n```');
+    return true;
+  }
+  const lbl=req.label;
+  if(!(await H.isModelCached())){
+    p.set('Нужна нейросеть для разбора');
+    const ok=await H.confirmDownload(p.slot);
+    if(!ok){finishText('Хорошо, не скачиваю. Когда будет удобно (лучше по Wi-Fi) — просто повтори просьбу.');return true;}
+  }
+  let stageNow='';
+  try{
+    const res=await H.separate(file,req.keep,{
+      onStage:(st)=>{stageNow=st;if(st==='model')p.set('Загружаю нейросеть');else if(st==='init')p.set('Запускаю нейросеть');else if(st==='separate')p.set('Разделяю трек на партии');else if(st==='encode')p.set('Собираю готовый трек');},
+      onDownload:(l,t)=>p.set('Скачиваю нейросеть · '+Math.min(100,Math.round(l/t*100))+'%'),
+      onProgress:(v,eta)=>p.set('Разделяю трек · '+Math.round(v*100)+'%'+(eta!=null&&v<0.97?' · '+hmStemsMin(eta):''))
+    });
+    const id=(crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random().toString(36).slice(2)).replace(/-/g,'');
+    await H.saveResult(id,res.blob);
+    const lead=unsupNote+'Готово — «'+name+'», '+lbl+'. Послушай и скачай, если всё нравится.';
+    finishText(lead,{id,name:file.name||name,label:lbl});
+    const shell=p.shell;
+    shell.msg.appendChild(H.card({name:file.name||name,label:lbl,blob:res.blob}));
+    scrollChat();
+  }catch(e){
+    const why=String(e&&e.message||'');
+    const mem=/memory|alloc|out of|RangeError/i.test(why);
+    finishText((mem?'На этом устройстве не хватило памяти для разбора. Попробуй трек покороче или открой HarmonyAI на компьютере.':
+      stageNow==='model'||/скачать|fetch|network|load failed/i.test(why)?'Не получилось скачать нейросеть — проверь интернет и попробуй ещё раз.':
+      (why&&why.length<200?why:'Не получилось разобрать трек. Попробуй ещё раз или пришли другой файл.')));
+  }
+  return true;
+}
 /* Подключение Яндекс Музыки прямо в сообщении (тот же вход, что в «Плагинах»).
    Не блокирует чат: пока человек входит в Яндекс, можно писать дальше;
    после входа onOk продолжает начатое (например, загрузку трека). */

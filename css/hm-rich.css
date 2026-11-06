@@ -384,3 +384,23 @@ html:not(#_) .code-block .code-pre,html:not(#_) .code-block .code-pre code.hljs{
 .hmr-tl-ext-btn[data-a="play"]{background:var(--text);color:var(--bg);}
 .hmr-tl-ext-btn[data-a="play"] svg{width:15px;height:15px;margin-left:2px;}
 .hmr-tl-ext-gap{flex:none;width:34px;}
+
+/* ===== Разбор трека на партии (js/hm-stems.js) ===== */
+.hm-stems-card{margin-top:12px;padding:14px;border-radius:18px;background:color-mix(in srgb,var(--text) 6%,transparent);display:flex;flex-direction:column;gap:12px;max-width:520px;}
+.hm-stems-head{display:flex;align-items:center;gap:12px;min-width:0;}
+.hm-stems-ic{width:42px;height:42px;border-radius:12px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#7c5cff,#4f8bff);color:#fff;}
+.hm-stems-ic svg{width:22px;height:22px;}
+.hm-stems-meta{display:flex;flex-direction:column;min-width:0;}
+.hm-stems-meta b{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hm-stems-meta i{font-style:normal;color:var(--text2);font-size:13px;}
+.hm-stems-audio{width:100%;height:40px;}
+.hm-stems-dl{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 16px;border-radius:999px;background:var(--text);color:var(--bg,#000);font-weight:700;font-size:14px;text-decoration:none;}
+.hm-stems-dl svg{width:18px;height:18px;}
+.hm-stems-gone{color:var(--text2);font-size:13.5px;line-height:1.45;}
+.hm-stems-confirm{margin-top:10px;padding:14px;border-radius:16px;background:color-mix(in srgb,var(--text) 6%,transparent);font-size:14px;line-height:1.5;display:flex;flex-direction:column;gap:12px;max-width:520px;}
+.hm-stems-btns{display:flex;gap:8px;flex-wrap:wrap;}
+.hm-stems-btns button{height:38px;padding:0 16px;border-radius:999px;border:0;font:inherit;font-weight:700;font-size:14px;cursor:pointer;}
+.hm-stems-go{background:var(--text);color:var(--bg,#000);}
+.hm-stems-no{background:transparent;color:var(--text2);}
+html:not([data-theme="light"]):not([data-theme="messenger"]) .hm-stems-audio{color-scheme:dark;}
+.msg-ai a.hm-stems-dl,.msg-ai a.hm-stems-dl:hover{color:var(--bg,#000);text-decoration:none;}

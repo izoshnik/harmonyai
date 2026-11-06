@@ -3,8 +3,13 @@
      • страницы и наши /css /js /icons — сначала сеть, кэш только как запас
        на случай офлайна (так новая версия сайта видна сразу после выкладки);
      • библиотеки с CDN (версии зашиты в адрес) — из кэша, сеть только в первый раз;
-     • /api, /v1, авторизация, Supabase, Яндекс — никогда не кэшируем. */
-const VERSION = 'hm-2026-11-04d';
+     • /api, /v1, авторизация, Supabase, Яндекс — никогда не кэшируем.
+   При обновлении удаляются только старые кэши оболочки (hm-20…). Библиотеки с
+   CDN лежат в своём кэше (их адреса с версией не меняются), а нейросеть разбора
+   треков и готовые треки (hm-stems-*) — в кэшах js/hm-stems*.js: их стирать
+   нельзя, иначе 200 МБ пришлось бы качать заново после каждого релиза. */
+const VERSION = 'hm-2026-11-06a';
+const CDN_CACHE = 'hm-cdn-v1';
 const SHELL = ['/chat', '/manifest.webmanifest', '/icons/icon-192.png', '/favicon.svg'];
 const CDN = /^https:\/\/(cdn\.jsdelivr\.net|cdnjs\.cloudflare\.com|unpkg\.com|esm\.sh|fonts\.(googleapis|gstatic)\.com)\//;
 
@@ -15,7 +20,7 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== VERSION).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => /^hm-20\d\d-/.test(k) && k !== VERSION).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -34,7 +39,7 @@ function cacheFirst(req) {
   return caches.match(req).then((hit) => hit || fetch(req).then((res) => {
     if (res && (res.ok || res.type === 'opaque')) {
       const copy = res.clone();
-      caches.open(VERSION).then((c) => c.put(req, copy)).catch(() => {});
+      caches.open(CDN_CACHE).then((c) => c.put(req, copy)).catch(() => {});
     }
     return res;
   }));
