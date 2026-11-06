@@ -147,7 +147,7 @@ if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127
 <link rel="stylesheet" href="/css/music-player.css">
 <link rel="stylesheet" href="/css/video-player.css">
 <link rel="stylesheet" href="/css/stats.css">
-<script defer src="/js/stats.js?ver=20260912"></script>
+<script defer src="/js/stats.js?ver=20261104"></script>
 <script defer src="/js/music-cache.js"></script>
 <script defer src="/js/music-intents.js"></script>
 <script defer src="/js/music-client.js"></script>
@@ -3584,6 +3584,15 @@ body.hm-dragging #chatInner::after{content:'Отпустите файлы, чт�
 .src-pill-icons{display:inline-flex;}
 .src-pill-icons img,.src-pill-icons i{width:18px;height:18px;border-radius:50%;background:#fff;border:2px solid var(--bg,#0d0d0f);object-fit:cover;margin-left:-6px;display:inline-flex;align-items:center;justify-content:center;font-style:normal;font-size:9px;font-weight:800;color:#222;}
 .src-pill-icons>:first-child{margin-left:0;}
+/* Телефон: кнопки под ответом (копировать, лайк, дизлайк, «…», «Источники») —
+   без обводки и стеклянной подложки, только иконка; лёгкая подсветка при нажатии. */
+@media (max-width:768px), (hover:none) and (pointer:coarse){
+  .main .msg-actions .mac-btn{border:0!important;background:transparent!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;}
+  .main .msg-actions .mac-btn::before,.main .msg-actions .mac-btn::after{content:none!important;display:none!important;}
+  .main .msg-actions .mac-btn:hover{background:transparent!important;}
+  .main .msg-actions .mac-btn:active{background:color-mix(in srgb,var(--text) 10%,transparent)!important;box-shadow:none!important;}
+  .msg-actions .src-pill{border-color:transparent;background:color-mix(in srgb,var(--text) 7%,transparent);}
+}
 .src-sheet{position:fixed;inset:0;z-index:4000;background:rgba(0,0,0,0);transition:background .22s ease;}
 .src-sheet.open{background:rgba(0,0,0,.45);}
 .src-sheet-panel{position:absolute;top:0;right:0;bottom:0;width:min(400px,100%);background:var(--drop-bg,#161618);color:var(--text);border-left:1px solid var(--border);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .26s cubic-bezier(.2,.8,.2,1);}
@@ -3647,6 +3656,34 @@ html[data-theme="light"] .igm,html[data-theme="messenger"] .igm{color:rgba(20,18
 .hga-mini{background:var(--igm-bg,#1b1b1e)!important;}
 html[data-theme="light"] .hga-mini,html[data-theme="messenger"] .hga-mini{--igm-bg:#ecebe8;}
 @media(prefers-reduced-motion:reduce){.igm-a,.igm-b,.igm-sweep,.igm-ic,.igm-bar i{animation:none!important;}}
+/* 0.9: анимация создания изображения в духе ChatGPT — подпись над холстом,
+   на холсте плывут размытые цветные пятна, сверху вниз идёт полоса «проявки». */
+.igx-wrap{gap:9px;}
+/* Пока картинка рисуется, под ней только «···» (Повторить); остальное — когда готово. */
+.img-pending .msg-actions .mac-btn:not([onclick^="toggleMore"]),.img-pending .msg-actions .src-pill{display:none!important;}
+.igx-label{font-size:14px;font-weight:500;line-height:1.3;display:flex;align-items:baseline;min-width:0;}
+.igx-text{background:linear-gradient(90deg,var(--ig-text-45) 0%,var(--ig-text) 44%,var(--ig-text-45) 80%);background-size:220% 100%;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;animation:ws-shimmer 2.7s linear infinite;}
+.igx-sec{color:var(--ig-muted);font-variant-numeric:tabular-nums;white-space:pre;}
+.igx{position:absolute;inset:0;overflow:hidden;border-radius:inherit;isolation:isolate;background:var(--igx-bg);
+  --igx-bg:#17171a;--igx-c1:rgba(112,132,255,.55);--igx-c2:rgba(186,118,255,.42);--igx-c3:rgba(72,196,214,.36);--igx-scan:rgba(255,255,255,.09);--igx-delay:0s;}
+html[data-theme="light"] .igx,html[data-theme="messenger"] .igx{--igx-bg:#eeeef1;--igx-c1:rgba(108,128,255,.34);--igx-c2:rgba(186,118,255,.26);--igx-c3:rgba(64,186,206,.24);--igx-scan:rgba(255,255,255,.6);}
+.igx-b{position:absolute;width:78%;aspect-ratio:1/1;border-radius:50%;filter:blur(26px);animation-delay:var(--igx-delay);}
+.igx-b1{left:-18%;top:-14%;background:radial-gradient(circle,var(--igx-c1) 0%,transparent 66%);animation:igxB1 9s ease-in-out infinite alternate;}
+.igx-b2{right:-22%;top:18%;background:radial-gradient(circle,var(--igx-c2) 0%,transparent 66%);animation:igxB2 11s ease-in-out infinite alternate;}
+.igx-b3{left:6%;bottom:-28%;background:radial-gradient(circle,var(--igx-c3) 0%,transparent 66%);animation:igxB3 10s ease-in-out infinite alternate;}
+@keyframes igxB1{0%{transform:translate(0,0) scale(1)}100%{transform:translate(38%,42%) scale(1.22)}}
+@keyframes igxB2{0%{transform:translate(0,0) scale(1)}100%{transform:translate(-42%,-12%) scale(.84)}}
+@keyframes igxB3{0%{transform:translate(0,0) scale(1)}100%{transform:translate(26%,-46%) scale(1.16)}}
+.igx-scan{position:absolute;left:-10%;right:-10%;top:-45%;height:45%;background:linear-gradient(180deg,transparent 0%,var(--igx-scan) 72%,transparent 100%);filter:blur(4px);animation:igxScan 3.4s cubic-bezier(.45,0,.3,1) infinite;animation-delay:var(--igx-delay);}
+@keyframes igxScan{0%{transform:translateY(0)}100%{transform:translateY(330%)}}
+.igx-grain{position:absolute;inset:-50%;opacity:.16;mix-blend-mode:overlay;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation:igxGrain .8s steps(4) infinite;}
+@keyframes igxGrain{0%{transform:translate(0,0)}25%{transform:translate(-3%,2%)}50%{transform:translate(2%,-3%)}75%{transform:translate(-2%,-1%)}100%{transform:translate(0,0)}}
+.igx-mini .igx-b{filter:blur(4px);}
+.igx-mini .igx-scan{filter:none;}
+.hga-mini .igx{border-radius:7px;}
+@media(prefers-reduced-motion:reduce){.igx-b,.igx-scan,.igx-grain,.igx-text{animation:none!important;}.igx-text{-webkit-text-fill-color:var(--ig-text);color:var(--ig-text);background:none;}}
 /* 0.8.81: телефон в горизонтальном положении — та же мобильная раскладка,
    но лента и строка ввода собраны в аккуратную колонку по центру, а не
    растянуты на всю ширину. */
@@ -3729,7 +3766,7 @@ html:not([data-theme="light"]):not([data-theme="messenger"]) .msg-user{backgroun
       <div class="auth-switch">Уже зарегистрированы? <a href="#" onclick="toggleLoginHint();return false;">Войти</a></div>
       <div class="auth-hint" id="loginHint" style="display:none;"></div>
       <label class="auth-terms" id="authTermsWrap"><input type="checkbox" id="authTerms" onchange="hmTermsChanged()"><span>Я прочитал(а) и принимаю <a href="/legal/terms.html" target="_blank" rel="noopener noreferrer">Условия использования</a>, <a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Политику конфиденциальности</a> и <a href="/legal/ofera.html" target="_blank" rel="noopener noreferrer">Оферту</a></span></label>
-      <div class="auth-beta">Beta 0.8.98</div>
+      <div class="auth-beta">Beta 0.8.99</div>
     </div>
 
     <!-- Экран 2: Код подтверждения -->
@@ -3744,7 +3781,7 @@ html:not([data-theme="light"]):not([data-theme="messenger"]) .msg-user{backgroun
       <div class="auth-resend" id="btnResend" onclick="resendOTP()">Не пришел код? Отправить снова</div>
       <div class="auth-switch">Уже зарегистрированы? <a href="#" onclick="toggleLoginHint();return false;">Войти</a></div>
       <div class="auth-tos">Продолжая, вы соглашаетесь с <a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Политикой Конфиденциальности</a> и <a href="/legal/terms.html" target="_blank" rel="noopener noreferrer">Условиями Пользователя</a> HarmonyAI</div>
-      <div class="auth-beta">Beta 0.8.98</div>
+      <div class="auth-beta">Beta 0.8.99</div>
     </div>
 
   </div>
@@ -4410,10 +4447,15 @@ const IMAGE_KEYWORDS=[
   // контекстные намёки
   'обложк','иллюстраци','постер','визуализ','эскиз','логотип','иконк','обои','баннер','фон для'
 ];
+/* «Создай три фото разных деревьев», «сделай мне красивую картинку с котом»:
+   глагол создания и, через несколько слов, что именно — фото, картинка, арт…
+   Раньше ловились только слитные пары («создай картинку»), и такие просьбы
+   уходили в текстовый ответ с поиском в интернете. Итог решает классификатор. */
+const IMAGE_VERB_NOUN=/(?:^|[^а-яё])(?:созда|сдела|сгенер|генерир|нарису|изобраз|сотвори|отрису|запили|придумай)[а-яё]*\s+(?:[^\s]+\s+){0,5}?(?:фото|фотк|фотограф|картин|изображен|рисун|арт(?:[^а-яё]|$)|иллюстрац|аватар|аватарк|обо[ийя]|постер|баннер|логотип|портрет|пейзаж|скетч|эскиз|стикер|обложк|снимок|снимк|кадр)/u;
 function isImageRequest(text){
-  const low=String(text||'').toLowerCase();
+  const low=String(text||'').toLowerCase().replace(/ё/g,'е');
   if(!low)return false;
-  return IMAGE_KEYWORDS.some(kw=>low.includes(kw));
+  return IMAGE_KEYWORDS.some(kw=>low.includes(kw))||IMAGE_VERB_NOUN.test(low);
 }
 let chatHistory=[],pendingAttachments=[],recentAttachmentDocs=[],curChatId=null;
 /* ВРЕМЕННЫЙ ЧАТ: не сохраняется (ни в истории, ни на устройстве), ничего не
@@ -8801,6 +8843,9 @@ async function hmServiceErrorCode(raw,where){
 async function hmRenderChatError(msgEl,raw,opts={}){
   if(!msgEl)return;
   const text=String(raw||'');
+  /* Строка поиска («Читаю найденное…») и блок «Думаю» не должны крутиться
+     над ошибкой — ответ уже не придёт. */
+  try{const ws=msgEl.closest&&msgEl.closest('.msg-ai-wrap')?.querySelector('.ws2');if(ws){clearInterval(ws._timer);ws.remove();}}catch(e){}
   if(navigator.onLine===false&&!HM_ERR_CODE_RE.test(text)){renderMd(msgEl,'Нет соединения с интернетом. Проверьте сеть и попробуйте ещё раз.');return;}
   if(hmIsPlainError(text)){renderMd(msgEl,(opts.prefix||'')+text.replace(/^Ошибка:\s*/,''));return;}
   msgEl.style.whiteSpace='normal';
@@ -8831,6 +8876,10 @@ function stopGeneration(){
   hmFailBuildingCards(document.getElementById('chatInner'),'Генерация файла остановлена. Попросите сделать файл ещё раз.');
 }
 
+/* getChatInner() — для ДОБАВЛЕНИЯ сообщений: убирает приветствие пустого чата.
+   Для чтения/измерений (прокрутка, кнопка «Вниз») — только chatInnerEl(),
+   иначе приветствие пропадало бы уже при наборе текста, до отправки. */
+function chatInnerEl(){return document.getElementById('chatInner');}
 function getChatInner(){
   const inner=document.getElementById('chatInner');
   const gr=document.getElementById('greetingWrap');if(gr)gr.remove();
@@ -8865,6 +8914,19 @@ function setMessageActionsVisible(actionsEl,visible){
   if(!actionsEl)return;
   actionsEl.classList.toggle('is-hidden',!visible);
   if(visible)stampMessageMenuTime(actionsEl);
+  /* Ответ с иллюстрацией, которая ещё рисуется (js/hm-rich.js, data-gen="1"):
+     ответ не выглядит законченным — под ним только «···», остальные кнопки
+     появятся, когда все фото будут готовы (событие hm-photo-settled). */
+  const wrap=visible&&actionsEl.closest('.msg-ai-wrap');
+  if(wrap&&!wrap.dataset.imgPrompt&&wrap.querySelector('.hmr-photo[data-gen="1"]')){
+    wrap.classList.add('img-pending');
+    if(!wrap._photoWait){
+      wrap._photoWait=true;
+      wrap.addEventListener('hm-photo-settled',()=>{
+        if(!wrap.querySelector('.hmr-photo[data-gen="1"]'))wrap.classList.remove('img-pending');
+      });
+    }
+  }
 }
 function messageNow(){return new Date().toISOString();}
 function formatMessageTime(value){
@@ -9083,12 +9145,23 @@ function addUserBubble(text,attachments=[],opts={}){
   if(attachments.length){wrap.innerHTML=renderUserAttachmentsMarkup(attachments);wrap.__hmAtts=attachments;}
   if(text&&text.trim()){
     const d=document.createElement('div');d.className='msg-user';d.textContent=String(text).replace(/\n*\[…ранее отправленный длинный текст\/файл сокращён до \d+ символов…\]\s*$/,'');
+    // «@Яндекс Музыка …» — название плагина синим, как в строке ввода.
+    try{hmTintPluginRef(d);}catch(e){}
     wrap.appendChild(d);
   }
   attachUserMessageLongPress(wrap);
   inner.appendChild(wrap);scrollChat(true);
   refreshChatMenuAvailability();
   return wrap;
+}
+function hmTintPluginRef(el){
+  const t=el.textContent||'';
+  if(t.charAt(0)!=='@'||!window.HmMentions)return;
+  const p=(window.HmMentions.plugins||[]).find(x=>t.slice(1,1+x.name.length).toLowerCase()===x.name.toLowerCase());
+  if(!p)return;
+  const ref=document.createElement('span');ref.className='hm-plugin-ref';ref.textContent=t.slice(0,1+p.name.length);
+  el.textContent=t.slice(1+p.name.length);
+  el.insertBefore(ref,el.firstChild);
 }
 /* ===== Просмотр вложений прямо в чате =====
    Фото — на весь экран, документ — его текст (и ссылка на оригинал, если он
@@ -9888,7 +9961,7 @@ function hmPinTurn(){
 }
 function hmPinUpdate(scroll){
   if(!hmPinActive())return;
-  const a=document.getElementById('chatArea'),inner=getChatInner();
+  const a=document.getElementById('chatArea'),inner=chatInnerEl();
   const {user,spacer}=hmPin;
   if(spacer.nextElementSibling)inner.appendChild(spacer);
   const v=hmChatView(a);
@@ -9907,7 +9980,7 @@ function hmPinUpdate(scroll){
   }
 }
 function hmContentEnd(a){
-  const inner=getChatInner();
+  const inner=chatInnerEl();
   const sp=inner&&inner.querySelector('.hm-turn-spacer');
   const ar=a.getBoundingClientRect();
   if(sp)return sp.getBoundingClientRect().top-ar.top+a.scrollTop;
@@ -9938,7 +10011,7 @@ function hmToBottomSync(){
   const v=hmChatView(a);
   const ar=a.getBoundingClientRect();
   const endOnScreen=hmContentEnd(a)-a.scrollTop+ar.top;
-  const show=endOnScreen>v.bottom+48&&!!getChatInner()?.querySelector('.msg-ai-wrap,.msg-user-wrap');
+  const show=endOnScreen>v.bottom+48&&!!chatInnerEl()?.querySelector('.msg-ai-wrap,.msg-user-wrap');
   hmToBottomBtn.classList.toggle('show',Boolean(show));
 }
 function resetChatScrollFollow(){
@@ -10132,18 +10205,29 @@ function showContinueButton(wrap,msgEl,actionsEl){
   (actionsEl||msgEl).insertAdjacentElement('afterend',btn);
 }
 async function regenMsg(item){
-  if(isGenerating)return;
-  item.parentElement.classList.remove('open');
   const wrap=item.closest('.msg-ai-wrap');
   if(wrap&&wrap.dataset.imgPrompt){
-    // Повтор для фото: удаляем старое фото из ленты и истории, рисуем заново.
+    item.parentElement.classList.remove('open');
+    // Повтор во время генерации: останавливаем текущую и ждём, пока она закроется.
+    if(isGenerating){
+      if(!wrap.classList.contains('img-pending'))return;
+      try{activeAbortController&&activeAbortController.abort();}catch(e){}
+      for(let i=0;i<40&&isGenerating;i++)await new Promise(r=>setTimeout(r,50));
+      if(isGenerating)return;
+    }
+    // Повтор для фото: удаляем старое фото из ленты и истории, рисуем заново —
+    // столько же картинок и с теми же промптами.
     const prompt=wrap.dataset.imgPrompt;
+    let prompts=[];try{prompts=JSON.parse(wrap.dataset.imgPrompts||'[]');}catch(e){}
+    const count=Number(wrap.dataset.imgCount)||undefined;
     const last=chatHistory[chatHistory.length-1];
-    if(last&&last.role==='assistant'&&last.image)chatHistory.pop();
+    if(!wrap.classList.contains('img-pending')&&last&&last.role==='assistant'&&last.image)chatHistory.pop();
     wrap.remove();
-    await handleImageGeneration(prompt);
+    await handleImageGeneration(prompt,{count,prompts});
     return;
   }
+  if(isGenerating)return;
+  item.parentElement.classList.remove('open');
   const msgEl=wrap.querySelector('.msg-ai');
   const actionsEl=wrap.querySelector('.msg-actions');
   setMessageActionsVisible(actionsEl,false);
@@ -11244,7 +11328,10 @@ async function classifyImageIntent(text,forceImage){
         need_image:Boolean(data?.need_image),
         clarify:Boolean(data?.clarify),
         image_prompt:String(data?.image_prompt||'').slice(0,1200),
-        clarify_question:String(data?.clarify_question||'').slice(0,600)
+        clarify_question:String(data?.clarify_question||'').slice(0,600),
+        // Сколько картинок и отдельный промпт на каждую («три РАЗНЫХ дерева»).
+        count:Math.max(1,Math.min(4,Number(data?.count)||1)),
+        image_prompts:Array.isArray(data?.image_prompts)?data.image_prompts.filter(x=>typeof x==='string'&&x.trim()).map(x=>x.slice(0,1200)).slice(0,4):[]
       };
     }catch(e){
       lastError=e;
@@ -11839,72 +11926,58 @@ const IG_DEFAULT_RESOLUTION='1024 × 1024';
 /* Анимация создания изображения: тёмно-серый холст, мягкая светлая полоса,
    два медленных серых пятна, контур картинки «дышит», снизу тонкая полоса и
    секунды ожидания. Всё на CSS; таймер сам гаснет, когда холст убран. */
+/* АНИМАЦИЯ СОЗДАНИЯ ИЗОБРАЖЕНИЯ (в духе ChatGPT): на холсте медленно плывут
+   три размытых цветных пятна, по нему сверху вниз проходит мягкая полоса
+   «проявки», поверх — едва заметное зерно. Внутри холста нет ни текста, ни
+   значков: подпись «Создаю изображение · N с» стоит НАД холстом. Всё на CSS;
+   таймер гаснет сам, когда холст убран. opts.mini — крошечный холст в строке
+   «Рисую изображение…». */
 function hmImgGenAnim(host,opts){
   opts=opts||{};
   const box=document.createElement('div');
-  box.className='igm'+(opts.mini?' igm-mini':'');
+  box.className='igx'+(opts.mini?' igx-mini':'');
   box.setAttribute('aria-hidden','true');
-  box.innerHTML='<i class="igm-a"></i><i class="igm-b"></i><span class="igm-sweep"></span>'+
-    (opts.mini?'':'<svg class="igm-ic" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="4.5" width="17" height="15" rx="3" stroke="currentColor" stroke-width="1.4"/><circle cx="9" cy="10" r="1.6" stroke="currentColor" stroke-width="1.4"/><path d="M4.5 17l4.6-4.4 3.6 3.3 2.6-2.4 4.2 3.9" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg><span class="igm-t"></span><span class="igm-bar"><i></i></span>');
+  if(opts.delay)box.style.setProperty('--igx-delay',opts.delay+'s');
+  box.innerHTML='<i class="igx-b igx-b1"></i><i class="igx-b igx-b2"></i><i class="igx-b igx-b3"></i><i class="igx-scan"></i>'+(opts.mini?'':'<i class="igx-grain"></i>');
   host.appendChild(box);
-  const t0=Date.now(),t=box.querySelector('.igm-t');
-  const timer=setInterval(()=>{
-    if(!box.isConnected){clearInterval(timer);return;}
-    const sec=Math.floor((Date.now()-t0)/1000);
-    if(t&&sec>=2)t.textContent=sec+' с';
-  },1000);
-  return {stop(){clearInterval(timer);box.remove();}};
+  return {stop(){box.remove();}};
 }
+/* Подпись над холстом: переливающийся текст и секунды ожидания. */
+function hmImgGenLabel(text){
+  const lab=document.createElement('div');
+  lab.className='igx-label';
+  lab.innerHTML='<span class="igx-text"></span><span class="igx-sec"></span>';
+  lab.querySelector('.igx-text').textContent=text;
+  const sec=lab.querySelector('.igx-sec'),t0=Date.now();
+  const timer=setInterval(()=>{
+    if(!lab.isConnected){clearInterval(timer);return;}
+    const n=Math.floor((Date.now()-t0)/1000);
+    if(n>=2)sec.textContent=' · '+n+' с';
+  },1000);
+  return lab;
+}
+/* Заглушка на время генерации. Промпт не показываем: его тихо дорабатывает
+   ИИ (по-английски), пользователю он не нужен. */
 function renderImageGenPlaceholder(msgEl,prompt,resolution,count){
   if(!msgEl)return null;
   count=Math.max(1,Math.min(4,Number(count)||1));
   const wrap=document.createElement('div');
-  wrap.className='igWrap';
-
-  const canvas=document.createElement('div');
-  canvas.className='igCanvas';
-  canvas.setAttribute('role','img');
-  canvas.setAttribute('aria-label','Генерирую изображение');
-  const dots=document.createElement('span');
-  dots.className='igDots';
-  dots.setAttribute('aria-hidden','true');
-  const glow=document.createElement('span');
-  glow.className='igGlow';
-  glow.setAttribute('aria-hidden','true');
-  const res=document.createElement('span');
-  res.className='igRes';
-  res.textContent=resolution||IG_DEFAULT_RESOLUTION;
-  // 0.8.81: спокойная монохромная анимация вместо цветной мозаики.
-  // Подпись «1024 × 1024» убрана: пока идёт генерация, холст всегда квадратный,
-  // а готовая картинка потом занимает свой настоящий размер.
-  // Новая анимация генерации: цветная мозаика «проявляется» волнами + таймер.
-  // Цикл гаснет сам, когда плейсхолдер заменяется готовой картинкой.
-  // Несколько картинок — та же раскладка, что у будущего коллажа.
-  let stage=canvas;
+  wrap.className='igWrap igx-wrap';
+  wrap.appendChild(hmImgGenLabel(count>1?('Создаю '+count+' изображения'):'Создаю изображение'));
+  let stage;
   if(count>1){
+    // Несколько картинок — та же раскладка, что у будущего коллажа; пятна плывут вразнобой.
     stage=document.createElement('div');
     stage.className='hm-collage igGrid n'+count;
-    for(let i=0;i<count;i++){const c=document.createElement('div');c.className='igCanvas igCell';try{hmImgGenAnim(c,{mini:i>0});}catch(e){}stage.appendChild(c);}
+    for(let i=0;i<count;i++){const c=document.createElement('div');c.className='igCanvas igCell';try{hmImgGenAnim(c,{delay:-i*1.7});}catch(e){}stage.appendChild(c);}
   }else{
-    try{wrap._hga=hmImgGenAnim(canvas);}catch(e){}
+    stage=document.createElement('div');
+    stage.className='igCanvas';
+    stage.setAttribute('role','img');
+    stage.setAttribute('aria-label','Создаю изображение');
+    try{wrap._hga=hmImgGenAnim(stage);}catch(e){}
   }
-
-  const meta=document.createElement('div');
-  meta.className='igMeta';
-  const label=document.createElement('span');
-  label.className='igLabel';
-  label.textContent=count>1?('Генерирую '+count+' изображения'):'Генерирую изображение';
-  meta.appendChild(label);
-  const clean=String(prompt==null?'':prompt).trim();
-  if(clean){
-    const promptEl=document.createElement('span');
-    promptEl.className='igPrompt';
-    promptEl.textContent='«'+clean+'»';
-    meta.appendChild(promptEl);
-  }
-
   wrap.appendChild(stage);
-  wrap.appendChild(meta);
   msgEl.innerHTML='';
   // Пузырь по умолчанию pre-wrap (текстовые ответы) — для блочной вёрстки это
   // добавляло бы лишние пустые строки.
@@ -12446,21 +12519,42 @@ async function hmRequestOneImage(payload,signal){
   }
   throw lastError||new Error('Не удалось сгенерировать изображение');
 }
+/* opts: count — сколько картинок просили (классификатор, иначе по тексту
+   пользователя: «три фото» → 3; английский промпт для этого не годится);
+   prompts — отдельный промпт на каждую картинку («три РАЗНЫХ дерева»);
+   userText — исходная просьба; image — фото для редактирования. */
 async function handleImageGeneration(promptText,opts={}){
   const limit=checkImageLimit();
   if(limit.blocked){showImageLimitReached(Object.assign({kind:'image'},limit));return;}
+  const prompts=Array.isArray(opts.prompts)?opts.prompts.filter(x=>typeof x==='string'&&x.trim()).slice(0,4):[];
+  const asked=Math.max(Number(opts.count)||0,prompts.length,hmImageCount(opts.userText||promptText));
   // До 4 картинок за раз — столько, сколько попросили и сколько позволяет лимит.
-  const count=opts.image?1:Math.max(1,Math.min(hmImageCount(promptText),hmImagesLeft()||1));
+  const count=opts.image?1:Math.max(1,Math.min(asked,4,hmImagesLeft()||1));
   setGeneratingState(true);
   activeAbortController=new AbortController();
   const signal=activeAbortController.signal;
   const shell=createAiBubbleShell({showActions:false});
   hideTyping();
   renderImageGenPlaceholder(shell.msg,promptText,null,count);
-  const payload={prompt:promptText,userId:curUser?.id||null,model:curModel};
-  if(opts.image){payload.image=opts.image;payload.mode='edit';}
+  // «···» доступно с самого начала: «Повторить» запускает генерацию заново.
+  shell.wrap.dataset.imgPrompt=String(promptText||'');
+  shell.wrap.dataset.imgCount=String(count);
+  if(prompts.length)shell.wrap.dataset.imgPrompts=JSON.stringify(prompts);
+  shell.wrap.classList.add('img-pending');
+  try{attachImageMessageActions(shell,promptText);}catch(e){}
+  const payloadFor=(i)=>{
+    const p={prompt:prompts[i]||promptText,userId:curUser?.id||null,model:curModel};
+    if(opts.image){p.image=opts.image;p.mode='edit';}
+    return p;
+  };
+  /* Сбой одной картинки (таймаут, ошибка шлюза) — ещё одна попытка, только
+     для неё; лимит и остановка не повторяются. */
+  const oneImage=(i)=>hmRequestOneImage(payloadFor(i),signal).catch((e)=>{
+    if(signal.aborted||e?.limit||/остановлена|модерац|правил|недопуст/i.test(String(e?.message||'')))throw e;
+    return hmRequestOneImage(payloadFor(i),signal);
+  });
   try{
-    const settled=await Promise.allSettled(Array.from({length:count},()=>hmRequestOneImage(payload,signal)));
+    const settled=await Promise.allSettled(Array.from({length:count},(_,i)=>oneImage(i)));
     if(signal.aborted)throw new Error('Генерация остановлена');
     const urls=settled.filter(r=>r.status==='fulfilled').map(r=>r.value);
     const errs=settled.filter(r=>r.status==='rejected').map(r=>r.reason);
@@ -12483,6 +12577,7 @@ async function handleImageGeneration(promptText,opts={}){
     }
     hideTyping();
     appendImagesToShell(shell.msg,urls);
+    shell.wrap.classList.remove('img-pending');
     attachImageMessageActions(shell,promptText);
     urls.forEach(()=>recordImageUsage());
     showNotification('promo_img',1/8);
@@ -12493,9 +12588,11 @@ async function handleImageGeneration(promptText,opts={}){
     await saveChat();
   }catch(e){
     hideTyping();
+    shell.wrap.classList.remove('img-pending');
     if(e.message==='Генерация остановлена'){
       shell.wrap.remove();
     }else{
+      shell.wrap.querySelector('.msg-actions')?.remove();
       if(hmIsPlainError(e.message))renderMd(shell.msg,'Не удалось сгенерировать изображение: '+e.message);
       else hmRenderChatError(shell.msg,e.message,{where:'image',onRetry:()=>{shell.wrap.remove();handleImageGeneration(promptText,opts);}});
     }
@@ -12935,7 +13032,9 @@ function openAbcEditor(holder,abcHolder,abc){
 function takeComposerText(){
   const ta=document.getElementById('msgTa');
   if(!ta)return '';
-  const text=ta.value.trim();
+  let text=ta.value.trim();
+  // Выбран плагин (синий чип в строке ввода) — сообщение уходит как «@Плагин текст».
+  if(text&&window.HmMentions&&window.HmMentions.chip())text=window.HmMentions.takeText(text);
   ta.value='';
   ta.style.height='auto';
   updateComposerPlaceholder();
@@ -12946,7 +13045,7 @@ function takeComposerText(){
 function restoreComposerText(text){
   const ta=document.getElementById('msgTa');
   if(!ta||!text)return;
-  ta.value=text;
+  ta.value=window.HmMentions&&window.HmMentions.restoreText?window.HmMentions.restoreText(text):text;
   taResize(ta);
   updateComposerPlaceholder();
 }
@@ -13025,6 +13124,8 @@ async function sendMsgInner(){
     const hasAudio=pendingAttachments.some(a=>a.kind==='audio');
     let plainMusic=false;
     try{plainMusic=!hasAudio&&!hmRecentAudioList().length&&Boolean(window.MusicIntents&&window.MusicIntents.detect(text));}catch(e){}
+    // «Добавь Believer в плейлист Тренировка» — не «включи», а работа с плейлистом: решает ИИ-агент.
+    if(plainMusic&&/(добав|закин|кинь|сохрани|положи|внеси|add)\S*\s[\s\S]{0,80}(плейлист|подборк|playlist)/i.test(text||''))plainMusic=false;
     if(!plainMusic){
       resetChatScrollFollow();
       if(await hmAgentRoute(text))return;
@@ -13133,7 +13234,7 @@ async function sendMsgInner(){
     }
     // need_image=true, clarify=false — генерируем с развитым промптом из классификатора
     // (а не с сырым текстом пользователя).
-    await handleImageGeneration(intent.image_prompt||text);
+    await handleImageGeneration(intent.image_prompt||text,{count:intent.count,prompts:intent.image_prompts,userText:text});
     return;
   }
 
@@ -15616,7 +15717,7 @@ function renderAbout(){
       <div class="stp-about-hero">
         <div class="stp-about-logo"><svg width="26" height="26" viewBox="0 0 64 64"><path d="M18 14h8v18h12V14h8v36h-8V39H26v11h-8z" fill="currentColor"/></svg></div>
         <div class="stp-about-name">HarmonyAI</div>
-        <div class="stp-about-ver">Beta 0.8.98</div>
+        <div class="stp-about-ver">Beta 0.8.99</div>
       </div>
       <div class="stp-row" onclick="hmOpenDoc('/legal/privacy.html')" role="link" tabindex="0">
         <div class="stp-row-label"><div class="stp-row-title">Политика конфиденциальности</div></div>
@@ -16831,7 +16932,8 @@ async function hmAgentRoute(text){
   try{
     decision=await withTimeout(hmUtil('agent',{body:{message:text,history:hmAgentHistory(),context:{
       audioAttached:audios.length,attachedAudio:audios.map(a=>a.name||'трек'),recentAudio:recent.map(x=>x.name),
-      yandexConnected:window.__hmYmConnected===true,nickname:hmAgentNick(),plan:isProUser()?'pro':'free'
+      yandexConnected:window.__hmYmConnected===true,nickname:hmAgentNick(),plan:isProUser()?'pro':'free',
+      nowPlaying:hmNowPlayingLabel(),playlists:hmPlaylistTitles()
     }}}),14000,'agent');
   }catch(e){decision=null;}
   finally{hideTyping();}
@@ -16847,7 +16949,59 @@ async function hmAgentRoute(text){
     if(audios.length||!decision.query)return false;
     return await hmFindTrack(text,decision.query,decision.reply||'');
   }
+  if(action==='add_to_playlist'){
+    if(audios.length)return false;
+    return await hmAddToPlaylist(text,decision.query||'',decision.playlist||'',decision.reply||'');
+  }
   await hmAgentRun(action,{text,atts:pendingAttachments.slice(),intro:decision&&decision.reply||''});
+  return true;
+}
+/* ИИ ДОБАВЛЯЕТ ТРЕК В ПЛЕЙЛИСТ (агент: add_to_playlist). Трек — из каталога
+   Яндекса (если подключён), иначе Audius/Jamendo; пустой запрос — тот, что
+   играет. Плейлист ищется по названию, нет такого — создаётся. Плейлисты
+   общие для всех сервисов (js/music-playlists.js). */
+function hmNowPlayingLabel(){
+  try{const t=window.MusicPlayer&&window.MusicPlayer.isActive&&window.MusicPlayer.isActive()&&window.MusicPlayer.currentTrack();return t?((t.artist?t.artist+' — ':'')+(t.title||'')):'';}catch(e){return '';}
+}
+function hmPlaylistTitles(){
+  try{return((window.MusicPlaylists&&window.MusicPlaylists.getStore().custom)||[]).map(p=>p.title).slice(0,20);}catch(e){return [];}
+}
+async function hmFindCatalogTrack(query){
+  const C=window.MusicClient;if(!C)return null;
+  if(window.__hmYmConnected===true){
+    try{const r=await C.search(query,3);const t=r&&r.items&&r.items.find(x=>x&&x.playable!==false);if(t)return t;}catch(e){}
+  }
+  try{const items=await C.extSearch(query,3);if(items&&items[0])return items[0];}catch(e){}
+  return null;
+}
+async function hmAddToPlaylist(text,query,playlistName,intro){
+  const MP=window.MusicPlaylists;
+  if(!MP||!window.MusicClient)return false;
+  addUserBubble(text,[],{createdAt:messageNow()});
+  chatHistory.push({role:'user',content:text,attachments:[],createdAt:messageNow()});
+  const p=hmPlugin('add_to_playlist','');
+  let track=null;
+  if(query)track=await hmFindCatalogTrack(query);
+  else{try{track=window.MusicPlayer&&window.MusicPlayer.isActive()?window.MusicPlayer.currentTrack()||null:null;}catch(e){track=null;}}
+  if(!track){
+    p.finish(query?('Не нашёл «'+query+'» ни в Яндекс Музыке, ни в Audius и Jamendo. Проверьте название — и я добавлю.'):'Сейчас ничего не играет — назовите трек, и я добавлю его в плейлист.');
+    return true;
+  }
+  const want=String(playlistName||'').trim()||'Мои треки';
+  const low=want.toLowerCase();
+  const all=(MP.getStore().custom||[]);
+  let pl=all.find(x=>String(x.title).toLowerCase()===low)||all.find(x=>String(x.title).toLowerCase().includes(low)||low.includes(String(x.title).toLowerCase()));
+  let created=false;
+  if(!pl){pl=MP.createPlaylist(want);created=true;}
+  if(!pl){p.finish('Не получилось создать плейлист. Попробуйте ещё раз.');return true;}
+  const added=MP.addToPlaylist(pl.id,track);
+  try{if(MP.remember)MP.remember([track]);}catch(e){}
+  const name='«'+(track.title||'трек')+'»'+(track.artist?' — '+track.artist:'');
+  const src=track.source==='audius'?' (Audius)':track.source==='jamendo'?' (Jamendo)':'';
+  const msg=added
+    ?((intro?intro+'\n\n':'')+'Добавил '+name+src+' в '+(created?'новый ':'')+'плейлист «'+pl.title+'».')
+    :(name+' уже есть в плейлисте «'+pl.title+'».');
+  p.finish(msg+'\n\n```tracks\n'+JSON.stringify({query:((track.artist?track.artist+' ':'')+(track.title||'')).slice(0,160),connect:window.__hmYmConnected!==true})+'\n```');
   return true;
 }
 /* Поиск трека по названию. Яндекс Музыка подключена — ищет и показывает
@@ -16875,6 +17029,7 @@ async function hmFindTrack(text,query,intro){
 }
 
 const HM_PLUG_WORDS={
+  add_to_playlist:['Ищу трек','Добавляю в плейлист'],
   find_track:['Ищу трек','Подбираю, где послушать'],
   upload_track:['Подключаю Яндекс Музыку','Загружаю трек','Отправляю трек в Яндекс','Добавляю трек в плейлист','Жду, пока Яндекс обработает трек','Почти готово'],
   connect_yandex:['Подключаю Яндекс Музыку','Открываю вход в Яндекс','Жду подтверждения'],

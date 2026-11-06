@@ -76,7 +76,30 @@
      по-разному и ломают вёрстку. currentColor — чтобы иконка красилась
      обычным CSS-свойством color. */
 
+  /* Треки Audius и Jamendo («au:…», «jm:…») — в той же очереди, что и Яндекс. */
+  function isExtTrack(t) { return Boolean(t && /^(au|jm):/.test(String(t.trackId || ''))); }
+  var EXT_NAME = { audius: 'Audius', jamendo: 'Jamendo' };
+  function trackLink(t) {
+    if (!t) return '';
+    if (isExtTrack(t)) return t.link || '';
+    return 'https://music.yandex.ru/track/' + encodeURIComponent(t.trackId);
+  }
+  /* Скачать трек Audius/Jamendo (если автор разрешил): файл отдаёт сам сервис. */
+  function downloadTrack(t) {
+    var c = client();
+    var url = c && typeof c.downloadUrl === 'function' ? c.downloadUrl(t.trackId) : null;
+    if (!url || !t.downloadable) { notify('Автор не разрешил скачивать этот трек'); return; }
+    var a = document.createElement('a');
+    a.href = url; a.rel = 'noopener';
+    a.download = ((t.artist ? t.artist + ' — ' : '') + (t.title || 'track')).replace(/[\\/:*?"<>|]/g, '').slice(0, 80) + '.mp3';
+    document.body.appendChild(a); a.click(); a.remove();
+    notify('Скачиваю «' + (t.title || 'трек') + '»');
+  }
+  global.hmDownloadTrack = downloadTrack;
+
   var ICON = {
+    download: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14"/></svg>',
+    open: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M14 4h6v6M20 4l-9 9M18 14v4.2A1.8 1.8 0 0 1 16.2 20H5.8A1.8 1.8 0 0 1 4 18.2V7.8A1.8 1.8 0 0 1 5.8 6H10"/></svg>',
     play: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 5.14v13.72c0 .83.92 1.33 1.62.88l10.5-6.86a1.05 1.05 0 0 0 0-1.76L9.62 4.26A1.05 1.05 0 0 0 8 5.14Z"/></svg>',
     pause: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect fill="currentColor" x="6" y="4.5" width="4" height="15" rx="1.6"/><rect fill="currentColor" x="14" y="4.5" width="4" height="15" rx="1.6"/></svg>',
     prev: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect fill="currentColor" x="5" y="5" width="2.2" height="14" rx="1.1"/><path fill="currentColor" d="M19 6.6v10.8c0 .82-.93 1.3-1.6.85l-8.1-5.4a1 1 0 0 1 0-1.7l8.1-5.4c.67-.45 1.6.03 1.6.85Z"/></svg>',
@@ -244,6 +267,8 @@
       ctxRow('next', ICON.playNext, 'Играть следующим') +
       ctxRow('end', ICON.toEnd, 'В конец очереди') +
       ctxRow('pl', ICON.note, 'В плейлист') +
+      (isExtTrack(t) && t.downloadable ? ctxRow('dl', ICON.download, 'Скачать') : '') +
+      (trackLink(t) ? ctxRow('open', ICON.open, isExtTrack(t) ? 'Открыть в ' + (EXT_NAME[t.source] || 'сервисе') : 'Открыть в Яндекс Музыке') : '') +
       ctxRow('share', ICON.share, 'Поделиться') +
       ctxRow('about', ICON.info, 'О треке');
 
@@ -305,8 +330,10 @@
       return;
     }
 
+    if (act === 'dl') { downloadTrack(t); return; }
+    if (act === 'open') { var u = trackLink(t); if (u) global.open(u, '_blank', 'noopener'); return; }
     if (act === 'share') { share(t); return; }
-    if (act === 'about') { notify((t.title || 'Трек') + ' — ' + (t.artist || 'исполнитель неизвестен')); return; }
+    if (act === 'about') { notify((t.title || 'Трек') + ' — ' + (t.artist || 'исполнитель неизвестен') + (isExtTrack(t) ? ' · ' + (EXT_NAME[t.source] || '') : '')); return; }
   }
 
   /* Компактная строка: живёт ВНУТРИ колонки чата, сразу под топбаром
@@ -978,7 +1005,7 @@
 
     c.like(id, want).then(function () {
       if (typeof c.forgetLiked === 'function') c.forgetLiked();
-      notify(want ? 'Добавлено в избранное Яндекс.Музыки' : 'Убрано из избранного');
+      notify(want ? (isExtTrack(t) ? 'Добавлено в избранное' : 'Добавлено в избранное Яндекс.Музыки') : 'Убрано из избранного');
     }).catch(function (e) {
       // Откат: сервер лайк не принял.
       if (want) state.liked.delete(id); else state.liked.add(id);
@@ -1004,7 +1031,7 @@
   function share(track) {
     var t = track || current();
     if (!t) return false;
-    var url = 'https://music.yandex.ru/track/' + encodeURIComponent(t.trackId);
+    var url = trackLink(t) || ('https://music.yandex.ru/track/' + encodeURIComponent(t.trackId));
     var data = { title: t.title || '', text: (t.title || '') + ' — ' + (t.artist || ''), url: url };
     try {
       if (navigator.share) { navigator.share(data).catch(function () { /* отменили */ }); return true; }
@@ -1084,6 +1111,7 @@
     }).then(function () {
       state.retrying = false;
       state.failStreak = 0;
+      state.extRetried = null;
       if (state.wave) onWaveTrackStarted(track);
       prefetchNext();
       save();
@@ -1128,6 +1156,19 @@
     state.retrying = true;
 
     var at = audio.currentTime || 0;
+
+    // Audius/Jamendo: ссылка не протухает так, как у Яндекса, — один повтор той же.
+    if (isExtTrack(track)) {
+      // Один повтор на трек: недоступный файл не должен крутить повторы по кругу.
+      if (state.extRetried === track.trackId) { state.retrying = false; pause(); notify('Этот трек сейчас недоступен'); return; }
+      state.extRetried = track.trackId;
+      audio.src = c.streamUrl(track.trackId) + '&r=' + Date.now();
+      audio.currentTime = at;
+      audio.play().then(function () { state.retrying = false; }).catch(function () {
+        state.retrying = false; pause(); notify('Этот трек сейчас недоступен');
+      });
+      return;
+    }
 
     c.call('play', { trackId: track.trackId })
       .then(function (info) {
@@ -1196,6 +1237,7 @@
     var w = state.wave;
     var c = client();
     if (!w || !w.personal || !c || typeof c.waveFeedback !== 'function') return;
+    if (isExtTrack(track)) return; // треки Audius/Jamendo в радио Яндекса не отчитываем
     c.waveFeedback({
       station: w.station, batchId: w.batchId, type: type,
       trackId: track && track.trackId ? (track.albumId ? track.trackId + ':' + track.albumId : track.trackId) : '',
@@ -1237,8 +1279,9 @@
     if (!w || w.loading || !c) return Promise.resolve(false);
     w.loading = true;
     w.buffer = w.buffer || [];
-    var lastBuf = w.buffer[w.buffer.length - 1];
-    var last = lastBuf || state.queue[state.queue.length - 1];
+    // Последний трек Яндекса (подмешанные Audius/Jamendo радио Яндекса не продолжит).
+    var isYm = function (t) { return t && !isExtTrack(t); };
+    var last = w.buffer.filter(isYm).pop() || state.queue.filter(isYm).pop();
     return c.wave({ station: w.station, queue: last ? last.trackId : '', seeds: waveSeeds(), exclude: waveRecent() }).then(function (d) {
       w.loading = false;
       if (state.wave !== w) return false;
@@ -1591,7 +1634,7 @@
 
     c.like(id, want).then(function () {
       if (typeof c.forgetLiked === 'function') c.forgetLiked();
-      notify(want ? 'Добавлено в избранное Яндекс.Музыки' : 'Убрано из избранного');
+      notify(want ? (/^(au|jm):/.test(id) ? 'Добавлено в избранное' : 'Добавлено в избранное Яндекс.Музыки') : 'Убрано из избранного');
     }).catch(function (e) {
       if (want) state.liked.delete(id); else state.liked.add(id);
       renderLike();

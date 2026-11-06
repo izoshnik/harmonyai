@@ -96,17 +96,76 @@
     });
   }
 
+  /* ВЫБРАННЫЙ ПЛАГИН — синий чип в начале строки ввода (как в ChatGPT):
+     логотип и название синим, ×. Текст поля начинается сразу за чипом
+     (text-indent). При отправке takeText() возвращает «@Плагин текст» —
+     маршрутизация в плагин (parse) не меняется. */
+  var chip = null, chipEl = null;
+  function layoutChip() {
+    var el = ta();
+    if (!chip || !chipEl || !el) { if (el) el.style.textIndent = ''; return; }
+    var box = el.offsetParent || el.parentNode;
+    var cs = getComputedStyle(el);
+    var lh = parseFloat(cs.lineHeight) || (parseFloat(cs.fontSize) * 1.3) || 20;
+    chipEl.style.left = (el.offsetLeft + (parseFloat(cs.paddingLeft) || 0)) + 'px';
+    chipEl.style.top = (el.offsetTop + (parseFloat(cs.paddingTop) || 0) + (lh - chipEl.offsetHeight) / 2) + 'px';
+    el.style.textIndent = (chipEl.offsetWidth + 6) + 'px';
+    if (box && getComputedStyle(box).position === 'static') box.style.position = 'relative';
+  }
+  function setChip(p) {
+    var el = ta();
+    if (!el) return;
+    clearChip(true);
+    chip = p;
+    chipEl = document.createElement('span');
+    chipEl.className = 'hm-plugin-chip';
+    chipEl.innerHTML = '<span class="hm-plugin-chip-logo">' + LOGOS[p.id] + '</span><span class="hm-plugin-chip-name"></span>' +
+      '<button type="button" class="hm-plugin-chip-x" aria-label="Убрать плагин" title="Убрать плагин"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>';
+    chipEl.querySelector('.hm-plugin-chip-name').textContent = p.name;
+    chipEl.querySelector('.hm-plugin-chip-x').addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); clearChip(); var t = ta(); if (t) t.focus(); });
+    chipEl.addEventListener('mousedown', function (e) { if (!e.target.closest('.hm-plugin-chip-x')) { e.preventDefault(); var t = ta(); if (t) t.focus(); } });
+    (el.offsetParent || el.parentNode).appendChild(chipEl);
+    el.dataset.hmPlugin = p.id;
+    layoutChip();
+    requestAnimationFrame(layoutChip);
+  }
+  function clearChip(silent) {
+    var el = ta();
+    chip = null;
+    if (chipEl) { chipEl.remove(); chipEl = null; }
+    if (el) { el.style.textIndent = ''; delete el.dataset.hmPlugin; }
+    if (!silent && el) { try { el.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) { /* нет */ } }
+  }
+  /* Текст для отправки: «@Плагин текст». Пустое поле с одним чипом не отправляем. */
+  function takeText(text) {
+    var t = String(text || '').trim();
+    if (!chip || !t) return t;
+    var out = '@' + chip.name + ' ' + t;
+    clearChip(true);
+    return out;
+  }
+  /* Отправка не состоялась — возвращаем чип и текст за ним. */
+  function restoreText(text) {
+    var m = parse(text);
+    var t = String(text || '');
+    if (m && t.indexOf('@') === 0) {
+      var p = PLUGINS.filter(function (x) { return x.id === m.plugin; })[0];
+      if (p) { setChip(p); return m.rest; }
+    }
+    return t;
+  }
+
   function pick(i) {
     var p = items[i], el = ta();
     if (!p || !el) return;
     var cq = currentQuery();
     var start = cq ? cq.at : el.value.length;
     var end = el.selectionStart == null ? el.value.length : el.selectionStart;
-    var ins = '@' + p.name + ' ';
-    el.value = el.value.slice(0, start) + ins + el.value.slice(end).replace(/^\s+/, '');
-    var caret = start + ins.length;
-    try { el.setSelectionRange(caret, caret); } catch (e) { /* старый браузер */ }
+    // «@запрос» из поля убираем — вместо него синий чип в начале строки.
+    el.value = (el.value.slice(0, start) + el.value.slice(end)).replace(/^\s+/, '').replace(/\s{2,}/g, ' ');
+    try { el.setSelectionRange(start, start); } catch (e) { /* старый браузер */ }
     close();
+    setChip(p);
     el.focus();
     try { el.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) { /* нет */ }
   }
@@ -144,10 +203,14 @@
     if (!el || el.__hmMention) return;
     el.__hmMention = true;
     el.addEventListener('input', refresh);
+    el.addEventListener('input', function () { if (chip) layoutChip(); });
+    window.addEventListener('resize', function () { if (chip) layoutChip(); });
     el.addEventListener('click', refresh);
     el.addEventListener('blur', function () { setTimeout(function () { if (document.activeElement !== ta()) close(); }, 150); });
     // Перехватываем клавиши раньше обработчика отправки (Enter) — фаза захвата.
     el.addEventListener('keydown', function (e) {
+      // Backspace в самом начале поля убирает чип плагина.
+      if (chip && !box && e.key === 'Backspace' && el.selectionStart === 0 && el.selectionEnd === 0) { e.preventDefault(); clearChip(); return; }
       if (!box) return;
       if (e.key === 'ArrowDown') { e.preventDefault(); e.stopImmediatePropagation(); active = (active + 1) % items.length; render(currentQuery() ? currentQuery().q : ''); }
       else if (e.key === 'ArrowUp') { e.preventDefault(); e.stopImmediatePropagation(); active = (active - 1 + items.length) % items.length; render(currentQuery() ? currentQuery().q : ''); }
@@ -159,5 +222,7 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind); else bind();
   document.addEventListener('pointerdown', function (e) { if (box && !box.contains(e.target) && e.target !== ta()) close(); }, true);
 
-  global.HmMentions = { open: open, close: close, parse: parse, plugins: PLUGINS, logos: LOGOS };
+  global.HmMentions = { open: open, close: close, parse: parse, plugins: PLUGINS, logos: LOGOS,
+    chip: function () { return chip; }, setChip: function (id) { var p = PLUGINS.filter(function (x) { return x.id === id; })[0]; if (p) setChip(p); },
+    clearChip: clearChip, takeText: takeText, restoreText: restoreText };
 })(window);

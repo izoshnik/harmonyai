@@ -65,7 +65,11 @@
       duration: Number(t.duration) || 0,
       genre: t.genre || '',
       albumId: t.albumId || null,
-      playable: t.playable !== false
+      playable: t.playable !== false,
+      // Audius/Jamendo: откуда трек, можно ли скачать, страница трека.
+      source: t.source || undefined,
+      downloadable: t.downloadable ? true : undefined,
+      link: t.link || undefined
     };
   }
 
@@ -829,6 +833,11 @@
           notify('Добавлено в «' + pl.title + '»');
         }
       });
+    }
+
+    // Audius / Jamendo: скачать (если разрешил автор).
+    if (track.downloadable && /^(au|jm):/.test(String(track.trackId)) && typeof global.hmDownloadTrack === 'function') {
+      rows.push({ label: 'Скачать', run: function () { global.hmDownloadTrack(track); } });
     }
 
     if (meta && meta.removable) {

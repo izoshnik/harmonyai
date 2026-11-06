@@ -14,7 +14,7 @@
   const n=++seq;
   let body=null;
   if(typeof window.stpEnsure==='function' && document.getElementById('settingsContent')){
-    body=window.stpEnsure('stats','Статистика','stpBackMain()','<div class="hm-stats" id="personalStats"><p role="status">Загружаем вашу статистику…</p></div>');
+    body=window.stpEnsure('stats','Статистика',(typeof window.stpBackMain==='function'?window.stpBackMain():'closeSettings()'),'<div class="hm-stats" id="personalStats"><p role="status">Загружаем вашу статистику…</p></div>');
   }else{
     const host=document.getElementById('statsHost')||document.getElementById('settingsContent');if(!host)return;
     host.innerHTML='<div class="hm-stats" id="personalStats"><p role="status">Загружаем вашу статистику…</p></div>';

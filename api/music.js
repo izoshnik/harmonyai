@@ -1,4 +1,5 @@
 import { requireUser } from '../lib/auth.js';
+import { isExtTrackId, extSearch, extWave, extTracksByIds, extFileUrl } from '../lib/music-ext.js';
 /* ============================================================================
    HarmonyAI — HTTP-роутер музыкального модуля.
 
@@ -308,6 +309,33 @@ async function streamAudio(req, res) {
   node.pipe(res);
 }
 
+/* ------------------------------------------------- Audius / Jamendo (GET)
+   GET /api/music?ext=au:<id>        — звук: редирект на файл сервиса;
+   GET /api/music?ext=jm:<id>&dl=1   — скачивание (только если автор разрешил).
+   Открытые каталоги, токен Яндекса не нужен. Принимаем только id своего
+   вида — это не открытый редирект на любой адрес. */
+async function extRedirect(req, res) {
+  const q = req.query || {};
+  const id = String(q.ext || '').trim();
+  if (!isExtTrackId(id)) return fail(res, 400, 'bad_request', 'Неизвестный трек');
+  const download = q.dl === '1';
+  let url = null;
+  try { url = await extFileUrl(id, { download }); } catch (e) { url = null; }
+  if (!url) return fail(res, download ? 403 : 502, 'music_error', download ? 'Автор не разрешил скачивать этот трек' : 'Сервис не отдал аудио');
+  res.setHeader('Cache-Control', 'private, max-age=60');
+  res.statusCode = 302;
+  res.setHeader('Location', url);
+  return res.end();
+}
+
+/* Сколько треков Audius/Jamendo подмешивать в «Мою волну» Яндекса (доля). */
+const EXT_WAVE_SHARE = Math.max(0, Math.min(1, Number(process.env.MUSIC_EXT_WAVE_SHARE ?? 0.2)));
+function topGenre(items) {
+  const count = {};
+  for (const t of items || []) if (t && t.genre) count[t.genre] = (count[t.genre] || 0) + 1;
+  return Object.keys(count).sort((a, b) => count[b] - count[a])[0] || '';
+}
+
 /* ------------------------------------------------------------------ handler */
 
 export default async function handler(req, res) {
@@ -317,6 +345,21 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store, max-age=0');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
+
+  // Audius/Jamendo не зависят от Яндекса: работают, даже если модуль Яндекса выключен.
+  if (req.method === 'GET' && req.query && req.query.ext) return extRedirect(req, res);
+  if (req.method === 'POST' && /^ext_/.test(String(req.body?.action || ''))) {
+    const user = await requireUser(req, res); if (!user) return;
+    const b = req.body || {};
+    try {
+      if (b.action === 'ext_search') return res.status(200).json({ items: await extSearch(b.query, Math.min(Math.max(Number(b.limit) || 8, 1), 20)) });
+      if (b.action === 'ext_wave') return res.status(200).json({ items: await extWave({ genre: String(b.genre || '').slice(0, 40), limit: Math.min(Math.max(Number(b.limit) || 10, 1), 30), offset: Math.min(Math.max(Number(b.offset) || 0, 0), 60) }), station: 'ext', personal: false });
+      if (b.action === 'ext_tracks') return res.status(200).json({ items: await extTracksByIds(b.trackIds) });
+    } catch (e) {
+      return fail(res, 502, 'music_error', 'Сервис музыки не ответил');
+    }
+    return fail(res, 400, 'bad_request', 'Неизвестное действие');
+  }
 
   // Главный рубильник: пока модуль не настроен — 503, фронтенд молча живёт как раньше.
   if (!musicEnabled()) {
@@ -372,6 +415,11 @@ export default async function handler(req, res) {
        Дальше нужен рабочий токен: личный либо общий серверный. */
 
     const resolved = await resolveToken(userId);
+    // «Моя волна» без Яндекса: собираем её из Audius и Jamendo.
+    if (!resolved.token && action === 'wave') {
+      const items = await extWave({ limit: 10 }).catch(() => []);
+      return res.status(200).json({ station: 'ext', batchId: '', items, personal: false });
+    }
     if (!resolved.token) return needAuth(res);
     const token = resolved.token;
 
@@ -475,8 +523,9 @@ export default async function handler(req, res) {
         if (resolved.source !== 'user') {
           return needAuth(res, 'Чтобы сохранить плейлист в вашу Яндекс Музыку, подключите свой аккаунт Яндекса.');
         }
-        const tracks = Array.isArray(body.tracks) ? body.tracks : [];
-        if (!tracks.length) return fail(res, 400, 'bad_request', 'Нет треков');
+        // В Яндекс уходят только треки Яндекса (Audius/Jamendo там нет).
+        const tracks = (Array.isArray(body.tracks) ? body.tracks : []).filter((t) => !isExtTrackId(t && (t.trackId || t.id || t)));
+        if (!tracks.length) return fail(res, 400, 'bad_request', 'Нет треков из Яндекс Музыки для сохранения');
         const out = await exportToYandex(resolved, token, String(body.title || 'HarmonyAI'), tracks);
         return res.status(200).json(out);
       }
@@ -486,7 +535,8 @@ export default async function handler(req, res) {
          лайкнул или слушал у нас (seeds приходят от клиента). */
       case 'wave': {
         const personal = resolved.source === 'user';
-        const seeds = (Array.isArray(body.seeds) ? body.seeds : []).map(x => String(x || '').replace(/\D/g, '')).filter(Boolean).slice(0, 30);
+        // id Audius/Jamendo («au:…», «jm:…») — не треки Яндекса, в «зёрна» радио не идут.
+        const seeds = (Array.isArray(body.seeds) ? body.seeds : []).filter(x => !isExtTrackId(x)).map(x => String(x || '').replace(/\D/g, '')).filter(Boolean).slice(0, 30);
         let station = String(body.station || '');
         if (!station) {
           station = personal || !seeds.length ? WAVE_STATION : `track:${seeds[Math.floor(Math.random() * seeds.length)]}`;
@@ -498,7 +548,8 @@ export default async function handler(req, res) {
         const recent = new Set((Array.isArray(body.exclude) ? body.exclude : []).map(x => String(x || '').split(':')[0].replace(/\D/g, '')).filter(Boolean).slice(0, 400));
         let wave;
         try {
-          wave = await getWaveTracks({ token, station, queue: body.queue });
+          // Продолжение волны считаем от трека Яндекса: id Audius/Jamendo радио Яндекса не знает.
+          wave = await getWaveTracks({ token, station, queue: isExtTrackId(body.queue) ? '' : body.queue });
           let fresh = wave.items.filter(t => !recent.has(String(t.trackId)));
           for (let i = 0; i < 2 && fresh.length < 3 && wave.items.length; i++) {
             const more = await getWaveTracks({ token, station: wave.station, queue: wave.items[wave.items.length - 1].trackId }).catch(() => null);
@@ -530,6 +581,19 @@ export default async function handler(req, res) {
             new Promise(r => setTimeout(r, 1500))
           ]);
         }
+        /* Общая волна: к порции Яндекса подмешиваем треки Audius/Jamendo того же
+           жанра (по умолчанию каждый пятый). Пустая волна Яндекса — целиком из них. */
+        try {
+          const want = wave.items.length ? Math.round(wave.items.length * EXT_WAVE_SHARE) : 10;
+          if (want > 0) {
+            const recentExt = new Set((Array.isArray(body.exclude) ? body.exclude : []).map(String));
+            const ext = (await extWave({ genre: topGenre(wave.items), limit: want + 3 })).filter((t) => !recentExt.has(t.trackId)).slice(0, want);
+            for (const t of ext) {
+              const at = wave.items.length ? 1 + Math.floor(Math.random() * wave.items.length) : 0;
+              wave.items.splice(at, 0, t);
+            }
+          }
+        } catch (e) { /* без подмешивания */ }
         return res.status(200).json({ ...wave, personal });
       }
 
@@ -547,7 +611,12 @@ export default async function handler(req, res) {
       }
 
       case 'tracks': {
-        return res.status(200).json({ items: await getTracks(body.trackIds || [], { token }) });
+        // Смешанный список: Яндекс — из каталога Яндекса, Audius/Jamendo — из их каталогов, порядок сохраняется.
+        const ids = (Array.isArray(body.trackIds) ? body.trackIds : []).map(String);
+        const ym = ids.filter((x) => !isExtTrackId(x)), ex = ids.filter(isExtTrackId);
+        const [a, b] = await Promise.all([ym.length ? getTracks(ym, { token }) : [], ex.length ? extTracksByIds(ex).catch(() => []) : []]);
+        const byId = new Map([...a, ...b].map((t) => [String(t.trackId), t]));
+        return res.status(200).json({ items: ids.map((id) => byId.get(id)).filter(Boolean) });
       }
 
       case 'play': {
@@ -555,12 +624,12 @@ export default async function handler(req, res) {
         if (!trackId) return fail(res, 400, 'bad_request', 'Не указан trackId');
         const info = await getPlaybackUrl(trackId, { token });
         // Следующий трек греем в фоне — переход «далее» будет без паузы.
-        if (body.nextTrackId) prefetchPlaybackUrl(String(body.nextTrackId), { token });
+        if (body.nextTrackId && !isExtTrackId(body.nextTrackId)) prefetchPlaybackUrl(String(body.nextTrackId), { token });
         return res.status(200).json(info);
       }
 
       case 'prefetch': {
-        const ids = Array.isArray(body.trackIds) ? body.trackIds.slice(0, 3) : [];
+        const ids = Array.isArray(body.trackIds) ? body.trackIds.filter((x) => !isExtTrackId(x)).slice(0, 3) : [];
         for (const id of ids) prefetchPlaybackUrl(String(id), { token });
         return res.status(200).json({ ok: true, warmed: ids.length });
       }

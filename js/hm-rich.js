@@ -760,7 +760,29 @@
     for(var lang of ['ru','en']){try{var r=await wikiPhoto(query,lang);if(r)return r;}catch(e){}}
     return null;
   }
+  /* Фото в ответе ещё ищется или рисуется: data-gen="1". Когда готово (или не
+     вышло) — событие hm-photo-settled: приложение показывает строку действий
+     под ответом только после этого (см. setMessageActionsVisible в app.html). */
+  function photoBusy(fig,on){
+    if(on){fig.dataset.gen='1';return;}
+    if(fig.dataset.gen!=='1')return;
+    delete fig.dataset.gen;
+    try{fig.dispatchEvent(new CustomEvent('hm-photo-settled',{bubbles:true}));}catch(e){}
+  }
+  /* Подпись над холстом и анимация создания — те же, что у генерации картинок в чате. */
+  function genStage(fig,label){
+    fig.innerHTML='';
+    var lab=el('div','igx-label');lab.innerHTML='<span class="igx-text"></span>';lab.firstChild.textContent=label;
+    var stage=el('div','hmr-photo-gen');
+    fig.appendChild(lab);fig.appendChild(stage);
+    try{if(typeof window.hmImgGenAnim==='function')window.hmImgGenAnim(stage);else stage.innerHTML='<div class="hmr-photo-ph">'+ICON.spin+'</div>';}catch(e){}
+  }
   async function generateIllustration(prompt){
+    // Сбой (таймаут, ошибка шлюза) — одна повторная попытка.
+    try{return await generateIllustrationOnce(prompt);}
+    catch(e){if(/лимит|limit|модерац|правил|недопуст/i.test(String(e&&e.message||'')))throw e;return await generateIllustrationOnce(prompt);}
+  }
+  async function generateIllustrationOnce(prompt){
     var eps=typeof window.buildImageApiCandidates==='function'?window.buildImageApiCandidates():['/api/generate-image'];
     var headers=typeof window.hmAuthHeaders==='function'?await window.hmAuthHeaders():{'Content-Type':'application/json'};
     for(var i=0;i<eps.length;i++){
@@ -775,6 +797,7 @@
     var fig=el('figure','hmr-photo');host.appendChild(fig);
     var key='hm_photo_'+hash(body);var cached=store(key);
     function show(r){
+      photoBusy(fig,false);
       fig.innerHTML='';var img=el('img');img.loading='lazy';img.alt=d.caption||d.query||d.prompt||'';img.src=r.url;
       img.onerror=function(){fig.innerHTML='<div class="hmr-photo-ph">'+esc(t('Фото недоступно'))+'</div>';};
       fig.appendChild(img);
@@ -782,19 +805,29 @@
       if(cap)fig.appendChild(el('figcaption','',cap));
     }
     if(cached&&cached.url){show(cached);return fig;}
+    var live=Boolean(ctx&&ctx.live)||Boolean(photoInflight[key]);
+    if(live)photoBusy(fig,true);
     fig.innerHTML='<div class="hmr-photo-ph">'+ICON.spin+esc(t('Ищу фото…'))+'</div>';
     (async function(){
       var r=d.query?await findPhoto(d.query):null;
       if(r){store(key,r);show(r);return;}
-      if(!d.prompt){fig.innerHTML='<div class="hmr-photo-ph">'+esc(t('Подходящее фото не найдено'))+'</div>';return;}
+      if(!d.prompt){fig.innerHTML='<div class="hmr-photo-ph">'+esc(t('Подходящее фото не найдено'))+'</div>';photoBusy(fig,false);return;}
       // Генерация стоит лимитов: автоматически — только для свежего ответа, из истории — по кнопке.
       var start=function(){
-        fig.innerHTML='<div class="hmr-photo-ph">'+ICON.spin+esc(t('Рисую иллюстрацию…'))+'</div>';
+        photoBusy(fig,true);
+        genStage(fig,t('Рисую иллюстрацию'));
         var p=photoInflight[key]||(photoInflight[key]=generateIllustration(d.prompt));
         p.then(function(url){var rr={url:url,source:t('Иллюстрация создана ИИ')};store(key,rr);show(rr);})
-         .catch(function(e){fig.innerHTML='<div class="hmr-photo-ph">'+esc(e.message||t('Не удалось нарисовать иллюстрацию'))+'</div>';delete photoInflight[key];});
+         .catch(function(){
+           // Без «Ошибка сервиса №…» на полэкрана: короткая подпись и кнопка «Повторить».
+           delete photoInflight[key];
+           fig.innerHTML='';var ph=el('div','hmr-photo-ph hmr-photo-fail');
+           ph.appendChild(el('span','',esc(t('Не получилось нарисовать иллюстрацию'))));
+           var b=el('button','hmr-btn',t('Повторить'));b.type='button';b.onclick=start;ph.appendChild(b);fig.appendChild(ph);
+           photoBusy(fig,false);
+         });
       };
-      if(ctx&&ctx.live||photoInflight[key])start();
+      if(live)start();
       else{fig.innerHTML='';var b=el('button','hmr-btn',t('Показать иллюстрацию'));b.type='button';b.onclick=start;var ph=el('div','hmr-photo-ph');ph.appendChild(b);fig.appendChild(ph);}
     })();
     return fig;
@@ -1059,6 +1092,33 @@
       var img=a.querySelector('img');img.onerror=function(){img.style.visibility='hidden';};
       list.appendChild(a);
     });
+    // Слушать прямо здесь: полные треки Audius и Jamendo в общем плеере,
+    // «Скачать» — где разрешил автор, «+» — в свой плейлист.
+    if(window.MusicClient&&typeof window.MusicClient.extSearch==='function'){
+      var ext=el('div','hmr-tl-ext');
+      ext.innerHTML='<div class="hmr-tl-sub">'+esc(t('Слушать здесь'))+' · Audius, Jamendo</div><div class="hmr-tl-ext-list"><div class="hmr-tl-ext-ph">'+ICON.spin+esc(t('Ищу…'))+'</div></div>';
+      card.insertBefore(ext,card.querySelector('.hmr-tl-sub'));
+      window.MusicClient.extSearch(q,4).then(function(items){
+        var box=ext.querySelector('.hmr-tl-ext-list');
+        if(!items||!items.length){ext.remove();return;}
+        box.innerHTML='';
+        try{if(window.MusicPlaylists&&window.MusicPlaylists.remember)window.MusicPlaylists.remember(items);}catch(e){}
+        items.forEach(function(tr,i){
+          var row=el('div','hmr-tl-ext-row');
+          row.innerHTML='<img alt="" loading="lazy" referrerpolicy="no-referrer"><div class="hmr-tl-ext-meta"><b></b><span></span></div>'+
+            '<button type="button" class="hmr-tl-ext-btn" data-a="play" aria-label="'+esc(t('Слушать'))+'"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M8 5.14v13.72c0 .83.92 1.33 1.62.88l10.5-6.86a1.05 1.05 0 0 0 0-1.76L9.62 4.26A1.05 1.05 0 0 0 8 5.14Z"/></svg></button>'+
+            (tr.downloadable?'<button type="button" class="hmr-tl-ext-btn" data-a="dl" aria-label="'+esc(t('Скачать'))+'"><svg viewBox="0 0 24 24" fill="none"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></button>':'<span class="hmr-tl-ext-gap" aria-hidden="true"></span>')+
+            '<button type="button" class="hmr-tl-ext-btn" data-a="pl" aria-label="'+esc(t('В плейлист'))+'"><svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg></button>';
+          var img=row.querySelector('img');if(tr.cover)img.src=tr.cover;else img.style.visibility='hidden';img.onerror=function(){img.style.visibility='hidden';};
+          row.querySelector('b').textContent=tr.title;
+          row.querySelector('span').textContent=(tr.artist||'')+' · '+(tr.source==='jamendo'?'Jamendo':'Audius');
+          row.querySelector('[data-a="play"]').onclick=function(){if(window.MusicPlayer)window.MusicPlayer.setQueue(items,i);};
+          var dl=row.querySelector('[data-a="dl"]');if(dl)dl.onclick=function(){if(window.hmDownloadTrack)window.hmDownloadTrack(tr);};
+          row.querySelector('[data-a="pl"]').onclick=function(ev){if(window.MusicPlaylists&&window.MusicPlaylists.openAddTrackMenu)window.MusicPlaylists.openAddTrackMenu(ev,tr);};
+          box.appendChild(row);
+        });
+      }).catch(function(){ext.remove();});
+    }
     if(d.connect){
       var b=el('button','hmr-tl-connect');b.type='button';b.textContent=t('Слушать прямо здесь — подключить Яндекс Музыку');
       b.onclick=function(){sendPrompt('Подключи Яндекс Музыку');};
