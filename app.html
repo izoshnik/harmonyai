@@ -3584,14 +3584,20 @@ body.hm-dragging #chatInner::after{content:'Отпустите файлы, чт�
 .src-pill-icons{display:inline-flex;}
 .src-pill-icons img,.src-pill-icons i{width:18px;height:18px;border-radius:50%;background:#fff;border:2px solid var(--bg,#0d0d0f);object-fit:cover;margin-left:-6px;display:inline-flex;align-items:center;justify-content:center;font-style:normal;font-size:9px;font-weight:800;color:#222;}
 .src-pill-icons>:first-child{margin-left:0;}
-/* Телефон: кнопки под ответом (копировать, лайк, дизлайк, «…», «Источники») —
-   без обводки и стеклянной подложки, только иконка; лёгкая подсветка при нажатии. */
+/* Кнопки под ответом (копировать, лайк, дизлайк, «…», «Источники») — цвета
+   текста ответа (белые на тёмной теме), без обводки и подложки. */
+.msg-actions .mac-btn{color:var(--text);}
+.msg-actions .mac-btn.liked{color:#22c55e;}.msg-actions .mac-btn.disliked{color:#ef4444;}
+.msg-actions .mac-btn:focus:not(:focus-visible){outline:none;}
+.msg-actions .src-pill{border-color:transparent;color:var(--text);}
+/* Телефон: без стеклянной подложки, только иконка; лёгкая подсветка при нажатии. */
 @media (max-width:768px), (hover:none) and (pointer:coarse){
   .main .msg-actions .mac-btn{border:0!important;background:transparent!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;}
   .main .msg-actions .mac-btn::before,.main .msg-actions .mac-btn::after{content:none!important;display:none!important;}
   .main .msg-actions .mac-btn:hover{background:transparent!important;}
   .main .msg-actions .mac-btn:active{background:color-mix(in srgb,var(--text) 10%,transparent)!important;box-shadow:none!important;}
-  .msg-actions .src-pill{border-color:transparent;background:color-mix(in srgb,var(--text) 7%,transparent);}
+  .msg-actions .src-pill{border-color:transparent;background:transparent;}
+  .msg-actions .src-pill:active{background:color-mix(in srgb,var(--text) 10%,transparent);}
 }
 .src-sheet{position:fixed;inset:0;z-index:4000;background:rgba(0,0,0,0);transition:background .22s ease;}
 .src-sheet.open{background:rgba(0,0,0,.45);}
