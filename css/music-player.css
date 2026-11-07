@@ -289,11 +289,14 @@
   gap: clamp(28px, 5vw, 72px);
 }
 
+/* Обложка всегда одного размера и квадратная: не сжимается от длинного
+   названия справа (ПК) или двух строк заголовка под ней (телефон) —
+   размер зависит только от экрана. */
 .music-screen__artwrap {
   position: relative;
-  flex: 0 1 auto;
-  width: min(44vh, 420px);
-  max-width: 44%;
+  flex: 0 0 auto;
+  width: min(44vh, 420px, 40vw);
+  height: auto;
   aspect-ratio: 1 / 1;
   margin: 0 auto;
 }
@@ -866,7 +869,7 @@ body.music-screen-open { overflow: hidden; }
 
   /* Экран трека: колонка — обложка сверху, названия ниже. */
   .music-screen__stage { flex-direction: column; justify-content: center; gap: 18px; }
-  .music-screen__artwrap { width: min(72vw, 320px); max-width: none; }
+  .music-screen__artwrap { width: min(72vw, 320px, 42vh); max-width: none; }
   .music-screen__title { font-size: 24px; }
   .music-screen__artist { font-size: 15px; }
   .music-screen__seekwrap { max-width: none; width: 100%; }
@@ -880,7 +883,7 @@ body.music-screen-open { overflow: hidden; }
 
 /* Низкие экраны: обложка уступает место кнопкам, чтобы ничего не срезалось. */
 @media (max-height: 620px) {
-  .music-screen__artwrap { width: min(48vh, 260px); }
+  .music-screen__artwrap { width: min(40vh, 240px); }
   .music-screen__title { font-size: 20px; }
   .music-screen__artist { font-size: 14px; }
   .music-main { width: 58px; height: 58px; }
