@@ -8,7 +8,7 @@
    CDN лежат в своём кэше (их адреса с версией не меняются), а нейросеть разбора
    треков и готовые треки (hm-stems-*) — в кэшах js/hm-stems*.js: их стирать
    нельзя, иначе 200 МБ пришлось бы качать заново после каждого релиза. */
-const VERSION = 'hm-2026-11-06a';
+const VERSION = 'hm-2026-11-09a';
 const CDN_CACHE = 'hm-cdn-v1';
 const SHELL = ['/chat', '/manifest.webmanifest', '/icons/icon-192.png', '/favicon.svg'];
 const CDN = /^https:\/\/(cdn\.jsdelivr\.net|cdnjs\.cloudflare\.com|unpkg\.com|esm\.sh|fonts\.(googleapis|gstatic)\.com)\//;
