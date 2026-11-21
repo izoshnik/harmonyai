@@ -230,13 +230,13 @@ html[data-theme="light"] .limit-reached{background:rgba(239,68,68,.07);border-co
 .ef-track{--w:calc(100% - 32px);position:relative;height:32px;border-radius:16px;background:var(--ef-shell);box-shadow:inset 0 0 0 1px var(--ef-line);cursor:grab;outline:none;touch-action:none;}
 .ef[data-dragging="true"] .ef-track{cursor:grabbing;}
 .ef-track:focus-visible{box-shadow:inset 0 0 0 1px var(--ef-line),0 0 0 2px rgba(150,150,160,.55);}
-.ef-fill{position:absolute;top:0;bottom:0;left:0;width:calc(32px + var(--w) * var(--lvl,0) / 3);border-radius:16px;overflow:hidden;
+.ef-fill{position:absolute;top:0;bottom:0;left:0;width:calc(32px + var(--w) * var(--lvl,0) / 4);border-radius:16px;overflow:hidden;
   background:var(--ef-fill);box-shadow:inset 0 1px 1px rgba(255,255,255,.18);transition:width .26s cubic-bezier(.3,.7,.2,1),background .3s;}
-.ef-thumb{position:absolute;top:4px;left:calc(4px + var(--w) * var(--lvl,0) / 3);width:24px;height:24px;border-radius:999px;z-index:2;
+.ef-thumb{position:absolute;top:4px;left:calc(4px + var(--w) * var(--lvl,0) / 4);width:24px;height:24px;border-radius:999px;z-index:2;
   background:linear-gradient(180deg,#fff,#f3f3f5);box-shadow:0 1px 2px rgba(0,0,0,.22),0 0 0 .5px rgba(0,0,0,.06);
   transition:left .26s cubic-bezier(.3,.7,.2,1),transform .15s;}
 .ef[data-dragging="true"] .ef-thumb{transform:scale(1.08);}
-.ef-tick{position:absolute;top:50%;left:calc(16px + var(--w) * var(--p) / 3);width:1.5px;height:10px;margin-left:-.75px;border-radius:1px;
+.ef-tick{position:absolute;top:50%;left:calc(16px + var(--w) * var(--p) / 4);width:1.5px;height:10px;margin-left:-.75px;border-radius:1px;
   background:var(--ef-tick);transform:translateY(-50%);z-index:3;pointer-events:none;transition:background .2s,opacity .2s;}
 .ef[data-level="1"] .ef-tick[style*="--p:0"],.ef[data-level="2"] .ef-tick[style*="--p:0"],.ef[data-level="2"] .ef-tick[style*="--p:1"],
 .ef[data-level="3"] .ef-tick[style*="--p:0"],.ef[data-level="3"] .ef-tick[style*="--p:1"],.ef[data-level="3"] .ef-tick[style*="--p:2"]{background:var(--ef-tick-on);}
@@ -2469,13 +2469,13 @@ html[data-theme="messenger"] .s-row.s-row-accent .s-chev{color:#2f80ed;}
   .ada-seg-btn i{font-size:11px;font-style:normal;line-height:1.2;color:rgba(255,255,255,.62);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .ada-seg-btn.on{background:rgba(47,143,255,.16);border-color:rgba(47,143,255,.5);}
   .ada-seg-btn.pro-locked b::after{content:' PRO';font-size:9px;font-weight:800;letter-spacing:.4px;color:#f5c451;}
-  /* Полноценный контрол с четырьмя позициями: LOW → MEDIUM → MAX → EXTRA */
+  /* Полноценный контрол с пятью позициями: Low → Medium → High → Extra → Max */
   .ada-eff{
     position:relative;display:flex;padding:4px;border-radius:16px;
     background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);
   }
   .ada-eff-thumb{
-    position:absolute;top:4px;bottom:4px;left:4px;width:calc((100% - 8px)/4);
+    position:absolute;top:4px;bottom:4px;left:4px;width:calc((100% - 8px)/5);
     border-radius:12px;background:rgba(47,143,255,.92);
     box-shadow:0 6px 16px rgba(20,90,180,.38);
     transform:translateX(calc(var(--eff-idx,0) * 100%));
@@ -3773,7 +3773,7 @@ html:not([data-theme="light"]):not([data-theme="messenger"]) .msg-user{backgroun
       <div class="auth-switch">Уже зарегистрированы? <a href="#" onclick="toggleLoginHint();return false;">Войти</a></div>
       <div class="auth-hint" id="loginHint" style="display:none;"></div>
       <label class="auth-terms" id="authTermsWrap"><input type="checkbox" id="authTerms" onchange="hmTermsChanged()"><span>Я прочитал(а) и принимаю <a href="/legal/terms.html" target="_blank" rel="noopener noreferrer">Условия использования</a>, <a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Политику конфиденциальности</a> и <a href="/legal/ofera.html" target="_blank" rel="noopener noreferrer">Оферту</a></span></label>
-      <div class="auth-beta">Beta 0.8.101</div>
+      <div class="auth-beta">Beta 0.8.102</div>
     </div>
 
     <!-- Экран 2: Код подтверждения -->
@@ -3788,7 +3788,7 @@ html:not([data-theme="light"]):not([data-theme="messenger"]) .msg-user{backgroun
       <div class="auth-resend" id="btnResend" onclick="resendOTP()">Не пришел код? Отправить снова</div>
       <div class="auth-switch">Уже зарегистрированы? <a href="#" onclick="toggleLoginHint();return false;">Войти</a></div>
       <div class="auth-tos">Продолжая, вы соглашаетесь с <a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Политикой Конфиденциальности</a> и <a href="/legal/terms.html" target="_blank" rel="noopener noreferrer">Условиями Пользователя</a> HarmonyAI</div>
-      <div class="auth-beta">Beta 0.8.101</div>
+      <div class="auth-beta">Beta 0.8.102</div>
     </div>
 
   </div>
@@ -3947,18 +3947,19 @@ html:not([data-theme="light"]):not([data-theme="messenger"]) .msg-user{backgroun
                   </div>
                 </div>
                 <div class="desktop-sub-drop" id="desktopModeSub">
-                  <!-- Ползунок усилий: Low → Medium → High → Extra. На Extra дорожка становится звёздным небом. -->
+                  <!-- Ползунок усилий: Low → Medium → High → Extra → Max. На Extra дорожка становится звёздным небом. -->
                   <div class="ef" id="desktopEffort" data-level="0">
                     <div class="ef-label"><span class="ef-swap" id="desktopEffortLabel"><span class="ef-cur">Low</span><span class="ef-next">Быстрый ответ</span></span></div>
-                    <div class="ef-track" id="desktopEffortTrack" tabindex="0" role="slider" aria-label="Режим усилий" aria-valuemin="0" aria-valuemax="3" aria-valuenow="0" aria-valuetext="Low">
+                    <div class="ef-track" id="desktopEffortTrack" tabindex="0" role="slider" aria-label="Режим усилий" aria-valuemin="0" aria-valuemax="4" aria-valuenow="0" aria-valuetext="Low">
                       <div class="ef-fill"><div class="ef-sky" aria-hidden="true"></div></div>
-                      <span class="ef-tick" style="--p:0"></span><span class="ef-tick" style="--p:1"></span><span class="ef-tick" style="--p:2"></span><span class="ef-tick" style="--p:3"></span>
+                      <span class="ef-tick" style="--p:0"></span><span class="ef-tick" style="--p:1"></span><span class="ef-tick" style="--p:2"></span><span class="ef-tick" style="--p:3"></span><span class="ef-tick" style="--p:4"></span>
                       <div class="ef-thumb"></div>
                     </div>
                   </div>
                   <!-- Старые галочки остаются скрытыми: на них опирается refreshModelUI. -->
                   <div hidden><span id="desktopCkLow"></span><span id="desktopCkMedium"></span><span id="desktopCkMax"></span><span id="desktopCkExtra"></span></div>
                   <div class="md-divider"></div>
+                  <label class="desktop-think"><span>UltraCode</span><input type="checkbox" id="desktopUltraCode" onchange="setUltraCode(this.checked)"></label>
                   <div class="desktop-think">
                     <div class="desktop-think-copy"><b>Думать</b><span>Для решения сложных задач</span></div>
                     <div class="sw" id="desktopThinkSw" onclick="toggleThink(event)"></div>
@@ -4016,10 +4017,12 @@ html:not([data-theme="light"]):not([data-theme="messenger"]) .msg-user{backgroun
             <span class="ada-eff-thumb" aria-hidden="true"></span>
             <button type="button" class="ada-eff-btn on" id="adaEff_low" role="radio" aria-checked="true" onclick="selectMode('low')">Low</button>
             <button type="button" class="ada-eff-btn" id="adaEff_medium" role="radio" aria-checked="false" onclick="selectMode('medium')">Medium</button>
-            <button type="button" class="ada-eff-btn" id="adaEff_max" role="radio" aria-checked="false" onclick="selectMode('max')">Max</button>
+            <button type="button" class="ada-eff-btn" id="adaEff_high" role="radio" aria-checked="false" onclick="selectMode('high')">High</button>
             <button type="button" class="ada-eff-btn" id="adaEff_extra" role="radio" aria-checked="false" onclick="selectMode('extra')">Extra</button>
+            <button type="button" class="ada-eff-btn" id="adaEff_max" role="radio" aria-checked="false" onclick="selectMode('max')">Max</button>
           </div>
-          <div class="ada-hint" id="adaEffHint">Быстрый ответ</div>
+          <div class="ada-hint" id="adaEffHint">Минимальные размышления для простых задач</div>
+          <label class="ada-hint"><input type="checkbox" id="adaUltraCode" onchange="setUltraCode(this.checked)"> UltraCode</label>
         </div>
         <div class="disclaimer">Это ИИ: HarmonyAI может допускать ошибки.</div>
       </div>
@@ -4185,19 +4188,25 @@ html:not([data-theme="light"]):not([data-theme="messenger"]) .msg-user{backgroun
           <div class="mm-opt-desc">Балансный режим</div>
         </button>
         <div class="mm-divider"></div>
-        <button class="mm-opt" id="mmOptMax" onclick="selectMode('max')">
+        <button class="mm-opt" id="mmOptHigh" onclick="selectMode('high')">
           <div class="mm-opt-main"><span class="mm-opt-name">High</span></div>
-          <span class="mm-opt-check" id="mmCheckMax">✓</span>
+          <span class="mm-opt-check" id="mmCheckHigh">✓</span>
           <div class="mm-opt-desc">Глубокое мышление</div>
         </button>
         <div class="mm-divider"></div>
         <button class="mm-opt" id="mmOptExtra" onclick="selectMode('extra')">
           <div class="mm-opt-main"><span class="mm-opt-name">Extra</span></div>
           <span class="mm-opt-check" id="mmCheckExtra">✓</span>
-          <div class="mm-opt-desc">Максимальное качество</div>
+          <div class="mm-opt-desc">Многоступенчатые задачи и архитектура</div>
+        </button>
+        <div class="mm-divider"></div>
+        <button class="mm-opt" id="mmOptMax" onclick="selectMode('max')">
+          <div class="mm-opt-main"><span class="mm-opt-name">Max</span></div>
+          <span class="mm-opt-check" id="mmCheckMax">✓</span>
+          <div class="mm-opt-desc">Максимум времени и усилий</div>
         </button>
       </div>
-      <div class="mm-hint">High и Extra думают глубже и отвечают подробнее, но быстрее расходуют лимиты.</div>
+      <label class="mm-hint"><input type="checkbox" id="mobileUltraCode" onchange="setUltraCode(this.checked)"> UltraCode</label>
       <div class="mm-card mm-think-card">
         <div class="mm-think-copy">
           <div class="mm-think-title">Думать</div>
@@ -4417,11 +4426,17 @@ let curModel='lite',curMode='low',thinkOn=false,dropOpen=false,modeSubOpen=false
    'high' и 'ultra' — прежние имена двух верхних уровней. Читать их всё ещё нужно:
    выбор пользователя лежит в localStorage, и после обновления страницы он не
    должен молча сброситься на low. */
-const EFFORT_LEVELS=['low','medium','max','extra'];
-const EFFORT_LEGACY={high:'max',ultra:'extra'};
-const EFFORT_LABEL={low:'Low',medium:'Medium',max:'High',extra:'Extra'};
-const EFFORT_HINT={low:'Быстрый ответ',medium:'Баланс',max:'Глубокое мышление',extra:'Максимальное качество'};
-const EFFORT_KEY='hm_effort_v1';
+const EFFORT_LEVELS=['low','medium','high','extra','max'];
+const EFFORT_LEGACY={ultra:'extra'};
+const EFFORT_LABEL={low:'Low',medium:'Medium',high:'High',extra:'Extra',max:'Max'};
+const EFFORT_HINT={low:'Минимальные размышления для простых задач',medium:'Баланс скорости и качества',high:'Глубокий анализ и программирование',extra:'Многоступенчатые задачи и архитектурные решения',max:'Максимум времени и усилий для самых сложных задач'};
+const EFFORT_KEY='hm_effort_v2';
+let ultraCode=false;
+function setUltraCode(enabled){
+  ultraCode=enabled;
+  try{localStorage.setItem('hm_ultracode',enabled?'1':'0');}catch(e){}
+  refreshModelUI();
+}
 function normEffort(v){
   const s=String(v==null?'':v).toLowerCase().trim();
   if(EFFORT_LEGACY[s])return EFFORT_LEGACY[s];
@@ -4430,7 +4445,12 @@ function normEffort(v){
 /* Max/Extra — платные уровни (раньше так был закрыт Max). Low и Medium — всем. */
 function effortNeedsPro(v){return false;/* Все режимы бесплатны (patch11) */}
 /* Выбранный уровень сохраняется для следующих сообщений и сессий. */
-try{const savedEffort=localStorage.getItem(EFFORT_KEY);if(savedEffort)curMode=normEffort(savedEffort);}catch(e){}
+try{
+  const savedEffort=localStorage.getItem(EFFORT_KEY);
+  const legacyEffort=localStorage.getItem('hm_effort_v1');
+  if(savedEffort||legacyEffort)curMode=normEffort(savedEffort||(legacyEffort==='max'?'high':legacyEffort));
+  ultraCode=localStorage.getItem('hm_ultracode')==='1';
+}catch(e){}
 // Поиск в интернете: 'auto' — ИИ сама решает; 'on' — принудительно включён; 'off' — выключен.
 // plusDropOpen — открыто ли новое меню кнопки «+».
 let webSearchMode='auto',plusDropOpen=false,lastSearchSources=[];
@@ -7828,8 +7848,8 @@ function fitDesktopSubs(){
   }
 }
 /* ===== Ползунок усилий (компьютер) ===== */
-const HM_EF_LEVELS=['low','medium','max','extra'];
-const HM_EF_TEXT={low:['Low','Быстрый ответ'],medium:['Medium','Баланс скорости'],max:['High','Глубокое мышление'],extra:['Extra','Максимальное качество']};
+const HM_EF_LEVELS=EFFORT_LEVELS;
+const HM_EF_TEXT=Object.fromEntries(EFFORT_LEVELS.map(level=>[level,[EFFORT_LABEL[level],EFFORT_HINT[level]]]));
 function hmEffortSync(){
   const root=document.getElementById('desktopEffort');if(!root)return;
   const id=normEffort(curMode),lvl=Math.max(0,HM_EF_LEVELS.indexOf(id));
@@ -7847,7 +7867,7 @@ function hmEffortSync(){
   }
 }
 function hmEffortSet(lvl){
-  lvl=Math.max(0,Math.min(3,lvl));
+  lvl=Math.max(0,Math.min(HM_EF_LEVELS.length-1,lvl));
   const next=HM_EF_LEVELS[lvl];if(normEffort(curMode)===next)return;
   curMode=next;try{localStorage.setItem(EFFORT_KEY,curMode);}catch(e){}
   refreshModelUI(); // меню остаётся открытым — можно сразу передвинуть ещё раз
@@ -7856,7 +7876,7 @@ function hmEffortSet(lvl){
   const tr=document.getElementById('desktopEffortTrack');
   if(!tr){document.addEventListener('DOMContentLoaded',initEffortSlider,{once:true});return;}
   const root=document.getElementById('desktopEffort');
-  const at=(x)=>{const r=tr.getBoundingClientRect();const th=24,pad=4;const f=(x-r.left-pad-th/2)/(r.width-pad*2-th);return Math.round(Math.max(0,Math.min(1,f))*3);};
+  const at=(x)=>{const r=tr.getBoundingClientRect();const th=24,pad=4;const f=(x-r.left-pad-th/2)/(r.width-pad*2-th);return Math.round(Math.max(0,Math.min(1,f))*(HM_EF_LEVELS.length-1));};
   tr.addEventListener('pointerdown',e=>{
     e.preventDefault();e.stopPropagation();tr.focus({preventScroll:true});
     try{tr.setPointerCapture(e.pointerId);}catch(_){}
@@ -7871,13 +7891,13 @@ function hmEffortSet(lvl){
     if(e.key==='ArrowRight'||e.key==='ArrowUp'){e.preventDefault();hmEffortSet(cur+1);}
     else if(e.key==='ArrowLeft'||e.key==='ArrowDown'){e.preventDefault();hmEffortSet(cur-1);}
     else if(e.key==='Home'){e.preventDefault();hmEffortSet(0);}
-    else if(e.key==='End'){e.preventDefault();hmEffortSet(3);}
+    else if(e.key==='End'){e.preventDefault();hmEffortSet(HM_EF_LEVELS.length-1);}
   });
   try{hmEffortSync();}catch(e){}
 })();
 function selectMode(m){
   const next=normEffort(m);
-  // Все уровни (Low / Medium / High / Extra) доступны всем тарифам.
+  // Все уровни (Low / Medium / High / Extra / Max) доступны всем тарифам.
   curMode=next;
   try{localStorage.setItem(EFFORT_KEY,curMode);}catch(e){}
   refreshModelUI();
@@ -7958,6 +7978,7 @@ function syncMobileComposerUI(effortNow){
   const track=document.getElementById('adaEffTrack');
   if(track)track.style.setProperty('--eff-idx',String(Math.max(0,EFFORT_LEVELS.indexOf(eff))));
   setText('adaEffHint',EFFORT_HINT[eff]||'');
+
   /* Pro-гейт: платной остаётся только модель Dynatos (patch11). */
   const locked=!isProUser();
   ['adaModelPro'].forEach(function(id){
@@ -8164,6 +8185,10 @@ function setText(id,value){
 function refreshModelUI(){
   const shortModel=curModel==='lite'?'lite':'pro';
   const fullModel=curModel==='lite'?'Adan':'Dynatos';
+  for(const id of ['adaUltraCode','desktopUltraCode','mobileUltraCode']){
+    const toggle=document.getElementById(id);
+    if(toggle)toggle.checked=ultraCode;
+  }
   const effortNow=normEffort(curMode);
   if(curMode!==effortNow)curMode=effortNow;
   const modeLabel=EFFORT_LABEL[effortNow]||'Low';
@@ -8187,7 +8212,7 @@ function refreshModelUI(){
   toggleClass('desktopCkExtra','on',effortNow==='extra');
   toggleClass('mmOptLite','active',curModel==='lite');
   toggleClass('mmOptPro','active',curModel==='pro');
-  ['low','medium','max','extra'].forEach(k=>{const id=k.charAt(0).toUpperCase()+k.slice(1);toggleClass('mmOpt'+id,'active',effortNow===k);setOpacity('mmCheck'+id,effortNow===k?'1':'0');});
+  EFFORT_LEVELS.forEach(k=>{const id=k.charAt(0).toUpperCase()+k.slice(1);toggleClass('mmOpt'+id,'active',effortNow===k);setOpacity('mmCheck'+id,effortNow===k?'1':'0');});
   setOpacity('mmCheckLite',curModel==='lite'?'1':'0');
   setOpacity('mmCheckPro',curModel==='pro'?'1':'0');
   /* Pro-гейт: недоступна для Free только модель Dynatos. Уровни усилия и
@@ -8328,15 +8353,6 @@ function buildSystem(){
   if(s.headings&&s.headings!=='default'&&headingsMap[s.headings])sys+='\n'+headingsMap[s.headings];
   const emojisMap={none:'Никогда не используй эмодзи.',some:'Можешь изредка добавить 1-2 уместных эмодзи.',many:'Используй эмодзи активно для оживления ответов.'};
   if(s.emojis&&s.emojis!=='default'&&emojisMap[s.emojis])sys+='\n'+emojisMap[s.emojis];
-  /* Уровень размышления влияет и на поведение модели в промпте, и на
-     реальный reasoning-параметр запроса (см. api/chat.js). */
-  const EFFORT_SYS={
-    low:'\nРЕЖИМ LOW: повседневная задача. Отвечай сразу и по делу, максимум 3-4 предложения, без развёрнутых рассуждений.',
-    medium:'\nРЕЖИМ MEDIUM: задача среднего уровня. Сначала продумай структуру, затем дай развёрнутый и аккуратно организованный ответ с примерами.',
-    max:'\nРЕЖИМ MAX: сложная задача. Разбери её по шагам, проверь крайние случаи, сравни варианты и обоснуй выбор. Качество важнее скорости.',
-    extra:'\nРЕЖИМ EXTRA: максимальный уровень размышления. Рассмотри несколько подходов, проверь свои выводы, найди слабые места и только потом дай финальный, максимально полный и точный ответ. Скорость не важна.'
-  };
-  sys+=EFFORT_SYS[normEffort(curMode)]||EFFORT_SYS.low;
   try{const nick=String(curUser&&curUser.nickname||'').trim();if(nick&&!/@/.test(nick))sys+='\nИМЯ ПОЛЬЗОВАТЕЛЯ: '+nick.slice(0,40)+'. Обращайся по имени, когда это естественно (приветствие, поддержка), но не в каждом сообщении.';}catch(_){}
   if(trainingMode&&hasTrainingAccess())sys+='\nРЕЖИМ ОБУЧЕНИЯ: пользователь сейчас в специальном разделе «Обучение». Всё, что он присылает, уже автоматически сохраняется в базу знаний. Кратко подтверди, что информация принята и сохранена, и при необходимости задай уточняющий вопрос, чтобы материал был более полным и полезным для дальнейшего обучения.';
   sys+=buildKnowledgeContext(currentQuery);
@@ -11552,7 +11568,10 @@ async function requestChatReply(){
     messages:[{role:'system',content:buildSystem()},...toWireHistory(chatHistory)],
     model:curModel,
     effort:curMode,
+    effortVersion:2,
+    ultraCode,
     think:thinkOn,
+    webSearch:webSearchMode,
     temporary:hmTempChat||undefined,
     trainingMode:Boolean(trainingMode&&hasTrainingAccess()),
     memoryFromClient:Boolean(window.HmMemory&&(getSettings().memRecall!==false)),
@@ -11775,6 +11794,8 @@ async function requestChatReplyLive(msgEl,actionsEl,extraMessages=[],prefixText=
     messages:[{role:'system',content:buildSystem()},...toWireHistory(chatHistory),...extraMessages],
     model:curModel,
     effort:curMode,
+    effortVersion:2,
+    ultraCode,
     think:thinkOn,
     temporary:hmTempChat||undefined,
     stream:true,
@@ -15897,7 +15918,7 @@ function renderAbout(){
       <div class="stp-about-hero">
         <div class="stp-about-logo"><svg width="26" height="26" viewBox="0 0 64 64"><path d="M18 14h8v18h12V14h8v36h-8V39H26v11h-8z" fill="currentColor"/></svg></div>
         <div class="stp-about-name">HarmonyAI</div>
-        <div class="stp-about-ver">Beta 0.8.101</div>
+        <div class="stp-about-ver">Beta 0.8.102</div>
       </div>
       <div class="stp-row" onclick="hmOpenDoc('/legal/privacy.html')" role="link" tabindex="0">
         <div class="stp-row-label"><div class="stp-row-title">Политика конфиденциальности</div></div>
