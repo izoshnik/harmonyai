@@ -23,7 +23,7 @@
 (function(){
   'use strict';
 
-  var KINDS=['quiz','chart','diagram','mermaid','photo','image','buttons','steps','compare','flow','timeline','figure','molecule','email','tracks'];
+  var KINDS=['quiz','chart','diagram','mermaid','photo','image','buttons','steps','compare','flow','timeline','figure','molecule','email','tracks','miniapp'];
   var FENCE_SRC='```[ \\t]*('+KINDS.join('|')+')[ \\t]*\\r?\\n([\\s\\S]*?)```';
   var OPEN_RE=new RegExp('```[ \\t]*('+KINDS.join('|')+')[ \\t]*(?:\\r?\\n[\\s\\S]*)?$','i');
 
@@ -1430,6 +1430,24 @@
     return card;
   }
 
+  function renderMiniApp(body,host){
+    var code=String(body||'').trim();
+    if(!code||code.length>160000)return renderBroken(host,'MiniApps','');
+    var card=el('div','hmr-card');
+    var button=el('button','hmr-chip');button.type='button';button.textContent=t('Запустить мини-приложение');
+    var frame=null;
+    button.onclick=function(){
+      if(frame){frame.remove();frame=null;button.textContent=t('Запустить мини-приложение');return;}
+      frame=document.createElement('iframe');frame.className='code-frame';frame.title='MiniApps';
+      frame.setAttribute('sandbox','allow-scripts');frame.referrerPolicy='no-referrer';
+      frame.style.cssText='display:block;width:100%;min-height:400px;border:0;margin-top:10px';
+      var csp="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; media-src data: blob:; connect-src 'none'; form-action 'none'; base-uri 'none'";
+      frame.srcdoc='<!doctype html><meta http-equiv="Content-Security-Policy" content="'+csp+'">'+sandboxDoc(code);
+      card.appendChild(frame);button.textContent=t('Закрыть мини-приложение');
+    };
+    card.appendChild(button);host.appendChild(card);return card;
+  }
+
   /* ---------- общий вход ---------- */
   function render(kind,body,host,ctx){
     try{
@@ -1446,6 +1464,7 @@
       if(kind==='molecule')return renderMolecule(body,host,ctx);
       if(kind==='email')return renderEmail(body,host,ctx);
       if(kind==='tracks')return renderTracks(body,host,ctx);
+      if(kind==='miniapp')return renderMiniApp(body,host);
     }catch(e){console.warn('[hm-rich]',kind,e);return renderBroken(host,'блок',body);}
     return null;
   }

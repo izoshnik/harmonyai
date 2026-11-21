@@ -1,0 +1,39 @@
+.hm-cowork {
+  width: min(620px, calc(100vw - 28px));
+  max-height: calc(100dvh - 28px);
+  padding: 20px;
+  border: 1px solid var(--border, #36373e);
+  border-radius: 20px;
+  background: var(--bg2, #1c1c20);
+  color: var(--text, #f3f3f5);
+  box-shadow: 0 20px 80px #0006;
+  overflow: auto;
+}
+.hm-cowork::backdrop { background: #0008; }
+.hm-cowork header, .hm-cowork nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.hm-cowork header { justify-content: space-between; }
+.hm-cowork h2 { margin: 0; font-size: 21px; }
+.hm-cowork label { display: grid; gap: 5px; margin: 10px 0; font-size: 14px; }
+.hm-cowork input, .hm-cowork textarea, .hm-cowork button {
+  border: 1px solid var(--border, #36373e);
+  border-radius: 9px;
+  background: var(--bg, #141419);
+  color: inherit;
+  font: inherit;
+  padding: 8px 12px;
+}
+.hm-cowork textarea { min-height: 92px; resize: vertical; }
+.hm-cowork button { cursor: pointer; margin: 2px; }
+.hm-cowork button[aria-pressed="true"] { border-color: #739af3; }
+.hm-cowork button:disabled { opacity: .5; cursor: default; }
+.hm-cowork-status:empty, .hm-cowork-output pre:empty { display: none; }
+.hm-cowork-status { margin: 12px 0 0; }
+.hm-cowork-output pre { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; margin: 8px 0; }
+.hm-cowork-output article { border-top: 1px solid var(--border, #36373e); padding: 10px 0; }
+.hm-cowork-output article p { margin: 4px 0; }

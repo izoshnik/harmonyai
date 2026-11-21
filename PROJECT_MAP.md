@@ -3,7 +3,7 @@
 Этот файл написан для ИИ-ассистента, который впервые видит репозиторий. Прочитав его, можно
 сразу править код: понятно, что где лежит, как проходит запрос и какие правила нельзя нарушать.
 
-- Состояние на: 21 ноября 2026, версия **Beta 0.8.102**.
+- Состояние на: 21 ноября 2026, версия **Beta 0.8.103**.
 - Репозиторий: `izoshnik/harmonyai`. Сайт: https://harmonyai.ru.
 - Рядом лежит `PROJECT_MAP.html` — старая визуальная карта для человека (граф файлов), она
   отстаёт от кода. Источник правды для ИИ — этот файл и сам код.
@@ -28,9 +28,9 @@ HarmonyAI — русскоязычный ИИ-помощник в браузер
 | Музыка | Яндекс Музыка + Audius + Jamendo: поиск, общий плеер, очередь, «Моя волна», плейлисты, скачивание |
 | Аудио | Разбор трека (темп, тональность), распознавание, ноты мелодии, разделение на партии (убрать вокал) |
 | Файлы | ИИ создаёт PDF/DOCX/PPTX/MD/TXT; «мини-компьютер» справа для кода и HTML |
-| Прочее | Временная почта, ИИ-поддержка, публичный API в формате Anthropic Messages, MCP |
+| Прочее | Временная почта, Задачи CoWork, ИИ-поддержка, публичный API в формате Anthropic Messages, MCP |
 
-Тарифы: **Free** (модель «Adan») и **Pro** (модель «Dynatos», лимиты ×25). Оплата — ЮKassa.
+Тарифы: **Free** (Adan и Dynatos) и **Pro** (добавляется Sion, лимиты ×25). Оплата — ЮKassa.
 
 ---
 
@@ -146,7 +146,8 @@ _i18n_*.json           исходники переводов; рабочий с�
 | `video` | `util-video.js` → `video.js`, `video-watch.js` | Кинотеатр и просмотр роликов |
 | `video-gen` | `util-video-gen.js` → `video-gen.js` | Генерация видео |
 | `support` | `util-support.js` | ИИ-поддержка и отчёты об ошибках |
-| `tempmail` | `util-tempmail.js` | Временная почта |
+| tempmail | util-tempmail.js | Временная почта, чтение и уведомления |
+| cowork | util-cowork.js | GitHub, Gmail и Telegram Bot API из Задач |
 | `unsubscribe` | `mailer.js` | Отписка от рассылки |
 | `ingest-url/-text/-proxy/-distill` | `textbook-ingestor.js` | Загрузка учебников в базу знаний (персонал) |
 
@@ -252,7 +253,7 @@ _i18n_*.json           исходники переводов; рабочий с�
 
 ```js
 { messages:[{role:'system',content:buildSystem()}, ...история],
-  model:'lite'|'pro',           // lite = Adan, pro = Dynatos
+  model:'lite'|'pro'|'sion',    // lite = Adan, pro = Dynatos, sion = Sion
   effort:'low'|'medium'|'high'|'extra'|'max', effortVersion:2, ultraCode:bool,
   think:bool, stream:true,
   webSearch:'auto'|'on'|'off'|'silent',
@@ -450,12 +451,14 @@ effortVersion:2 сохраняет прежнее значение max (High).
 - **Adan (Free)** — `adanChain()`: `ADAN_PRIMARY_MODEL` → бесплатные модели от сильной к слабой
   (`rankedFreeChain`: NIM/Cerebras/Groq, Gemini Flash Lite, OpenRouter `:free`) → платная
   `deepseek-v4-flash` последней. `ADAN_CHAIN` задаёт порядок вручную.
-- **Dynatos (Pro)** — `dynatosChain()`: `glm-5.3-flash` → Gemini Flash → вся цепочка Adan.
+- **Dynatos (Free)** — `dynatosChain()`: `glm-5.3-flash` → Gemini Flash → вся цепочка Adan.
 - С фото — сначала модели со зрением (`visionFirst`). Длинный контекст (>~120K токенов) — только
   модели с большим окном.
 - Модель, упёршаяся в лимит, уходит в конец цепочки до сброса (`markModelExhausted`); после 502/503 —
   пауза 60 с. Лимит OpenRouter `free-models-per-day` выключает сразу все `:free` модели.
 - Служебные задачи (заголовки, интенты, агент) — быстрые Groq/Cerebras → Gemini → запасные.
+
+Sion (Pro) использует цепочку SION_CHAIN, затем доступные модели DeepSeek, Dynatos и Adan. На Extra/Max для архитектуры и рефакторинга подключаются две ограниченные служебные проверки. Скриншоты публичных страниц HarmonyAI передаются событием SSE при наличии SION_BROWSER_TOKEN. MiniApps выполняет HTML клиента в sandbox iframe.
 
 Картинки (`api/generate-image.js`): Free — Cloudflare Workers AI (flux-1-schnell) → Pollinations;
 Pro — CloseRouter (gpt-image) → pro-ai.online. Лимиты Free: 7 в день, 23 в неделю, 50 в месяц; Pro выше.
@@ -469,7 +472,7 @@ Pro — CloseRouter (gpt-image) → pro-ai.online. Лимиты Free: 7 в де�
 
 | | Free | Pro |
 | --- | --- | --- |
-| Модель | Adan | Dynatos (и Adan) |
+| Модель | Adan, Dynatos | Adan, Dynatos, Sion |
 | Окно 5 часов | 20 000 токенов / 14 сообщений | ×25 |
 | Неделя | 160 000 / 112 | ×25 |
 | Месяц | 400 000 / 400 | ×25 |
@@ -536,6 +539,8 @@ authenticated`) и **сказать пользователю, что её нуж
 | Почта | `RESEND_API_KEY`, `MAIL_FROM`, `MAIL_REPLY_TO`, `MAIL_DAILY_LIMIT`, `MAIL_SECRET` |
 | Прочее | `DEV_LOGIN_KEY`, `SITE_URL`, `API_PUBLIC_URL`, `TEMPMAIL_SECRET`, `HM_COST_PRICES` |
 
+Дополнительные настройки: SION_CHAIN (порядок моделей), SION_BROWSER_TOKEN (Browserless для публичных страниц), COWORK_GOOGLE_CLIENT_ID (клиент OAuth Gmail). В GitHub Actions HARMONYAI_SMOKE_KEY включает проверки авторизованного чата, HARMONYAI_SMOKE_SION=1 дополнительно проверяет Sion. CoWork использует токены на время открытого окна, письма и токены не передаёт моделям.
+
 Правило: нет ключа — функция тихо выключается, остальное работает. Добавляя переменную, сообщи
 пользователю её имя и назначение.
 
@@ -561,7 +566,7 @@ authenticated`) и **сказать пользователю, что её нуж
 1. Ветка от свежего `main`. Пользователь сам мержит PR; Vercel сам выкатывает.
 2. Правка → `npm test` → проверка в браузере → коммит → push → PR.
 3. В каждом обновлении для пользователей поднять версию: `Beta X.Y.Z` в `app.html` (3 места),
-   `version` в `package.json`, строка `VERSION` в `sw.js`. Текущая — **0.8.102**; правило
+   `version` в `package.json`, строка `VERSION` в `sw.js`. Текущая — **0.8.103**; правило
    нумерации — в `CLAUDE.md`. Номер версии — в описании PR.
 4. Отвечать пользователю по-русски, в конце — список изменённых файлов, нужные переменные Vercel
    и SQL, который надо выполнить.
