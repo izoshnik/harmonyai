@@ -1,5 +1,5 @@
 import { requireUser } from '../lib/auth.js';
-import { isExtTrackId, extSearch, extWave, extTracksByIds, extFileUrl } from '../lib/music-ext.js';
+import { isExtTrackId, extSearch, extWave, extTracksByIds, extFileUrl, jamendoMp3 } from '../lib/music-ext.js';
 /* ============================================================================
    HarmonyAI — HTTP-роутер музыкального модуля.
 
@@ -38,7 +38,7 @@ import {
   getAccountStatus,
   YandexError,
   ensureUgcPlaylist, getUgcUploadTarget, uploadUgcBytes, UGC_PLAYLIST_TITLE, listUserPlaylists,
-  createPlaylistWithTracks, playlistWebUrl, getListeningStats,
+  createPlaylistWithTracks, playlistWebUrl, getListeningStats, removePlaylistTrack,
   getWaveTracks, sendWaveFeedback, WAVE_STATION,
 } from '../lib/yandex.js';
 
@@ -530,6 +530,37 @@ export default async function handler(req, res) {
         return res.status(200).json(out);
       }
 
+      case 'playlist_remove':
+      case 'ugc_from_catalog': {
+        if (resolved.source !== 'user') return needAuth(res);
+        const uid = await ensureUid(resolved);
+        if (!uid) return needAuth(res);
+        const title = String(body.playlist || '').trim().slice(0, 100);
+        let kind;
+        if (title) {
+          const name = value => String(value || '').normalize('NFKC').trim().toLowerCase();
+          const matches = (await listUserPlaylists(uid, { token })).filter(item => name(item.title) === name(title));
+          if (matches.length !== 1) return fail(res, 409, 'playlist_conflict', 'Укажи однозначное название своего плейлиста.');
+          kind = matches[0].kind;
+        }
+        if (action === 'playlist_remove') {
+          const track = String(body.track || '').trim().slice(0, 200);
+          if (!kind || !track) return fail(res, 400, 'bad_request', 'Укажи название трека и плейлиста.');
+          return res.status(200).json(await removePlaylistTrack(uid, kind, track, { token }));
+        }
+        const id = String(body.trackId || '');
+        if (!/^jm:\d{1,15}$/.test(id)) return fail(res, 400, 'bad_request', 'Нужен MP3 из каталога Jamendo.');
+        const [track] = await extTracksByIds([id]);
+        if (!track?.downloadable) return fail(res, 404, 'music_not_found', 'Этот трек недоступен для скачивания.');
+        const bytes = await jamendoMp3(id);
+        if (!bytes) return fail(res, 502, 'music_error', 'Не удалось получить MP3 от Jamendo.');
+        if (!kind) kind = await ensureUgcPlaylist(uid, { token });
+        const filename = (track.artist + ' - ' + track.title).replace(/[\\/:*?"<>|]+/g, '_').slice(0, 150) + '.mp3';
+        const target = await getUgcUploadTarget(uid, kind, filename, { token });
+        await uploadUgcBytes(target.postTarget, filename, bytes);
+        return res.status(200).json({ ok: true, playlistTitle: title || UGC_PLAYLIST_TITLE, trackId: target.ugcTrackId || null });
+      }
+
       /* «Моя волна». С личным аккаунтом — персональная станция Яндекса
          (история + лайки). Без него — радио «похожие на» трек, который человек
          лайкнул или слушал у нас (seeds приходят от клиента). */
@@ -726,7 +757,7 @@ export default async function handler(req, res) {
           const bytes = Buffer.from(await fr.arrayBuffer());
           const target = await getUgcUploadTarget(uid, kind, filename, { token });
           await uploadUgcBytes(target.postTarget, filename, bytes, String(body.mime || 'audio/mpeg'));
-          return res.status(200).json({ ok: true, kind, before: before ? before.trackCount : null, playlistTitle: body.kind ? null : UGC_PLAYLIST_TITLE });
+          return res.status(200).json({ ok: true, kind, trackId: target.ugcTrackId || null, before: before ? before.trackCount : null, playlistTitle: body.kind ? null : UGC_PLAYLIST_TITLE });
         } finally {
           dropFile();
         }
@@ -736,8 +767,15 @@ export default async function handler(req, res) {
       case 'ugc_check': {
         if (resolved.source !== 'user') return needAuth(res);
         const uid = await ensureUid(resolved);
+        const kind = String(body.kind || '');
+        const trackId = String(body.trackId || '');
+        if (!uid || !/^\d+$/.test(kind)) return fail(res, 400, 'bad_request', 'Неверный идентификатор плейлиста');
+        if (trackId) {
+          const playlist = await getPlaylist(uid + ':' + kind, { token, fresh: true });
+          return res.status(200).json({ found: playlist.tracks.some(t => t.trackId === trackId.split(':')[0]) });
+        }
         const list = await listUserPlaylists(uid, { token });
-        const pl = list.find((p) => p.kind === String(body.kind || ''));
+        const pl = list.find((p) => p.kind === kind);
         return res.status(200).json({ trackCount: pl ? pl.trackCount : null });
       }
 
@@ -759,7 +797,7 @@ export default async function handler(req, res) {
         const bytes = Buffer.from(b64, 'base64');
         if (bytes.length > 3.3 * 1024 * 1024) return fail(res, 413, 'too_large', 'Файл слишком большой для загрузки через сервер');
         await uploadUgcBytes(target.postTarget, filename, bytes, String(body.mime || 'audio/mpeg'));
-        return res.status(200).json({ ok: true, kind, playlistTitle: body.kind ? null : UGC_PLAYLIST_TITLE });
+        return res.status(200).json({ ok: true, kind, trackId: target.ugcTrackId || null, playlistTitle: body.kind ? null : UGC_PLAYLIST_TITLE });
       }
 
       case 'like': {
