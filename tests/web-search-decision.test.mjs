@@ -28,3 +28,10 @@ test('кнопка «Поиск»: включена — всегда виден,
   assert.equal(d('Сколько будет 2+2', 'on'), 'visible');
   assert.equal(d('курс доллара', 'off'), false);
 });
+
+test('актуальные релизы проверяются с учётом запроса пользователя', () => {
+  assert.equal(d('Какая модель Claude сейчас актуальна?'), 'visible');
+  assert.equal(d('Вышла ли Fable 5.2 без использования интернета?', 'on'), false);
+  assert.equal(d('Проверь релиз Fable без показа поиска'), 'silent');
+  assert.equal(d('What is the latest Claude model? Do not browse.'), false);
+});
