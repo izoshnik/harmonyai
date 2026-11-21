@@ -1,0 +1,61 @@
+name: HarmonyAI maintenance
+
+on:
+  schedule:
+    - cron: '17,47 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: harmonyai-site-maintenance
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node --test tests/*.test.mjs
+      - run: node scripts/smoke-site.mjs
+        env:
+          HARMONYAI_SMOKE_KEY: ${{ secrets.HARMONYAI_SMOKE_KEY }}
+          HARMONYAI_SMOKE_SION: ${{ vars.HARMONYAI_SMOKE_SION }}
+
+  generated-pages:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Propose deterministic SEO repair
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/build-seo-pages.mjs
+          if git diff --quiet -- seo; then
+            exit 0
+          fi
+          branch=maintenance/generated-seo
+          if [ -n "$(git ls-remote --heads origin "$branch")" ]; then
+            echo "Generated-page repair branch already exists"
+            exit 0
+          fi
+          git switch -c "$branch"
+          git add -- seo
+          git -c user.name='HarmonyAI maintenance' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Regenerate SEO pages'
+          git push origin "$branch"
+          gh pr create --draft --base main --head "$branch" --title 'Regenerate SEO pages' --body 'Generated files differed from the output of scripts/build-seo-pages.mjs.'
