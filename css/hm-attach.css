@@ -61,7 +61,7 @@ html:not([data-theme="light"]):not([data-theme="messenger"]) .hm-att-audio audio
 @keyframes hmWordIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
 .hm-plug-slot:empty{display:none;}
 .hm-plug-slot{margin-top:4px;}
-@media (prefers-reduced-motion:reduce){.hm-shimmer{animation:none;color:var(--hm-sh);background:none;opacity:.7}}
+@media (prefers-reduced-motion:reduce){.hm-shimmer,.hm-shimmer.in{animation:none;color:var(--hm-sh);background:none;opacity:.7}}
 
 /* Запись с микрофона */
 .mic-btn.recording,.main .mic-btn.recording{color:#ff3b30!important;animation:hmRecPulse 1.2s ease-in-out infinite;}

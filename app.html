@@ -242,13 +242,13 @@ html[data-theme="light"] .limit-reached{background:rgba(239,68,68,.07);border-co
 .ef-tick{position:absolute;top:50%;left:calc(16px + var(--w) * var(--p) / 4);width:1.5px;height:10px;margin-left:-.75px;border-radius:1px;
   background:var(--ef-tick);transform:translateY(-50%);z-index:3;pointer-events:none;transition:background .2s,opacity .2s;}
 .ef[data-level="1"] .ef-tick[style*="--p:0"],.ef[data-level="2"] .ef-tick[style*="--p:0"],.ef[data-level="2"] .ef-tick[style*="--p:1"],
-.ef[data-level="3"] .ef-tick[style*="--p:0"],.ef[data-level="3"] .ef-tick[style*="--p:1"],.ef[data-level="3"] .ef-tick[style*="--p:2"]{background:var(--ef-tick-on);}
-.ef[data-level="0"] .ef-tick[style*="--p:0"],.ef[data-level="1"] .ef-tick[style*="--p:1"],.ef[data-level="2"] .ef-tick[style*="--p:2"],.ef[data-level="3"] .ef-tick[style*="--p:3"]{opacity:0;}
+.ef[data-level="3"] .ef-tick[style*="--p:0"],.ef[data-level="3"] .ef-tick[style*="--p:1"],.ef[data-level="3"] .ef-tick[style*="--p:2"],.ef[data-level="4"] .ef-tick:not([style*="--p:4"]){background:var(--ef-tick-on);}
+.ef[data-level="0"] .ef-tick[style*="--p:0"],.ef[data-level="1"] .ef-tick[style*="--p:1"],.ef[data-level="2"] .ef-tick[style*="--p:2"],.ef[data-level="3"] .ef-tick[style*="--p:3"],.ef[data-level="4"] .ef-tick[style*="--p:4"]{opacity:0;}
 
-/* Extra — фиолетовое звёздное небо */
+/* Max — фиолетовое звёздное небо */
 .ef-sky{position:absolute;inset:0;opacity:0;transition:opacity .35s;}
-.ef[data-level="3"] .ef-fill{background:linear-gradient(90deg,#7c3aed,#8b5cf6 55%,#7c3aed);box-shadow:inset 0 1px 1px rgba(255,255,255,.28),0 0 14px rgba(139,92,246,.45);}
-.ef[data-level="3"] .ef-sky{opacity:1;}
+.ef[data-level="4"] .ef-fill{background:linear-gradient(90deg,#7c3aed,#8b5cf6 55%,#7c3aed);box-shadow:inset 0 1px 1px rgba(255,255,255,.28),0 0 14px rgba(139,92,246,.45);}
+.ef[data-level="4"] .ef-sky{opacity:1;}
 .ef-sky::before,.ef-sky::after{content:"";position:absolute;inset:-20px -60px;background-repeat:repeat;}
 .ef-sky::before{ /* мелкие звёзды, медленный дрейф */
   background-image:
@@ -263,7 +263,7 @@ html[data-theme="light"] .limit-reached{background:rgba(239,68,68,.07);border-co
   background-size:150px 36px;animation:efDrift 22s linear infinite reverse,efTwinkle 2.4s ease-in-out infinite;}
 @keyframes efDrift{to{transform:translateX(-150px);}}
 @keyframes efTwinkle{0%,100%{opacity:1;}50%{opacity:.35;}}
-.ef[data-level="3"] .ef-cur{background:linear-gradient(90deg,#8b5cf6,#c084fc);-webkit-background-clip:text;background-clip:text;color:transparent;}
+.ef[data-level="4"] .ef-cur{background:linear-gradient(90deg,#8b5cf6,#c084fc);-webkit-background-clip:text;background-clip:text;color:transparent;}
 @media (prefers-reduced-motion:reduce){.ef-swap,.ef-sky::before,.ef-sky::after{animation:none;}}
 .music-card__desc{padding:2px 14px 8px;font-size:13px;line-height:1.45;color:var(--text2);}
 .music-pl-saved{display:flex;align-items:center;gap:7px;margin:8px 2px 0;font-size:12.5px;color:var(--text2);}
@@ -1666,21 +1666,16 @@ html[data-fs="l"] .hm-pulse-dot{width:20px;height:20px;}
   .desktop-model-drop{min-width:274px;max-width:min(320px,calc(100vw - 24px));padding:8px;}
   .desktop-row,.desktop-option{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 14px;border-radius:12px;cursor:pointer;transition:background .12s;}
   .desktop-row:hover,.desktop-option:hover{background:var(--hover);}
-  .desktop-model-current{font-size:13px;font-weight:700;color:var(--text);}
   .desktop-row-title{font-size:13px;font-weight:700;color:var(--text);}
   .desktop-mini{display:flex;align-items:center;gap:8px;color:var(--text2);font-size:12px;}
   /* Подменю по умолчанию открывается справа; JS может переставить его слева через .flip-sub. */
   .desktop-sub-drop{position:absolute;top:56px;left:calc(100% + 12px);display:none;min-width:232px;padding:8px;
     max-width:min(300px,calc(100vw - 48px));max-height:calc(100vh - 60px);overflow-y:auto;}
   .desktop-sub-drop.open{display:block;animation:dropMenuIn .15s cubic-bezier(.22,.61,.36,1) both;}
-  .desktop-sub-drop.models{top:110px;}
   .desktop-model-wrap.flip-sub .desktop-sub-drop{left:auto;right:calc(100% + 12px);}
   .desktop-model-wrap.pin-sub-bottom .desktop-sub-drop{top:auto;bottom:0;}
   /* Если сам дроп упирается в верх окна — открываем его вниз от пилюли. */
   .desktop-model-wrap.flip-down{bottom:auto;top:calc(100% + 10px);}
-  .desktop-copy{display:flex;flex-direction:column;gap:2px;}
-  .desktop-copy strong{font-size:13px;font-weight:700;color:var(--text);}
-  .desktop-copy span{font-size:12px;color:var(--text2);}
   .desktop-check{color:var(--check);font-size:15px;opacity:0;}
   .desktop-check.on{opacity:1;}
   .desktop-think{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 14px;border-top:1px solid var(--border);}
@@ -2627,19 +2622,19 @@ html[data-theme="messenger"] .s-row.s-row-accent .s-chev{color:#2f80ed;}
 .ada-panel .pro-locked::after{
   color:#8fc6ff;background:rgba(47,143,255,.16);border-color:rgba(47,143,255,.45);
 }
-#desktopModelsSub .desktop-option.pro-locked::after{
+.desktop-model-options .desktop-option.pro-locked::after{
   color:#8fc6ff;background:rgba(47,143,255,.14);border-color:rgba(47,143,255,.40);
 }
 .mm-opt.pro-locked::after{
   color:#8fc6ff!important;background:rgba(47,143,255,.14)!important;border-color:rgba(47,143,255,.40)!important;
 }
 html[data-theme="light"] .ada-panel .pro-locked::after,
-html[data-theme="light"] #desktopModelsSub .desktop-option.pro-locked::after,
+html[data-theme="light"] .desktop-model-options .desktop-option.pro-locked::after,
 html[data-theme="light"] .mm-opt.pro-locked::after{
   color:#1d6fd1;background:rgba(47,143,255,.12);border-color:rgba(47,143,255,.38);
 }
 html[data-theme="messenger"] .ada-panel .pro-locked::after,
-html[data-theme="messenger"] #desktopModelsSub .desktop-option.pro-locked::after,
+html[data-theme="messenger"] .desktop-model-options .desktop-option.pro-locked::after,
 html[data-theme="messenger"] .mm-opt.pro-locked::after{
   color:#0e7fd4;background:rgba(26,127,174,.12);border-color:rgba(26,127,174,.40);
 }
@@ -3718,6 +3713,13 @@ html:not([data-theme="light"]):not([data-theme="messenger"]) .mchip.on,html:not(
 html:not([data-theme="light"]):not([data-theme="messenger"]) .msg-user{background:#2a2a2e!important;border:0!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;background-image:none!important;}
 </style>
 <link rel="stylesheet" href="/css/hm-scrollbar.css">
+<style>
+.desktop-model-options .desktop-option,.desktop-effort-link{box-sizing:border-box;width:100%;border:0;background:transparent;color:inherit;text-align:start;font:inherit;}
+.desktop-model-options .desktop-option{justify-content:space-between;min-height:40px;}
+.desktop-model-options .desktop-option:hover{background:var(--hover);}
+.desktop-model-options .desktop-option:focus-visible,.desktop-effort-link:focus-visible{outline:2px solid var(--text2);outline-offset:-2px;}
+.desktop-model-options .desktop-option.pro-locked::after{position:static;margin-inline-start:auto;}
+</style>
 </head>
 <body>
 <div id="initialLoading" role="status" aria-live="polite"><span class="boot-spinner"></span><span>Загрузка HarmonyAI…</span></div>
@@ -3776,7 +3778,7 @@ html:not([data-theme="light"]):not([data-theme="messenger"]) .msg-user{backgroun
       <div class="auth-switch">Уже зарегистрированы? <a href="#" onclick="toggleLoginHint();return false;">Войти</a></div>
       <div class="auth-hint" id="loginHint" style="display:none;"></div>
       <label class="auth-terms" id="authTermsWrap"><input type="checkbox" id="authTerms" onchange="hmTermsChanged()"><span>Я прочитал(а) и принимаю <a href="/legal/terms.html" target="_blank" rel="noopener noreferrer">Условия использования</a>, <a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Политику конфиденциальности</a> и <a href="/legal/ofera.html" target="_blank" rel="noopener noreferrer">Оферту</a></span></label>
-      <div class="auth-beta">Beta 0.8.106</div>
+      <div class="auth-beta">Beta 0.8.107</div>
     </div>
 
     <!-- Экран 2: Код подтверждения -->
@@ -3791,7 +3793,7 @@ html:not([data-theme="light"]):not([data-theme="messenger"]) .msg-user{backgroun
       <div class="auth-resend" id="btnResend" onclick="resendOTP()">Не пришел код? Отправить снова</div>
       <div class="auth-switch">Уже зарегистрированы? <a href="#" onclick="toggleLoginHint();return false;">Войти</a></div>
       <div class="auth-tos">Продолжая, вы соглашаетесь с <a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Политикой Конфиденциальности</a> и <a href="/legal/terms.html" target="_blank" rel="noopener noreferrer">Условиями Пользователя</a> HarmonyAI</div>
-      <div class="auth-beta">Beta 0.8.106</div>
+      <div class="auth-beta">Beta 0.8.107</div>
     </div>
 
   </div>
@@ -3935,22 +3937,24 @@ html:not([data-theme="light"]):not([data-theme="messenger"]) .msg-user{backgroun
               <span class="pill-caret">▾</span>
               <div class="desktop-model-wrap" id="desktopModelWrap" onclick="event.stopPropagation()">
                 <div class="desktop-model-drop" id="desktopModelDrop">
-                  <div class="desktop-row" onclick="closeDesktopSubs()">
-                    <div class="desktop-model-current" id="desktopModelCurrent">Adan</div>
-                    <div class="md-check" id="desktopCurrentCheck">✓</div>
+                  <div class="desktop-model-options" role="group" aria-label="Модель">
+                    <button type="button" class="desktop-option" aria-pressed="false" onclick="selectModel('sion')">
+                      <span>Sion</span><span class="desktop-check" id="desktopCkSion" aria-hidden="true">✓</span>
+                    </button>
+                    <button type="button" class="desktop-option" aria-pressed="false" onclick="selectModel('pro')">
+                      <span>Dynatos</span><span class="desktop-check" id="desktopCkPro" aria-hidden="true">✓</span>
+                    </button>
+                    <button type="button" class="desktop-option" aria-pressed="true" onclick="selectModel('lite')">
+                      <span>Adan</span><span class="desktop-check on" id="desktopCkLite" aria-hidden="true">✓</span>
+                    </button>
                   </div>
                   <div class="md-divider"></div>
-                  <div class="desktop-row" onclick="openModeSub(event)">
-                    <div class="desktop-row-title">Режим</div>
-                    <div class="desktop-mini"><span id="desktopModeLabel">Low</span><span>›</span></div>
-                  </div>
-                  <div class="desktop-row" onclick="openModelsSub(event)">
-                    <div class="desktop-row-title">Больше моделей</div>
-                    <div class="desktop-mini"><span>›</span></div>
-                  </div>
+                  <button type="button" class="desktop-row desktop-effort-link" aria-controls="desktopModeSub" aria-expanded="false" onclick="openModeSub(event)">
+                    <span class="desktop-row-title">Режим усилий</span><span class="desktop-mini" aria-hidden="true">›</span>
+                  </button>
                 </div>
                 <div class="desktop-sub-drop" id="desktopModeSub">
-                  <!-- Ползунок усилий: Low → Medium → High → Extra → Max. На Extra дорожка становится звёздным небом. -->
+                  <!-- Ползунок усилий: Low → Medium → High → Extra → Max. На Max дорожка становится звёздным небом. -->
                   <div class="ef" id="desktopEffort" data-level="0">
                     <div class="ef-label"><span class="ef-swap" id="desktopEffortLabel"><span class="ef-cur">Low</span><span class="ef-next">Быстрый ответ</span></span></div>
                     <div class="ef-track" id="desktopEffortTrack" tabindex="0" role="slider" aria-label="Режим усилий" aria-valuemin="0" aria-valuemax="4" aria-valuenow="0" aria-valuetext="Low">
@@ -3966,20 +3970,6 @@ html:not([data-theme="light"]):not([data-theme="messenger"]) .msg-user{backgroun
                   <div class="desktop-think">
                     <div class="desktop-think-copy"><b>Думать</b><span>Для решения сложных задач</span></div>
                     <div class="sw" id="desktopThinkSw" onclick="toggleThink(event)"></div>
-                  </div>
-                </div>
-                <div class="desktop-sub-drop models" id="desktopModelsSub">
-                  <div class="desktop-option" onclick="selectModel('lite')">
-                    <div class="desktop-copy"><strong>Adan</strong><span>Быстро и легко</span></div>
-                    <span class="desktop-check on" id="desktopCkLite">✓</span>
-                  </div>
-                  <div class="desktop-option" onclick="selectModel('pro')">
-                    <div class="desktop-copy"><strong>Dynatos</strong><span>Максимум возможностей</span></div>
-                    <span class="desktop-check" id="desktopCkPro">✓</span>
-                  </div>
-                  <div class="desktop-option" onclick="selectModel('sion')">
-                    <div class="desktop-copy"><strong>Sion</strong><span>Разработка и отладка · Pro</span></div>
-                    <span class="desktop-check" id="desktopCkSion">✓</span>
                   </div>
                 </div>
               </div>
@@ -4434,7 +4424,7 @@ function hmLoadLib(name){
 
 let curUser=null,curEmail='',resendTimer=null,resendLeft=0;
 let sidebarExpanded=false;
-let curModel='lite',curMode='low',thinkOn=false,dropOpen=false,modeSubOpen=false,modelsSubOpen=false;
+let curModel='lite',curMode='low',thinkOn=false,dropOpen=false,modeSubOpen=false;
 /* ===== EFFORT (уровень размышления) ==========================================
    Единый внутренний параметр: low | medium | max | extra. Ровно эти четыре
    значения уходят на бэкенд полем effort в requestChatReply /
@@ -7748,15 +7738,15 @@ async function saveChatNow(title){
 
 /* ===== MODEL PICKER ===== */
 function closeDesktopSubs(){
-  modeSubOpen=false;modelsSubOpen=false;
+  modeSubOpen=false;
   document.getElementById('desktopModeSub')?.classList.remove('open');
-  document.getElementById('desktopModelsSub')?.classList.remove('open');
+  document.querySelector('.desktop-effort-link')?.setAttribute('aria-expanded','false');
 }
 function closeModelMenus(){
-  dropOpen=false;modeSubOpen=false;modelsSubOpen=false;
+  dropOpen=false;modeSubOpen=false;
   document.getElementById('desktopModelWrap')?.classList.remove('open');
   document.getElementById('desktopModeSub')?.classList.remove('open');
-  document.getElementById('desktopModelsSub')?.classList.remove('open');
+  document.querySelector('.desktop-effort-link')?.setAttribute('aria-expanded','false');
 }
 function toggleModelDrop(e){
   e?.stopPropagation();
@@ -7819,25 +7809,12 @@ function selectModel(m){
 function openModeSub(e){
   e.stopPropagation();
   if(!isDesktop())return;
-  if(isDesktop()){
-    modeSubOpen=!modeSubOpen;
-    modelsSubOpen=false;
-    document.getElementById('desktopModeSub')?.classList.toggle('open',modeSubOpen);
-    document.getElementById('desktopModelsSub')?.classList.remove('open');
-    if(modeSubOpen)requestAnimationFrame(fitDesktopSubs);
-    return;
-  }
+  modeSubOpen=!modeSubOpen;
+  document.getElementById('desktopModeSub')?.classList.toggle('open',modeSubOpen);
+  e.currentTarget.setAttribute('aria-expanded', String(modeSubOpen));
+  if(modeSubOpen)requestAnimationFrame(fitDesktopSubs);
 }
-function openModelsSub(e){
-  e.stopPropagation();
-  if(!isDesktop())return;
-  modelsSubOpen=!modelsSubOpen;
-  modeSubOpen=false;
-  document.getElementById('desktopModelsSub')?.classList.toggle('open',modelsSubOpen);
-  document.getElementById('desktopModeSub')?.classList.remove('open');
-  if(modelsSubOpen)requestAnimationFrame(fitDesktopSubs);
-}
-/* Клампим позицию подменю (Режим / Больше моделей) внутри viewport.
+/* Клампим позицию подменю режима усилий внутри viewport.
    Подменю открывается справа от главного дропа; если справа не хватает места —
    переставляем его слева через .flip-sub. Если снизу упирается — прижимаем к низу
    дропа через .pin-sub-bottom. */
@@ -8214,8 +8191,6 @@ function refreshModelUI(){
   setText('pillNameDesktop',fullModel);
   setText('pillMode',modeLabel); // только режим усилий: название модели уже стоит рядом
   try{hmEffortSync();}catch(e){}
-  setText('desktopModelCurrent',fullModel);
-  setText('desktopModeLabel',modeLabel);
   setText('mmModeLabel',modeLabel);
   toggleClass('thinkSw','on',thinkOn);
   toggleClass('desktopThinkSw','on',thinkOn);
@@ -8224,6 +8199,10 @@ function refreshModelUI(){
   toggleClass('desktopCkLite','on',curModel==='lite');
   toggleClass('desktopCkPro','on',curModel==='pro');
   toggleClass('desktopCkSion','on',curModel==='sion');
+  for(const name of ['Lite','Pro','Sion']){
+    const check=document.getElementById('desktopCk'+name);
+    check?.closest('button')?.setAttribute('aria-pressed',String(check.classList.contains('on')));
+  }
   toggleClass('desktopCkLow','on',effortNow==='low');
   toggleClass('desktopCkMedium','on',effortNow==='medium');
   toggleClass('desktopCkMax','on',effortNow==='max');
@@ -13327,6 +13306,13 @@ async function sendMsgInner(){
   // Поле чистим сразу, до всех await-ов: дальше идут сетевые вызовы (музыка,
   // intent-классификатор), и текст не должен оставаться в композере на это время.
   const text=takeComposerText();
+  if(window.HmChatPlugins?.hasFunPayKey(text)){toast('Ключ FunPay добавляется через Настройки → Плагины.');return;}
+  const moderationPaused=chatHistory.findLast(m=>m.role==='assistant')?.content==='Поставлю задачу на паузу. Если извинишься за оскорбление, продолжим.';
+  if(window.HmChatPlugins?.isFunPayStock(text)){
+    if(moderationPaused){await handleTextReply('@FunPay Пополнить автовыдачу');return;}
+    if(pendingAttachments.length){toast('Для автовыдачи вставь позиции в отдельное поле, которое появится после запроса без вложений.');return;}
+    if(await window.HmChatPlugins.route(text))return;
+  }
   // Файл ещё дочитывается — молча ждём (в чате индикатор «читаю файл»).
   if(hmAttachmentsBusy()){
     showTyping('file');
@@ -13336,7 +13322,6 @@ async function sendMsgInner(){
   // Файл отправлен — сразу убираем его из строки ввода (в сообщении он уже виден).
   if(pendingAttachments.length){pendingAttachments.forEach(a=>hmSentAttachments.add(a));renderComposerAttachments();updateComposerPlaceholder();}
   hmPreBubble(text,pendingAttachments.slice());
-  const moderationPaused=chatHistory.findLast(m=>m.role==='assistant')?.content==='Поставлю задачу на паузу. Если извинишься за оскорбление, продолжим.';
   if(moderationPaused){await handleTextReply(text);return;}
   if(!pendingAttachments.length&&await hmCatalogMusicRoute(text))return;
   /* «@Плагин …» — пользователь сам выбрал плагин: сразу туда, без угадывания. */
@@ -15925,7 +15910,7 @@ function renderAbout(){
       <div class="stp-about-hero">
         <div class="stp-about-logo"><svg width="26" height="26" viewBox="0 0 64 64"><path d="M18 14h8v18h12V14h8v36h-8V39H26v11h-8z" fill="currentColor"/></svg></div>
         <div class="stp-about-name">HarmonyAI</div>
-        <div class="stp-about-ver">Beta 0.8.106</div>
+        <div class="stp-about-ver">Beta 0.8.107</div>
       </div>
       <div class="stp-row" onclick="hmOpenDoc('/legal/privacy.html')" role="link" tabindex="0">
         <div class="stp-row-label"><div class="stp-row-title">Политика конфиденциальности</div></div>
@@ -17020,7 +17005,7 @@ function hmVideoFailText(d,query){
 }
 /* Сообщение с «@Плагин». true — обработано (ответ уже в чате). */
 async function hmPluginRoute(m,text){
-  if(window.HmChatPlugins&&['gmail','github','telegram'].includes(m.plugin))return window.HmChatPlugins.route(text,m.plugin);
+  if(window.HmChatPlugins&&['gmail','github','telegram','funpay'].includes(m.plugin))return window.HmChatPlugins.route(text,m.plugin);
   const rest=(m.rest||'').trim();
   if(m.plugin==='youtube'||m.plugin==='rutube'){
     if(!rest)return false;
@@ -17042,10 +17027,10 @@ async function hmVideoRoute(text,opts){
   if(!opts.forced&&!hmVideoWanted(text))return false;
   const sources=opts.sources||{rutube:window.HmVideo.pluginOn('rutube'),youtube:window.HmVideo.pluginOn('youtube')};
   let d=null;
-  showTyping('text');
+  const pending=hmPlugin(sources.rutube&&!sources.youtube?'find_rutube':sources.youtube&&!sources.rutube?'find_youtube':'find_video','');
   try{d=await hmVideoCall({action:'find',message:text,history:hmVideoHistory(),sources,forced:Boolean(opts.forced)},25000);}
   catch(e){d=null;}
-  finally{hideTyping();}
+  finally{pending.settle();}
   if(!d||!d.is_video)return false;
   const shown=opts.display||text;
   addUserBubble(shown,[]);
@@ -17303,6 +17288,9 @@ async function hmFindTrack(text,query,intro){
 }
 
 const HM_PLUG_WORDS={
+  find_rutube:['Ищу видео на RuTube…','Сверяю названия и выпуски…','Подбираю подходящий ролик…'],
+  find_youtube:['Ищу видео на YouTube…','Сверяю заголовки и каналы…','Проверяю совпадения…'],
+  find_video:['Ищу видео и выпуски…','Проверяю результаты видеопоиска…','Сравниваю найденные ролики…'],
   add_to_playlist:['Ищу трек','Добавляю в плейлист'],
   find_track:['Ищу трек','Подбираю, где послушать'],
   upload_track:['Подключаю Яндекс Музыку','Загружаю трек','Отправляю трек в Яндекс','Добавляю трек в плейлист','Жду, пока Яндекс обработает трек','Почти готово'],
@@ -17325,7 +17313,8 @@ function hmPlugin(action,intro){
   const word=document.createElement('span');word.className='hm-shimmer';st.appendChild(word);box.appendChild(st);
   const slot=document.createElement('div');slot.className='hm-plug-slot';box.appendChild(slot);
   shell.msg.appendChild(box);scrollChat();
-  const words=HM_PLUG_WORDS[action]||['Работаю'];
+  const defaults=HM_PLUG_WORDS[action]||['Работаю…'];
+  let words=defaults;
   let i=0,fixed=null;
   const show=t=>{word.classList.remove('in');void word.offsetWidth;word.textContent=t;word.classList.add('in');};
   show(words[0]);
@@ -17333,7 +17322,8 @@ function hmPlugin(action,intro){
   const api={
     shell,slot,
     set(t){fixed=t;show(t);},
-    free(){fixed=null;},
+    cycle(phrases){words=phrases?.length?phrases:defaults;i=0;fixed=null;show(words[0]);},
+    free(){words=defaults;fixed=null;},
     finish(md, options={}){
       clearInterval(timer);
       if(chatHistory!==history)return;
@@ -17341,7 +17331,7 @@ function hmPlugin(action,intro){
         const pre=document.createElement('pre');pre.className='hm-chat-plugin-result';pre.textContent=md;
         shell.msg.replaceChildren(pre);
         if(options.link){
-          const a=document.createElement('a');a.href=options.link;a.textContent='Открыть pull request';a.target='_blank';a.rel='noopener noreferrer';shell.msg.append(a);
+          const a=document.createElement('a');a.href=options.link;a.textContent=options.linkLabel||'Открыть pull request';a.target='_blank';a.rel='noopener noreferrer';shell.msg.append(a);
         }
       }else renderMd(shell.msg,md);
       if(!options.plain)setMessageActionsVisible(shell.actions,true);
