@@ -17,7 +17,7 @@
     api: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m7 6-5 6 5 6m10-12 5 6-5 6M14 3l-4 18"/></svg>',
     management: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 20V10m5 10V4m6 16v-7m5 7V7"/></svg>'
   };
-  let owner = null, connections = {}, onlyConnected = false, telegramLibrary, activeLogin, googleScript;
+  let owner = null, connections = {}, telegramLibrary, activeLogin, googleScript;
   const knownModules = {};
 
   function icon(id) { return icons[id] || HM_PLUGIN_LOGOS[id] || ''; }
@@ -49,7 +49,6 @@
     if (owner && telegramLibrary) knownModules.telegram?.lock(owner).catch(() => {});
     owner = null;
     connections = {};
-    onlyConnected = false;
   }
   function loadTelegram() {
     if (telegramLibrary) return telegramLibrary;
@@ -150,34 +149,23 @@
     const body = stpEnsure('plugins', 'Плагины', stpBackMain(), '<div class="hm-plugin-grid"></div>');
     if (!body) return;
     const grid = body.firstElementChild;
-    const head = body.parentElement.querySelector('.stp-head');
-    const menu = node('details', 'hm-plugin-menu');
-    const more = node('summary', 'stp-close hm-plugin-more', '···');
-    more.setAttribute('aria-label', 'Меню плагинов');
-    more.title = 'Меню плагинов';
-    const options = node('div', 'stp-dd-menu hm-plugin-menu-options');
-    const filter = button(onlyConnected ? 'Показать все плагины' : 'Только подключённые', () => { onlyConnected = !onlyConnected; render(); });
-    const refresh = button('Обновить статусы', () => render());
-    options.append(filter, refresh);
-    menu.append(more, options);
-    head.append(menu);
-    menu.onkeydown = event => { if (event.key === 'Escape') { menu.open = false; more.focus(); event.stopPropagation(); } };
-    menu.onfocusout = event => { if (!menu.contains(event.relatedTarget)) menu.open = false; };
-
     const ids = Object.keys(plugins).filter(id => id !== 'management' || hasModeratorAccess());
     const draw = () => {
       if (!grid.isConnected || curUser?.id !== user) return;
       grid.replaceChildren();
       for (const id of ids) {
         const pl = plugins[id], on = connected(id);
-        if (onlyConnected && !pl.link && !on) continue;
         const card = node('article', 'stp-conn hm-plugin-entry');
         const title = button('', () => detail(id));
         title.className = 'hm-plugin-title';
         const logo = node('span', 'hm-plugin-logo');
         logo.innerHTML = icon(id);
         title.append(logo, node('strong', '', pl.title));
-        const badge = pl.link ? buttonLink('Открыть', pl.link) : button(on ? 'Подключено' : 'Подключить', () => detail(id), true);
+        const badge = pl.link ? buttonLink('Открыть', pl.link) : button(on ? 'Подключено' : 'Подключить', () => detail(id));
+        if (!pl.link) {
+          badge.classList.add(on ? 'hm-plugin-badge--on' : 'hm-plugin-badge--off');
+          badge.setAttribute('aria-label', pl.title + ': ' + (on ? 'подключено, настройки' : 'не подключено, подключить'));
+        }
         card.append(title, badge, node('p', 'stp-row-desc', pl.description));
         grid.append(card);
       }
@@ -226,6 +214,12 @@
     if (id === 'github') githubDetail(view, user);
     if (id === 'gmail') gmailDetail(view, user);
     if (id === 'telegram') telegramDetail(view, user);
+    const action = button('Перейти в чат', () => {
+      closeSettings();
+      window.HmMentions?.setChip(id);
+      document.getElementById('msgTa')?.focus();
+    });
+    toolbar(view).append(action);
   }
 
   function writePreference(host, id, title) {
@@ -249,7 +243,7 @@
   function githubDetail(view, user) {
     const account = section(view, 'Подключение');
     const existing = connections.github;
-    const canWrite = writePreference(account, 'github', 'Изменения в репозиториях');
+    writePreference(account, 'github', 'Разрешить изменения из чата');
     const line = feedback(account);
     const run = runner(line);
     if (existing?.token) {
@@ -270,109 +264,13 @@
         detail('github');
       }), true));
     }
-    const browser = section(view, 'Репозитории');
-    const query = field(browser, 'Поиск репозитория', { limit: 100 });
-    const find = toolbar(browser);
-    const matches = node('div', 'hm-plugin-results');
-    browser.append(matches);
-    const repo = field(browser, 'Репозиторий', { limit: 200, example: 'владелец/имя' });
-    const repoActions = toolbar(browser);
-    const report = node('div', 'hm-plugin-results');
-    browser.append(report);
-    const token = existing?.token;
-    const api = (action, body = {}) => {
-      if (!view.isConnected || curUser?.id !== user) throw Error('Открой плагин GitHub снова.');
-      return call('github.' + action, { repo: repo.value.trim(), ...body }, token);
-    };
-    const repoStatus = feedback(browser);
-    const browse = runner(repoStatus);
-    find.append(button('Найти', () => browse(async () => {
-      const result = await api('search', { query: query.value });
-      matches.replaceChildren();
-      for (const item of result.repos || []) matches.append(button(item.name, () => { repo.value = item.name; repo.dispatchEvent(new Event('input')); repo.focus(); }));
-      return result.repos?.length ? '' : 'Репозитории не найдены.';
-    })));
-    const editor = section(view, 'Редактор кода');
-    const base = field(editor, 'Базовая ветка', { example: 'main', limit: 120 });
-    const branch = field(editor, 'Рабочая ветка', { example: 'fix/название', limit: 120 });
-    const path = field(editor, 'Путь к файлу', { example: 'src/index.js', limit: 300 });
-    const fileActions = toolbar(editor);
-    const source = field(editor, 'Код файла', { multiline: true, rows: 11 });
-    source.classList.add('hm-plugin-source');
-    source.disabled = true;
-    const editorRun = runner(feedback(editor));
-    const commit = field(editor, 'Сообщение коммита', { limit: 150 });
-    const commitActions = toolbar(editor);
-    let loaded = null;
-    const target = () => ({ repo: repo.value.trim(), branch: branch.value.trim(), path: path.value.trim() });
-    const clear = () => { source.value = ''; source.disabled = true; loaded = null; };
-    for (const input of [repo, branch, path]) input.addEventListener('input', clear);
-    repo.addEventListener('input', () => { base.value = ''; report.replaceChildren(); });
-    source.readOnly = !canWrite;
-    repoActions.append(button('Открыть репозиторий', () => browse(async () => {
-      const requestedRepo = repo.value.trim();
-      const data = await api('repo');
-      if (repo.value.trim() !== requestedRepo) return;
-      if (!base.value) base.value = data.branch || '';
-      report.replaceChildren(node('strong', '', data.name), node('p', '', data.description || ''));
-      for (const item of data.issues || []) {
-        const link = node('a', 'stp-link', (item.pullRequest ? 'PR' : 'Issue') + ' #' + item.number + ' · ' + item.title);
-        link.href = 'https://github.com/' + data.name + (item.pullRequest ? '/pull/' : '/issues/') + item.number;
-        link.target = '_blank'; link.rel = 'noopener noreferrer';
-        report.append(link);
-      }
-    }), true));
-    if (canWrite) fileActions.append(button('Создать ветку', () => editorRun(async () => {
-      const { branch: name } = await api('branch', { branch: branch.value.trim(), base: base.value.trim() });
-      return 'Создана ветка ' + name + '.';
-    })));
-    fileActions.append(button('Открыть файл', () => editorRun(async () => {
-      const selected = target();
-      const file = await api('file', selected);
-      if (JSON.stringify(selected) !== JSON.stringify(target())) return 'Путь или ветка изменились. Открой файл заново.';
-      source.value = file.content;
-      loaded = { ...selected, sha: file.sha, content: source.value, crlf: /\r\n/.test(file.content) && !/(?<!\r)\n/.test(file.content) };
-      source.disabled = false;
-    }), true));
-    if (!canWrite) { commit.closest('label').hidden = true; return; }
-    commitActions.append(button('Сохранить коммит', () => editorRun(async () => {
-      const current = target();
-      if (!loaded || ['repo', 'branch', 'path'].some(key => loaded[key] !== current[key])) throw Error('Открой файл в выбранной ветке.');
-      const snapshot = loaded;
-      const content = source.value;
-      const message = commit.value;
-      if (content === snapshot.content) throw Error('Файл не изменился.');
-      if (!(await hmConfirm('Сохранить изменения файла ' + loaded.path + ' в ветку ' + loaded.branch + '?'))) return;
-      const result = await api('commit', { ...current, sha: snapshot.sha, message, content: snapshot.crlf ? content.replace(/\n/g, '\r\n') : content });
-      if (JSON.stringify(current) === JSON.stringify(target())) loaded = { ...snapshot, sha: result.sha, content };
-      return 'Коммит ' + result.commit.slice(0, 7) + ' сохранён.';
-    }), true));
-    const pull = section(view, 'Pull request');
-    const title = field(pull, 'Заголовок', { limit: 150 });
-    const description = field(pull, 'Описание', { multiline: true, rows: 4, limit: 8000 });
-    const pullActions = toolbar(pull);
-    const pullStatus = feedback(pull);
-    const pullRun = runner(pullStatus);
-    const pullLink = node('a', 'stp-link');
-    pull.append(pullLink);
-    pullActions.append(button('Создать PR', () => pullRun(async () => {
-      const request = { repo: repo.value.trim(), head: branch.value.trim(), base: base.value.trim(), title: title.value, description: description.value };
-      if (!request.title.trim() || !request.head || !request.base) throw Error('Заполни заголовок и выбери ветки.');
-      if (!(await hmConfirm('Создать pull request из ' + request.head + ' в ' + request.base + '?'))) return;
-      const result = await api('pull', request);
-      const slug = request.repo.replace(/^https:\/\/github\.com\//i, '').replace(/\/$/, '');
-      pullLink.href = 'https://github.com/' + slug + '/pull/' + result.number;
-      pullLink.target = '_blank'; pullLink.rel = 'noopener noreferrer';
-      pullLink.textContent = 'Открыть PR #' + result.number;
-      return 'Pull request создан.';
-    }), true));
   }
 
   function gmailDetail(view, user) {
     const account = section(view, 'Подключение Google');
     const status = feedback(account);
     const credentials = connected('gmail') ? connections.gmail : null;
-    const canSend = writePreference(account, 'gmail', 'Отправка и перемещение писем в корзину');
+    writePreference(account, 'gmail', 'Разрешить отправку писем и перенос в корзину из чата');
     let oauth;
     const connect = button(credentials ? 'Переподключить' : 'Подключить', () => oauth?.requestAccessToken(), true);
     connect.disabled = true;
@@ -410,128 +308,13 @@
         connect.disabled = false;
       } catch (error) { status.textContent = error.message; }
     })();
-    if (!credentials) return;
-
-    const mailbox = section(view, 'Почта');
-    const list = node('div', 'hm-plugin-results');
-    const query = field(mailbox, 'Поиск писем', { example: 'is:unread', limit: 180 });
-    const mailActions = toolbar(mailbox);
-    mailbox.append(list);
-    const run = runner(feedback(mailbox));
-    const api = (action, args) => {
-      if (!view.isConnected || curUser?.id !== user || credentials.expires <= Date.now()) throw Error('Срок подключения Gmail истёк. Подключи аккаунт снова.');
-      return call('gmail.' + action, args, credentials.token);
-    };
-    const load = spam => run(async () => {
-      const data = await api('list', { query: query.value, spam });
-      list.replaceChildren();
-      for (const item of data.messages || []) {
-        const row = node('article', 'hm-plugin-result');
-        row.append(node('strong', '', item.subject || 'Без темы'), node('p', 'stp-row-desc', item.from), node('p', '', item.snippet));
-        const actions = toolbar(row);
-        const content = node('pre', 'hm-plugin-text');
-        row.append(content);
-        actions.append(button('Читать', () => run(async () => { content.textContent = (await api('read', { id: item.id })).text; })));
-        if (spam && canSend) actions.append(button('В корзину', () => run(async () => {
-          if (!(await hmConfirm('Переместить письмо «' + (item.subject || 'Без темы') + '» в корзину Gmail?'))) return;
-          await api('trash', { id: item.id }); row.remove();
-        })));
-        list.append(row);
-      }
-      return data.messages?.length ? '' : 'Письма не найдены.';
-    });
-    mailActions.append(button('Входящие', () => load(false), true), button('Спам', () => load(true)));
-    if (!canSend) return;
-    const compose = section(view, 'Отправить письмо');
-    const to = field(compose, 'Получатель', { type: 'email', limit: 254 });
-    const subject = field(compose, 'Тема', { limit: 120 });
-    const message = field(compose, 'Письмо', { multiline: true, rows: 5, limit: 20000 });
-    const send = toolbar(compose);
-    const sendRun = runner(feedback(compose));
-    send.append(button('Отправить', () => sendRun(async () => {
-      const mail = { to: to.value.trim(), subject: subject.value.trim(), message: message.value };
-      if (!mail.to || !to.validity.valid || !mail.subject || !mail.message.trim()) throw Error('Заполни получателя, тему и текст.');
-      if (!(await hmConfirm('Отправить письмо на ' + mail.to + '?'))) return;
-      await api('send', mail);
-      message.value = '';
-      return 'Письмо отправлено.';
-    }), true));
   }
-
 
   function telegramDetail(view, user) {
     const account = section(view, 'Личный аккаунт Telegram');
-    const canSend = writePreference(account, 'telegram', 'Отправка и редактирование сообщений');
+    writePreference(account, 'telegram', 'Разрешить отправку и редактирование из чата');
     const status = feedback(account);
     const run = runner(status);
-
-    function mountMessages() {
-      if (!view.isConnected || curUser?.id !== user) return;
-      const explorer = section(view, 'Чаты и сообщения');
-      const chat = node('select', 'stp-input');
-      chat.setAttribute('aria-label', 'Чат Telegram');
-      chat.append(new Option('Избранное', 'me'));
-      const list = node('div', 'hm-plugin-results');
-      const actions = toolbar(explorer);
-      explorer.append(chat, list);
-      const compose = field(explorer, 'Сообщение', { multiline: true, rows: 4, limit: 4096 });
-      const sendActions = toolbar(explorer);
-      compose.closest('label').hidden = !canSend;
-      sendActions.hidden = !canSend;
-      const progress = feedback(explorer);
-      const execute = runner(progress);
-      let editing = null;
-      const write = button('Отправить', () => execute(async () => {
-        const target = chat.value;
-        const text = compose.value.trim();
-        const messageId = editing;
-        if (!text) throw Error('Введи текст сообщения.');
-        const caption = chat.selectedOptions[0]?.textContent || 'Telegram';
-        if (!(await hmConfirm((messageId ? 'Сохранить изменения в «' : 'Отправить сообщение в «') + caption + '»?'))) return;
-        if (!view.isConnected || curUser?.id !== user || chat.value !== target) throw Error('Открой нужный чат снова.');
-        await (await loadTelegram()).send(user, target, text, messageId);
-        resetEditor();
-        await loadMessages();
-        return messageId ? 'Сообщение изменено.' : 'Сообщение отправлено.';
-      }), true);
-      const cancelEdit = button('Отменить редактирование', () => resetEditor());
-      cancelEdit.hidden = true;
-      sendActions.append(write, cancelEdit);
-      function resetEditor() {
-        compose.value = '';
-        editing = null;
-        write.textContent = 'Отправить';
-        cancelEdit.hidden = true;
-      }
-      async function loadMessages() {
-        const target = chat.value;
-        const items = await (await loadTelegram()).messages(user, target);
-        if (!view.isConnected || curUser?.id !== user || chat.value !== target) return;
-        list.replaceChildren();
-        for (const item of items) {
-          const card = node('article', 'hm-plugin-result');
-          card.append(node('p', 'hm-plugin-text', item.text));
-          if (item.outgoing && canSend) toolbar(card).append(button('Редактировать', () => {
-            editing = item.id;
-            compose.value = item.text;
-            write.textContent = 'Сохранить изменения';
-            cancelEdit.hidden = false;
-            compose.focus();
-          }));
-          list.append(card);
-        }
-        return items.length ? '' : 'Нет текстовых сообщений.';
-      }
-      actions.append(button('Загрузить чаты', () => execute(async () => {
-        const current = chat.value;
-        const items = await (await loadTelegram()).dialogs(user);
-        if (!view.isConnected || curUser?.id !== user) return;
-        chat.replaceChildren(...items.map(item => new Option(item.name, item.id)));
-        if (items.some(item => item.id === current)) chat.value = current;
-        return 'Чаты загружены.';
-      })), button('Показать сообщения', () => execute(loadMessages), true));
-      chat.addEventListener('change', () => { list.replaceChildren(); resetEditor(); });
-    }
 
     async function prepare() {
       const saved = await telegramStored(user).catch(() => false);
@@ -546,7 +329,6 @@
           if (!revoked) toast('Сессия удалена из браузера. Проверь активные сеансы в Telegram.');
           detail('telegram');
         })));
-        mountMessages();
         return;
       }
       const about = node('p', 'stp-row-desc', 'Создай приложение Telegram и возьми API ID и API Hash. Вход подтверждается в Telegram. Сессия сохраняется в этом браузере.');
@@ -614,7 +396,23 @@
 
   window.HmPlugins = {
     render,
+    detail,
+    icon,
     reset,
+    async chatAccess(id, write = false) {
+      const user = checkOwner();
+      if (!user) throw Error('Войди в HarmonyAI.');
+      if (write && getSettings()['hmPluginWrite_' + id] === false) throw Error('Изменения отключены в настройках ' + plugins[id].title + '.');
+      const needsConnection = (id === 'gmail' && !connected(id)) || (id === 'github' && write && !connected(id)) ||
+        (id === 'telegram' && !await telegramStored(user));
+      if (needsConnection) throw Object.assign(Error('Подключи ' + plugins[id].title + ' в настройках плагинов.'), { pluginId: id });
+      if (curUser?.id !== user) throw Error('Сессия HarmonyAI изменилась.');
+      if (id === 'telegram') return { telegram: await loadTelegram() };
+      return { invoke: (action, args) => {
+        if (curUser?.id !== user) throw Error('Сессия HarmonyAI изменилась.');
+        return call(action, args, connections[id]?.token);
+      } };
+    },
     cancel: () => activeLogin?.abort()
   };
 })();

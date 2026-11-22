@@ -19,6 +19,9 @@
   };
 
   var PLUGINS = [
+    { id: 'gmail', name: 'Gmail', desc: 'Чтение, поиск и отправка писем', keys: ['gmail', 'джимейл'], alias: /^(gmail|джимейл)(?![a-zа-яё0-9])/i },
+    { id: 'github', name: 'GitHub', desc: 'Репозитории, файлы и pull requests', keys: ['github', 'гитхаб'], alias: /^(github|гитхаб)(?![a-zа-яё0-9])/i },
+    { id: 'telegram', name: 'Telegram', desc: 'Личные чаты и сообщения', keys: ['telegram', 'телеграм', 'тг'], alias: /^(telegram|телеграм|тг)(?![a-zа-яё0-9])/i },
     { id: 'yandex', name: 'Яндекс Музыка', desc: 'Поиск треков, загрузка в плейлист, подборки', keys: ['яндекс музыка', 'я музыка', 'yandex music', 'музыка'], alias: /^(яндекс\s*музык[а-яё]*|я\.?\s?музык[а-яё]*|yandex(\s*music)?|ym)(?![a-zа-яё0-9])/i },
     { id: 'youtube', name: 'YouTube', desc: 'Поиск видео', keys: ['youtube', 'ютуб'], alias: /^(youtube|ютуб[а-яё]*)(?![a-zа-яё0-9])/i },
     { id: 'rutube', name: 'Rutube', desc: 'Фильмы, сериалы и видео', keys: ['rutube', 'рутуб'], alias: /^(rutube|рутуб[а-яё]*)(?![a-zа-яё0-9])/i }
@@ -87,7 +90,7 @@
     }
     box.innerHTML = '<div class="hm-mention-h">Плагины</div>' + items.map(function (p, i) {
       return '<button type="button" class="hm-mention-row' + (i === active ? ' is-active' : '') + '" role="option" data-i="' + i + '">' +
-        '<span class="hm-mention-logo">' + LOGOS[p.id] + '</span>' +
+        '<span class="hm-mention-logo">' + (LOGOS[p.id] || global.HmPlugins?.icon(p.id) || '') + '</span>' +
         '<span class="hm-mention-meta"><b>' + esc(p.name) + '</b><span>' + esc(p.desc) + '</span></span>' +
         '<span class="hm-mention-tag">Плагин</span></button>';
     }).join('');
@@ -119,7 +122,7 @@
     chip = p;
     chipEl = document.createElement('span');
     chipEl.className = 'hm-plugin-chip';
-    chipEl.innerHTML = '<span class="hm-plugin-chip-logo">' + LOGOS[p.id] + '</span><span class="hm-plugin-chip-name"></span>' +
+    chipEl.innerHTML = '<span class="hm-plugin-chip-logo">' + (LOGOS[p.id] || global.HmPlugins?.icon(p.id) || '') + '</span><span class="hm-plugin-chip-name"></span>' +
       '<button type="button" class="hm-plugin-chip-x" aria-label="Убрать плагин" title="Убрать плагин"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>';
     chipEl.querySelector('.hm-plugin-chip-name').textContent = p.name;
     chipEl.querySelector('.hm-plugin-chip-x').addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); clearChip(); var t = ta(); if (t) t.focus(); });

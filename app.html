@@ -162,6 +162,7 @@ if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127
 <script defer src="/js/hm-rich.js"></script>
 <link rel="stylesheet" href="/css/hm-plugins.css">
 <script defer src="/js/hm-plugins.js"></script>
+<script defer src="/js/hm-chat-plugins.js"></script>
 <script defer src="/js/hm-stems.js?v=1"></script>
 <script defer src="/js/thinking-loader.js"></script>
 <link rel="stylesheet" href="/css/hm-think.css">
@@ -3775,7 +3776,7 @@ html:not([data-theme="light"]):not([data-theme="messenger"]) .msg-user{backgroun
       <div class="auth-switch">Уже зарегистрированы? <a href="#" onclick="toggleLoginHint();return false;">Войти</a></div>
       <div class="auth-hint" id="loginHint" style="display:none;"></div>
       <label class="auth-terms" id="authTermsWrap"><input type="checkbox" id="authTerms" onchange="hmTermsChanged()"><span>Я прочитал(а) и принимаю <a href="/legal/terms.html" target="_blank" rel="noopener noreferrer">Условия использования</a>, <a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Политику конфиденциальности</a> и <a href="/legal/ofera.html" target="_blank" rel="noopener noreferrer">Оферту</a></span></label>
-      <div class="auth-beta">Beta 0.8.105</div>
+      <div class="auth-beta">Beta 0.8.106</div>
     </div>
 
     <!-- Экран 2: Код подтверждения -->
@@ -3790,7 +3791,7 @@ html:not([data-theme="light"]):not([data-theme="messenger"]) .msg-user{backgroun
       <div class="auth-resend" id="btnResend" onclick="resendOTP()">Не пришел код? Отправить снова</div>
       <div class="auth-switch">Уже зарегистрированы? <a href="#" onclick="toggleLoginHint();return false;">Войти</a></div>
       <div class="auth-tos">Продолжая, вы соглашаетесь с <a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Политикой Конфиденциальности</a> и <a href="/legal/terms.html" target="_blank" rel="noopener noreferrer">Условиями Пользователя</a> HarmonyAI</div>
-      <div class="auth-beta">Beta 0.8.105</div>
+      <div class="auth-beta">Beta 0.8.106</div>
     </div>
 
   </div>
@@ -13347,7 +13348,7 @@ async function sendMsgInner(){
       let done=false;
       try{done=await hmPluginRoute(mention,text);}catch(e){done=false;}
       if(done)return;
-    }
+    }else if(!pendingAttachments.length&&await window.HmChatPlugins?.route(text))return;
   }
   /* ИИ-агент: трек, Яндекс Музыка, лимиты, подключение — ИИ по смыслу
      решает, что сделать. Явные команды плеера («включи…», «пауза») идут
@@ -15924,7 +15925,7 @@ function renderAbout(){
       <div class="stp-about-hero">
         <div class="stp-about-logo"><svg width="26" height="26" viewBox="0 0 64 64"><path d="M18 14h8v18h12V14h8v36h-8V39H26v11h-8z" fill="currentColor"/></svg></div>
         <div class="stp-about-name">HarmonyAI</div>
-        <div class="stp-about-ver">Beta 0.8.105</div>
+        <div class="stp-about-ver">Beta 0.8.106</div>
       </div>
       <div class="stp-row" onclick="hmOpenDoc('/legal/privacy.html')" role="link" tabindex="0">
         <div class="stp-row-label"><div class="stp-row-title">Политика конфиденциальности</div></div>
@@ -17019,6 +17020,7 @@ function hmVideoFailText(d,query){
 }
 /* Сообщение с «@Плагин». true — обработано (ответ уже в чате). */
 async function hmPluginRoute(m,text){
+  if(window.HmChatPlugins&&['gmail','github','telegram'].includes(m.plugin))return window.HmChatPlugins.route(text,m.plugin);
   const rest=(m.rest||'').trim();
   if(m.plugin==='youtube'||m.plugin==='rutube'){
     if(!rest)return false;
@@ -17332,12 +17334,18 @@ function hmPlugin(action,intro){
     shell,slot,
     set(t){fixed=t;show(t);},
     free(){fixed=null;},
-    finish(md){
+    finish(md, options={}){
       clearInterval(timer);
       if(chatHistory!==history)return;
-      renderMd(shell.msg,md);
-      setMessageActionsVisible(shell.actions,true);
-      chatHistory.push({role:'assistant',content:md,createdAt:messageNow()});
+      if(options.plain){
+        const pre=document.createElement('pre');pre.className='hm-chat-plugin-result';pre.textContent=md;
+        shell.msg.replaceChildren(pre);
+        if(options.link){
+          const a=document.createElement('a');a.href=options.link;a.textContent='Открыть pull request';a.target='_blank';a.rel='noopener noreferrer';shell.msg.append(a);
+        }
+      }else renderMd(shell.msg,md);
+      if(!options.plain)setMessageActionsVisible(shell.actions,true);
+      chatHistory.push({role:'assistant',content:options.historyContent||md,createdAt:messageNow()});
       saveChat().catch(()=>{});
       scrollChat();
     },
