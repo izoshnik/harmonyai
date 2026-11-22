@@ -1,0 +1,87 @@
+/* Settings layout inherits the shared HarmonyAI colors, typography and controls. */
+.hm-plugin-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: clamp(18px, 4vw, 42px);
+}
+.hm-plugin-entry {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-content: start;
+  align-items: center;
+  column-gap: 10px;
+  row-gap: 6px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--set-line);
+  min-width: 0;
+}
+.hm-plugin-entry > p { grid-column: 1 / -1; margin: 0; overflow-wrap: anywhere; }
+.hm-plugin-entry > .stp-btn { justify-self: end; white-space: nowrap; }
+.hm-plugin-title {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 8px;
+  min-width: 0;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: var(--set-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.hm-plugin-title strong { font-weight: 650; }
+.hm-plugin-title:hover strong { text-decoration: underline; text-underline-offset: 3px; }
+.hm-plugin-logo { display: inline-grid; place-items: center; width: 24px; height: 24px; flex: 0 0 24px; }
+.hm-plugin-logo > svg { width: 100%; height: 100%; }
+.stp-head .hm-plugin-more {
+  right: 54px !important;
+  display: grid !important;
+  place-items: center;
+  list-style: none;
+  cursor: pointer;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+.hm-plugin-more::-webkit-details-marker { display: none; }
+.hm-plugin-menu-options {
+  inset: 48px 0 auto auto !important;
+  min-width: max-content;
+  z-index: 4;
+  padding: 6px;
+}
+.hm-plugin-menu[open] .hm-plugin-menu-options { display: grid !important; gap: 4px; }
+.hm-plugin-menu-options .stp-btn { text-align: start; width: 100%; }
+.hm-plugin-intro { display: flex; align-items: center; gap: 12px; padding: 4px 0 14px; }
+.hm-plugin-intro p { margin: 0; }
+.hm-plugin-intro .hm-plugin-logo { width: 35px; height: 35px; flex-basis: 35px; }
+.hm-plugin-section { border-top: 1px solid var(--set-line); padding: 15px 0; }
+.hm-plugin-section h3 { margin: 0 0 10px; }
+.hm-plugin-section .stp-conn { margin-top: 6px; }
+.hm-plugin-field { display: grid; gap: 5px; margin: 9px 0; min-width: 0; }
+.hm-plugin-detail .stp-input { display: block; box-sizing: border-box; width: 100%; min-width: 0; }
+.hm-plugin-detail textarea { resize: vertical; min-height: 72px; }
+.hm-plugin-detail textarea.hm-plugin-source { min-height: 220px; font-family: ui-monospace, Consolas, monospace; tab-size: 2; }
+.hm-plugin-actions { display: flex; flex-wrap: wrap; gap: 6px; margin: 7px 0; }
+.hm-plugin-detail [hidden] { display: none !important; }
+.hm-plugin-feedback { margin: 8px 0; }
+.hm-plugin-feedback:empty, .hm-plugin-results:empty { display: none; }
+.hm-plugin-results { display: grid; gap: 7px; margin: 10px 0; }
+.hm-plugin-results a { overflow-wrap: anywhere; }
+.hm-plugin-result { padding: 7px 0; min-width: 0; border-bottom: 1px solid var(--set-line); }
+.hm-plugin-result p { margin: 4px 0; }
+.hm-plugin-text { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; }
+.hm-plugin-text:empty { display: none; }
+@media (max-width: 1000px) {
+  .hm-plugin-entry { grid-template-columns: 1fr; }
+  .hm-plugin-entry > .stp-btn { justify-self: start; grid-row: 3; }
+  .hm-plugin-entry > p { grid-row: 2; }
+}
+@media (max-width: 768px), (hover: none) and (pointer: coarse) {
+  .hm-plugin-grid { grid-template-columns: 1fr; }
+  .hm-plugin-entry { grid-template-columns: minmax(0, 1fr) auto; gap: 6px; }
+  .hm-plugin-entry > .stp-btn { grid-row: auto; justify-self: end; }
+  .hm-plugin-entry > p { grid-row: auto; }
+  .stp-head .hm-plugin-more { right: 48px !important; }
+}
