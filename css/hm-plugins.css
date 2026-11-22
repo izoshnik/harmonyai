@@ -35,24 +35,6 @@
 .hm-plugin-title:hover strong { text-decoration: underline; text-underline-offset: 3px; }
 .hm-plugin-logo { display: inline-grid; place-items: center; width: 24px; height: 24px; flex: 0 0 24px; }
 .hm-plugin-logo > svg { width: 100%; height: 100%; }
-.stp-head .hm-plugin-more {
-  right: 54px !important;
-  display: grid !important;
-  place-items: center;
-  list-style: none;
-  cursor: pointer;
-  font-weight: 700;
-  letter-spacing: 1px;
-}
-.hm-plugin-more::-webkit-details-marker { display: none; }
-.hm-plugin-menu-options {
-  inset: 48px 0 auto auto !important;
-  min-width: max-content;
-  z-index: 4;
-  padding: 6px;
-}
-.hm-plugin-menu[open] .hm-plugin-menu-options { display: grid !important; gap: 4px; }
-.hm-plugin-menu-options .stp-btn { text-align: start; width: 100%; }
 .hm-plugin-intro { display: flex; align-items: center; gap: 12px; padding: 4px 0 14px; }
 .hm-plugin-intro p { margin: 0; }
 .hm-plugin-intro .hm-plugin-logo { width: 35px; height: 35px; flex-basis: 35px; }
@@ -83,5 +65,24 @@
   .hm-plugin-entry { grid-template-columns: minmax(0, 1fr) auto; gap: 6px; }
   .hm-plugin-entry > .stp-btn { grid-row: auto; justify-self: end; }
   .hm-plugin-entry > p { grid-row: auto; }
-  .stp-head .hm-plugin-more { right: 48px !important; }
 }
+
+.hm-plugin-entry > .hm-plugin-badge--off, .hm-chat-plugin-confirm .hm-plugin-badge--off {
+  border: 1px solid var(--set-text, var(--text)) !important;
+  background: transparent !important; color: var(--set-text, var(--text)) !important;
+}
+.hm-plugin-entry > .hm-plugin-badge--on {
+  background: color-mix(in srgb, #228459 15%, var(--set-panel)) !important;
+  border: 1px solid color-mix(in srgb, #228459 42%, var(--set-line)) !important;
+  color: var(--set-text) !important;
+}
+.hm-plugin-badge--on::before { content: ''; display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-inline-end: 5px; background: #2d9e6c; }
+.hm-plugin-detail .stp-input {
+  min-height: 42px; padding: 8px 12px; border: 1px solid var(--set-line); border-radius: 12px;
+  background: var(--set-soft, var(--bg2)); color: var(--set-text, var(--text)); font: inherit;
+}
+.hm-plugin-detail .stp-input:focus-visible { outline: 2px solid var(--set-muted, var(--text2)); outline-offset: 1px; }
+.hm-chat-plugin-result { font: inherit; margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.hm-chat-plugin-confirm { padding: 10px 0 2px; }
+.hm-chat-plugin-preview { margin: 8px 0; }
+.hm-chat-plugin-preview > pre { max-height: 260px; overflow: auto; margin-top: 6px; }
