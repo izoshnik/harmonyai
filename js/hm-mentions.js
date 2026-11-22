@@ -22,6 +22,7 @@
     { id: 'gmail', name: 'Gmail', desc: 'Чтение, поиск и отправка писем', keys: ['gmail', 'джимейл'], alias: /^(gmail|джимейл)(?![a-zа-яё0-9])/i },
     { id: 'github', name: 'GitHub', desc: 'Репозитории, файлы и pull requests', keys: ['github', 'гитхаб'], alias: /^(github|гитхаб)(?![a-zа-яё0-9])/i },
     { id: 'telegram', name: 'Telegram', desc: 'Личные чаты и сообщения', keys: ['telegram', 'телеграм', 'тг'], alias: /^(telegram|телеграм|тг)(?![a-zа-яё0-9])/i },
+    { id: 'funpay', name: 'FunPay', desc: 'Предложения и автовыдача', keys: ['funpay', 'фанпей', 'фанпэй'], alias: /^(funpay|фанпей|фанпэй)(?![a-zа-яё0-9])/i },
     { id: 'yandex', name: 'Яндекс Музыка', desc: 'Поиск треков, загрузка в плейлист, подборки', keys: ['яндекс музыка', 'я музыка', 'yandex music', 'музыка'], alias: /^(яндекс\s*музык[а-яё]*|я\.?\s?музык[а-яё]*|yandex(\s*music)?|ym)(?![a-zа-яё0-9])/i },
     { id: 'youtube', name: 'YouTube', desc: 'Поиск видео', keys: ['youtube', 'ютуб'], alias: /^(youtube|ютуб[а-яё]*)(?![a-zа-яё0-9])/i },
     { id: 'rutube', name: 'Rutube', desc: 'Фильмы, сериалы и видео', keys: ['rutube', 'рутуб'], alias: /^(rutube|рутуб[а-яё]*)(?![a-zа-яё0-9])/i }

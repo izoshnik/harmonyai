@@ -7,10 +7,12 @@
     telegram: { title: 'Telegram', description: 'Чтение, отправка и редактирование сообщений с личного аккаунта.' },
     yandex: { title: 'Яндекс Музыка', description: 'Поиск треков, плейлисты, Моя волна и загрузка MP3.' },
     rutube: { title: 'RuTube', description: 'Поиск фильмов, сериалов и видео прямо в чате.' },
+    funpay: { title: 'FunPay', description: 'Публикация, редактирование и удаление предложений. Пополнение автовыдачи из чата.' },
     api: { title: 'API', description: 'Ключи, баланс и настройки API HarmonyAI.', link: '/api/dashboard' },
     management: { title: 'Управление', description: 'Состояние сервиса и статистика.', link: '/management' }
   };
   const icons = {
+    funpay: '<img class="hm-funpay-icon" src="/icons/plugin-funpay.ico" alt="" width="24" height="24">',
     github: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M12 .8a11.3 11.3 0 0 0-3.57 22c.57.1.78-.24.78-.54l-.02-2.1c-3.2.69-3.88-1.36-3.88-1.36-.52-1.33-1.28-1.69-1.28-1.69-1.05-.72.08-.7.08-.7 1.16.08 1.76 1.19 1.76 1.19 1.03 1.76 2.7 1.25 3.36.95.1-.75.4-1.25.73-1.54-2.55-.3-5.24-1.28-5.24-5.69 0-1.25.45-2.28 1.18-3.08-.12-.3-.5-1.47.12-3.05 0 0 .97-.31 3.16 1.18a11 11 0 0 1 5.75 0c2.19-1.49 3.15-1.18 3.15-1.18.63 1.58.24 2.75.12 3.05.74.8 1.18 1.83 1.18 3.08 0 4.42-2.69 5.4-5.25 5.68.41.36.78 1.06.78 2.15l-.01 3.11c0 .3.2.65.79.54A11.3 11.3 0 0 0 12 .8Z"/></svg>',
     gmail: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke-width="4.5"><path stroke="#4285f4" d="M3 20V6"/><path stroke="#34a853" d="M21 20V6"/><path stroke="#ea4335" stroke-linejoin="round" d="m2.5 5 9.5 7 9.5-7"/></svg>',
     telegram: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#229ed9"/><path fill="#fff" d="m5 11.5 13.5-5.2-2.4 12.1-4.4-3.5-2.3 2.2.4-3.8 6.4-5-7.8 4.5z"/></svg>',
@@ -214,6 +216,7 @@
     if (id === 'github') githubDetail(view, user);
     if (id === 'gmail') gmailDetail(view, user);
     if (id === 'telegram') telegramDetail(view, user);
+    if (id === 'funpay') funpayDetail(view, user);
     const action = button('Перейти в чат', () => {
       closeSettings();
       window.HmMentions?.setChip(id);
@@ -239,6 +242,34 @@
     row.append(label, toggle);
     host.append(row);
     return enabled;
+  }
+  function funpayDetail(view, user) {
+    const account = section(view, 'Подключение');
+    writePreference(account, 'funpay', 'Разрешить изменения предложений из чата');
+    const line = feedback(account);
+    const run = runner(line);
+    const existing = connections.funpay;
+    if (existing?.token) {
+      line.textContent = 'Подключено · профиль №' + existing.account;
+      toolbar(account).append(button('Отключить', () => {
+        delete connections.funpay;
+        detail('funpay');
+      }));
+      return;
+    }
+    const instructions = node('p', 'stp-row-desc', 'Войди в свой аккаунт FunPay. В инструментах разработчика браузера открой Application → Cookies → funpay.com и скопируй значение golden_key. Ключ хранится до закрытия или обновления вкладки.');
+    account.append(instructions);
+    const key = field(account, 'Golden Key', { type: 'password', limit: 512 });
+    toolbar(account).append(button('Проверить и подключить', () => run(async () => {
+      const token = key.value.trim();
+      if (!token) return 'Введи Golden Key.';
+      key.value = '';
+      const data = await call('funpay.connect', {}, token);
+      if (!data.account || curUser?.id !== user) throw Error('FunPay не подтвердил подключение.');
+      connections.funpay = { token, account: data.account };
+      if (view.isConnected) detail('funpay');
+      return 'Подключено.';
+    }), true));
   }
   function githubDetail(view, user) {
     const account = section(view, 'Подключение');
@@ -399,17 +430,25 @@
     detail,
     icon,
     reset,
+    containsFunPayKey(text) {
+      checkOwner();
+      const key = connections.funpay?.token;
+      return Boolean(key && String(text || '').includes(key));
+    },
     async chatAccess(id, write = false) {
       const user = checkOwner();
       if (!user) throw Error('Войди в HarmonyAI.');
       if (write && getSettings()['hmPluginWrite_' + id] === false) throw Error('Изменения отключены в настройках ' + plugins[id].title + '.');
       const needsConnection = (id === 'gmail' && !connected(id)) || (id === 'github' && write && !connected(id)) ||
-        (id === 'telegram' && !await telegramStored(user));
+        (id === 'funpay' && !connected(id)) || (id === 'telegram' && !await telegramStored(user));
       if (needsConnection) throw Object.assign(Error('Подключи ' + plugins[id].title + ' в настройках плагинов.'), { pluginId: id });
       if (curUser?.id !== user) throw Error('Сессия HarmonyAI изменилась.');
       if (id === 'telegram') return { telegram: await loadTelegram() };
       return { invoke: (action, args) => {
         if (curUser?.id !== user) throw Error('Сессия HarmonyAI изменилась.');
+        if (id === 'funpay' && (!connected(id) || getSettings().hmPluginWrite_funpay === false)) {
+          throw Error('Подключение или разрешение FunPay изменилось.');
+        }
         return call(action, args, connections[id]?.token);
       } };
     },
