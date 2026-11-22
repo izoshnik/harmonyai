@@ -250,7 +250,7 @@
     const label = plugins.map(id => names[id]).join(' · ');
     const view = hmPlugin('chat_plugins', '');
     const entries = [];
-    const finish = (answer, result) => view.finish(answer, { plain: true, link: result?.link, linkLabel: result?.linkLabel,
+    const finish = (answer, result) => view.finish(answer, { plain: !isFunPay, funpayReply: isFunPay, link: result?.link, linkLabel: result?.linkLabel,
       historyContent: isFunPay ? answer : label + ' · результат показан в текущей сессии.' });
     const answerFunPay = async (evidence, result) => {
       view.cycle(['Готовлю ответ по FunPay…', 'Сверяю результат…']);
