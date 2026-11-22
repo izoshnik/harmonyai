@@ -81,19 +81,18 @@
     const remove = action === 'funpay.delete';
     if (publish && !/^[1-9]\d{0,11}$/.test(args.node || '')) throw Error('Сначала укажи, в каком разделе FunPay опубликовать предложение.');
     if (secret.test(args.title || '') || secret.test(args.description || '')) throw Error('В открытых полях товара обнаружены данные, похожие на токен.');
-    const target = publish ? (args.categoryLabel || 'раздел №' + args.node) : 'предложение №' + args.offer;
     check(job);
     view.cycle(publish && args.stock ? ['Открываю раздел FunPay…', 'Публикую товар с автовыдачей…', 'Проверяю результат FunPay…'] : progress[action]);
     const data = await access.invoke(action, args);
     check(job);
-    const offer = /^\d+$/.test(data.offer) ? data.offer : '';
-    const node = /^\d+$/.test(data.node) ? data.node : '';
+    const offer = /^[1-9]\d{0,11}$/.test(data?.offer || '') ? data.offer : '';
+    if (!offer) throw Error('FunPay не вернул ID предложения. Проверь список своих предложений перед повтором.');
     const stockStatus = Number.isInteger(data.added) ? ' Автовыдача включена. Добавлено позиций: ' + data.added + '.' : '';
     const text = addStock ? 'Предложение №' + offer + '.' + stockStatus :
-      publish ? (offer ? 'Опубликовано предложение №' + offer + '.' : 'Предложение опубликовано · ' + target + '.') :
+      publish ? 'Опубликовано предложение №' + offer + '.' :
         'Предложение №' + offer + (remove ? ' удалено.' : ' обновлено.');
-    const link = remove ? '' : offer ? 'https://funpay.com/lots/offer?id=' + offer : node ? 'https://funpay.com/lots/' + node + '/trade' : '';
-    return { action, text: text + (addStock ? '' : stockStatus), link, linkLabel: offer ? 'Открыть предложение FunPay' : 'Открыть раздел FunPay' };
+    const link = remove ? '' : 'https://funpay.com/lots/offer?id=' + offer;
+    return { action, text: text + (addStock ? '' : stockStatus), link, linkLabel: 'Открыть предложение FunPay' };
   }
 
   async function telegramStep(job, api, action, args, view) {
@@ -250,7 +249,7 @@
     const label = plugins.map(id => names[id]).join(' · ');
     const view = hmPlugin('chat_plugins', '');
     const entries = [];
-    const finish = (answer, result) => view.finish(answer, { plain: !isFunPay, funpayReply: isFunPay, link: result?.link, linkLabel: result?.linkLabel,
+    const finish = (answer, result, factsOnly = false) => view.finish(answer, { plain: !isFunPay, funpayReply: isFunPay, factsOnly, link: result?.link, linkLabel: result?.linkLabel,
       historyContent: isFunPay ? answer : label + ' · результат показан в текущей сессии.' });
     const answerFunPay = async (evidence, result) => {
       view.cycle(['Готовлю ответ по FunPay…', 'Сверяю результат…']);
@@ -271,8 +270,7 @@
         const entry = await execute(job, step, entries, view);
         if (!entry) {
           const evidence = [...entries.map(e => e.text), 'Действие отменено.'].join('\n\n');
-          if (isFunPay) await answerFunPay(evidence);
-          else finish(evidence);
+          finish(evidence, isFunPay ? entries.findLast(e => e.link) : undefined, isFunPay);
           return true;
         }
         entries.push(entry);
@@ -294,8 +292,7 @@
     } catch (error) {
       const text = safe(error.message || 'Не удалось выполнить действие плагина.');
       const evidence = entries.length ? 'Выполнено до ошибки:\n' + entries.map(e => e.text).join('\n') + '\n\n' + text : text;
-      if (isFunPay) await answerFunPay(evidence, entries.findLast(e => e.link));
-      else finish(evidence);
+      finish(evidence, isFunPay ? entries.findLast(e => e.link) : undefined, isFunPay);
       if (error.pluginId && history === chatHistory && job.user === curUser?.id) {
         const open = button('Подключить ' + names[error.pluginId], () => {
           openSettings();

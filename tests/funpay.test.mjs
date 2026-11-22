@@ -75,6 +75,43 @@ test('FunPay does not write against a mismatched editor or accept ambiguous resu
   assert.equal(writes, 1);
 });
 
+test('FunPay does not publish a listing without its requested automatic delivery', async t => {
+  let writes = 0;
+  const editor = base.replace('%OFFER%', '0').replace('%NODE%', '2456')
+    .replace(/<textarea name="secrets">[\s\S]*?<\/textarea>/, '')
+    .replace(/<input type="checkbox" name="auto_delivery" value="on">/, '');
+  t.mock.method(globalThis, 'fetch', async (address, options) => {
+    if (options.method === 'POST') writes++;
+    return new Response(editor);
+  });
+  await assert.rejects(funpay('funpay.publish', {
+    token, node: '2456', title: 'Скачиваемый шаблон', description: 'Шаблон для заметок', price: '50', stock: 'demo-item'
+  }), error => error.status === 422 && /Предложение не создано/.test(error.message));
+  assert.equal(writes, 0);
+});
+
+test('FunPay requires a specific offer ID before acknowledging publication', async t => {
+  let providerReply = { done: true, url: '/lots/2456/trade' };
+  t.mock.method(globalThis, 'fetch', async (address, options) => {
+    if (options.method !== 'POST') return new Response(base.replace('%OFFER%', '0').replace('%NODE%', '2456'));
+    if (!providerReply) throw new TypeError('network timeout');
+    return Response.json(providerReply);
+  });
+  const sale = { token, node: '2456', title: 'Шаблон', description: 'Шаблон для заметок', price: '50', amount: '1' };
+  const unavailable = /не подтвердил публикацию конкретного предложения/;
+  await assert.rejects(funpay('funpay.publish', sale), unavailable);
+  providerReply = { done: true, offer_id: '700', url: '/lots/offer?id=701' };
+  await assert.rejects(funpay('funpay.publish', sale), unavailable);
+  providerReply = { done: false, url: '/lots/offer?id=700' };
+  await assert.rejects(funpay('funpay.publish', sale), unavailable);
+  providerReply = { url: 'https://elsewhere.invalid/lots/offer?id=700' };
+  await assert.rejects(funpay('funpay.publish', sale), unavailable);
+  providerReply = null;
+  await assert.rejects(funpay('funpay.publish', sale), unavailable);
+  providerReply = { url: '/lots/offer?id=700' };
+  assert.deepEqual(await funpay('funpay.publish', sale), { offer: '700', node: '2456' });
+});
+
 test('FunPay planner strips credentials and takes delivery positions verbatim from the request', () => {
   const plan = normalizePluginPlan({ steps: [
     { action: 'funpay.stock', args: { offer: '89', stock: 'secret' } },
