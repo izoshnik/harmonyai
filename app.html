@@ -3778,7 +3778,7 @@ html:not([data-theme="light"]):not([data-theme="messenger"]) .msg-user{backgroun
       <div class="auth-switch">Уже зарегистрированы? <a href="#" onclick="toggleLoginHint();return false;">Войти</a></div>
       <div class="auth-hint" id="loginHint" style="display:none;"></div>
       <label class="auth-terms" id="authTermsWrap"><input type="checkbox" id="authTerms" onchange="hmTermsChanged()"><span>Я прочитал(а) и принимаю <a href="/legal/terms.html" target="_blank" rel="noopener noreferrer">Условия использования</a>, <a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Политику конфиденциальности</a> и <a href="/legal/ofera.html" target="_blank" rel="noopener noreferrer">Оферту</a></span></label>
-      <div class="auth-beta">Beta 0.8.109</div>
+      <div class="auth-beta">Beta 0.8.110</div>
     </div>
 
     <!-- Экран 2: Код подтверждения -->
@@ -3793,7 +3793,7 @@ html:not([data-theme="light"]):not([data-theme="messenger"]) .msg-user{backgroun
       <div class="auth-resend" id="btnResend" onclick="resendOTP()">Не пришел код? Отправить снова</div>
       <div class="auth-switch">Уже зарегистрированы? <a href="#" onclick="toggleLoginHint();return false;">Войти</a></div>
       <div class="auth-tos">Продолжая, вы соглашаетесь с <a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Политикой Конфиденциальности</a> и <a href="/legal/terms.html" target="_blank" rel="noopener noreferrer">Условиями Пользователя</a> HarmonyAI</div>
-      <div class="auth-beta">Beta 0.8.109</div>
+      <div class="auth-beta">Beta 0.8.110</div>
     </div>
 
   </div>
@@ -7537,6 +7537,9 @@ async function openChat(id,opts){
       if(Array.isArray(m.images)&&m.images.length>1)appendImagesToShell(shell.msg,m.images);
       else appendImageToShell(shell.msg,m.image);
       attachImageMessageActions(shell,imagePromptFromHistory(m));
+    }else if(m.funpayReply){
+      const shell=createAiBubbleShell({showActions:true,createdAt:m.createdAt,historyIndex:idx});
+      renderFunPayReply(shell.msg,txt||'',m.funpayReply.link);
     }else{
       const result=addAiBubble(normalizeReplyNotation(txt||''),false,{createdAt:m.createdAt,historyIndex:idx});
       if(Array.isArray(m.sources)&&m.sources.length)result.then(shell=>hmAddSourcesPill(shell.wrap||shell.msg.closest('.msg-ai-wrap'),m.sources));
@@ -9341,6 +9344,25 @@ function addAiBubble(text,stream,opts={}){
   });
 }
 
+function renderFunPayReply(el,text,link){
+  const body=document.createElement('div');
+  body.innerHTML=marked.parse(text);
+  el.replaceChildren(body);
+  el.dataset.raw=text;
+  if(/^https:\/\/funpay\.com\/lots\/(?:offer\?id=[1-9]\d{0,11}|[1-9]\d{0,11}\/trade)$/.test(link||'')){
+    const label=link.includes('/offer?')?'Открыть предложение FunPay':'Открыть раздел FunPay';
+    const footer=document.createElement('p');
+    const anchor=document.createElement('a');
+    anchor.href=link;
+    anchor.textContent=label;
+    anchor.target='_blank';
+    anchor.rel='noopener noreferrer';
+    footer.append(anchor);
+    body.append(footer);
+    el.dataset.raw+='\n\n['+label+']('+link+')';
+  }
+}
+
 /* Render Markdown + ABC */
 function abcAccidentalPrefix(acc){
   return String(acc||'')
@@ -10253,6 +10275,28 @@ function showContinueButton(wrap,msgEl,actionsEl){
 }
 async function regenMsg(item){
   const wrap=item.closest('.msg-ai-wrap');
+  const message=chatHistory[Number(wrap?.dataset.historyIndex)];
+  if(message?.funpayReply){
+    item.parentElement.classList.remove('open');
+    if(wrap.getAttribute('aria-busy')==='true')return;
+    const history=chatHistory;
+    const user=curUser?.id;
+    wrap.setAttribute('aria-busy','true');
+    try{
+      const reply=await hmUtil('plugins',{body:{action:'chat.response',mode:'funpay',
+        task:'Переформулируй предыдущий ответ FunPay, сохранив его смысл и факты.',evidence:message.content}});
+      if(chatHistory!==history||curUser?.id!==user||!wrap.isConnected)return;
+      if(!reply?.text){toast('Не удалось обновить ответ.');return;}
+      message.content=reply.text;
+      renderFunPayReply(wrap.querySelector('.msg-ai'),reply.text,message.funpayReply.link);
+      saveChat().catch(()=>{});
+    }catch(e){
+      if(chatHistory===history&&curUser?.id===user)toast('Не удалось обновить ответ.');
+    }finally{
+      wrap.removeAttribute('aria-busy');
+    }
+    return;
+  }
   if(wrap&&wrap.dataset.imgPrompt){
     item.parentElement.classList.remove('open');
     // Повтор во время генерации: останавливаем текущую и ждём, пока она закроется.
@@ -11460,6 +11504,7 @@ function toWireHistory(history,opts={}){
     if(forStorage&&m.catalogMp3)base.catalogMp3=m.catalogMp3;
     if(forStorage&&m.video)base.video=m.video;
     if(forStorage&&m.videoLabel)base.videoLabel=m.videoLabel;
+    if(forStorage&&m.funpayReply)base.funpayReply=m.funpayReply;
     if(forStorage&&m.tempMail)base.tempMail=m.tempMail;
     if(forStorage&&m.tempMailIntro)base.tempMailIntro=m.tempMailIntro;
     // Размышления модели («Думал N с») — чтобы блок открывался и после перезагрузки.
@@ -15905,7 +15950,7 @@ function renderAbout(){
       <div class="stp-about-hero">
         <div class="stp-about-logo"><svg width="26" height="26" viewBox="0 0 64 64"><path d="M18 14h8v18h12V14h8v36h-8V39H26v11h-8z" fill="currentColor"/></svg></div>
         <div class="stp-about-name">HarmonyAI</div>
-        <div class="stp-about-ver">Beta 0.8.109</div>
+        <div class="stp-about-ver">Beta 0.8.110</div>
       </div>
       <div class="stp-row" onclick="hmOpenDoc('/legal/privacy.html')" role="link" tabindex="0">
         <div class="stp-row-label"><div class="stp-row-title">Политика конфиденциальности</div></div>
@@ -17322,7 +17367,9 @@ function hmPlugin(action,intro){
     finish(md, options={}){
       clearInterval(timer);
       if(chatHistory!==history)return;
-      if(options.plain){
+      if(options.funpayReply){
+        renderFunPayReply(shell.msg,md,options.link);
+      }else if(options.plain){
         const pre=document.createElement('pre');pre.className='hm-chat-plugin-result';pre.textContent=md;
         shell.msg.replaceChildren(pre);
         if(options.link){
@@ -17330,7 +17377,8 @@ function hmPlugin(action,intro){
         }
       }else renderMd(shell.msg,md);
       if(!options.plain)setMessageActionsVisible(shell.actions,true);
-      chatHistory.push({role:'assistant',content:options.historyContent||md,createdAt:messageNow()});
+      chatHistory.push({role:'assistant',content:options.historyContent||md,createdAt:messageNow(),
+        ...(options.funpayReply?{funpayReply:{link:options.link}}:{})});
       saveChat().catch(()=>{});
       scrollChat();
     },
