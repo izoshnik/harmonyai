@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { funpay, resolveFunPayCategory } from '../lib/funpay.js';
-import { normalizePluginPlan, resolveFunPayPublication } from '../lib/chat-plugins.js';
+import { normalizePluginPlan, planPluginRequest, resolveFunPayPublication, validateFunPayDelivery } from '../lib/chat-plugins.js';
 
 const token = 'mock-key_for-tests';
 const base = '<form class="form-horizontal form-offer-editor">' +
@@ -75,13 +75,71 @@ test('FunPay does not write against a mismatched editor or accept ambiguous resu
   assert.equal(writes, 1);
 });
 
-test('FunPay planner strips credentials and cannot populate stock', () => {
+test('FunPay planner strips credentials and takes delivery positions verbatim from the request', () => {
   const plan = normalizePluginPlan({ steps: [
     { action: 'funpay.stock', args: { offer: '89', stock: 'secret' } },
     { action: 'funpay.delete', args: { offer: 'wrong' } },
     { action: 'funpay.edit', args: { offer: '89', price: '3', token } }
   ] }, ['funpay']);
-  assert.deepEqual(plan.steps, [{ action: 'funpay.edit', args: { offer: '89', price: '3' } }]);
+  assert.deepEqual(plan.steps, [
+    { action: 'funpay.stock', args: { offer: '89', stock: 'secret' } },
+    { action: 'funpay.edit', args: { offer: '89', price: '3', autoDelivery: false } }
+  ]);
+  assert.equal(validateFunPayDelivery(plan, ['В автовыдачу: secret']), plan);
+  assert.match(validateFunPayDelivery(plan, ['В автовыдачу: altered']).issue, /точно сопоставить/);
+  const publish = args => ({ steps: [{ action: 'funpay.publish', args }] });
+  assert.match(validateFunPayDelivery(publish({ autoDelivery: true, amount: '1' }), ['Включи автовыдачу']).issue, /позиции автоматической выдачи/);
+  assert.match(validateFunPayDelivery(publish({ amount: '1' }), ['Оформь товар.\nАвтовыдача: Demo-ABC_1']).issue, /ещё не опубликован/);
+  assert.match(validateFunPayDelivery(publish({ stock: 'secret', description: 'secret' }), ['В автовыдачу: secret']).issue, /публичных полей/);
+});
+
+test('the AI plans a new listing with stock in one operation from the original chat message', async t => {
+  const task = 'Добавь товар в разделе ChatGPT — Прочее.\nНазвание: Тестовый набор\nЦена: 250 ₽\nОписание: Тестовый комплект.\nАвтовыдача:\nDemo-ABC_1\nDemo&xyz 2';
+  const catalog = '<div class="game-title" data-id="11"><a href="/lots/2456/">ChatGPT</a></div>' +
+    '<ul class="list-inline" data-id="11"><li><a href="/lots/2456/">Прочее</a></li></ul>';
+  const expectedStock = 'Demo-ABC_1\nDemo&xyz 2';
+  let writes = 0;
+  t.mock.method(globalThis, 'fetch', async (address, options) => {
+    const url = new URL(address);
+    if (url.pathname.endsWith('/chat/completions')) {
+      const input = JSON.parse(options.body).messages;
+      assert.equal(JSON.parse(input.at(-1).content).task, task);
+      assert.match(input[0].content, /ONE funpay\.publish/i);
+      return Response.json({ choices: [{ message: { content: JSON.stringify({ steps: [
+        { action: 'funpay.publish', args: { game: 'ChatGPT', section: 'Прочее', title: 'Тестовый набор',
+          description: 'Тестовый комплект.', price: '250', stock: expectedStock, autoDelivery: true } }
+      ], question: '' }) } }] });
+    }
+    assert.equal(url.origin, 'https://funpay.com');
+    if (url.pathname === '/') return new Response(catalog);
+    if (url.pathname === '/lots/offerEdit') {
+      assert.equal(url.searchParams.get('node'), '2456');
+      return new Response(base.replace('%OFFER%', '0').replace('%NODE%', '2456').replace('first&amp;unused\nsecond', ''));
+    }
+    assert.equal(url.pathname, '/lots/offerSave');
+    writes++;
+    assert.equal(options.body.get('active'), 'on');
+    assert.equal(options.body.get('auto_delivery'), 'on');
+    assert.equal(options.body.get('secrets'), expectedStock);
+    assert.equal(options.body.get('amount'), '2');
+    assert.equal(options.body.get('fields[desc][ru]'), 'Тестовый комплект.');
+    return Response.json({ done: true, offer_id: '678' });
+  });
+  const savedKey = process.env.OPENAI_API_KEY;
+  process.env.OPENAI_API_KEY = 'mock-provider-api-key';
+  t.after(() => {
+    if (savedKey === undefined) delete process.env.OPENAI_API_KEY;
+    else process.env.OPENAI_API_KEY = savedKey;
+  });
+  const plan = await planPluginRequest({ task, plugins: ['funpay'] });
+  assert.equal(plan.question, '');
+  assert.equal(plan.steps.length, 1);
+  assert.equal(plan.steps[0].action, 'funpay.publish');
+  assert.equal(plan.steps[0].args.node, '2456');
+  const result = await funpay(plan.steps[0].action, { ...plan.steps[0].args, token });
+  assert.equal(writes, 1);
+  assert.deepEqual(result, { offer: '678', added: 2, node: '2456' });
+  assert.doesNotMatch(JSON.stringify(result), /Demo/);
 });
 
 test('publication uses only the category named or linked by the user', async t => {
