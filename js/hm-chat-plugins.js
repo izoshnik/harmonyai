@@ -113,7 +113,8 @@
     const addStock = action === 'funpay.stock';
     const publish = action === 'funpay.publish';
     const remove = action === 'funpay.delete';
-    const target = publish ? (args.node ? 'раздел №' + args.node : 'ChatGPT → Прочее') : 'предложение №' + args.offer;
+    if (publish && !/^[1-9]\d{0,11}$/.test(args.node || '')) throw Error('Сначала укажи, в каком разделе FunPay опубликовать предложение.');
+    const target = publish ? (args.categoryLabel || 'раздел №' + args.node) : 'предложение №' + args.offer;
     if (addStock) {
       args.stock = await enterStock(job, view, args.offer);
       if (!args.stock) return null;
@@ -133,7 +134,7 @@
     const offer = /^\d+$/.test(data.offer) ? data.offer : '';
     const node = /^\d+$/.test(data.node) ? data.node : '';
     const text = addStock ? 'Добавлено позиций в автовыдачу предложения №' + offer + ': ' + data.added + '.' :
-      publish ? (offer ? 'Опубликовано предложение №' + offer + '.' : 'Предложение опубликовано в разделе «' + target + '».') :
+      publish ? (offer ? 'Опубликовано предложение №' + offer + '.' : 'Предложение опубликовано · ' + target + '.') :
         'Предложение №' + offer + (remove ? ' удалено.' : ' обновлено.');
     const link = remove ? '' : offer ? 'https://funpay.com/lots/offer?id=' + offer : node ? 'https://funpay.com/lots/' + node + '/trade' : '';
     return { action, text, link, linkLabel: offer ? 'Открыть предложение FunPay' : 'Открыть раздел FunPay' };
@@ -259,8 +260,6 @@
     const plugins = new Set(forced ? [forced] : []);
     const task = text.replace(explicit, (matched, space, key) => { plugins.add(pluginName[key.toLowerCase()]); return space; }).trim();
     if (!plugins.size && /(?:покажи|найди|прочита|отправ|создай|проверь|измен|открой|сделай|удали|перемести|посмотри|добав|пополни|опублику|выстав|отредактир|\b(?:read|find|show|send|open|create|edit|search|publish|delete|stock)\b)/iu.test(task)) {
-      if (/(?:предложени|(?:^|\s)лот[а-яё]*(?=$|[^\p{L}\p{N}]))/iu.test(task) &&
-          /chatgpt.{0,24}прочее|прочее.{0,24}chatgpt/iu.test(task)) plugins.add('funpay');
       for (const [id, pattern] of Object.entries({
         gmail: /gmail|джимейл/iu, github: /github|гитхаб/iu, telegram: /telegram|телеграм|(?:^|\s)тг(?=\s|$)/iu,
         funpay: /funpay|фанпей|фанпэй/iu
@@ -269,6 +268,9 @@
         for (const id of state?.plugins || []) plugins.add(id);
       }
     }
+    if (!plugins.size && state?.funpayClarification?.length &&
+        (/^https:\/\/funpay\.com\/(?:[a-z]{2}\/)?lots\/[1-9]\d{0,11}\/?$/i.test(task) ||
+          (task.length <= 160 && /^(?:подраздел|раздел)\s|→|\s>\s/iu.test(task)))) plugins.add('funpay');
     return { task, plugins: [...plugins].filter(id => Object.hasOwn(names, id)) };
   }
 
@@ -282,6 +284,9 @@
     if (state.busy) { toast('Плагин ещё выполняет предыдущий запрос.'); return true; }
     if (!curUser?.id) return false;
     const stock = plugins.includes('funpay') && isStock(task);
+    const isFunPay = plugins.includes('funpay');
+    const followUp = isFunPay && !stock ? state.funpayClarification || [] : [];
+    state.funpayClarification = [];
     const stockTargets = stock ? [...new Set([...task.matchAll(/(?:https:\/\/funpay\.com\/(?:(?:en|uk)\/)?lots\/offer\?id=|(?:#|№|\bID\s*[:№#]?\s*)\s*|(?:лот[а-яё]*|предложени[а-яё]*)\s+)([1-9]\d{0,11})(?!\d)/giu)].map(match => match[1]))] : [];
     const job = { user: curUser.id, history, task: stock ? '' : task, state, plugins };
     contexts.set(history, state);
@@ -298,8 +303,9 @@
       const plan = stock
         ? stockTargets.length === 1 ? { steps: [{ action: 'funpay.stock', args: { offer: stockTargets[0] } }] } :
           { question: 'Укажи ссылку на одно предложение FunPay или его номер (например, «лот №12345678»). Позиции можно будет вставить в отдельное поле в чате.' }
-        : await model(job, 'chat.plan', { task, plugins, previous: state.previous, hasMailList: state.gmail.length > 0 });
+        : await model(job, 'chat.plan', { task, plugins, previous: isFunPay ? followUp : state.previous, hasMailList: state.gmail.length > 0 });
       if (plan.question || !plan.steps?.length) {
+        if (isFunPay && !stock && task) state.funpayClarification = [...followUp, task].slice(-3);
         finish(safe(plan.question || 'Уточни, что нужно сделать.'));
         return true;
       }
@@ -335,7 +341,7 @@
         view.shell.msg.append(open);
       }
     } finally {
-      if (!stock && task) state.previous = [...state.previous, task].slice(-3);
+      if (!isFunPay && task) state.previous = [...state.previous, task].slice(-3);
       state.busy = false;
     }
     return true;
