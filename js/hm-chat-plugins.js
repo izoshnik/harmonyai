@@ -75,69 +75,25 @@
     });
   }
 
-  function enterStock(job, view, offer) {
-    check(job);
-    view.set('Жду позиции для автовыдачи…');
-    return new Promise(resolve => {
-      const card = element('div', 'hm-chat-plugin-confirm');
-      const field = element('textarea', 'stp-input hm-funpay-stock');
-      const actions = element('div', 'hm-plugin-actions');
-      field.rows = 4;
-      field.maxLength = 18000;
-      field.spellcheck = false;
-      field.autocomplete = 'off';
-      field.setAttribute('aria-label', 'Позиции автовыдачи');
-      field.placeholder = 'Одна позиция на строку';
-      function finish(value) {
-        clearInterval(timer);
-        field.value = '';
-        card.remove();
-        resolve(value);
-      }
-      const submit = button('Добавить в автовыдачу', () => finish(field.value.trim()), true);
-      submit.disabled = true;
-      field.oninput = () => { submit.disabled = !field.value.trim(); };
-      const deadline = Date.now() + 180000;
-      const timer = setInterval(() => {
-        if (job.user !== curUser?.id || job.history !== chatHistory || Date.now() > deadline) finish(null);
-      }, 500);
-      actions.append(submit, button('Отмена', () => finish(null)));
-      card.append(element('strong', '', 'Пополнить автовыдачу предложения №' + offer),
-        element('p', 'stp-row-desc', 'Эти данные уйдут в FunPay и не сохранятся в чате.'), field, actions);
-      view.slot.replaceChildren(card);
-      scrollChat();
-    });
-  }
-
   async function funpayStep(job, access, action, args, view) {
     const addStock = action === 'funpay.stock';
     const publish = action === 'funpay.publish';
     const remove = action === 'funpay.delete';
     if (publish && !/^[1-9]\d{0,11}$/.test(args.node || '')) throw Error('Сначала укажи, в каком разделе FunPay опубликовать предложение.');
+    if (secret.test(args.title || '') || secret.test(args.description || '')) throw Error('В открытых полях товара обнаружены данные, похожие на токен.');
     const target = publish ? (args.categoryLabel || 'раздел №' + args.node) : 'предложение №' + args.offer;
-    if (addStock) {
-      args.stock = await enterStock(job, view, args.offer);
-      if (!args.stock) return null;
-    } else {
-      const preview = [
-        args.title && 'Название: ' + args.title, args.description && 'Описание: ' + args.description,
-        args.price && 'Цена: ' + args.price, args.amount && 'Количество: ' + args.amount
-      ].filter(Boolean).join('\n');
-      const verb = publish ? 'Опубликовать на FunPay' : remove ? 'Удалить с FunPay' : 'Изменить на FunPay';
-      if (secret.test(preview)) throw Error('Данные предложения похожи на токен. Проверь текст.');
-      if (!await confirm(job, view, verb + ' · ' + target, preview)) return null;
-    }
     check(job);
-    view.cycle(progress[action]);
+    view.cycle(publish && args.stock ? ['Открываю раздел FunPay…', 'Публикую товар с автовыдачей…', 'Проверяю результат FunPay…'] : progress[action]);
     const data = await access.invoke(action, args);
     check(job);
     const offer = /^\d+$/.test(data.offer) ? data.offer : '';
     const node = /^\d+$/.test(data.node) ? data.node : '';
-    const text = addStock ? 'Добавлено позиций в автовыдачу предложения №' + offer + ': ' + data.added + '.' :
+    const stockStatus = Number.isInteger(data.added) ? ' Автовыдача включена. Добавлено позиций: ' + data.added + '.' : '';
+    const text = addStock ? 'Предложение №' + offer + '.' + stockStatus :
       publish ? (offer ? 'Опубликовано предложение №' + offer + '.' : 'Предложение опубликовано · ' + target + '.') :
         'Предложение №' + offer + (remove ? ' удалено.' : ' обновлено.');
     const link = remove ? '' : offer ? 'https://funpay.com/lots/offer?id=' + offer : node ? 'https://funpay.com/lots/' + node + '/trade' : '';
-    return { action, text, link, linkLabel: offer ? 'Открыть предложение FunPay' : 'Открыть раздел FunPay' };
+    return { action, text: text + (addStock ? '' : stockStatus), link, linkLabel: offer ? 'Открыть предложение FunPay' : 'Открыть раздел FunPay' };
   }
 
   async function telegramStep(job, api, action, args, view) {
@@ -254,66 +210,69 @@
     return entry;
   }
 
-  function isStock(task) { return /авто[\s-]*выдач|auto[\s-]*delivery/i.test(task); }
-
   function requestSelection(text, forced, state) {
     const plugins = new Set(forced ? [forced] : []);
     const task = text.replace(explicit, (matched, space, key) => { plugins.add(pluginName[key.toLowerCase()]); return space; }).trim();
-    if (!plugins.size && /(?:покажи|найди|прочита|отправ|создай|проверь|измен|открой|сделай|удали|перемести|посмотри|добав|пополни|опублику|выстав|отредактир|\b(?:read|find|show|send|open|create|edit|search|publish|delete|stock)\b)/iu.test(task)) {
+    if (!plugins.size && /(?:покажи|найди|прочита|отправ|создай|проверь|измен|открой|сделай|удали|перемести|посмотри|добав|пополни|публику|выстав|отредактир|\b(?:read|find|show|send|open|create|edit|search|publish|delete|stock)\b)/iu.test(task)) {
+      const listing = /(?:лот|товар|предложени|listing|offer)/iu.test(task);
+      if ((listing || /пополни/iu.test(task)) &&
+          /(?:авто[\s-]*выдач|auto[\s-]*delivery|раздел[а-яё]*\s+[^\n].{0,130}(?:→|[-–—]))/iu.test(task)) plugins.add('funpay');
       for (const [id, pattern] of Object.entries({
         gmail: /gmail|джимейл/iu, github: /github|гитхаб/iu, telegram: /telegram|телеграм|(?:^|\s)тг(?=\s|$)/iu,
         funpay: /funpay|фанпей|фанпэй/iu
-      })) if (pattern.test(task)) plugins.add(id);
+      })) if (!plugins.has('funpay') && pattern.test(task)) plugins.add(id);
       if (!plugins.size && /^(?:прочитай|покажи|перемести|открой|измени|отправь)\s+(?:его|её|это|последн|перв|втор|треть|(?:письмо|сообщение)\s*№?\d)/iu.test(task)) {
         for (const id of state?.plugins || []) plugins.add(id);
       }
     }
     if (!plugins.size && state?.funpayClarification?.length &&
-        (/^https:\/\/funpay\.com\/(?:[a-z]{2}\/)?lots\/[1-9]\d{0,11}\/?$/i.test(task) ||
-          (task.length <= 160 && /^(?:подраздел|раздел)\s|→|\s>\s/iu.test(task)))) plugins.add('funpay');
+        (/(?:^|\n)\s*(?:автовыдач|позици|выдавай|выдавать|цена|количество|названи|описани|раздел|подраздел)|→|\s>\s|^https:\/\/funpay\.com\/|^\s*(?:№\s*)?[1-9]\d{0,11}\s*$/iu.test(task))) plugins.add('funpay');
     return { task, plugins: [...plugins].filter(id => Object.hasOwn(names, id)) };
   }
 
   async function route(text, forced = '') {
     const history = chatHistory;
+    const user = curUser?.id;
     const previousState = contexts.get(history);
     const { task, plugins } = requestSelection(text, forced, previousState);
-    if (!plugins.length) return false;
-    if (secret.test(text) || window.HmPlugins.containsFunPayKey(text)) { toast('Токены добавляются через Настройки → Плагины.'); return true; }
+    if (!plugins.length || !user) return false;
+    if (secret.test(text) && !plugins.includes('funpay')) { toast('Токены добавляются через Настройки → Плагины.'); return true; }
     const state = previousState || { gmail: [], previous: [], telegramMail: null, plugins: [], busy: false };
     if (state.busy) { toast('Плагин ещё выполняет предыдущий запрос.'); return true; }
-    if (!curUser?.id) return false;
-    const stock = plugins.includes('funpay') && isStock(task);
     const isFunPay = plugins.includes('funpay');
-    const followUp = isFunPay && !stock ? state.funpayClarification || [] : [];
+    const followUp = isFunPay ? state.funpayClarification || [] : [];
     state.funpayClarification = [];
-    const stockTargets = stock ? [...new Set([...task.matchAll(/(?:https:\/\/funpay\.com\/(?:(?:en|uk)\/)?lots\/offer\?id=|(?:#|№|\bID\s*[:№#]?\s*)\s*|(?:лот[а-яё]*|предложени[а-яё]*)\s+)([1-9]\d{0,11})(?!\d)/giu)].map(match => match[1]))] : [];
-    const job = { user: curUser.id, history, task: stock ? '' : task, state, plugins };
+    const job = { user, history, task: isFunPay ? text : task, state, plugins };
     contexts.set(history, state);
     state.busy = true;
     state.plugins = plugins;
-    hmTmUserTurn(stock ? '@FunPay Пополнить автовыдачу' + (stockTargets.length === 1 ? ' · предложение №' + stockTargets[0] : '') : text);
+    hmTmUserTurn(text);
     const label = plugins.map(id => names[id]).join(' · ');
     const view = hmPlugin('chat_plugins', '');
     const entries = [];
     const finish = (answer, result) => view.finish(answer, { plain: true, link: result?.link, linkLabel: result?.linkLabel,
-      historyContent: label + ' · результат показан в текущей сессии.' });
+      historyContent: isFunPay ? answer : label + ' · результат показан в текущей сессии.' });
+    const answerFunPay = async (evidence, result) => {
+      view.cycle(['Готовлю ответ по FunPay…', 'Сверяю результат…']);
+      const response = await model(job, 'chat.response', { task: 'Ответь пользователю по результату запроса к FunPay.', evidence, mode: 'funpay' }).catch(() => null);
+      finish(safe(response?.text || evidence), result);
+    };
     try {
       view.cycle(['Составляю план · ' + label, 'Уточняю параметры запроса…', 'Подбираю действия плагина…']);
-      const plan = stock
-        ? stockTargets.length === 1 ? { steps: [{ action: 'funpay.stock', args: { offer: stockTargets[0] } }] } :
-          { question: 'Укажи ссылку на одно предложение FunPay или его номер (например, «лот №12345678»). Позиции можно будет вставить в отдельное поле в чате.' }
-        : await model(job, 'chat.plan', { task, plugins, previous: isFunPay ? followUp : state.previous, hasMailList: state.gmail.length > 0 });
-      if (plan.question || !plan.steps?.length) {
-        if (isFunPay && !stock && task) state.funpayClarification = [...followUp, task].slice(-3);
-        finish(safe(plan.question || 'Уточни, что нужно сделать.'));
+      const plan = await model(job, 'chat.plan', { task: job.task, plugins, previous: isFunPay ? followUp : state.previous, hasMailList: state.gmail.length > 0 });
+      if (plan.question || plan.issue || !plan.steps?.length) {
+        if (isFunPay && task) state.funpayClarification = [...followUp, job.task].slice(-3);
+        if (plan.question || !isFunPay) finish(safe(plan.question || 'Уточни, что нужно сделать.'));
+        else await answerFunPay(plan.issue || 'Задача по FunPay требует уточнения. Спроси пользователя, что нужно сделать с предложением.');
         return true;
       }
       if (plan.steps.length > 6 || plan.steps.some(step => !supported.has(step.action) || !plugins.includes(step.action.split('.')[0]))) throw Error('План вышел за рамки подключённых плагинов.');
       for (const step of plan.steps) {
         const entry = await execute(job, step, entries, view);
         if (!entry) {
-          finish([...entries.map(e => e.text), 'Действие отменено.'].join('\n\n'));
+          const evidence = [...entries.map(e => e.text), 'Действие отменено.'].join('\n\n');
+          if (isFunPay) await answerFunPay(evidence);
+          else finish(evidence);
           return true;
         }
         entries.push(entry);
@@ -321,7 +280,9 @@
       const last = entries.at(-1);
       const evidence = entries.map(e => e.text).join('\n\n');
       const useModel = !entries.some(e => write.has(e.action)) && !['gmail.list', 'telegram.messages', 'telegram.dialogs', 'github.file'].includes(last.action);
-      if (useModel) {
+      if (isFunPay) {
+        await answerFunPay(evidence, entries.findLast(e => e.link));
+      } else if (useModel) {
         view.cycle(['Готовлю ответ…', 'Собираю результаты…']);
         const response = await model(job, 'chat.response', { task, evidence }).catch(() => null);
         finish(safe(response?.text || evidence, 19000));
@@ -332,7 +293,9 @@
       }
     } catch (error) {
       const text = safe(error.message || 'Не удалось выполнить действие плагина.');
-      finish(entries.length ? 'Выполнено до ошибки:\n' + entries.map(e => e.text).join('\n') + '\n\n' + text : text);
+      const evidence = entries.length ? 'Выполнено до ошибки:\n' + entries.map(e => e.text).join('\n') + '\n\n' + text : text;
+      if (isFunPay) await answerFunPay(evidence, entries.findLast(e => e.link));
+      else finish(evidence);
       if (error.pluginId && history === chatHistory && job.user === curUser?.id) {
         const open = button('Подключить ' + names[error.pluginId], () => {
           openSettings();
@@ -346,13 +309,7 @@
     }
     return true;
   }
-  window.HmChatPlugins = {
-    route,
-    isFunPayStock(text) {
-      const state = contexts.get(chatHistory);
-      const { task, plugins } = requestSelection(text, '', state);
-      return plugins.includes('funpay') && isStock(task);
-    },
-    hasFunPayKey(text) { return /\bgolden_key\s*[:=]\s*[\w.%+~-]{8,}/i.test(text) || window.HmPlugins.containsFunPayKey(text); }
+  window.HmChatPlugins = { route,
+    hasFunPayKey(text) { return /\bgolden[_\s-]key\s*[:=]\s*[\w.%+~-]{8,}/i.test(text) || window.HmPlugins?.containsFunPayKey(text); }
   };
 })();
