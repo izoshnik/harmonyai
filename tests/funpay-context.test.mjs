@@ -9,7 +9,7 @@ const user = content => ({ role: 'user', content });
 const bot = (content, funpayReply) => ({ role: 'assistant', content, funpayReply });
 const offerLink = 'https://funpay.com/lots/offer?id=481681';
 
-function browser(history, publishError) {
+function browser(history, publishError, plan) {
   const requests = [];
   const actions = [];
   const results = [];
@@ -29,7 +29,7 @@ function browser(history, publishError) {
       assert.equal(op, 'plugins');
       requests.push(body);
       return body.action === 'chat.plan'
-        ? { question: '', steps: [{ action: 'funpay.publish', args: { node: '3400', stock: 'demo' } }] }
+        ? plan || { question: '', steps: [{ action: 'funpay.publish', args: { node: '3400', stock: 'demo' } }] }
         : { text: 'Предложение опубликовано.' };
     }
   });
@@ -58,11 +58,12 @@ test('a retry keeps the pending context but avoids duplicate writes while the pr
     user('Цена: 55 ₽'), bot('Цену уточнил.'), user('Так ты выстави предложение'), bot('Я подготовил черновик.')];
   const app = browser(history);
   assert.equal(await app.route('попробуй ещё раз'), true);
-  assert.equal(app.requests.length, 0);
+  assert.deepEqual(app.actions, []);
+  assert.deepEqual(app.requests.map(request => request.action), ['chat.plan']);
   assert.match(app.results[0].content, /Проверь список/);
-  assert.equal(await app.route('Проверил, лота нет'), true);
-  assert.equal(app.requests[0].previous[0], original);
-  assert.equal(app.requests[0].previous[1], 'Цена: 55 ₽');
+  assert.equal(await app.route('предложений у меня нет'), true);
+  assert.equal(app.requests[1].previous[0], original);
+  assert.equal(app.requests[1].previous[1], 'Цена: 55 ₽');
   assert.deepEqual(app.actions, ['funpay.publish']);
 });
 
@@ -82,4 +83,26 @@ test('a restricted listing stays blocked on follow-up without another tool call'
   await app.route('попробуй еще раз');
   assert.equal(app.actions.length, 0);
   assert.equal(app.results[0].options.funpayOutcome, 'restricted');
+});
+
+test('a restriction found by the planner supersedes an outdated uncertain state without writing', async () => {
+  const issue = 'HarmonyAI не публикует материалы для обхода защит и вредоносные инструменты.';
+  const app = browser([user(original), bot('FunPay не подтвердил публикацию.', { outcome: 'uncertain' })], null,
+    { steps: [], issue, code: 'FUNPAY_RESTRICTED_LISTING' });
+  assert.equal(await app.route('попробуй снова'), true);
+  assert.deepEqual(app.actions, []);
+  assert.deepEqual(app.requests.map(request => request.action), ['chat.plan']);
+  assert.equal(app.results[0].content, issue);
+  assert.equal(app.results[0].options.funpayOutcome, 'restricted');
+});
+
+test('a marketplace rejection is preserved in the chat and does not trigger the uncertainty guard', async () => {
+  const message = 'FunPay отклонил сохранение предложения. Проверь цену.';
+  const error = Object.assign(Error(message), { code: 'FUNPAY_SAVE_REJECTED' });
+  const app = browser([user(original), bot('FunPay не подтвердил публикацию.', { outcome: 'uncertain' })], error);
+  assert.equal(await app.route('предложений у меня нет'), true);
+  assert.equal(app.results[0].content, message);
+  assert.equal(app.results[0].options.factsOnly, true);
+  assert.equal(app.results[0].options.funpayOutcome, 'rejected');
+  assert.deepEqual(app.actions, ['funpay.publish']);
 });

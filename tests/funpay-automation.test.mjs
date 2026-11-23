@@ -129,6 +129,7 @@ test('server delivery links a disabled draft to encrypted stock before activatio
   const profile = { owner, credential: sealFunPay(owner, token), cursor: {}, last_poll: new Date().toISOString() };
   const writes = [];
   let stored;
+  let active = false;
   t.mock.method(globalThis, 'fetch', async (address, options) => {
     const url = new URL(address);
     if (url.hostname === 'supabase.invalid') {
@@ -148,10 +149,11 @@ test('server delivery links a disabled draft to encrypted stock before activatio
     if (url.pathname === '/lots/offerEdit') {
       const offerId = url.searchParams.get('offer') || '0';
       const formTitle = offerId === '811' ? stored.title : 'Example';
+      if (active && offerId === '811') writes.push('verify');
       return new Response('<form class="form-offer-editor">' +
         '<input name="csrf_token" value="csrf"><input name="node_id" value="2456"><input name="offer_id" value="' + offerId + '">' +
         '<input name="price" value="50"><input name="amount" value="1"><input name="fields[summary][ru]" value="' + formTitle + '">' +
-        '<textarea name="fields[desc][ru]">Description</textarea><input type="checkbox" name="active"></form>');
+        '<textarea name="fields[desc][ru]">Description</textarea><input type="checkbox" name="active"' + (active ? ' checked' : '') + '></form>');
     }
     assert.equal(url.pathname, '/lots/offerSave');
     assert.equal(options.body.has('secrets'), false);
@@ -166,13 +168,14 @@ test('server delivery links a disabled draft to encrypted stock before activatio
       assert.equal(stored.enabled, true);
       assert.equal(options.body.get('active'), 'on');
       writes.push('activate');
+      active = true;
     }
-    return Response.json({ done: true, offer_id: '811' });
+    return Response.json({});
   });
   const published = await automateListing('funpay.publish', owner, {
     token, node: '2456', title: 'Шаблон для заметок', description: 'Мой цифровой шаблон', price: '50', stock: 'sample-template'
   });
-  assert.deepEqual(writes, ['reserve', 'draft', 'lookup', 'bind', 'activate']);
+  assert.deepEqual(writes, ['reserve', 'draft', 'lookup', 'bind', 'activate', 'verify']);
   assert.equal(published.delivery, 'server');
   assert.match(stored.title, /\[HA-[A-F0-9]{12}\]$/);
   assert.equal(published.offer, '811');

@@ -103,13 +103,31 @@ test('FunPay requires a specific offer ID before acknowledging publication', asy
   providerReply = { done: true, offer_id: '700', url: '/lots/offer?id=701' };
   await assert.rejects(funpay('funpay.publish', sale), unavailable);
   providerReply = { done: false, url: '/lots/offer?id=700' };
-  await assert.rejects(funpay('funpay.publish', sale), unavailable);
+  await assert.rejects(funpay('funpay.publish', sale), { code: 'FUNPAY_SAVE_REJECTED' });
   providerReply = { url: 'https://elsewhere.invalid/lots/offer?id=700' };
   await assert.rejects(funpay('funpay.publish', sale), unavailable);
   providerReply = null;
   await assert.rejects(funpay('funpay.publish', sale), unavailable);
   providerReply = { url: '/lots/offer?id=700' };
   assert.deepEqual(await funpay('funpay.publish', sale), { offer: '700', node: '2456' });
+});
+
+test('FunPay reports explicit validation failures without reflecting marketplace content', async t => {
+  let reply;
+  t.mock.method(globalThis, 'fetch', async (address, options) => {
+    if (options.method === 'POST') return reply;
+    assert.equal(new URL(address).pathname, '/lots/offerEdit');
+    return new Response(base.replace('%OFFER%', '0').replace('%NODE%', '2456'));
+  });
+  const sale = { token, node: '2456', title: 'Шаблон', description: 'Шаблон для заметок', price: '50', amount: '1' };
+  reply = Response.json({ errors: [['price', 'hidden payload'], ['fields[summary][ru]', 'hidden payload']] });
+  await assert.rejects(funpay('funpay.publish', sale), {
+    code: 'FUNPAY_SAVE_REJECTED', message: 'FunPay отклонил сохранение предложения. Проверь цену, название.'
+  });
+  reply = Response.json({ errors: { secrets: 'hidden payload' } }, { status: 400 });
+  await assert.rejects(funpay('funpay.publish', sale), {
+    code: 'FUNPAY_SAVE_REJECTED', message: 'FunPay отклонил сохранение предложения. Проверь позиции автовыдачи.'
+  });
 });
 
 test('FunPay rejects restricted listings before calling the marketplace', async t => {
