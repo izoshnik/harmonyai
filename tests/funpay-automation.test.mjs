@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { automateListing, managedTitle, matchesDelivery, openFunPay, pollFunPayAccount, renderFunPayTemplate, sealFunPay, selectFunPayReply } from '../lib/funpay-automation.js';
+import { automateListing, funpayWorker, managedTitle, matchesDelivery, openFunPay, pollFunPayAccount, renderFunPayTemplate, sealFunPay, selectFunPayReply } from '../lib/funpay-automation.js';
 import { parseOrder, parseSaleIds } from '../lib/funpay-events.js';
 
 const owner = 'bb29ede0-8c36-4c4b-8cad-efbedca35d58';
@@ -33,6 +33,66 @@ test('only the buyer’s own order can be expanded into a reply, and command tak
   assert.equal(selectFunPayReply({ buyer: '19', text: '!help' }, [order], { '!help': '' }), '');
   assert.match(renderFunPayTemplate('Отзыв на заказ $order', { order }), /https:\/\/funpay\.com\/orders\/HAG0022/);
   assert.throws(() => parseSaleIds('<h1>Вход</h1>'), /не вернул список/);
+  assert.deepEqual(parseSaleIds('<h1 class="page-header page-header-no-hr"><span>Мои продажи</span></h1>'), []);
+});
+
+test('the first worker pass accepts a verified empty chat page and exposes the stage of a failure', async t => {
+  const values = {
+    FUNPAY_AUTOMATION_KEY: '1'.repeat(64), FUNPAY_WORKER_SECRET: '2'.repeat(64),
+    SUPABASE_URL: 'https://supabase.invalid', SUPABASE_SERVICE_ROLE_KEY: 'test'
+  };
+  const old = Object.fromEntries(Object.keys(values).map(key => [key, process.env[key]]));
+  Object.assign(process.env, values);
+  t.after(() => {
+    for (const [key, value] of Object.entries(old)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  });
+  const seller = '<body data-app-data="{&quot;userId&quot;:8,&quot;csrf-token&quot;:&quot;csrf&quot;}">';
+  const row = { owner, seller_id: '8', credential: sealFunPay(owner, 'test-key-worker'), rules: {}, cursor: null };
+  const tags = [];
+  let validChatPage = false;
+  let saved;
+  const warn = t.mock.method(console, 'warn', () => {});
+  t.mock.method(globalThis, 'fetch', async (address, options) => {
+    const url = new URL(address);
+    if (url.hostname === 'supabase.invalid') {
+      if (url.pathname.endsWith('/rpc/funpay_claim_account')) return Response.json([row]);
+      if (url.pathname.endsWith('/funpay_automation_lots')) return Response.json([]);
+      assert.ok(url.pathname.endsWith('/funpay_automation_accounts'));
+      assert.equal(options.method, 'PATCH');
+      saved = JSON.parse(options.body);
+      return new Response(null, { status: 204 });
+    }
+    assert.equal(url.origin, 'https://funpay.com');
+    if (url.pathname === '/') return new Response(seller);
+    if (url.pathname === '/orders/trade') return new Response('<h1 class="page-header"><span>Мои продажи</span></h1>');
+    if (url.pathname === '/chat/') {
+      return new Response('<title>Чат / FunPay</title>' + (validChatPage ? seller : seller.replace(':8,', ':9,')));
+    }
+    assert.equal(url.pathname, '/runner/');
+    assert.equal(options.body.get('request'), 'false');
+    const [bookmark] = JSON.parse(options.body.get('objects'));
+    assert.equal(bookmark.type, 'chat_bookmarks');
+    assert.match(bookmark.tag, /^[a-z0-9]{10}$/);
+    assert.ok(!tags.includes(bookmark.tag));
+    tags.push(bookmark.tag);
+    return Response.json({ objects: [] });
+  });
+  const req = { method: 'POST', headers: { authorization: 'Bearer ' + values.FUNPAY_WORKER_SECRET } };
+  const res = { setHeader() {}, status(value) { this.statusCode = value; return this; }, json(value) { this.body = value; } };
+  await funpayWorker(req, res);
+  assert.deepEqual(res.body, { checked: 1, ok: false });
+  assert.match(saved.issue, /прочитать чаты/);
+  assert.deepEqual(warn.mock.calls[0].arguments[1], { stage: 'chats', status: null });
+  assert.equal(saved.last_poll, undefined);
+  validChatPage = true;
+  await funpayWorker(req, res);
+  assert.deepEqual(res.body, { checked: 1, ok: true });
+  assert.ok(Number.isFinite(Date.parse(saved.last_poll)));
+  assert.equal(saved.issue, null);
+  assert.deepEqual(saved.cursor, { chats: {}, orders: {}, latest: 0 });
 });
 
 test('worker delivers once, handles incoming commands, and sends confirmation and review replies from verified events', async t => {
