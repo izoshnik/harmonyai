@@ -36,7 +36,7 @@ test('only the buyer’s own order can be expanded into a reply, and command tak
   assert.deepEqual(parseSaleIds('<h1 class="page-header page-header-no-hr"><span>Мои продажи</span></h1>'), []);
 });
 
-test('the first worker pass accepts a verified empty chat page and exposes the stage of a failure', async t => {
+test('the worker verifies the chat page, follows its canonical redirect and reports HTTP failures', async t => {
   const values = {
     FUNPAY_AUTOMATION_KEY: '1'.repeat(64), FUNPAY_WORKER_SECRET: '2'.repeat(64),
     SUPABASE_URL: 'https://supabase.invalid', SUPABASE_SERVICE_ROLE_KEY: 'test'
@@ -51,8 +51,7 @@ test('the first worker pass accepts a verified empty chat page and exposes the s
   });
   const seller = '<body data-app-data="{&quot;userId&quot;:8,&quot;csrf-token&quot;:&quot;csrf&quot;}">';
   const row = { owner, seller_id: '8', credential: sealFunPay(owner, 'test-key-worker'), rules: {}, cursor: null };
-  const tags = [];
-  let validChatPage = false;
+  let chatPage = 'forbidden';
   let saved;
   const warn = t.mock.method(console, 'warn', () => {});
   t.mock.method(globalThis, 'fetch', async (address, options) => {
@@ -69,25 +68,28 @@ test('the first worker pass accepts a verified empty chat page and exposes the s
     if (url.pathname === '/') return new Response(seller);
     if (url.pathname === '/orders/trade') return new Response('<h1 class="page-header"><span>Мои продажи</span></h1>');
     if (url.pathname === '/chat/') {
-      return new Response('<title>Чат / FunPay</title>' + (validChatPage ? seller : seller.replace(':8,', ':9,')));
+      if (chatPage === 'forbidden') return new Response('Запрещено', { status: 403 });
+      if (chatPage === 'wrong-seller') return new Response('<title>Чат / FunPay</title>' + seller.replace(':8,', ':9,'));
+      return new Response(null, { status: 302, headers: { location: '/en/chat/', 'set-cookie': 'PHPSESSID=chat-session; Path=/' } });
     }
-    assert.equal(url.pathname, '/runner/');
-    assert.equal(options.body.get('request'), 'false');
-    const [bookmark] = JSON.parse(options.body.get('objects'));
-    assert.equal(bookmark.type, 'chat_bookmarks');
-    assert.match(bookmark.tag, /^[a-z0-9]{10}$/);
-    assert.ok(!tags.includes(bookmark.tag));
-    tags.push(bookmark.tag);
-    return Response.json({ objects: [] });
+    assert.equal(url.pathname, '/en/chat/');
+    assert.equal(options.method, 'GET');
+    assert.match(options.headers.Cookie, /PHPSESSID=chat-session/);
+    return new Response('<title>Chat / FunPay</title>' + seller + '<div class="chat-bookmarks-empty"></div>');
   });
   const req = { method: 'POST', headers: { authorization: 'Bearer ' + values.FUNPAY_WORKER_SECRET } };
   const res = { setHeader() {}, status(value) { this.statusCode = value; return this; }, json(value) { this.body = value; } };
   await funpayWorker(req, res);
   assert.deepEqual(res.body, { checked: 1, ok: false });
-  assert.match(saved.issue, /прочитать чаты/);
-  assert.deepEqual(warn.mock.calls[0].arguments[1], { stage: 'chats', status: null });
+  assert.match(saved.issue, /прочитать чаты.*HTTP 403/);
+  assert.deepEqual(warn.mock.calls[0].arguments[1], { stage: 'chats', status: 403 });
   assert.equal(saved.last_poll, undefined);
-  validChatPage = true;
+  chatPage = 'wrong-seller';
+  await funpayWorker(req, res);
+  assert.deepEqual(res.body, { checked: 1, ok: false });
+  assert.match(saved.issue, /Сессия FunPay истекла/);
+  assert.equal(saved.last_poll, undefined);
+  chatPage = 'redirect';
   await funpayWorker(req, res);
   assert.deepEqual(res.body, { checked: 1, ok: true });
   assert.ok(Number.isFinite(Date.parse(saved.last_poll)));
@@ -133,6 +135,9 @@ test('worker delivers once, handles incoming commands, and sends confirmation an
     assert.equal(url.origin, 'https://funpay.com');
     assert.equal(options.headers.Cookie, 'golden_key=' + token);
     if (url.pathname === '/') return new Response('<body data-app-data="{&quot;userId&quot;:8,&quot;csrf-token&quot;:&quot;csrf&quot;}">');
+    if (url.pathname === '/chat/') return new Response('<title>Чат / FunPay</title>' +
+      '<body data-app-data="{&quot;userId&quot;:8,&quot;csrf-token&quot;:&quot;page-csrf&quot;}">' +
+      '<div class="contact-list"><a class="contact-item" data-id="33" data-node-msg="' + chatMessage + '"></a></div>');
     if (url.pathname === '/orders/trade') return new Response('<h1 class="page-header">Мои продажи</h1><a class="tc-item" href="/orders/HAG0022/">');
     if (url.pathname === '/api/orders/get') return Response.json({ status: 'SUCCESS', data: {
       HAG0022: { ...providerOrder, status: state, ...(state === 'closed' ? { review } : {}) }
@@ -143,15 +148,13 @@ test('worker delivers once, handles incoming commands, and sends confirmation an
       return Response.json({ content: 'saved' });
     }
     assert.equal(url.pathname, '/runner/');
+    assert.equal(options.body.get('csrf_token'), 'page-csrf');
     const objects = JSON.parse(options.body.get('objects'));
     const request = JSON.parse(options.body.get('request'));
     if (request) {
       sent.push(request.data.content);
       return Response.json({ objects: [], response: { accepted: true } });
     }
-    if (objects[0].type === 'chat_bookmarks') return Response.json({ objects: [{ type: 'chat_bookmarks', data: {
-      html: '<a class="contact-item" data-id="33" data-node-msg="' + chatMessage + '"></a>'
-    } }] });
     return Response.json({ objects: [{ type: 'chat_node', data: { node: { name: 'users-8-19', id: 33, silent: false }, messages: [
       { author: 19, id: chatMessage, html: '<div class="chat-msg-text">!order</div>' },
       { author: 8, id: chatMessage, html: '<div class="chat-msg-text">my own reply</div>' },
