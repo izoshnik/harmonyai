@@ -234,14 +234,14 @@
   }
 
   function retryConfirmed(text) {
-    return /^(?:я\s+)?проверил[аи]?[.,\s]+(?:лота|предложения)\s+нет(?=$|[\s,.!—-])/iu.test(text.trim());
+    return /^(?:(?:я\s+)?проверил[аи]?[.,\s]+)?(?:(?:лота|лотов|предложения|предложений)(?:\s+у\s+меня)?\s+нет|список(?:\s+предложений)?\s+пуст)[\s.!]*$/iu.test(text.trim());
   }
 
   function followUp(text) {
     const task = text.trim().replace(/[.?!]+$/u, '').replace(/\s+(?:на|в)\s+(?:funpay|фанпей|фанпэй)$/iu, '');
     const short = task.replace(/^(?:(?:так|ну|да|давай|тогда|пожалуйста|ты)[,\s]+){1,5}/iu, '');
     if (retryConfirmed(short) ||
-        /^(?:(?:попробуй|попробуйте|сделай)\s+(?:еще|ещё)\s+раз(?:\s+(?:выставить|опубликовать)(?:\s+(?:лот|предложение))?)?|(?:повтори|продолжи)(?:\s+публикацию)?|(?:выстав[ьи]|выставляй|опубликуй|публикуй|выложи|создай|добавь)(?:\s+(?:его|это|лот|товар|пр[е]?дл[а-яё]{3,14}))?|try again|publish it)$/iu.test(short)) return 'write';
+        /^(?:(?:попробуй|попробуйте|сделай)\s+(?:(?:еще|ещё)\s+раз|снова)(?:\s+(?:выставить|опубликовать)(?:\s+(?:лот|предложение))?)?|(?:повтори|продолжи)(?:\s+публикацию)?|(?:выстав[ьи]|выставляй|опубликуй|публикуй|выложи|создай|добавь)(?:\s+(?:его|это|лот|товар|пр[е]?дл[а-яё]{3,14}))?|try again|publish it)$/iu.test(short)) return 'write';
     if (/(?:^|\n)\s*(?:автовыдач|позици|выдавай|выдавать|цена|количество|названи|описани|раздел|подраздел)|→|\s>\s|^https:\/\/funpay\.com\/|^\s*(?:№\s*)?[1-9]\d{0,11}\s*$/iu.test(task)) return 'details';
     return '';
   }
@@ -312,7 +312,7 @@
     const label = plugins.map(id => names[id]).join(' · ');
     const view = hmPlugin('chat_plugins', '');
     const entries = [];
-    let outcome;
+    let outcome = context?.outcome === 'uncertain' ? 'uncertain' : undefined;
     const finish = (answer, result, factsOnly = false) => view.finish(answer, { plain: !isFunPay, funpayReply: isFunPay, factsOnly, funpayOutcome: outcome, link: result?.link, linkLabel: result?.linkLabel,
       historyContent: isFunPay ? answer : label + ' · результат показан в текущей сессии.' });
     const answerFunPay = async (evidence, result) => {
@@ -326,15 +326,23 @@
         finish('HarmonyAI не публикует материалы для обхода защит и вредоносные инструменты.', undefined, true);
         return true;
       }
-      if (context?.outcome === 'published' || (context?.outcome === 'uncertain' && !retryConfirmed(task))) {
-        outcome = context.outcome;
-        const message = outcome === 'published' ? 'Предложение уже опубликовано.' :
-          'FunPay не подтвердил предыдущую публикацию. Проверь список предложений. Если лота там нет, напиши «Проверил, лота нет».';
-        finish(message, context.link ? { link: context.link } : undefined, true);
+      if (context?.outcome === 'published') {
+        outcome = 'published';
+        finish('Предложение уже опубликовано.', context.link ? { link: context.link } : undefined, true);
         return true;
       }
       view.cycle(['Составляю план · ' + label, 'Уточняю параметры запроса…', 'Подбираю действия плагина…']);
       const plan = await model(job, 'chat.plan', { task: job.task, plugins, previous: isFunPay ? context?.requests || [] : state.previous, hasMailList: state.gmail.length > 0 });
+      if (plan.code === 'FUNPAY_RESTRICTED_LISTING') {
+        outcome = 'restricted';
+        finish(safe(plan.issue), undefined, true);
+        return true;
+      }
+      if (context?.outcome === 'uncertain' && !retryConfirmed(task)) {
+        outcome = 'uncertain';
+        finish('FunPay не подтвердил предыдущую публикацию. Проверь список предложений. Если он пуст, напиши «Проверил, список пуст».', undefined, true);
+        return true;
+      }
       if (plan.question || plan.issue || !plan.steps?.length) {
         if (isFunPay) outcome = 'open';
         if (plan.question || !isFunPay) finish(safe(plan.question || 'Уточни, что нужно сделать.'));
@@ -369,6 +377,7 @@
     } catch (error) {
       if (error.code === 'FUNPAY_PUBLICATION_UNCONFIRMED') outcome = 'uncertain';
       else if (error.code === 'FUNPAY_RESTRICTED_LISTING') outcome = 'restricted';
+      else if (error.code === 'FUNPAY_SAVE_REJECTED' && outcome !== 'published') outcome = 'rejected';
       const text = safe(error.message || 'Не удалось выполнить действие плагина.');
       const evidence = entries.length ? 'Выполнено до ошибки:\n' + entries.map(e => e.text).join('\n') + '\n\n' + text : text;
       finish(evidence, isFunPay ? entries.findLast(e => e.link) : undefined, isFunPay);
