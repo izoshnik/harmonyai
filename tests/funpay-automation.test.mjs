@@ -141,6 +141,8 @@ test('server delivery links a disabled draft to encrypted stock before activatio
       return Response.json([stored]);
     }
     assert.equal(url.host, 'funpay.com');
+    if (url.pathname === '/') return new Response("<body data-app-data='{&quot;userId&quot;:8,&quot;csrf-token&quot;:&quot;session-csrf&quot;}'>",
+      { headers: { 'set-cookie': 'PHPSESSID=server-session; Path=/' } });
     if (url.pathname === '/lots/2456/trade') {
       writes.push('lookup');
       return new Response('<div class="user-link-name">QA</div><a class="tc-item warning" data-offer="811">' +
@@ -156,6 +158,8 @@ test('server delivery links a disabled draft to encrypted stock before activatio
         '<textarea name="fields[desc][ru]">Description</textarea><input type="checkbox" name="active"' + (active ? ' checked' : '') + '></form>');
     }
     assert.equal(url.pathname, '/lots/offerSave');
+    assert.match(options.headers.Cookie, /PHPSESSID=server-session/);
+    assert.equal(options.headers['X-CSRF-Token'], 'session-csrf');
     assert.equal(options.body.has('secrets'), false);
     assert.equal(options.body.has('auto_delivery'), false);
     if (options.body.get('offer_id') === '0') {

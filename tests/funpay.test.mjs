@@ -2,8 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { funpay, resolveFunPayCategory } from '../lib/funpay.js';
 import { normalizePluginPlan, planPluginRequest, resolveFunPayPublication, validateFunPayDelivery } from '../lib/chat-plugins.js';
+import { handler as pluginsHandler } from '../lib/util-plugins.js';
 
 const token = 'mock-key_for-tests';
+const sellerHome = () => new Response("<body data-app-data='{&quot;userId&quot;:7,&quot;csrf-token&quot;:&quot;global-csrf&quot;}'>",
+  { headers: { 'set-cookie': 'PHPSESSID=server-session; Path=/' } });
 const sellerTradePage = (offers = []) => '<div class="user-link-name">Продавец</div>' + offers.map(([offer, title]) =>
   '<a class="tc-item" data-offer="' + offer + '"><div class="tc-desc-text">' + title + '</div></a>').join('');
 const base = '<form class="form-horizontal form-offer-editor">' +
@@ -26,16 +29,16 @@ test('FunPay connects, publishes, edits, deletes and appends unique stock throug
     assert.equal(url.origin, 'https://funpay.com');
     assert.equal(options.redirect, 'manual');
     assert.match(options.headers.Cookie, /^golden_key=mock-key_for-tests(?:;|$)/);
-    if (url.pathname === '/') return new Response("<body data-app-data='{&quot;userId&quot;:7}'>");
+    if (url.pathname === '/') return sellerHome();
+    assert.match(options.headers.Cookie, /PHPSESSID=server-session/);
     if (/\/lots\/\d+\/trade$/.test(url.pathname)) return new Response(sellerTradePage());
     if (url.pathname === '/lots/offerEdit') {
       const editor = base.replace('%OFFER%', url.searchParams.get('offer') || '0').replace('%NODE%', '2456');
-      return new Response(url.searchParams.has('node') ? editor : JSON.stringify({ html: editor }),
-        { headers: { 'set-cookie': 'PHPSESSID=server-session; Path=/' } });
+      return new Response(url.searchParams.has('node') ? editor : JSON.stringify({ html: editor }));
     }
     assert.equal(url.pathname, '/lots/offerSave');
-    assert.match(options.headers.Cookie, /PHPSESSID=server-session/);
     assert.equal(options.headers.Origin, 'https://funpay.com');
+    assert.equal(options.headers['X-CSRF-Token'], 'global-csrf');
     assert.equal(options.body.get('csrf_token'), 'test&token');
     writes.push(options.body);
     return Response.json({ done: true, url: '/lots/offer?id=678' });
@@ -65,6 +68,7 @@ test('FunPay connects, publishes, edits, deletes and appends unique stock throug
 test('FunPay does not write against a mismatched editor or accept ambiguous results and never returns raw stock', async t => {
   let writes = 0;
   t.mock.method(globalThis, 'fetch', async (address, options) => {
+    if (new URL(address).pathname === '/') return sellerHome();
     if (options.method === 'POST') {
       writes++;
       return Response.json({ errors: { secrets: 'sensitive merchandise' } });
@@ -84,6 +88,7 @@ test('FunPay does not publish a listing without its requested automatic delivery
     .replace(/<textarea name="secrets">[\s\S]*?<\/textarea>/, '')
     .replace(/<input type="checkbox" name="auto_delivery" value="on">/, '');
   t.mock.method(globalThis, 'fetch', async (address, options) => {
+    if (new URL(address).pathname === '/') return sellerHome();
     if (options.method === 'POST') writes++;
     return new Response(editor);
   });
@@ -96,6 +101,7 @@ test('FunPay does not publish a listing without its requested automatic delivery
 test('FunPay requires a specific offer ID before acknowledging publication', async t => {
   let providerReply = { done: true, url: '/lots/2456/trade' };
   t.mock.method(globalThis, 'fetch', async (address, options) => {
+    if (new URL(address).pathname === '/') return sellerHome();
     if (new URL(address).pathname.endsWith('/trade')) return new Response(sellerTradePage());
     if (options.method !== 'POST') return new Response(base.replace('%OFFER%', '0').replace('%NODE%', '2456'));
     if (!providerReply) throw new TypeError('network timeout');
@@ -119,6 +125,7 @@ test('FunPay requires a specific offer ID before acknowledging publication', asy
 test('FunPay reports explicit validation failures without reflecting marketplace content', async t => {
   let reply;
   t.mock.method(globalThis, 'fetch', async (address, options) => {
+    if (new URL(address).pathname === '/') return sellerHome();
     if (options.method === 'POST') return reply;
     if (new URL(address).pathname.endsWith('/trade')) return new Response(sellerTradePage());
     assert.equal(new URL(address).pathname, '/lots/offerEdit');
@@ -133,6 +140,10 @@ test('FunPay reports explicit validation failures without reflecting marketplace
   await assert.rejects(funpay('funpay.publish', sale), {
     code: 'FUNPAY_SAVE_REJECTED', message: 'FunPay отклонил сохранение предложения. Проверь позиции автовыдачи.'
   });
+  reply = Response.json({ msg: 'Обновите страницу и повторите попытку.' });
+  await assert.rejects(funpay('funpay.publish', sale), { code: 'FUNPAY_SAVE_SESSION', upstreamStatus: 200 });
+  reply = new Response('', { status: 419 });
+  await assert.rejects(funpay('funpay.publish', sale), { code: 'FUNPAY_SAVE_SESSION', upstreamStatus: 419 });
 });
 
 test('FunPay rejects restricted listings before calling the marketplace', async t => {
@@ -140,6 +151,53 @@ test('FunPay rejects restricted listings before calling the marketplace', async 
   await assert.rejects(funpay('funpay.publish', { token, title: 'JailBreak для модели' }),
     { status: 400, code: 'FUNPAY_RESTRICTED_LISTING' });
   assert.equal(fetch.mock.callCount(), 0);
+});
+
+test('FunPay publication diagnostics report HTTP status without logging marketplace content', async t => {
+  const values = {
+    SUPABASE_URL: 'https://plugins-supabase.test', SUPABASE_SERVICE_ROLE_KEY: 'mock-service-role',
+    FUNPAY_AUTOMATION_KEY: '', FUNPAY_WORKER_SECRET: ''
+  };
+  const old = Object.fromEntries(Object.keys(values).map(key => [key, process.env[key]]));
+  Object.assign(process.env, values);
+  t.after(() => {
+    for (const [key, value] of Object.entries(old)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  });
+  let row;
+  let postCount = 0;
+  const warns = t.mock.method(console, 'warn', () => {});
+  t.mock.method(globalThis, 'fetch', async (address, options) => {
+    const url = new URL(address);
+    if (url.pathname === '/auth/v1/user') return Response.json({ id: 'diagnostics-user' });
+    if (url.pathname === '/rest/v1/hm_error_log') {
+      row = JSON.parse(options.body);
+      return new Response(null, { status: 201 });
+    }
+    assert.equal(url.origin, 'https://funpay.com');
+    if (url.pathname === '/') return sellerHome();
+    if (url.pathname.endsWith('/trade')) return new Response(sellerTradePage());
+    if (url.pathname === '/lots/offerEdit') return new Response(base.replace('%OFFER%', '0').replace('%NODE%', '2456'));
+    assert.equal(url.pathname, '/lots/offerSave');
+    postCount++;
+    return new Response('private-provider-response', { status: 503 });
+  });
+  const response = { setHeader() {}, status(value) { this.statusCode = value; return this; }, json(value) { this.body = value; } };
+  await pluginsHandler({
+    method: 'POST', headers: { authorization: 'Bearer mock-diagnostics-token' },
+    body: { action: 'funpay.publish', token, node: '2456', title: 'Диагностический шаблон',
+      description: 'private-listing-description', price: '50', stock: 'private-stock' }
+  }, response);
+  assert.equal(postCount, 1);
+  assert.equal(response.statusCode, 502);
+  assert.equal(response.body.error.code, 'FUNPAY_PUBLICATION_UNCONFIRMED');
+  assert.ok(response.body.error.message.includes('Код диагностики: ' + row.code));
+  assert.deepEqual(row.detail, { action: 'funpay.publish', upstreamStatus: 503, replyKind: 'transport_error' });
+  assert.equal(row.user_text, null);
+  const output = JSON.stringify([row, warns.mock.calls[0].arguments, response.body]);
+  assert.doesNotMatch(output, /private-|mock-key|global-csrf/);
 });
 
 test('FunPay refuses an obfuscated restricted offer before AI planning or seller requests', async t => {
@@ -191,6 +249,7 @@ test('FunPay uses the latest explicit delivery material and confirms a new owned
   let writes = 0;
   t.mock.method(globalThis, 'fetch', async (address, options) => {
     const url = new URL(address);
+    if (url.pathname === '/') return sellerHome();
     if (url.pathname === '/lots/1356/trade') return new Response(sellerTradePage(offers));
     if (url.pathname === '/lots/offerEdit') {
       if (url.searchParams.get('offer') === '678') {
@@ -237,7 +296,7 @@ test('the AI plans a new listing with stock in one operation from the original c
       ], question: '' }) } }] });
     }
     assert.equal(url.origin, 'https://funpay.com');
-    if (url.pathname === '/') return new Response(catalog);
+    if (url.pathname === '/') return options.headers.Cookie ? sellerHome() : new Response(catalog);
     if (url.pathname === '/lots/2456/trade') return new Response(sellerTradePage());
     if (url.pathname === '/lots/offerEdit') {
       assert.equal(url.searchParams.get('node'), '2456');
