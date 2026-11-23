@@ -140,11 +140,17 @@ test('server delivery links a disabled draft to encrypted stock before activatio
       return Response.json([stored]);
     }
     assert.equal(url.host, 'funpay.com');
+    if (url.pathname === '/lots/2456/trade') {
+      writes.push('lookup');
+      return new Response('<div class="user-link-name">QA</div><a class="tc-item warning" data-offer="811">' +
+        '<div class="tc-desc-text">' + stored.title + '</div></a>');
+    }
     if (url.pathname === '/lots/offerEdit') {
       const offerId = url.searchParams.get('offer') || '0';
+      const formTitle = offerId === '811' ? stored.title : 'Example';
       return new Response('<form class="form-offer-editor">' +
         '<input name="csrf_token" value="csrf"><input name="node_id" value="2456"><input name="offer_id" value="' + offerId + '">' +
-        '<input name="price" value="50"><input name="amount" value="1"><input name="fields[summary][ru]" value="Example">' +
+        '<input name="price" value="50"><input name="amount" value="1"><input name="fields[summary][ru]" value="' + formTitle + '">' +
         '<textarea name="fields[desc][ru]">Description</textarea><input type="checkbox" name="active"></form>');
     }
     assert.equal(url.pathname, '/lots/offerSave');
@@ -154,6 +160,7 @@ test('server delivery links a disabled draft to encrypted stock before activatio
       assert.equal(options.body.has('active'), false);
       assert.equal(options.body.get('fields[summary][ru]'), stored.title);
       writes.push('draft');
+      return Response.json({ done: true, url: '/lots/2456/trade' });
     } else {
       assert.equal(stored.offer, '811');
       assert.equal(stored.enabled, true);
@@ -165,7 +172,7 @@ test('server delivery links a disabled draft to encrypted stock before activatio
   const published = await automateListing('funpay.publish', owner, {
     token, node: '2456', title: 'Шаблон для заметок', description: 'Мой цифровой шаблон', price: '50', stock: 'sample-template'
   });
-  assert.deepEqual(writes, ['reserve', 'draft', 'bind', 'activate']);
+  assert.deepEqual(writes, ['reserve', 'draft', 'lookup', 'bind', 'activate']);
   assert.equal(published.delivery, 'server');
   assert.match(stored.title, /\[HA-[A-F0-9]{12}\]$/);
   assert.equal(published.offer, '811');

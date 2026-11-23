@@ -112,6 +112,13 @@ test('FunPay requires a specific offer ID before acknowledging publication', asy
   assert.deepEqual(await funpay('funpay.publish', sale), { offer: '700', node: '2456' });
 });
 
+test('FunPay rejects restricted listings before calling the marketplace', async t => {
+  const fetch = t.mock.method(globalThis, 'fetch', async () => assert.fail('marketplace request on rejected listing'));
+  await assert.rejects(funpay('funpay.publish', { token, title: 'JailBreak для модели' }),
+    { status: 400, code: 'FUNPAY_RESTRICTED_LISTING' });
+  assert.equal(fetch.mock.callCount(), 0);
+});
+
 test('FunPay planner strips credentials and takes delivery positions verbatim from the request', () => {
   const plan = normalizePluginPlan({ steps: [
     { action: 'funpay.stock', args: { offer: '89', stock: 'secret' } },
