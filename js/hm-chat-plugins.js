@@ -4,8 +4,8 @@
   const explicit = /(^|\s)@(gmail|джимейл|github|гитхаб|telegram|телеграм|тг|funpay|фанпей|фанпэй)(?=$|[\s,.:!?])/giu;
   const secret = /\b(?:gh[pousr]_[\w]{16,}|github_pat_[\w]{20,}|ya29\.[\w.-]{12,}|\d{6,16}:[\w-]{25,100}|golden_key\s*[:=]\s*[\w.%+~-]{8,})\b/i;
   const write = new Set(['gmail.send', 'gmail.trash', 'github.branch', 'github.commit', 'github.pull', 'telegram.send', 'telegram.edit',
-    'funpay.publish', 'funpay.edit', 'funpay.delete', 'funpay.stock']);
-  const supported = new Set([...write, 'github.search', 'github.repo', 'github.file', 'gmail.list', 'gmail.read', 'telegram.dialogs', 'telegram.messages']);
+    'funpay.publish', 'funpay.edit', 'funpay.delete', 'funpay.stock', 'funpay.automation.rule']);
+  const supported = new Set([...write, 'github.search', 'github.repo', 'github.file', 'gmail.list', 'gmail.read', 'telegram.dialogs', 'telegram.messages', 'funpay.automation.status']);
   const progress = {
     'gmail.list': ['Ищу письма в Gmail…', 'Проверяю папку и фильтры…', 'Собираю список писем…'],
     'gmail.read': ['Открываю письмо…', 'Читаю письмо Gmail…', 'Распознаю текст и заголовки…'],
@@ -24,7 +24,9 @@
     'funpay.publish': ['Открываю раздел FunPay…', 'Публикую предложение на FunPay…', 'Жду подтверждения от FunPay…'],
     'funpay.edit': ['Открываю предложение FunPay…', 'Сохраняю изменения…', 'Проверяю ответ FunPay…'],
     'funpay.delete': ['Проверяю предложение FunPay…', 'Удаляю предложение…', 'Жду подтверждения удаления…'],
-    'funpay.stock': ['Проверяю настройки автовыдачи…', 'Пополняю автовыдачу на FunPay…', 'Жду подтверждения остатка…']
+    'funpay.stock': ['Проверяю настройки автовыдачи…', 'Пополняю запас товара…', 'Жду подтверждения остатка…'],
+    'funpay.automation.rule': ['Настраиваю автоматизацию FunPay…', 'Сохраняю правило…'],
+    'funpay.automation.status': ['Проверяю фоновое подключение FunPay…']
   };
   const contexts = new WeakMap();
 
@@ -85,9 +87,22 @@
     view.cycle(publish && args.stock ? ['Открываю раздел FunPay…', 'Публикую товар с автовыдачей…', 'Проверяю результат FunPay…'] : progress[action]);
     const data = await access.invoke(action, args);
     check(job);
+    if (action === 'funpay.automation.rule') {
+      const rules = { message: 'Автоответ на сообщения', confirmed: 'Сообщение после подтверждения', review: 'Публичный ответ на отзыв' };
+      const rule = rules[data.rule] || 'Команда ' + safe(data.rule, 30);
+      return { action, text: rule + (data.removed ? ' · отключено.' : ' · сохранено на сервере.') };
+    }
+    if (action === 'funpay.automation.status') {
+      const detail = !data.available ? 'Серверная автоматизация ещё не настроена.' : !data.enabled ? 'Серверное подключение FunPay выключено.' :
+        data.ready ? 'Серверное подключение FunPay работает.' : 'Ожидается успешная фоновая проверка FunPay.';
+      const pending = data.pending?.map(item => safe(item.event, 60) + ' · ' + (item.state === 'waiting' ? 'нет позиций в запасе' : 'проверь результат на FunPay'));
+      return { action, text: [detail, data.issue, data.rules?.length && 'Включены правила: ' + data.rules.join(', '),
+        pending?.length && 'Требуют проверки:\n' + pending.join('\n')].filter(Boolean).join('\n') };
+    }
     const offer = /^[1-9]\d{0,11}$/.test(data?.offer || '') ? data.offer : '';
     if (!offer) throw Error('FunPay не вернул ID предложения. Проверь список своих предложений перед повтором.');
-    const stockStatus = Number.isInteger(data.added) ? ' Автовыдача включена. Добавлено позиций: ' + data.added + '.' : '';
+    const stockStatus = Number.isInteger(data.added) ? (data.delivery === 'server' ? ' Выдача через сервер HarmonyAI.' : ' Автовыдача FunPay включена.') +
+      ' Добавлено позиций: ' + data.added + '.' + (data.sku ? ' Артикул: HA-' + data.sku + '.' : '') : '';
     const text = addStock ? 'Предложение №' + offer + '.' + stockStatus :
       publish ? 'Опубликовано предложение №' + offer + '.' :
         'Предложение №' + offer + (remove ? ' удалено.' : ' обновлено.');
@@ -212,7 +227,7 @@
   function requestSelection(text, forced, state) {
     const plugins = new Set(forced ? [forced] : []);
     const task = text.replace(explicit, (matched, space, key) => { plugins.add(pluginName[key.toLowerCase()]); return space; }).trim();
-    if (!plugins.size && /(?:покажи|найди|прочита|отправ|создай|проверь|измен|открой|сделай|удали|перемести|посмотри|добав|пополни|публику|выстав|отредактир|\b(?:read|find|show|send|open|create|edit|search|publish|delete|stock)\b)/iu.test(task)) {
+    if (!plugins.size && /(?:покажи|найди|прочита|отправ|создай|проверь|измен|открой|сделай|удали|перемести|посмотри|добав|пополни|публику|выстав|отредактир|настрой|поставь|отключи|автоответ|\b(?:read|find|show|send|open|create|edit|search|publish|delete|stock)\b)/iu.test(task)) {
       const listing = /(?:лот|товар|предложени|listing|offer)/iu.test(task);
       if ((listing || /пополни/iu.test(task)) &&
           /(?:авто[\s-]*выдач|auto[\s-]*delivery|раздел[а-яё]*\s+[^\n].{0,130}(?:→|[-–—]))/iu.test(task)) plugins.add('funpay');
