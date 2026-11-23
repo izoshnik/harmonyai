@@ -79,7 +79,7 @@ test('a fresh topic is not pulled into a stale marketplace workflow', async () =
 
 test('an explicitly titled new listing does not inherit a previous uncertain publication', async () => {
   const app = browser([user(original), bot('FunPay не подтвердил публикацию.', { outcome: 'uncertain' })]);
-  const task = '@FunPay Создай предложение, категория Canva — Подписка, название Персональный календарь, описание Планер.\n\nЦена: 75 ₽.\nАвтовыдача: demo';
+  const task = '@FunPay Создай предлоежние, категория Canva — Подписка, название Персональный календарь, описание Планер.\n\nЦена: 75 ₽.\nАвтовыдача: demo';
   assert.equal(await app.route(task), true);
   assert.equal(app.requests[0].task, task);
   assert.deepEqual(Array.from(app.requests[0].previous), []);

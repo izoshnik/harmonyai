@@ -4,6 +4,8 @@ import { funpay, resolveFunPayCategory } from '../lib/funpay.js';
 import { normalizePluginPlan, planPluginRequest, resolveFunPayPublication, validateFunPayDelivery } from '../lib/chat-plugins.js';
 
 const token = 'mock-key_for-tests';
+const sellerTradePage = (offers = []) => '<div class="user-link-name">Продавец</div>' + offers.map(([offer, title]) =>
+  '<a class="tc-item" data-offer="' + offer + '"><div class="tc-desc-text">' + title + '</div></a>').join('');
 const base = '<form class="form-horizontal form-offer-editor">' +
   '<input name="csrf_token" value="test&amp;token" type="hidden">' +
   '<input name="offer_id" value="%OFFER%"><input name="node_id" value="%NODE%">' +
@@ -25,6 +27,7 @@ test('FunPay connects, publishes, edits, deletes and appends unique stock throug
     assert.equal(options.redirect, 'manual');
     assert.match(options.headers.Cookie, /^golden_key=mock-key_for-tests(?:;|$)/);
     if (url.pathname === '/') return new Response("<body data-app-data='{&quot;userId&quot;:7}'>");
+    if (/\/lots\/\d+\/trade$/.test(url.pathname)) return new Response(sellerTradePage());
     if (url.pathname === '/lots/offerEdit') {
       const editor = base.replace('%OFFER%', url.searchParams.get('offer') || '0').replace('%NODE%', '2456');
       return new Response(url.searchParams.has('node') ? editor : JSON.stringify({ html: editor }),
@@ -93,6 +96,7 @@ test('FunPay does not publish a listing without its requested automatic delivery
 test('FunPay requires a specific offer ID before acknowledging publication', async t => {
   let providerReply = { done: true, url: '/lots/2456/trade' };
   t.mock.method(globalThis, 'fetch', async (address, options) => {
+    if (new URL(address).pathname.endsWith('/trade')) return new Response(sellerTradePage());
     if (options.method !== 'POST') return new Response(base.replace('%OFFER%', '0').replace('%NODE%', '2456'));
     if (!providerReply) throw new TypeError('network timeout');
     return Response.json(providerReply);
@@ -116,6 +120,7 @@ test('FunPay reports explicit validation failures without reflecting marketplace
   let reply;
   t.mock.method(globalThis, 'fetch', async (address, options) => {
     if (options.method === 'POST') return reply;
+    if (new URL(address).pathname.endsWith('/trade')) return new Response(sellerTradePage());
     assert.equal(new URL(address).pathname, '/lots/offerEdit');
     return new Response(base.replace('%OFFER%', '0').replace('%NODE%', '2456'));
   });
@@ -167,6 +172,53 @@ test('FunPay planner strips credentials and takes delivery positions verbatim fr
   assert.match(validateFunPayDelivery(publish({ stock: 'secret', description: 'secret' }), ['В автовыдачу: secret']).issue, /публичных полей/);
 });
 
+test('FunPay uses the latest explicit delivery material and confirms a new owned offer after a category redirect', async t => {
+  const title = 'Помощь с промтом';
+  const description = 'Новый промт - для модели GPT-6.2-Sol в Codex.';
+  const stock = 'Привет, пришли твой промт и я переделаю его под идеал!!';
+  const task = '@FunPay Создай предлоежние , категория ChatGPT - прочее, название ' + title +
+    ', описание ' + description + '\n\nЦена - 25р, Автовыдача - ' + stock;
+  const earlier = ['Автовыдача: Старый текст выдачи'];
+  const publication = content => ({ steps: [{ action: 'funpay.publish', args: {
+    node: '1356', title, description, price: '25', stock: content, autoDelivery: true
+  } }] });
+  assert.match(validateFunPayDelivery(publication('Старый текст выдачи'), [task, ...earlier]).issue, /точно сопоставить/);
+  const plan = publication(stock);
+  assert.equal(validateFunPayDelivery(plan, [task, ...earlier]), plan);
+
+  const offers = [['507', title]];
+  let createOffer = true;
+  let writes = 0;
+  t.mock.method(globalThis, 'fetch', async (address, options) => {
+    const url = new URL(address);
+    if (url.pathname === '/lots/1356/trade') return new Response(sellerTradePage(offers));
+    if (url.pathname === '/lots/offerEdit') {
+      if (url.searchParams.get('offer') === '678') {
+        return new Response(base.replace('%OFFER%', '678').replace('%NODE%', '1356')
+          .replace('Исходное &quot;название&quot;', title).replace('Исходное описание', description)
+          .replace('first&amp;unused\nsecond', stock).replace('value="100"', 'value="25,00"')
+          .replace('name="auto_delivery" value="on"', 'name="auto_delivery" value="on" checked'));
+      }
+      assert.equal(url.searchParams.get('node'), '1356');
+      return new Response(base.replace('%OFFER%', '0').replace('%NODE%', '1356').replace('first&amp;unused\nsecond', ''));
+    }
+    assert.equal(url.pathname, '/lots/offerSave');
+    assert.equal(options.body.get('price'), '25');
+    assert.equal(options.body.get('amount'), '1');
+    assert.equal(options.body.get('secrets'), stock);
+    assert.equal(options.body.get('fields[desc][ru]'), description);
+    writes++;
+    if (createOffer) offers.push(['678', title]);
+    return Response.json({ url: '/lots/1356/trade' });
+  });
+  const args = { ...plan.steps[0].args, token };
+  assert.deepEqual(await funpay('funpay.publish', args), { offer: '678', added: 1, node: '1356' });
+  assert.equal(writes, 1);
+  createOffer = false;
+  await assert.rejects(funpay('funpay.publish', args), { code: 'FUNPAY_PUBLICATION_UNCONFIRMED' });
+  assert.equal(writes, 2);
+});
+
 test('the AI plans a new listing with stock in one operation from the original chat message', async t => {
   const task = 'Добавь товар в разделе ChatGPT — Прочее.\nНазвание: Тестовый набор\nЦена: 250 ₽\nОписание: Тестовый комплект.\nАвтовыдача:\nDemo-ABC_1\nDemo&xyz 2';
   const catalog = '<div class="game-title" data-id="11"><a href="/lots/2456/">ChatGPT</a></div>' +
@@ -186,6 +238,7 @@ test('the AI plans a new listing with stock in one operation from the original c
     }
     assert.equal(url.origin, 'https://funpay.com');
     if (url.pathname === '/') return new Response(catalog);
+    if (url.pathname === '/lots/2456/trade') return new Response(sellerTradePage());
     if (url.pathname === '/lots/offerEdit') {
       assert.equal(url.searchParams.get('node'), '2456');
       return new Response(base.replace('%OFFER%', '0').replace('%NODE%', '2456').replace('first&amp;unused\nsecond', ''));

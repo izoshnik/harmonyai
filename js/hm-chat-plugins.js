@@ -235,7 +235,7 @@
 
   function publicationTitle(text) {
     const task = text.replace(explicit, '$1').trim();
-    if (!/^(?:создай|опубликуй|выставь|выложи|добавь|create|publish)\s+(?:(?:новый|новое|новую|a|new)\s+)*(?:предложение|объявление|лот|товар|offer|listing)(?=$|[\s,.:;!?])/iu.test(task)) return '';
+    if (!/^(?:создай|опубликуй|выставь|выложи|добавь|create|publish)\s+(?:(?:новый|новое|новую|a|new)\s+)*(?:предложение|предлоежние|объявление|лот|товар|offer|listing)(?=$|[\s,.:;!?])/iu.test(task)) return '';
     const field = task.match(/(?:^|[\n,.;])[ \t]*(?:название|заголовок|title)(?:[ \t]*[:—–-][ \t]*|[ \t]+)([^\r\n]+)/iu)?.[1];
     const title = field?.split(/[,.;]\s*(?=(?:цена|описание|категория|раздел|количество|автовыдача|price|description|category|amount|stock)(?=[:\s]))/iu, 1)[0];
     return title?.trim().replace(/^["«“]+|["»”]+$/gu, '').normalize('NFKC').toLowerCase().replace(/\s+/gu, ' ') || '';
