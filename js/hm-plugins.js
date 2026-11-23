@@ -7,7 +7,7 @@
     telegram: { title: 'Telegram', description: 'Чтение, отправка и редактирование сообщений с личного аккаунта.' },
     yandex: { title: 'Яндекс Музыка', description: 'Поиск треков, плейлисты, Моя волна и загрузка MP3.' },
     rutube: { title: 'RuTube', description: 'Поиск фильмов, сериалов и видео прямо в чате.' },
-    funpay: { title: 'FunPay', description: 'Предложения и автовыдача из чата. Golden Key можно скопировать через EditThisCookie.' },
+    funpay: { title: 'FunPay', description: 'Лоты, автовыдача, автоответы и команды. Golden Key можно скопировать через EditThisCookie.' },
     api: { title: 'API', description: 'Ключи, баланс и настройки API HarmonyAI.', link: '/api/dashboard' },
     management: { title: 'Управление', description: 'Состояние сервиса и статистика.', link: '/management' }
   };
@@ -258,6 +258,33 @@
   }
   function funpayDetail(view, user) {
     const account = section(view, 'Подключение');
+    const automation = section(view, 'Серверная автоматизация');
+    const serverLine = feedback(automation);
+    const runServer = runner(serverLine);
+    const serverControls = toolbar(automation);
+    serverLine.textContent = 'Проверяю сервер…';
+    Promise.all([call('funpay.automation.status'), restoreFunPay(user).catch(() => null)]).then(([state, saved]) => {
+      if (!view.isConnected || curUser?.id !== user) return;
+      serverLine.textContent = !state.available ? 'Администратор ещё не настроил фоновый сервер.' :
+        state.issue || (state.ready ? 'Фоновая проверка FunPay работает.' : state.enabled ? 'Ожидается первая фоновая проверка.' : 'Серверное подключение выключено.');
+      if (!state.available) return;
+      if (saved) serverControls.append(button(state.enabled ? 'Обновить серверное подключение' : 'Включить серверную автоматизацию', () => runServer(async () => {
+        const current = await restoreFunPay(user);
+        if (!current || curUser?.id !== user) throw Error('Сначала подключи FunPay.');
+        const status = await call('funpay.automation.enable', {}, current.token);
+        if (view.isConnected) detail('funpay');
+        return status.ready ? 'Подключено.' : 'Сохранено. Ожидается фоновая проверка.';
+      }), !state.enabled));
+      if (state.enabled) serverControls.append(button('Отключить серверную автоматизацию', () => runServer(async () => {
+        if (!window.confirm('Автоматизация остановится, а серверный ключ и правила будут удалены. Опубликованные лоты останутся в FunPay.')) return '';
+        await call('funpay.automation.disable');
+        if (view.isConnected) detail('funpay');
+        return 'Серверная автоматизация отключена.';
+      })));
+      automation.append(node('p', 'stp-row-desc', 'При включении сервер хранит зашифрованный Golden Key, чтобы обрабатывать заказы и сообщения при закрытом сайте. Правила настраиваются в чате через @FunPay.'));
+    }).catch(() => {
+      if (view.isConnected) serverLine.textContent = 'Не удалось проверить состояние фонового сервера.';
+    });
     writePreference(account, 'funpay', 'Разрешить изменения предложений из чата');
     const line = feedback(account);
     const run = runner(line);
@@ -475,8 +502,11 @@
       if (write && getSettings()['hmPluginWrite_' + id] === false) throw Error('Изменения отключены в настройках ' + plugins[id].title + '.');
       const disconnected = () => Object.assign(Error('Подключи ' + plugins[id].title + ' в настройках плагинов.'), { pluginId: id });
       if (id === 'funpay') {
-        if (!await restoreFunPay(user)) throw disconnected();
         return { invoke: async (action, args) => {
+          if (action.startsWith('funpay.automation.')) {
+            if (curUser?.id !== user) throw Error('Сессия HarmonyAI изменилась.');
+            return call(action, args);
+          }
           const saved = await restoreFunPay(user);
           if (curUser?.id !== user) throw Error('Сессия HarmonyAI изменилась.');
           if (!saved) throw disconnected();
