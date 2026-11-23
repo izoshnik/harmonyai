@@ -233,6 +233,14 @@
       /(?:авто[\s-]*выдач|auto[\s-]*delivery|раздел[а-яё]*\s+[^\n].{0,130}(?:→|[-–—]))/iu.test(text);
   }
 
+  function publicationTitle(text) {
+    const task = text.replace(explicit, '$1').trim();
+    if (!/^(?:создай|опубликуй|выставь|выложи|добавь|create|publish)\s+(?:(?:новый|новое|новую|a|new)\s+)*(?:предложение|объявление|лот|товар|offer|listing)(?=$|[\s,.:;!?])/iu.test(task)) return '';
+    const field = task.match(/(?:^|[\n,.;])[ \t]*(?:название|заголовок|title)(?:[ \t]*[:—–-][ \t]*|[ \t]+)([^\r\n]+)/iu)?.[1];
+    const title = field?.split(/[,.;]\s*(?=(?:цена|описание|категория|раздел|количество|автовыдача|price|description|category|amount|stock)(?=[:\s]))/iu, 1)[0];
+    return title?.trim().replace(/^["«“]+|["»”]+$/gu, '').normalize('NFKC').toLowerCase().replace(/\s+/gu, ' ') || '';
+  }
+
   function retryConfirmed(text) {
     return /^(?:(?:я\s+)?проверил[аи]?[.,\s]+)?(?:(?:лота|лотов|предложения|предложений)(?:\s+у\s+меня)?\s+нет|список(?:\s+предложений)?\s+пуст)[\s.!]*$/iu.test(text.trim());
   }
@@ -290,7 +298,10 @@
     const kind = followUp(task);
     if (!plugins.size && context && kind) plugins.add('funpay');
     const anchor = context?.requests[0]?.replace(explicit, '$1').trim();
-    const continuation = context && plugins.has('funpay') && (kind || task === anchor);
+    const title = anchor ? publicationTitle(task) : '';
+    const previousTitle = title ? publicationTitle(anchor) : '';
+    const sameListing = title && previousTitle ? title === previousTitle : Boolean(kind || task === anchor);
+    const continuation = context && plugins.has('funpay') && sameListing;
     return { task, plugins: [...plugins].filter(id => Object.hasOwn(names, id)), context: continuation ? context : null };
   }
 

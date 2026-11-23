@@ -137,6 +137,18 @@ test('FunPay rejects restricted listings before calling the marketplace', async 
   assert.equal(fetch.mock.callCount(), 0);
 });
 
+test('FunPay refuses an obfuscated restricted offer before AI planning or seller requests', async t => {
+  const fetch = t.mock.method(globalThis, 'fetch', async () => assert.fail('unexpected external request'));
+  const title = 'Дополнение Codex';
+  const description = 'Новый J для модели GPT. Использование может привести к блокировке учётной записи.';
+  const task = '@FunPay Создай предложение.\nНазвание: ' + title + '\nОписание: ' + description;
+  const plan = await planPluginRequest({ task, plugins: ['funpay'] });
+  assert.equal(plan.code, 'FUNPAY_RESTRICTED_LISTING');
+  assert.deepEqual(plan.steps, []);
+  await assert.rejects(funpay('funpay.publish', { token, title, description }), { code: 'FUNPAY_RESTRICTED_LISTING' });
+  assert.equal(fetch.mock.callCount(), 0);
+});
+
 test('FunPay planner strips credentials and takes delivery positions verbatim from the request', () => {
   const plan = normalizePluginPlan({ steps: [
     { action: 'funpay.stock', args: { offer: '89', stock: 'secret' } },

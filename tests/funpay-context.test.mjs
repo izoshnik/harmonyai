@@ -77,6 +77,25 @@ test('a fresh topic is not pulled into a stale marketplace workflow', async () =
   assert.equal(fresh.requests[0].plugins.join(','), 'funpay');
 });
 
+test('an explicitly titled new listing does not inherit a previous uncertain publication', async () => {
+  const app = browser([user(original), bot('FunPay не подтвердил публикацию.', { outcome: 'uncertain' })]);
+  const task = '@FunPay Создай предложение, категория Canva — Подписка, название Персональный календарь, описание Планер.\n\nЦена: 75 ₽.\nАвтовыдача: demo';
+  assert.equal(await app.route(task), true);
+  assert.equal(app.requests[0].task, task);
+  assert.deepEqual(Array.from(app.requests[0].previous), []);
+  assert.deepEqual(app.actions, ['funpay.publish']);
+  assert.equal(app.results[0].options.funpayOutcome, 'published');
+});
+
+test('rephrasing a full request for the same listing does not bypass uncertainty protection', async () => {
+  const app = browser([user(original), bot('FunPay не подтвердил публикацию.', { outcome: 'uncertain' })]);
+  const task = '@FunPay Опубликуй товар, название «Шаблон для заметок», описание Новый вариант.\nЦена: 75 ₽.';
+  assert.equal(await app.route(task), true);
+  assert.equal(app.requests[0].previous[0], original);
+  assert.deepEqual(app.actions, []);
+  assert.equal(app.results[0].options.funpayOutcome, 'uncertain');
+});
+
 test('a restricted listing stays blocked on follow-up without another tool call', async () => {
   const error = Object.assign(Error('Публикация ограничена'), { code: 'FUNPAY_RESTRICTED_LISTING' });
   const app = browser([user(original), bot('Публикация ограничена.', { outcome: 'restricted' })], error);
