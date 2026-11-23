@@ -100,7 +100,8 @@
         pending?.length && 'Требуют проверки:\n' + pending.join('\n')].filter(Boolean).join('\n') };
     }
     const offer = /^[1-9]\d{0,11}$/.test(data?.offer || '') ? data.offer : '';
-    if (!offer) throw Error('FunPay не вернул ID предложения. Проверь список своих предложений перед повтором.');
+    if (!offer) throw Object.assign(Error('FunPay не вернул ID предложения. Проверь список своих предложений перед повтором.'),
+      { code: publish ? 'FUNPAY_PUBLICATION_UNCONFIRMED' : undefined });
     const stockStatus = Number.isInteger(data.added) ? (data.delivery === 'server' ? ' Выдача через сервер HarmonyAI.' : ' Автовыдача FunPay включена.') +
       ' Добавлено позиций: ' + data.added + '.' + (data.sku ? ' Артикул: HA-' + data.sku + '.' : '') : '';
     const text = addStock ? 'Предложение №' + offer + '.' + stockStatus :
@@ -224,38 +225,85 @@
     return entry;
   }
 
-  function requestSelection(text, forced, state) {
+  const funpayName = /funpay|фанпей|фанпэй/iu;
+  const operationWords = /(?:покажи|найди|прочита|отправ|создай|проверь|измен|открой|сделай|удали|перемести|посмотри|добав|пополни|публику|выстав|вылож|отредактир|настрой|поставь|отключи|автоответ|\b(?:read|find|show|send|open|create|edit|search|publish|delete|stock)\b)/iu;
+
+  function listingRequest(text) {
+    return /(?:лот|товар|предложени|listing|offer|пополни)/iu.test(text) &&
+      /(?:авто[\s-]*выдач|auto[\s-]*delivery|раздел[а-яё]*\s+[^\n].{0,130}(?:→|[-–—]))/iu.test(text);
+  }
+
+  function retryConfirmed(text) {
+    return /^(?:я\s+)?проверил[аи]?[.,\s]+(?:лота|предложения)\s+нет(?=$|[\s,.!—-])/iu.test(text.trim());
+  }
+
+  function followUp(text) {
+    const task = text.trim().replace(/[.?!]+$/u, '').replace(/\s+(?:на|в)\s+(?:funpay|фанпей|фанпэй)$/iu, '');
+    const short = task.replace(/^(?:(?:так|ну|да|давай|тогда|пожалуйста|ты)[,\s]+){1,5}/iu, '');
+    if (retryConfirmed(short) ||
+        /^(?:(?:попробуй|попробуйте|сделай)\s+(?:еще|ещё)\s+раз(?:\s+(?:выставить|опубликовать)(?:\s+(?:лот|предложение))?)?|(?:повтори|продолжи)(?:\s+публикацию)?|(?:выстав[ьи]|выставляй|опубликуй|публикуй|выложи|создай|добавь)(?:\s+(?:его|это|лот|товар|пр[е]?дл[а-яё]{3,14}))?|try again|publish it)$/iu.test(short)) return 'write';
+    if (/(?:^|\n)\s*(?:автовыдач|позици|выдавай|выдавать|цена|количество|названи|описани|раздел|подраздел)|→|\s>\s|^https:\/\/funpay\.com\/|^\s*(?:№\s*)?[1-9]\d{0,11}\s*$/iu.test(task)) return 'details';
+    return '';
+  }
+
+  function funpayContext(history) {
+    const later = [];
+    let outcome, link, linked = false;
+    for (const item of history.slice(-12).reverse()) {
+      const text = typeof item.content === 'string' ? item.content.trim() : '';
+      if (item.role === 'assistant') {
+        linked = Boolean(item.funpayReply);
+        if (linked && !outcome) {
+          link = item.funpayReply.link;
+          outcome = item.funpayReply.outcome ||
+            (/^(?:FunPay не подтвердил публикацию|FunPay сохранил черновик|FunPay не вернул ID предложения)/i.test(text) ? 'uncertain' :
+              link && /опубликован|публикация завершена/i.test(text) ? 'published' : 'open');
+        }
+        continue;
+      }
+      if (item.role !== 'user' || !text) break;
+      const anchor = /(?:^|\s)@(?:funpay|фанпей|фанпэй)(?=$|[\s,.:!?])/iu.test(text) ||
+        (operationWords.test(text) && (funpayName.test(text) || listingRequest(text)));
+      if (anchor) return { outcome, link, requests: [item.content, ...later.slice(0, 2).reverse()] };
+      const kind = followUp(text);
+      if (!linked && !kind) break;
+      if (kind !== 'write') later.push(item.content);
+      linked = false;
+    }
+    return null;
+  }
+
+  function requestSelection(text, forced, state, history) {
     const plugins = new Set(forced ? [forced] : []);
     const task = text.replace(explicit, (matched, space, key) => { plugins.add(pluginName[key.toLowerCase()]); return space; }).trim();
-    if (!plugins.size && /(?:покажи|найди|прочита|отправ|создай|проверь|измен|открой|сделай|удали|перемести|посмотри|добав|пополни|публику|выстав|отредактир|настрой|поставь|отключи|автоответ|\b(?:read|find|show|send|open|create|edit|search|publish|delete|stock)\b)/iu.test(task)) {
-      const listing = /(?:лот|товар|предложени|listing|offer)/iu.test(task);
-      if ((listing || /пополни/iu.test(task)) &&
-          /(?:авто[\s-]*выдач|auto[\s-]*delivery|раздел[а-яё]*\s+[^\n].{0,130}(?:→|[-–—]))/iu.test(task)) plugins.add('funpay');
+    if (!plugins.size && operationWords.test(task)) {
+      if (listingRequest(task)) plugins.add('funpay');
       for (const [id, pattern] of Object.entries({
         gmail: /gmail|джимейл/iu, github: /github|гитхаб/iu, telegram: /telegram|телеграм|(?:^|\s)тг(?=\s|$)/iu,
-        funpay: /funpay|фанпей|фанпэй/iu
+        funpay: funpayName
       })) if (!plugins.has('funpay') && pattern.test(task)) plugins.add(id);
       if (!plugins.size && /^(?:прочитай|покажи|перемести|открой|измени|отправь)\s+(?:его|её|это|последн|перв|втор|треть|(?:письмо|сообщение)\s*№?\d)/iu.test(task)) {
-        for (const id of state?.plugins || []) plugins.add(id);
+        for (const id of state?.plugins || []) if (id !== 'funpay') plugins.add(id);
       }
     }
-    if (!plugins.size && state?.funpayClarification?.length &&
-        (/(?:^|\n)\s*(?:автовыдач|позици|выдавай|выдавать|цена|количество|названи|описани|раздел|подраздел)|→|\s>\s|^https:\/\/funpay\.com\/|^\s*(?:№\s*)?[1-9]\d{0,11}\s*$/iu.test(task))) plugins.add('funpay');
-    return { task, plugins: [...plugins].filter(id => Object.hasOwn(names, id)) };
+    const context = !plugins.size || plugins.has('funpay') ? funpayContext(history) : null;
+    const kind = followUp(task);
+    if (!plugins.size && context && kind) plugins.add('funpay');
+    const anchor = context?.requests[0]?.replace(explicit, '$1').trim();
+    const continuation = context && plugins.has('funpay') && (kind || task === anchor);
+    return { task, plugins: [...plugins].filter(id => Object.hasOwn(names, id)), context: continuation ? context : null };
   }
 
   async function route(text, forced = '') {
     const history = chatHistory;
     const user = curUser?.id;
     const previousState = contexts.get(history);
-    const { task, plugins } = requestSelection(text, forced, previousState);
+    const { task, plugins, context } = requestSelection(text, forced, previousState, history);
     if (!plugins.length || !user) return false;
     if (secret.test(text) && !plugins.includes('funpay')) { toast('Токены добавляются через Настройки → Плагины.'); return true; }
     const state = previousState || { gmail: [], previous: [], telegramMail: null, plugins: [], busy: false };
     if (state.busy) { toast('Плагин ещё выполняет предыдущий запрос.'); return true; }
     const isFunPay = plugins.includes('funpay');
-    const followUp = isFunPay ? state.funpayClarification || [] : [];
-    state.funpayClarification = [];
     const job = { user, history, task: isFunPay ? text : task, state, plugins };
     contexts.set(history, state);
     state.busy = true;
@@ -264,7 +312,8 @@
     const label = plugins.map(id => names[id]).join(' · ');
     const view = hmPlugin('chat_plugins', '');
     const entries = [];
-    const finish = (answer, result, factsOnly = false) => view.finish(answer, { plain: !isFunPay, funpayReply: isFunPay, factsOnly, link: result?.link, linkLabel: result?.linkLabel,
+    let outcome;
+    const finish = (answer, result, factsOnly = false) => view.finish(answer, { plain: !isFunPay, funpayReply: isFunPay, factsOnly, funpayOutcome: outcome, link: result?.link, linkLabel: result?.linkLabel,
       historyContent: isFunPay ? answer : label + ' · результат показан в текущей сессии.' });
     const answerFunPay = async (evidence, result) => {
       view.cycle(['Готовлю ответ по FunPay…', 'Сверяю результат…']);
@@ -272,10 +321,22 @@
       finish(safe(response?.text || evidence), result);
     };
     try {
+      if (context?.outcome === 'restricted') {
+        outcome = 'restricted';
+        finish('HarmonyAI не публикует материалы для обхода защит и вредоносные инструменты.', undefined, true);
+        return true;
+      }
+      if (context?.outcome === 'published' || (context?.outcome === 'uncertain' && !retryConfirmed(task))) {
+        outcome = context.outcome;
+        const message = outcome === 'published' ? 'Предложение уже опубликовано.' :
+          'FunPay не подтвердил предыдущую публикацию. Проверь список предложений. Если лота там нет, напиши «Проверил, лота нет».';
+        finish(message, context.link ? { link: context.link } : undefined, true);
+        return true;
+      }
       view.cycle(['Составляю план · ' + label, 'Уточняю параметры запроса…', 'Подбираю действия плагина…']);
-      const plan = await model(job, 'chat.plan', { task: job.task, plugins, previous: isFunPay ? followUp : state.previous, hasMailList: state.gmail.length > 0 });
+      const plan = await model(job, 'chat.plan', { task: job.task, plugins, previous: isFunPay ? context?.requests || [] : state.previous, hasMailList: state.gmail.length > 0 });
       if (plan.question || plan.issue || !plan.steps?.length) {
-        if (isFunPay && task) state.funpayClarification = [...followUp, job.task].slice(-3);
+        if (isFunPay) outcome = 'open';
         if (plan.question || !isFunPay) finish(safe(plan.question || 'Уточни, что нужно сделать.'));
         else await answerFunPay(plan.issue || 'Задача по FunPay требует уточнения. Спроси пользователя, что нужно сделать с предложением.');
         return true;
@@ -289,6 +350,7 @@
           return true;
         }
         entries.push(entry);
+        if (entry.action === 'funpay.publish') outcome = 'published';
       }
       const last = entries.at(-1);
       const evidence = entries.map(e => e.text).join('\n\n');
@@ -305,6 +367,8 @@
         finish(completed, entries.findLast(e => e.link));
       }
     } catch (error) {
+      if (error.code === 'FUNPAY_PUBLICATION_UNCONFIRMED') outcome = 'uncertain';
+      else if (error.code === 'FUNPAY_RESTRICTED_LISTING') outcome = 'restricted';
       const text = safe(error.message || 'Не удалось выполнить действие плагина.');
       const evidence = entries.length ? 'Выполнено до ошибки:\n' + entries.map(e => e.text).join('\n') + '\n\n' + text : text;
       finish(evidence, isFunPay ? entries.findLast(e => e.link) : undefined, isFunPay);
