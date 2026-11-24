@@ -254,16 +254,31 @@
     return '';
   }
 
+  function legacyRefusal(history, index) {
+    // Older clients stored HTTP 428 as uncertain. A guard reply made no write of its own.
+    for (let i = index; i >= 0; i--) {
+      const entry = history[i];
+      const text = String(entry.content || '').trim();
+      if (entry.role === 'user' && followUp(text) === 'write') continue;
+      if (entry.role !== 'assistant' || !entry.funpayReply?.factsOnly ||
+          (entry.funpayReply.outcome && entry.funpayReply.outcome !== 'uncertain')) return false;
+      if (/^FunPay не подтвердил предыдущую публикацию\. Проверь список предложений\./u.test(text)) continue;
+      return /^FunPay не подтвердил публикацию конкретного предложения\. Проверь список своих предложений перед повтором\. Ответ FunPay: HTTP 428\.(?: Код диагностики: [a-z\d]+\.)?$/iu.test(text);
+    }
+    return false;
+  }
+
   function funpayContext(history) {
     const later = [];
     let outcome, link, linked = false;
-    for (const item of history.slice(-12).reverse()) {
+    for (let i = history.length - 1; i >= Math.max(0, history.length - 12); i--) {
+      const item = history[i];
       const text = typeof item.content === 'string' ? item.content.trim() : '';
       if (item.role === 'assistant') {
         linked = Boolean(item.funpayReply);
         if (linked && !outcome) {
           link = item.funpayReply.link;
-          outcome = item.funpayReply.outcome ||
+          outcome = legacyRefusal(history, i) ? 'rejected' : item.funpayReply.outcome ||
             (/^(?:FunPay не подтвердил публикацию|FunPay сохранил черновик|FunPay не вернул ID предложения)/i.test(text) ? 'uncertain' :
               link && /опубликован|публикация завершена/i.test(text) ? 'published' : 'open');
         }
