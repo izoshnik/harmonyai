@@ -146,6 +146,39 @@ test('FunPay reports explicit validation failures without reflecting marketplace
   await assert.rejects(funpay('funpay.publish', sale), { code: 'FUNPAY_SAVE_SESSION', upstreamStatus: 419 });
 });
 
+test('publication refreshes an explicitly stale editor once and stops on other preconditions', async t => {
+  let reply;
+  let saves = 0;
+  let editors = 0;
+  t.mock.method(globalThis, 'fetch', async (address, options) => {
+    const path = new URL(address).pathname;
+    if (path === '/') return sellerHome();
+    if (path.endsWith('/trade')) return new Response(sellerTradePage());
+    if (path === '/lots/offerEdit') {
+      editors++;
+      return new Response(base.replace('%OFFER%', '0').replace('%NODE%', '2456').replace('test&amp;token', 'token-' + editors));
+    }
+    assert.equal(path, '/lots/offerSave');
+    assert.equal(options.body.get('csrf_token'), 'token-' + editors);
+    return reply(++saves);
+  });
+  const sale = { token, node: '2456', title: 'Шаблон', description: 'Описание', price: '50', amount: '1' };
+  const stale = () => Response.json({ error: 'CSRF token mismatch' }, { status: 428 });
+  reply = count => count === 1 ? stale() : Response.json({ done: true, offer_id: '678' });
+  assert.equal((await funpay('funpay.publish', sale)).offer, '678');
+  assert.equal(saves, 2);
+  reply = stale;
+  await assert.rejects(funpay('funpay.publish', sale), { code: 'FUNPAY_SAVE_SESSION', upstreamStatus: 428 });
+  assert.equal(saves, 4);
+  reply = () => new Response('<html>private upstream content</html>', { status: 428 });
+  await assert.rejects(funpay('funpay.publish', sale), error => error.status === 428 &&
+    error.code === 'FUNPAY_SAVE_REJECTED' && !error.message.includes('private'));
+  assert.equal(saves, 5);
+  reply = () => Response.json({ errors: [['price', 'invalid']] }, { status: 428 });
+  await assert.rejects(funpay('funpay.publish', sale), error => error.upstreamStatus === 428 && /цену/.test(error.message));
+  assert.equal(saves, 6);
+});
+
 test('FunPay rejects restricted listings before calling the marketplace', async t => {
   const fetch = t.mock.method(globalThis, 'fetch', async () => assert.fail('marketplace request on rejected listing'));
   await assert.rejects(funpay('funpay.publish', { token, title: 'JailBreak для модели' }),
