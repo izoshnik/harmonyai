@@ -193,6 +193,7 @@ test('server delivery links a disabled draft to encrypted stock before activatio
   const writes = [];
   let stored;
   let active = false;
+  let lookups = 0;
   t.mock.method(globalThis, 'fetch', async (address, options) => {
     const url = new URL(address);
     if (url.hostname === 'supabase.invalid') {
@@ -208,11 +209,12 @@ test('server delivery links a disabled draft to encrypted stock before activatio
       { headers: { 'set-cookie': 'PHPSESSID=server-session; Path=/' } });
     if (url.pathname === '/lots/2456/trade') {
       writes.push('lookup');
+      if (++lookups === 1) return new Response('<div class="user-link-name">QA</div>');
       return new Response('<div class="user-link-name">QA</div><a class="tc-item warning" data-offer="811">' +
         '<div class="tc-desc-text">' + stored.title + '</div></a>');
     }
     if (url.pathname === '/lots/offerEdit') {
-      const offerId = url.searchParams.get('offer') || '0';
+      const offerId = url.searchParams.get('offer') || '';
       const formTitle = offerId === '811' ? stored.title : 'Example';
       if (active && offerId === '811') writes.push('verify');
       return new Response('<form class="form-offer-editor">' +
@@ -226,10 +228,10 @@ test('server delivery links a disabled draft to encrypted stock before activatio
     assert.equal(options.body.has('secrets'), false);
     assert.equal(options.body.has('auto_delivery'), false);
     if (options.body.get('offer_id') === '0') {
-      assert.equal(options.body.has('active'), false);
+      assert.equal(options.body.get('active'), '');
       assert.equal(options.body.get('fields[summary][ru]'), stored.title);
       writes.push('draft');
-      return Response.json({ done: true, url: '/lots/2456/trade' });
+      throw new TypeError('connection interrupted after saving draft');
     } else {
       assert.equal(stored.offer, '811');
       assert.equal(stored.enabled, true);
@@ -242,7 +244,7 @@ test('server delivery links a disabled draft to encrypted stock before activatio
   const published = await automateListing('funpay.publish', owner, {
     token, node: '2456', title: 'Шаблон для заметок', description: 'Мой цифровой шаблон', price: '50', stock: 'sample-template'
   });
-  assert.deepEqual(writes, ['reserve', 'draft', 'lookup', 'bind', 'activate', 'verify']);
+  assert.deepEqual(writes, ['reserve', 'draft', 'lookup', 'lookup', 'bind', 'activate', 'verify']);
   assert.equal(published.delivery, 'server');
   assert.match(stored.title, /\[HA-[A-F0-9]{12}\]$/);
   assert.equal(published.offer, '811');
