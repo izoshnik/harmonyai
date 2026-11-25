@@ -70,6 +70,11 @@
     if (curUser?.id === user && owner === user) connections.funpay = saved ? { account: saved.account, connected: true } : null;
     return saved;
   }
+  async function restoreGitHub(user) {
+    if (connections.github?.token) return;
+    const saved = await (await funpayStore()).load(user, 'github').catch(() => null);
+    if (saved && curUser?.id === user && owner === user && !connections.github) connections.github = saved;
+  }
   async function telegramStored(user) {
     // A lightweight check avoids downloading the MTProto client just to display the catalogue.
     if (!user || !window.indexedDB) return false;
@@ -189,6 +194,7 @@
       window.MusicClient?.status().then(status => { if (curUser?.id === user) connections.yandex = { connected: status.connected }; }),
       telegramStored(user).then(saved => { if (curUser?.id === user) connections.telegram = { connected: saved }; }),
       restoreFunPay(user),
+      restoreGitHub(user),
       hmVideoCall({ action: 'status' }, 8000).then(status => {
         if (curUser?.id === user && status.ok) for (const id of ['youtube', 'rutube']) connections[id] = { available: Boolean(status[id]) };
       })
@@ -331,7 +337,9 @@
       }
     });
   }
-  function githubDetail(view, user) {
+  async function githubDetail(view, user) {
+    await restoreGitHub(user).catch(() => {});
+    if (!view.isConnected || curUser?.id !== user) return;
     const account = section(view, 'Подключение');
     const existing = connections.github;
     writePreference(account, 'github', 'Разрешить изменения из чата');
@@ -339,18 +347,25 @@
     const run = runner(line);
     if (existing?.token) {
       line.textContent = 'Подключено · ' + existing.login;
-      toolbar(account).append(button('Отключить', () => {
+      toolbar(account).append(button('Отключить', () => run(async () => {
+        await (await funpayStore()).remove(user, 'github');
+        if (curUser?.id !== user) return;
         delete connections.github;
         detail('github');
-      }));
+      })));
     } else {
       account.append(node('p', 'stp-row-desc', 'Публичные репозитории доступны сразу. Для редактора и PR нужен токен с доступом к репозиторию и правами Contents и Pull requests на чтение и запись.'));
+      toolbar(account).append(buttonLink('Войти в GitHub', 'https://github.com/login'), buttonLink('Создать аккаунт', 'https://github.com/signup'), buttonLink('Открыть настройки токенов', 'https://github.com/settings/personal-access-tokens'));
+      account.append(node('p', 'stp-row-desc', 'Токен хранится в зашифрованном виде в этом браузере. Удалить его можно кнопкой «Отключить».'));
       const token = field(account, 'Токен GitHub', { type: 'password', limit: 2048 });
       toolbar(account).append(button('Подключить', () => run(async () => {
         const credential = token.value.trim();
         const profile = await call('github.connect', {}, credential);
         if (!view.isConnected || curUser?.id !== user) return;
-        connections.github = { token: credential, login: profile.login };
+        const saved = { token: credential, login: profile.login };
+        await (await funpayStore()).save(user, saved, 'github');
+        if (!view.isConnected || curUser?.id !== user) return;
+        connections.github = saved;
         token.value = '';
         detail('github');
       }), true));
@@ -514,6 +529,7 @@
           return call(action, args, saved.token);
         } };
       }
+      if (id === 'github') await restoreGitHub(user).catch(() => {});
       const needsConnection = (id === 'gmail' && !connected(id)) || (id === 'github' && write && !connected(id)) ||
         (id === 'telegram' && !await telegramStored(user));
       if (needsConnection) throw disconnected();

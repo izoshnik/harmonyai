@@ -806,6 +806,11 @@ function asksToHideSearch(query) {
   return /без\s+(?:показа|индикации)\s+поиска/iu.test(String(query || ''));
 }
 
+function needsTextbookExercise(query) {
+  return /(?:учебник|пособи|алгебр|геометри|класс|гдз|алимов|атанасян|мордкович|мерзляк|колмогоров|никольск|упражнен|задани)/iu.test(query) &&
+    /(?:№\s*\d+|\b(?:exercise|problem)\s+\d+|(?:упражнени[ея]|номер|задач[ау]|задани[ея])\s+\d+)/iu.test(query);
+}
+
 function decideWebSearch({ query = '', searchEnabled = 'auto' } = {}) {
   if (typeof query !== 'string' || !query.trim() || searchEnabled === 'off' || asksToStayOffline(query)) return false;
   if (searchEnabled === 'silent' || asksToHideSearch(query)) return 'silent';
@@ -813,6 +818,7 @@ function decideWebSearch({ query = '', searchEnabled = 'auto' } = {}) {
       && /модел|верси|model|version|fable|claude|chatgpt/iu.test(query)) return 'visible';
   // searchEnabled: 'auto' (ИИ решает сама) | 'on' (принудительно) | 'off'
   if (searchEnabled === 'on') return query && query.trim() ? 'visible' : false;
+  if (needsTextbookExercise(query)) return 'visible';
   if (isDefinitelyOfflineQuery(query)) return false;
   if (isArithmetic(query)) return false;
   if (isExplicitWebRequest(query) || wantsLookup(query)) return 'visible';
@@ -2524,7 +2530,8 @@ export default async function handler(req, res) {
     errQuery = query;
     /* quick:true — служебный короткий ответ клиента (описание найденного трека и т.п.):
        сразу быстрый путь — минимум рассуждений, гонка за первый токен, без веб-поиска. */
-    const isQuick = req.body?.quick === true || isSimpleQuery(query);
+    const textbookExercise = needsTextbookExercise(query);
+    const isQuick = !textbookExercise && (req.body?.quick === true || isSimpleQuery(query));
     const wantsContext = needsPersonalContext(query, messages);
     think = Boolean(think); // «Думать» — для всех тарифов (см. карту проекта: Adan «Думать» — да)
     model = requestedChatModel(model);
@@ -2617,7 +2624,7 @@ export default async function handler(req, res) {
        решённая музыкальным ядром, — без скрытых рассуждений модели, если
        пользователь сам не включил «Думать». Лимит длины ответа и таймауты НЕ
        трогаем: ускорение только за счёт reasoning_effort и пропуска поиска. */
-    const fastPath = effort === 'low' && !codingMode && !think && !trainingMode && (isQuick || theoryResolved || isShortFactualQuery(query, messages));
+    const fastPath = !textbookExercise && effort === 'low' && !codingMode && !think && !trainingMode && (isQuick || theoryResolved || isShortFactualQuery(query, messages));
 
     // РЕШЕНИЕ О ПОИСКЕ В ИНТЕРНЕТЕ: ИИ сама определяет, нужен ли поиск, если webSearch='auto'.
     // Пользователь может принудительно включить ('on') или выключить ('off') через кнопку «Поиск».
@@ -2839,6 +2846,8 @@ export default async function handler(req, res) {
     });
     const mergedSystem = appendServerContext(HM_GUARD_SYSTEM, [
       effortProfile.instruction,
+      'Не перечисляй закрытые материалы базы знаний и не утверждай, что знаешь состав обучающих данных. Публичные источники, использованные для ответа, можно и нужно указывать.',
+      textbookExercise ? 'Сверь автора, класс, издание и номер упражнения по источнику или вложению. Если точное условие не подтверждено либо отличается между изданиями, попроси страницу, фото или текст. Используй только подтверждённое условие. Решай по шагам, проверь ОДЗ, посторонние корни, границы и единицы. Для геометрии обоснуй построение и теоремы.' : '',
       model === 'sion' ? 'Для мини-приложения выдай один блок miniapp: готовый самодостаточный HTML с CSS и JS внутри, без внешних ресурсов, сетевых запросов, логинов и платежей. По запросу слот-машины используй только демонстрационные очки.' : '',
       codingMode ? 'ULTRACODE. Проверь архитектуру, контракты и связи компонентов. Для исправления сначала локализуй причину, затем предложи точечную реализацию и проверку регрессий. Не утверждай, что запускал команды или тесты, если их результаты не получены.' : '',
       buildCurrentDateTimeContext(),

@@ -35,3 +35,8 @@ test('актуальные релизы проверяются с учётом �
   assert.equal(d('Проверь релиз Fable без показа поиска'), 'silent');
   assert.equal(d('What is the latest Claude model? Do not browse.'), false);
 });
+
+test('упражнение по номеру ищется с источниками и уважает запрет на поиск', () => {
+  assert.equal(d('Реши № 171 пункт 2 по алгебре Алимов 10 класс'), 'visible');
+  assert.equal(d('Реши № 171 из учебника без интернета'), false);
+});

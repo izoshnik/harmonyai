@@ -41,7 +41,13 @@ import { funpayWorker } from '../lib/funpay-automation.js';
 import { unsubscribeHandler } from '../lib/mailer.js';
 import { handleIngestUrl, handleIngestText, handleIngestProxy, handleIngestDistill } from '../lib/textbook-ingestor.js';
 
+function mapsConfig(req, res) {
+  if (req.method !== 'GET') return res.status(405).end();
+  return res.status(200).json({ key: (process.env.YANDEX_MAPS_JS_KEY || '').trim() });
+}
+
 const OPS = {
+  'maps-config': mapsConfig,
   'intent': intentHandler,
   'music-intent': musicIntentHandler,
   'title': titleHandler,
