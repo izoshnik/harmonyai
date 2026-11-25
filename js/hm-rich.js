@@ -23,7 +23,7 @@
 (function(){
   'use strict';
 
-  var KINDS=['quiz','chart','diagram','mermaid','photo','image','buttons','steps','compare','flow','timeline','figure','molecule','email','tracks','miniapp'];
+  var KINDS=['quiz','chart','diagram','mermaid','photo','image','buttons','steps','compare','flow','timeline','figure','molecule','email','tracks','miniapp','route'];
   var FENCE_SRC='```[ \\t]*('+KINDS.join('|')+')[ \\t]*\\r?\\n([\\s\\S]*?)```';
   var OPEN_RE=new RegExp('```[ \\t]*('+KINDS.join('|')+')[ \\t]*(?:\\r?\\n[\\s\\S]*)?$','i');
 
@@ -83,6 +83,97 @@
   }
   var BTN_LEAD=/\n?[ \t]*(?:[*_#>]+[ \t]*)?(?:выберите|выбери|что дальше|дальше можно|следующ|варианты|можно продолжить|что сделаем|куда двигаемся|next step|choose)[^\n]{0,70}\s*$/i;
 
+  var yandexMaps;
+  function loadYandexMaps(){
+    if(yandexMaps)return yandexMaps;
+    yandexMaps=fetch('/api/util?op=maps-config',{signal:AbortSignal.timeout(8000)}).then(function(response){
+      if(!response.ok)throw Error('config');
+      return response.json();
+    }).then(function(config){
+      if(!config.key)throw Error('no key');
+      return new Promise(function(resolve,reject){
+        var script=document.createElement('script');
+        var timer=setTimeout(function(){script.remove();reject(Error('timeout'));},12000);
+        var url=new URL('https://api-maps.yandex.ru/2.1/');
+        url.search=new URLSearchParams({apikey:config.key,lang:'ru_RU',csp:'true'});
+        script.src=url.href;
+        script.onerror=function(){clearTimeout(timer);script.remove();reject(Error('load'));};
+        script.onload=function(){
+          if(window.ymaps)window.ymaps.ready(function(){clearTimeout(timer);resolve(window.ymaps);});
+        };
+        document.head.appendChild(script);
+      });
+    }).catch(function(error){yandexMaps=null;throw error;});
+    return yandexMaps;
+  }
+
+  function renderRoute(body,host){
+    var data=parseLoose(body);
+    var points=data&&data.points;
+    if(!Array.isArray(points)||points.length<2||points.length>5||
+       points.some(function(p){return typeof p!=='string'||!p.trim()||p.length>180||/[\u0000-\u001f~|]/.test(p);}))
+      return renderBroken(host,'маршрут','Укажи от двух до пяти адресов с городом.');
+    points=points.map(function(p){return p.trim();});
+    var modes={driving:['auto','auto','На машине'],walking:['pedestrian','pd','Пешком'],transit:['masstransit','mt','На транспорте'],bicycling:['bicycle','bc','На велосипеде']};
+    var mode=Object.hasOwn(modes,data.mode)?data.mode:'driving';
+    var settings=modes[mode];
+    var yandex=new URL('https://yandex.ru/maps/');
+    yandex.search=new URLSearchParams({mode:'routes',rtext:points.join('~'),rtt:settings[1]});
+    var google=new URL('https://www.google.com/maps/dir/');
+    google.search=new URLSearchParams({api:'1',origin:points[0],destination:points[points.length-1],travelmode:mode});
+    if(points.length>2)google.searchParams.set('waypoints',points.slice(1,-1).join('|'));
+    var card=el('div','hmr-card hmr-route');
+    host.appendChild(card);
+    card.appendChild(el('div','hmr-chart-title',settings[2]));
+    var list=el('ol','hmr-route-points');
+    points.forEach(function(point){list.appendChild(el('li','',esc(point)));});
+    card.appendChild(list);
+    var panel=el('div','hmr-route-map');
+    panel.hidden=true;
+    var actions=el('div','hmr-route-actions');
+    var show=el('button','hmr-route-action','Показать карту');
+    show.type='button';
+    var status=el('div','hmr-route-status');
+    status.setAttribute('role','status');
+    actions.appendChild(show);
+    [[yandex,'Яндекс Карты'],[google,'Google Карты']].forEach(function(item){
+      var anchor=el('a','hmr-route-action',item[1]);
+      anchor.href=item[0].href;anchor.target='_blank';anchor.rel='noopener noreferrer';
+      actions.appendChild(anchor);
+    });
+    card.append(panel,status,actions);
+    show.onclick=async function(){
+      show.disabled=true;status.textContent='Строю маршрут в Яндекс Картах…';
+      var map,timer;
+      try{
+        var ymaps=await loadYandexMaps();
+        if(!card.isConnected)return;
+        panel.hidden=false;
+        map=new ymaps.Map(panel,{center:[55.75,37.62],zoom:3,controls:['zoomControl']},{suppressMapOpenBlock:true});
+        map.behaviors.disable('scrollZoom');
+        var route=new ymaps.multiRouter.MultiRoute({referencePoints:points,params:{routingMode:settings[0],avoidTrafficJam:mode==='driving'}},{boundsAutoApply:true});
+        await new Promise(function(resolve,reject){
+          timer=setTimeout(function(){reject(Error('route timeout'));},15000);
+          route.model.events.once('requestsuccess',function(){route.getActiveRoute()?resolve():reject(Error('no route'));});
+          route.model.events.once('requestfail',reject);
+          map.geoObjects.add(route);
+        });
+        function update(){
+          var active=route.getActiveRoute();
+          status.textContent=active?[active.properties.get('distance')?.text,active.properties.get('durationInTraffic')?.text||active.properties.get('duration')?.text].filter(Boolean).join(' · '):'';
+        }
+        update();
+        route.events.add('activeroutechange',update);
+        show.hidden=true;
+      }catch(e){
+        if(map)map.destroy();
+        panel.hidden=true;show.disabled=false;
+        status.textContent='Мини-карта недоступна. Открой маршрут по одной из ссылок.';
+      }finally{clearTimeout(timer);}
+    };
+    return card;
+  }
+
   /* ---------- формулы ---------- */
   var MATH_MARK='\u2063HMMATH';
   function protectMath(md){
@@ -102,17 +193,26 @@
   }
   /* Модели часто пишут LaTeX без долларов: «\frac{3}{4} + \sqrt{2}». Такие
      куски сами оборачиваем в $…$, чтобы KaTeX их отрисовал. Код не трогаем. */
-  var LATEX_CMD=/\\(?:d?frac|tfrac|sqrt|cdot|times|div|pm|mp|leq?|geq?|neq|approx|equiv|infty|pi|alpha|beta|gamma|delta|Delta|theta|lambda|mu|sigma|Sigma|omega|varphi|phi|sum|prod|int|lim|log|ln|sin|cos|tan|cot|to|rightarrow|Rightarrow|circ|degree|angle|perp|parallel|in|notin|subset|cup|cap|forall|exists|overline|vec|hat|bar|binom|left|right|text|mathrm|quad)(?![A-Za-z])/;
+  var LATEX_CMD=/\\(?:d?frac|tfrac|sqrt|cdot|times|div|pm|mp|leq?|geq?|neq|approx|equiv|infty|pi|alpha|beta|gamma|delta|Delta|theta|lambda|mu|sigma|Sigma|omega|varphi|phi|sum|prod|int|lim|log|ln|sin|cos|tan|cot|to|rightarrow|Rightarrow|circ|degree|angle|perp|parallel|in|notin|subset|cup|cap|forall|exists|overline|vec|hat|bar|binom|boxed|begin|end|left|right|text|mathrm|quad)(?![A-Za-z])/;
   function wrapBareLatex(md){
     var parts=String(md||'').split(/(```[\s\S]*?(?:```|$)|`[^`\n]+`|\$\$[\s\S]+?\$\$|\$[^$\n]+?\$|\\\([\s\S]+?\\\)|\\\[[\s\S]+?\\\])/g);
     for(var i=0;i<parts.length;i+=2){
       var p=parts[i];if(!p||p.indexOf('\\')<0||!LATEX_CMD.test(p))continue;
-      parts[i]=p.replace(/[A-Za-z0-9\\{}^_()\[\]+\-*\/=<>.,|!'° ]*\\[A-Za-z]+[A-Za-z0-9\\{}^_()\[\]+\-*\/=<>.,|!'° ]*/g,function(run){
+      if(/^[ \t]*(?:[A-Za-z](?:_|\s*=)|\\(?:boxed|begin|frac|sqrt))/.test(p.trim())&&!p.trim().includes('\n')){
+        parts[i]=p.replace(/\S(?:[\s\S]*\S)?/,function(line){return '$$'+line+'$$';});continue;
+      }
+      parts[i]=p.split('\n').map(function(line){
+        var formula=line.trim();
+        if(/^(?:[A-Za-z](?:_\{|\s*=)|\\boxed\{)/.test(formula)&&LATEX_CMD.test(formula)){
+          return line.replace(formula,function(value){return '$$'+value+'$$';});
+        }
+        return line.replace(/[A-Za-z0-9\\{}^_()\[\]+\-*\/=<>.,|!'° ]*\\[A-Za-z]+[A-Za-z0-9\\{}^_()\[\]+\-*\/=<>.,|!'° ]*/g,function(run){
         if(!LATEX_CMD.test(run))return run;
         var lead=run.match(/^[\s.,]*/)[0],tail=run.match(/[\s.,;:!]*$/)[0];
         var core=run.slice(lead.length,run.length-tail.length);
-        return core?lead+'$'+core+'$'+tail:run;
-      });
+          return core?lead+'$'+core+'$'+tail:run;
+        });
+      }).join('\n');
     }
     return parts.join('');
   }
@@ -170,6 +270,11 @@
       s=s.replace(new RegExp('\\\\sqrt\\s*'+grp,'g'),'√<span class="hm-tsqrt">$1</span>');
       s=s.replace(new RegExp('\\^'+grp,'g'),'<sup>$1</sup>').replace(new RegExp('_'+grp,'g'),'<sub>$1</sub>');
     }
+    s=s.replace(/\\begin\{cases\}([\s\S]*?)\\end\{cases\}/g,function(_,body){
+      return '<span class="hm-tex-cases">'+body.split(/\\\\/).map(function(row){
+        return '<span>'+row.replace(/&amp;/g,' ')+'</span>';
+      }).join('')+'</span>';
+    }).replace(new RegExp('\\\\boxed\\s*'+grp,'g'),'<span class="hm-tex-box">$1</span>');
     s=s.replace(/\^([A-Za-z0-9])/g,'<sup>$1</sup>').replace(/_([A-Za-z0-9])/g,'<sub>$1</sub>')
      .replace(/\\(?:left|right|displaystyle|,|;|!)/g,'').replace(/\\text\{([^{}]*)\}|\\mathrm\{([^{}]*)\}/g,'$1$2')
      .replace(/\\([A-Za-z]+)/g,function(m,w){return TEX_SYM[w]!=null?TEX_SYM[w]:w;})
@@ -226,10 +331,10 @@
     loadKatex().then(function(k){
       nodes.forEach(function(n){
         if(n.dataset.done)return;
-        var raw=n.getAttribute('data-tex')||'',opts={displayMode:n.dataset.display==='1',throwOnError:true,strict:'ignore',output:'html'};
+        var raw=n.getAttribute('data-tex')||'',opts={displayMode:n.dataset.display==='1',throwOnError:true,strict:'ignore',output:'htmlAndMathml'};
         // Сначала как есть, потом нормализованный вариант. Если KaTeX всё равно не
         // справился — остаётся запасная вёрстка texLite (никакого красного исходника).
-        var tries=[normalizeTex(raw),raw];
+        var tries=[raw,normalizeTex(raw)];
         for(var i=0;i<tries.length;i++){
           try{var tmp=document.createElement('span');k.render(tries[i],tmp,opts);n.innerHTML=tmp.innerHTML;n.dataset.done='1';return;}catch(e){}
         }
@@ -410,9 +515,9 @@
       if(x==='('){var f=expr();eat(')');return f;}
       if(/^[A-Za-zπ_]/.test(x)){
         var lx=x.toLowerCase();
-        if(FUNCS[lx]&&peek()==='('){pos++;var args=[expr()];while(peek()===','){pos++;args.push(expr());}eat(')');var fn=FUNCS[lx];
+        if(Object.hasOwn(FUNCS,lx)&&peek()==='('){pos++;var args=[expr()];while(peek()===','){pos++;args.push(expr());}eat(')');var fn=FUNCS[lx];
           return function(v){var a=[];for(var k=0;k<args.length;k++)a.push(args[k](v));return fn.apply(null,a);};}
-        if(FUNCS[lx]){var arg=unary();var fn1=FUNCS[lx];return function(v){return fn1(arg(v));};}
+        if(Object.hasOwn(FUNCS,lx)){var arg=unary();var fn1=FUNCS[lx];return function(v){return fn1(arg(v));};}
         if(lx in CONSTS&&!(x in {}))return (function(c){return function(v){return x in v?v[x]:c;};})(CONSTS[lx]);
         return function(v){var r=v[x];return r==null?NaN:r;};
       }
@@ -490,16 +595,16 @@
     var type=String(d.type||(fnSrc?'function':'line')).toLowerCase();
     if(fnSrc||/function|plot|graph|функц/.test(type)){
       var list=Array.isArray(fnSrc)?fnSrc:(fnSrc?[fnSrc]:[]);
-      var fns=list.map(function(f){
+      var fns=list.slice(0,12).map(function(f){
         var e=pickExpr(f);
         var lbl=(f&&typeof f==='object'&&(f.label||f.name||f.title))||('y = '+String(e).replace(/^\s*y\s*=\s*/i,''));
-        return {expr:e,label:String(lbl)};
+        return {expr:e,label:String(lbl),domain:rangeOf(f&&f.domain,null)};
       }).filter(function(f){return String(f.expr).trim();});
       if(!fns.length)return null;
       // Параметры: массив, объект {k:2} или {k:{min,max,value}}
       var rawP=d.params||d.parameters||d.sliders||d.vars||d.variables||[];
       if(!Array.isArray(rawP))rawP=Object.keys(rawP).map(function(k){var v=rawP[k];return v&&typeof v==='object'?Object.assign({name:k},v):{name:k,value:+v};});
-      var params=rawP.map(function(p){
+      var params=rawP.slice(0,12).filter(function(p){return p&&/^[a-z][a-z0-9_]{0,15}$/i.test(p.name||p.id||'a');}).map(function(p){
         var min=+p.min,max=+p.max,v=+(p.value!=null?p.value:p.default!=null?p.default:p.initial);
         if(!isFinite(min))min=isFinite(v)?Math.min(-5,v-5):-5;
         if(!isFinite(max))max=isFinite(v)?Math.max(5,v+5):5;
@@ -507,7 +612,7 @@
         return {name:String(p.name||p.id||'a'),label:p.label||p.title||p.name,min:min,max:max,step:+p.step||(max-min)/100,value:v};
       });
       // «kx», «ab» — произведение однобуквенных величин, если так не назван параметр.
-      var have={};params.forEach(function(p){have[p.name]=1;});
+      var have=Object.create(null);params.forEach(function(p){have[p.name]=1;});
       var plain=fns.map(function(f){
         return exprToPlain(f.expr).replace(/[A-Za-z_][A-Za-z0-9_]*/g,function(w){
           if(have[w]||FUNCS[w.toLowerCase()]||KNOWN.test(w)||w.length<2||w.length>3||!/^[a-z]+$/i.test(w))return w;
@@ -566,7 +671,7 @@
       xmin=c.x[0];xmax=c.x[1];if(!(xmax>xmin)){xmin=-10;xmax=10;}
       var vars={};c.params.forEach(function(p){vars[p.name]=p.value;});
       var N=Math.max(200,Math.min(700,iw*1.5));var all=[];
-      c.compiled.forEach(function(f){var pts=[];for(var k=0;k<=N;k++){var x=xmin+(xmax-xmin)*k/N;vars.x=x;var y;try{y=f(vars);}catch(e){y=NaN;}pts.push([x,y]);if(isFinite(y))all.push(y);}lines.push(pts);});
+      c.compiled.forEach(function(f,i){var pts=[],domain=c.fns[i].domain;for(var k=0;k<=N;k++){var x=xmin+(xmax-xmin)*k/N;vars.x=x;var y;try{y=domain&&(x<domain[0]||x>domain[1])?NaN:f(vars);}catch(e){y=NaN;}pts.push([x,y]);if(isFinite(y))all.push(y);}lines.push(pts);});
       if(c.y){ymin=+c.y[0];ymax=+c.y[1];}
       else if(c.params.length){
         /* С ползунками шкала фиксируется по всему диапазону параметров —
@@ -603,6 +708,7 @@
       if(ymin<0&&ymax>0)s.push('<line class="ax"'+axis+' x1="'+P.l+'" x2="'+(W-P.r)+'" y1="'+Y(0).toFixed(1)+'" y2="'+Y(0).toFixed(1)+'"/>');
       if(xmin<0&&xmax>0)s.push('<line class="ax"'+axis+' y1="'+P.t+'" y2="'+(H-P.b)+'" x1="'+X(0).toFixed(1)+'" x2="'+X(0).toFixed(1)+'"/>');
       lines.forEach(function(pts,li){
+        if(c.fns[li].hidden)return;
         var d='',pen=false;
         pts.forEach(function(p,k){
           var ok=isFinite(p[1])&&p[1]>ymin-(ymax-ymin)*3&&p[1]<ymax+(ymax-ymin)*3;
@@ -642,6 +748,8 @@
     var svgWrap=el('div');card.appendChild(svgWrap);
     var readout=el('div','hmr-readout');card.appendChild(readout);
     var clip='hmrclip'+(++chartSeq);var hoverX=null;var meta=null;
+    var initialX=c.x?.slice(),frame=0;
+    function scheduleDraw(){if(!frame)frame=requestAnimationFrame(function(){frame=0;if(card.isConnected)draw();});}
     function draw(){
       var W=Math.max(260,Math.round(svgWrap.clientWidth||card.clientWidth||560));var H=Math.round(Math.min(340,Math.max(220,W*0.56)));
       var r=chartSvg(c,{w:W,h:H,clip:clip,xTitle:c.kind==='fn'?'':c.xLabel});meta=r.meta;
@@ -649,32 +757,56 @@
       if(hoverX!=null&&c.kind!=='pie'&&meta.X){
         var x=meta.X(hoverX);cross='<line x1="'+x.toFixed(1)+'" x2="'+x.toFixed(1)+'" y1="'+meta.P.t+'" y2="'+(H-meta.P.b)+'" stroke="currentColor" stroke-opacity=".35" stroke-dasharray="3 3"/>';
         if(c.kind==='fn'){var vars={x:hoverX};c.params.forEach(function(p){vars[p.name]=p.value;});
-          c.compiled.forEach(function(f,i){var y=f(vars);if(isFinite(y))cross+='<circle cx="'+x.toFixed(1)+'" cy="'+meta.Y(y).toFixed(1)+'" r="4.5" fill="'+PALETTE[i%PALETTE.length]+'" stroke="var(--bg2)" stroke-width="2"/>';});}
+          c.compiled.forEach(function(f,i){var line=c.fns[i];if(line.hidden||line.domain&&(hoverX<line.domain[0]||hoverX>line.domain[1]))return;var y=f(vars);if(isFinite(y))cross+='<circle cx="'+x.toFixed(1)+'" cy="'+meta.Y(y).toFixed(1)+'" r="4.5" fill="'+PALETTE[i%PALETTE.length]+'" stroke="var(--bg2)" stroke-width="2"/>';});}
       }
       svgWrap.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'" role="img" aria-label="'+esc(c.title||t('График'))+'">'+r.svg+cross+'</svg>';
     }
     function pointer(ev){
       if(!meta||c.kind==='pie')return;
       var svg=svgWrap.querySelector('svg');var rect=svg.getBoundingClientRect();var px=(ev.touches?ev.touches[0].clientX:ev.clientX)-rect.left;
-      var W=rect.width;var x;
+      px*=svg.viewBox.baseVal.width/(rect.width||1);var x;
       if(c.kind==='fn'){x=meta.xmin+(px-meta.P.l)/meta.iw*(meta.xmax-meta.xmin);x=Math.max(meta.xmin,Math.min(meta.xmax,x));hoverX=x;
         var vars={x:x};c.params.forEach(function(p){vars[p.name]=p.value;});
-        readout.textContent='x = '+fmtNum(x)+'   '+c.compiled.map(function(f,i){return (c.fns[i].label||'y').replace(/=.*$/,'').trim()+' = '+fmtNum(f(vars));}).join('   ');
+        readout.textContent='x = '+fmtNum(x)+'   '+c.compiled.map(function(f,i){var line=c.fns[i];return line.hidden||line.domain&&(x<line.domain[0]||x>line.domain[1])?'':(line.label||'y').replace(/=.*$/,'').trim()+' = '+fmtNum(f(vars));}).filter(Boolean).join('   ');
       }else{var i=Math.round((px-meta.P.l)/meta.iw*c.labels.length-0.5);if(c.kind!=='bar')i=Math.round((px-meta.P.l)/meta.iw*(c.labels.length-1));i=Math.max(0,Math.min(c.labels.length-1,i));hoverX=i;
         readout.textContent=c.labels[i]+':   '+c.series.map(function(s){return (s.name?s.name+' — ':'')+fmtNum(s.data[i]);}).join('   ');}
-      draw();
+      scheduleDraw();
     }
     svgWrap.addEventListener('mousemove',pointer);svgWrap.addEventListener('touchmove',pointer,{passive:true});
     svgWrap.addEventListener('mouseleave',function(){hoverX=null;readout.textContent='';draw();});
     // легенда
     var items=c.kind==='fn'?c.fns.map(function(f,i){return {name:f.label,color:PALETTE[i%PALETTE.length]};}):c.kind==='pie'?c.labels.map(function(l,i){return {name:l+' — '+fmtNum(c.series[0].data[i]),color:PALETTE[i%PALETTE.length]};}):c.series.filter(function(s){return s.name;}).map(function(s){return {name:s.name,color:s.color};});
-    if(items.length>1||c.kind==='fn'||c.kind==='pie'){var lg=el('div','hmr-legend');items.forEach(function(it){var sp=el('span');sp.innerHTML='<i style="background:'+it.color+'"></i>'+mdToHtml(String(it.name).replace(/\s*\*\s*/g,'·')).replace(/^<p>|<\/p>\s*$/g,'');lg.appendChild(sp);});card.appendChild(lg);}
+    if(c.kind!=='fn'&&(items.length>1||c.kind==='pie')){var lg=el('div','hmr-legend');items.forEach(function(it){var sp=el('span');sp.innerHTML='<i style="background:'+figColor(it.color)+'"></i>'+mdToHtml(String(it.name).replace(/\s*\*\s*/g,'·')).replace(/^<p>|<\/p>\s*$/g,'');lg.appendChild(sp);});card.appendChild(lg);}
+    if(c.kind==='fn'){
+      var controls=el('div','hmr-route-actions hmr-chart-controls');
+      items.forEach(function(item,i){
+        var toggle=el('button','hmr-route-action',esc(item.name));
+        toggle.type='button';toggle.style.setProperty('--curve',item.color);
+        toggle.setAttribute('aria-pressed','true');
+        toggle.onclick=function(){
+          c.fns[i].hidden=!c.fns[i].hidden;
+          toggle.setAttribute('aria-pressed',String(!c.fns[i].hidden));scheduleDraw();
+        };
+        controls.appendChild(toggle);
+      });
+      [['Приблизить',0.75],['Отдалить',1.33],['Сбросить масштаб',0]].forEach(function(control){
+        var button=el('button','hmr-route-action',control[0]);
+        button.type='button';
+        button.onclick=function(){
+          var mid=(c.x[0]+c.x[1])/2,half=(c.x[1]-c.x[0])*control[1]/2;
+          if(control[1]&&(half<1e-6||half>1e8))return;
+          c.x=control[1]?[mid-half,mid+half]:initialX.slice();c._yFixed=null;scheduleDraw();
+        };
+        controls.appendChild(button);
+      });
+      card.appendChild(controls);
+    }
     // ползунки параметров
     if(c.kind==='fn'&&c.params.length){
       var box=el('div','hmr-params');
       c.params.forEach(function(p){
         var w=el('div','hmr-param');var id='hmrp'+(++chartSeq);
-        w.innerHTML='<label for="'+id+'"><span>'+esc(p.label)+'</span><b>'+p.name+' = '+fmtNum(p.value)+'</b></label><input id="'+id+'" type="range" min="'+p.min+'" max="'+p.max+'" step="'+p.step+'" value="'+p.value+'">';
+        w.innerHTML='<label for="'+id+'"><span>'+esc(p.label)+'</span><b>'+esc(p.name)+' = '+fmtNum(p.value)+'</b></label><input id="'+id+'" type="range" min="'+p.min+'" max="'+p.max+'" step="'+p.step+'" value="'+p.value+'">';
         var inp=w.querySelector('input'),out=w.querySelector('b');
         inp.addEventListener('input',function(){p.value=+inp.value;out.textContent=p.name+' = '+fmtNum(p.value);draw();});
         box.appendChild(w);
@@ -682,7 +814,7 @@
       card.appendChild(box);
     }
     draw();typeset(card);
-    if(window.ResizeObserver){var ro=new ResizeObserver(function(){draw();});ro.observe(svgWrap);}
+    if(window.ResizeObserver){var ro=new ResizeObserver(scheduleDraw);ro.observe(svgWrap);}
     return card;
   }
 
@@ -1286,14 +1418,67 @@
     }
     if(c.radius!==false){addV('_R',best[1].w[0],best[1].w[1],0,'');d.segments.push({from:cen2,to:'_R',style:'dashed',color:'gray',label:c.radiusLabel||'R'});}
   }
+  // Plot the zero set of an implicit expression by interpolating each grid cell.
+  function implicitCurves(spec,xRange,yRange){
+    var fn=compileExpr(exprToPlain(spec.expr));
+    var size=72,dx=(xRange[1]-xRange[0])/size,dy=(yRange[1]-yRange[0])/size;
+    var rows=Array.from({length:size+1},function(_,i){
+      return Array.from({length:size+1},function(_,j){
+        var x=xRange[0]+dx*j,y=yRange[0]+dy*i;
+        return {x:x,y:y,z:fn({x:x,y:y})};
+      });
+    });
+    var curves=[];
+    for(var i=0;i<size;i++)for(var j=0;j<size;j++){
+      var corners=[rows[i][j],rows[i][j+1],rows[i+1][j+1],rows[i+1][j]];
+      if(corners.some(function(p){return !Number.isFinite(p.z);}))continue;
+      var edges=[];
+      corners.forEach(function(a,k){
+        var b=corners[(k+1)%4];
+        if((a.z<0)===(b.z<0))return;
+        var fraction=a.z/(a.z-b.z);
+        edges.push([a.x+(b.x-a.x)*fraction,a.y+(b.y-a.y)*fraction]);
+      });
+      for(var k=0;k+1<edges.length;k+=2)curves.push({points:[edges[k],edges[k+1]],color:spec.color});
+    }
+    return curves;
+  }
+
   function renderFigure(body,host){
     var d=parseLoose(body);if(!d||typeof d!=='object')return renderBroken(host,'чертёж',body);
     if(d.incline)expandIncline(d);
     if(d.solid)expandSolid(d);
+    if(Array.isArray(d.parametric)){
+      d.curves=Array.isArray(d.curves)?d.curves:[];
+      d.parametric.slice(0,8).forEach(function(curve){
+        try{
+          var range=rangeOf(curve.t,[0,2*Math.PI]);
+          var polar=curve.r?compileExpr(exprToPlain(curve.r)):null;
+          var fx=polar?null:compileExpr(exprToPlain(curve.x));
+          var fy=polar?null:compileExpr(exprToPlain(curve.y));
+          var points=[];
+          function flush(){if(points.length>1)d.curves.push({points:points,color:curve.color});points=[];}
+          for(var i=0;i<=360;i++){
+            var t=range[0]+(range[1]-range[0])*i/360;
+            var r=polar?polar({t:t,x:t}):0;
+            var x=polar?r*Math.cos(t):fx({t:t,x:t}),y=polar?r*Math.sin(t):fy({t:t,x:t});
+            if(Number.isFinite(x)&&Number.isFinite(y)&&Math.abs(x)<1e6&&Math.abs(y)<1e6)points.push([x,y]);else flush();
+          }
+          flush();
+        }catch(e){}
+      });
+    }
+    if(Array.isArray(d.implicit)){
+      d.x=rangeOf(d.x,[-5,5]);d.y=rangeOf(d.y,[-5,5]);
+      d.curves=Array.isArray(d.curves)?d.curves:[];
+      d.implicit.slice(0,4).forEach(function(spec){
+        try{d.curves.push(...implicitCurves(spec,d.x,d.y));}catch(e){}
+      });
+    }
     /* Объёмный чертёж: у точек есть z — проецируем (камера сверху-сбоку). */
     var is3d=Boolean(d.solid)||(d.points||[]).some(function(p){return p&&p.z!=null;});
     var V3=is3d?view3d(d.view):null;
-    var P={};
+    var P=Object.create(null);
     (d.points||[]).forEach(function(p){if(!p||p.id==null||!isFinite(+p.x)||!isFinite(+p.y))return;var q=V3?V3.p(+p.x,+p.y,+p.z||0):{x:+p.x,y:+p.y};P[p.id]={x:q.x,y:q.y,label:p.label!=null?p.label:p.id,hidden:!!p.hidden,color:p.color};});
     function pt(v){if(Array.isArray(v)&&v.length>=3&&V3&&isFinite(+v[2]))return V3.p(+v[0],+v[1],+v[2]);
       if(Array.isArray(v)&&isFinite(+v[0])&&isFinite(+v[1]))return {x:+v[0],y:+v[1]};if(typeof v==='string'&&P[v])return P[v];if(v&&isFinite(+v.x)&&isFinite(+v.y))return {x:+v.x,y:+v.y};return null;}
@@ -1452,6 +1637,7 @@
   function render(kind,body,host,ctx){
     try{
       if(kind==='quiz')return renderQuiz(body,host,ctx);
+      if(kind==='route')return renderRoute(body,host);
       if(kind==='chart')return renderChart(body,host,ctx);
       if(kind==='diagram'||kind==='mermaid')return renderDiagram(body,host,ctx);
       if(kind==='photo'||kind==='image')return renderPhoto(body,host,ctx);
@@ -1473,7 +1659,7 @@
     if(kind==='buttons')return null;
     var card=el('div','hmr-card hmr-skel');
     if(kind==='steps'||kind==='compare'||kind==='flow'||kind==='timeline')return blocksSkeleton(kind,host);
-    var label={email:'Пишу письмо…',figure:'Строю чертёж…',molecule:'Рисую формулу…',chart:'Строю график…',diagram:'Рисую схему…',mermaid:'Рисую схему…',photo:'Подбираю фото…',image:'Подбираю фото…'}[kind]||'Готовлю…';
+    var label={route:'Готовлю маршрут…',email:'Пишу письмо…',figure:'Строю чертёж…',molecule:'Рисую формулу…',chart:'Строю график…',diagram:'Рисую схему…',mermaid:'Рисую схему…',photo:'Подбираю фото…',image:'Подбираю фото…'}[kind]||'Готовлю…';
     card.innerHTML='<div class="hmr-skel-label">'+ICON.spin+esc(t(label))+'</div><div class="hmr-bar" style="height:140px;border-radius:16px"></div>';
     host.appendChild(card);return card;
   }

@@ -3778,7 +3778,7 @@ html:not([data-theme="light"]):not([data-theme="messenger"]) .msg-user{backgroun
       <div class="auth-switch">Уже зарегистрированы? <a href="#" onclick="toggleLoginHint();return false;">Войти</a></div>
       <div class="auth-hint" id="loginHint" style="display:none;"></div>
       <label class="auth-terms" id="authTermsWrap"><input type="checkbox" id="authTerms" onchange="hmTermsChanged()"><span>Я прочитал(а) и принимаю <a href="/legal/terms.html" target="_blank" rel="noopener noreferrer">Условия использования</a>, <a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Политику конфиденциальности</a> и <a href="/legal/ofera.html" target="_blank" rel="noopener noreferrer">Оферту</a></span></label>
-      <div class="auth-beta">Beta 0.8.122</div>
+      <div class="auth-beta">Beta 0.8.123</div>
     </div>
 
     <!-- Экран 2: Код подтверждения -->
@@ -3793,7 +3793,7 @@ html:not([data-theme="light"]):not([data-theme="messenger"]) .msg-user{backgroun
       <div class="auth-resend" id="btnResend" onclick="resendOTP()">Не пришел код? Отправить снова</div>
       <div class="auth-switch">Уже зарегистрированы? <a href="#" onclick="toggleLoginHint();return false;">Войти</a></div>
       <div class="auth-tos">Продолжая, вы соглашаетесь с <a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Политикой Конфиденциальности</a> и <a href="/legal/terms.html" target="_blank" rel="noopener noreferrer">Условиями Пользователя</a> HarmonyAI</div>
-      <div class="auth-beta">Beta 0.8.122</div>
+      <div class="auth-beta">Beta 0.8.123</div>
     </div>
 
   </div>
@@ -8445,6 +8445,13 @@ expr — формула от x: + - * / ^, sin cos tan sqrt abs ln log exp, pi, 
 {"to":"адрес@если.известен","subject":"Тема","body":"Текст письма с приветствием, абзацами (\\n\\n) и подписью"}
 \`\`\`
 Пользователь отредактирует его и отправит кнопкой через Gmail, Mail.ru, Яндекс, Outlook или iCloud. Адрес не выдумывай: неизвестен — "to":"". Не дублируй текст письма вне блока.
+12) МАРШРУТ — по запросу пользователя выдели город, старт, финиш, обязательные остановки и способ передвижения. Если пункт нельзя однозначно определить, уточни его. Для карты передай адреса или названия с городом в порядке посещения.
+\`\`\`route
+{"mode":"walking","points":["Москва, Красная площадь","Москва, парк Зарядье"]}
+\`\`\`
+mode: driving, walking, transit или bicycling. До пяти точек. Время, расстояние и актуальные пробки показывает карта; не вычисляй и не выдумывай их в тексте. Для явного запрета на сеть дай только схему маршрута текстом.
+Для математических задач добавляй столько отдельных chart/figure, сколько нужно для решения. Несколько функций для сравнения или системы — в одном chart. У функции можно задать domain: [a,b] для ветви кусочной функции. Для параметрических и полярных кривых в figure используй parametric: [{"x":"cos(t)","y":"sin(t)","t":[0,6.283185]},{"r":"2*cos(3*t)","t":[0,6.283185]}]. Для неявного уравнения f(x,y)=0 используй figure с implicit: [{"expr":"x^2+y^2-4"}], x/y — диапазоны осей. Оси и масштаб проверяй по условию.
+Системы уравнений пиши в отдельном $$…$$ с \\begin{cases} и \\end{cases}; строки системы разделяй \\\\. Выделяй итог через \\boxed{…}. Не заключай LaTeX в обратные кавычки.
 8) КНОПКИ — в конце содержательного ответа (не на приветствия и короткие реплики) 2–3 следующих шага:
 \`\`\`buttons
 [{"label":"2–5 слов","prompt":"готовый запрос от первого лица пользователя"}]
@@ -13352,6 +13359,16 @@ async function sendMsgInner(){
   // Поле чистим сразу, до всех await-ов: дальше идут сетевые вызовы (музыка,
   // intent-классификатор), и текст не должен оставаться в композере на это время.
   const text=takeComposerText();
+  if(/(?:\b(?:gh[pousr]_|github_pat_)[A-Za-z0-9_]{15,}\b|(?:^|[\r\n,;])\s*(?:мой\s+)?(?:пароль|password)\s*[:=]\s*\S+)/i.test(text)){
+    toast('Пароли вводятся на сайте сервиса. Токен GitHub добавляется в настройках плагина.');
+    return;
+  }
+  if(curUser&&/(?:github|гитхаб)/iu.test(text)&&/^\s*(?:помоги\s+)?(?:зарегистрир[а-яё]*|создай\s+(?:мне\s+)?аккаунт|войти|войди|подключи(?:ть)?)(?:\s|$)/iu.test(text)){
+    hmTmUserTurn(text);
+    const view=hmPlugin('chat_plugins','');
+    view.finish('Открой [регистрацию GitHub](https://github.com/signup) или [вход в GitHub](https://github.com/login). После входа подключи токен в **Настройки → Плагины → GitHub**, чтобы команды чата могли обращаться к твоим репозиториям.');
+    return;
+  }
   if(await window.HmChatPlugins?.hasFunPayKey(text)){toast('Ключ FunPay добавляется через Настройки → Плагины.');return;}
   const moderationPaused=chatHistory.findLast(m=>m.role==='assistant')?.content==='Поставлю задачу на паузу. Если извинишься за оскорбление, продолжим.';
   // Файл ещё дочитывается — молча ждём (в чате индикатор «читаю файл»).
@@ -15951,7 +15968,7 @@ function renderAbout(){
       <div class="stp-about-hero">
         <div class="stp-about-logo"><svg width="26" height="26" viewBox="0 0 64 64"><path d="M18 14h8v18h12V14h8v36h-8V39H26v11h-8z" fill="currentColor"/></svg></div>
         <div class="stp-about-name">HarmonyAI</div>
-        <div class="stp-about-ver">Beta 0.8.122</div>
+        <div class="stp-about-ver">Beta 0.8.123</div>
       </div>
       <div class="stp-row" onclick="hmOpenDoc('/legal/privacy.html')" role="link" tabindex="0">
         <div class="stp-row-label"><div class="stp-row-title">Политика конфиденциальности</div></div>
