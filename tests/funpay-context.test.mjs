@@ -67,6 +67,17 @@ test('a retry keeps the pending context but avoids duplicate writes while the pr
   assert.deepEqual(app.actions, ['funpay.publish']);
 });
 
+test('an old 428 followed by a guard-only reply can resume after reopening', async () => {
+  const refusal = 'FunPay не подтвердил публикацию конкретного предложения. Проверь список своих предложений перед повтором. Ответ FunPay: HTTP 428. Код диагностики: Ab123.';
+  const guard = 'FunPay не подтвердил предыдущую публикацию. Проверь список предложений. Если он пуст, напиши «Проверил, список пуст».';
+  const pending = { outcome: 'uncertain', factsOnly: true };
+  for (const [status, expected] of [['428', ['funpay.publish']], ['502', []]]) {
+    const app = browser([user(original), bot(refusal.replace('428', status), pending), user('попробуй снова'), bot(guard, pending)]);
+    await app.route('попробуй ещё раз');
+    assert.deepEqual(app.actions, expected);
+  }
+});
+
 test('a fresh topic is not pulled into a stale marketplace workflow', async () => {
   const app = browser([user(original), bot('Лот создан.', { outcome: 'published', link: offerLink }),
     user('Посоветуй фильм на вечер'), bot('Попробуй посмотреть комедию')]);
