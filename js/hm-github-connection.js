@@ -1,8 +1,8 @@
-const name = 'harmonyai-funpay';
+const name = 'harmonyai-github';
 
-async function access(owner, mode, record, namespace = 'funpay') {
+async function access(owner, mode, record) {
   const db = await new Promise((resolve, reject) => {
-    const open = indexedDB.open(namespace === 'funpay' ? name : 'harmonyai-github', 1);
+    const open = indexedDB.open(name, 1);
     open.onupgradeneeded = () => open.result.createObjectStore('connections');
     open.onsuccess = () => resolve(open.result);
     open.onerror = () => reject(open.error);
@@ -13,7 +13,7 @@ async function access(owner, mode, record, namespace = 'funpay') {
       const store = tx.objectStore('connections');
       const request = mode === 'readonly' ? store.get(owner) : record ? store.put(record, owner) : store.delete(owner);
       tx.oncomplete = () => resolve(request.result);
-      tx.onabort = () => reject(tx.error || Error('Не удалось обновить подключение FunPay.'));
+      tx.onabort = () => reject(tx.error || Error('Не удалось обновить подключение GitHub.'));
     });
   } finally {
     db.close();
@@ -21,21 +21,21 @@ async function access(owner, mode, record, namespace = 'funpay') {
 }
 
 const encoder = new TextEncoder();
-const metadata = (owner, namespace) => encoder.encode('hm-' + namespace + ':' + owner);
+const metadata = owner => encoder.encode('hm-github:' + owner);
 
-export async function save(owner, details, namespace = 'funpay') {
+export async function save(owner, details) {
   const key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv, additionalData: metadata(owner, namespace) },
+  const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv, additionalData: metadata(owner) },
     key, encoder.encode(JSON.stringify(details)));
-  await access(owner, 'readwrite', { key, iv, encrypted }, namespace);
+  await access(owner, 'readwrite', { key, iv, encrypted });
 }
 
-export async function load(owner, namespace = 'funpay') {
-  const record = await access(owner, 'readonly', null, namespace);
+export async function load(owner) {
+  const record = await access(owner, 'readonly', null);
   if (!record) return null;
   try {
-    const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: record.iv, additionalData: metadata(owner, namespace) },
+    const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: record.iv, additionalData: metadata(owner) },
       record.key, record.encrypted);
     return JSON.parse(new TextDecoder().decode(plain));
   } catch {
@@ -43,6 +43,6 @@ export async function load(owner, namespace = 'funpay') {
   }
 }
 
-export function remove(owner, namespace = 'funpay') {
-  return access(owner, 'readwrite', null, namespace);
+export function remove(owner) {
+  return access(owner, 'readwrite', null);
 }

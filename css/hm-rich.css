@@ -77,15 +77,11 @@
 .hmr-skel-label{font-size:13.5px;color:var(--text2);display:flex;align-items:center;gap:8px;}
 
 /* ---------- график ---------- */
-.hmr-route-points{margin:8px 0 12px;padding-inline-start:26px;overflow-wrap:anywhere}
-.hmr-route-map{width:100%;height:clamp(240px,45vw,350px);border-radius:14px;overflow:hidden;background:var(--bg2)}
-.hmr-route-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-.hmr-route-action{font:inherit;font-size:13px;line-height:1.25;color:var(--text);background:var(--bg2);border:1px solid color-mix(in srgb,var(--text2) 25%,transparent);border-radius:10px;padding:8px 12px;cursor:pointer;text-decoration:none}
-.hmr-route-action:hover,.hmr-route-action:focus-visible{border-color:var(--text2)}
-.hmr-route-action[aria-pressed]{border-inline-start:4px solid var(--curve)}
-.hmr-route-action[aria-pressed=false]{opacity:.55}
-.hmr-route-status:not(:empty){color:var(--text2);font-size:13px;margin-top:8px}
-.hmr-chart-controls{margin-top:4px}
+.hmr-chart-button{font:inherit;font-size:13px;line-height:1.25;color:var(--text);background:var(--bg2);border:1px solid color-mix(in srgb,var(--text2) 25%,transparent);border-radius:10px;padding:8px 12px;cursor:pointer;text-decoration:none}
+.hmr-chart-button:hover,.hmr-chart-button:focus-visible{border-color:var(--text2)}
+.hmr-chart-button[aria-pressed]{border-inline-start:4px solid var(--curve)}
+.hmr-chart-button[aria-pressed=false]{opacity:.55}
+.hmr-chart-controls{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
 .hm-tex-box{display:inline-block;border:1px solid currentColor;padding:.12em .3em}
 .hm-tex-cases{display:inline-flex;vertical-align:middle;flex-direction:column;padding-inline-start:.5em;border-inline-start:1px solid currentColor;border-radius:.3em;text-align:start}
 .hmr-chart-title{font-size:16px;font-weight:650;margin:0 2px 8px;}

@@ -7,19 +7,17 @@
     telegram: { title: 'Telegram', description: 'Чтение, отправка и редактирование сообщений с личного аккаунта.' },
     yandex: { title: 'Яндекс Музыка', description: 'Поиск треков, плейлисты, Моя волна и загрузка MP3.' },
     rutube: { title: 'RuTube', description: 'Поиск фильмов, сериалов и видео прямо в чате.' },
-    funpay: { title: 'FunPay', description: 'Лоты, автовыдача, автоответы и команды. Golden Key можно скопировать через EditThisCookie.' },
     api: { title: 'API', description: 'Ключи, баланс и настройки API HarmonyAI.', link: '/api/dashboard' },
     management: { title: 'Управление', description: 'Состояние сервиса и статистика.', link: '/management' }
   };
   const icons = {
-    funpay: '<img class="hm-funpay-icon" src="/icons/plugin-funpay.ico" alt="" width="24" height="24">',
     github: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M12 .8a11.3 11.3 0 0 0-3.57 22c.57.1.78-.24.78-.54l-.02-2.1c-3.2.69-3.88-1.36-3.88-1.36-.52-1.33-1.28-1.69-1.28-1.69-1.05-.72.08-.7.08-.7 1.16.08 1.76 1.19 1.76 1.19 1.03 1.76 2.7 1.25 3.36.95.1-.75.4-1.25.73-1.54-2.55-.3-5.24-1.28-5.24-5.69 0-1.25.45-2.28 1.18-3.08-.12-.3-.5-1.47.12-3.05 0 0 .97-.31 3.16 1.18a11 11 0 0 1 5.75 0c2.19-1.49 3.15-1.18 3.15-1.18.63 1.58.24 2.75.12 3.05.74.8 1.18 1.83 1.18 3.08 0 4.42-2.69 5.4-5.25 5.68.41.36.78 1.06.78 2.15l-.01 3.11c0 .3.2.65.79.54A11.3 11.3 0 0 0 12 .8Z"/></svg>',
     gmail: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke-width="4.5"><path stroke="#4285f4" d="M3 20V6"/><path stroke="#34a853" d="M21 20V6"/><path stroke="#ea4335" stroke-linejoin="round" d="m2.5 5 9.5 7 9.5-7"/></svg>',
     telegram: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#229ed9"/><path fill="#fff" d="m5 11.5 13.5-5.2-2.4 12.1-4.4-3.5-2.3 2.2.4-3.8 6.4-5-7.8 4.5z"/></svg>',
     api: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m7 6-5 6 5 6m10-12 5 6-5 6M14 3l-4 18"/></svg>',
     management: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 20V10m5 10V4m6 16v-7m5 7V7"/></svg>'
   };
-  let owner = null, connections = {}, telegramLibrary, activeLogin, googleScript, funpayLibrary;
+  let owner = null, connections = {}, telegramLibrary, activeLogin, googleScript, githubStorePromise;
   const knownModules = {};
 
   function icon(id) { return icons[id] || HM_PLUGIN_LOGOS[id] || ''; }
@@ -58,21 +56,16 @@
       .catch(error => { telegramLibrary = undefined; throw error; });
     return telegramLibrary;
   }
-  function funpayStore() {
-    if (!funpayLibrary) funpayLibrary = import('/js/hm-funpay-connection.js').catch(error => {
-      funpayLibrary = undefined;
+  function githubStore() {
+    if (!githubStorePromise) githubStorePromise = import('/js/hm-github-connection.js').catch(error => {
+      githubStorePromise = undefined;
       throw error;
     });
-    return funpayLibrary;
-  }
-  async function restoreFunPay(user) {
-    const saved = await (await funpayStore()).load(user);
-    if (curUser?.id === user && owner === user) connections.funpay = saved ? { account: saved.account, connected: true } : null;
-    return saved;
+    return githubStorePromise;
   }
   async function restoreGitHub(user) {
     if (connections.github?.token) return;
-    const saved = await (await funpayStore()).load(user, 'github').catch(() => null);
+    const saved = await (await githubStore()).load(user).catch(() => null);
     if (saved && curUser?.id === user && owner === user && !connections.github) connections.github = saved;
   }
   async function telegramStored(user) {
@@ -193,7 +186,6 @@
     Promise.allSettled([
       window.MusicClient?.status().then(status => { if (curUser?.id === user) connections.yandex = { connected: status.connected }; }),
       telegramStored(user).then(saved => { if (curUser?.id === user) connections.telegram = { connected: saved }; }),
-      restoreFunPay(user),
       restoreGitHub(user),
       hmVideoCall({ action: 'status' }, 8000).then(status => {
         if (curUser?.id === user && status.ok) for (const id of ['youtube', 'rutube']) connections[id] = { available: Boolean(status[id]) };
@@ -235,7 +227,6 @@
     if (id === 'github') githubDetail(view, user);
     if (id === 'gmail') gmailDetail(view, user);
     if (id === 'telegram') telegramDetail(view, user);
-    if (id === 'funpay') funpayDetail(view, user);
     const action = button('Перейти в чат', () => {
       closeSettings();
       window.HmMentions?.setChip(id);
@@ -262,81 +253,6 @@
     host.append(row);
     return enabled;
   }
-  function funpayDetail(view, user) {
-    const account = section(view, 'Подключение');
-    const automation = section(view, 'Серверная автоматизация');
-    const serverLine = feedback(automation);
-    const runServer = runner(serverLine);
-    const serverControls = toolbar(automation);
-    serverLine.textContent = 'Проверяю сервер…';
-    Promise.all([call('funpay.automation.status'), restoreFunPay(user).catch(() => null)]).then(([state, saved]) => {
-      if (!view.isConnected || curUser?.id !== user) return;
-      serverLine.textContent = !state.available ? 'Администратор ещё не настроил фоновый сервер.' :
-        state.issue || (state.ready ? 'Фоновая проверка FunPay работает.' : state.enabled ? 'Ожидается первая фоновая проверка.' : 'Серверное подключение выключено.');
-      if (!state.available) return;
-      if (saved) serverControls.append(button(state.enabled ? 'Обновить серверное подключение' : 'Включить серверную автоматизацию', () => runServer(async () => {
-        const current = await restoreFunPay(user);
-        if (!current || curUser?.id !== user) throw Error('Сначала подключи FunPay.');
-        const status = await call('funpay.automation.enable', {}, current.token);
-        if (view.isConnected) detail('funpay');
-        return status.ready ? 'Подключено.' : 'Сохранено. Ожидается фоновая проверка.';
-      }), !state.enabled));
-      if (state.enabled) serverControls.append(button('Отключить серверную автоматизацию', () => runServer(async () => {
-        if (!window.confirm('Автоматизация остановится, а серверный ключ и правила будут удалены. Опубликованные лоты останутся в FunPay.')) return '';
-        await call('funpay.automation.disable');
-        if (view.isConnected) detail('funpay');
-        return 'Серверная автоматизация отключена.';
-      })));
-      automation.append(node('p', 'stp-row-desc', 'При включении сервер хранит зашифрованный Golden Key, чтобы обрабатывать заказы и сообщения при закрытом сайте. Правила настраиваются в чате через @FunPay.'));
-    }).catch(() => {
-      if (view.isConnected) serverLine.textContent = 'Не удалось проверить состояние фонового сервера.';
-    });
-    writePreference(account, 'funpay', 'Разрешить изменения предложений из чата');
-    const line = feedback(account);
-    const run = runner(line);
-    const removeKey = () => run(async () => {
-      await (await funpayStore()).remove(user);
-      if (curUser?.id === user && owner === user) {
-        delete connections.funpay;
-        if (view.isConnected) detail('funpay');
-      }
-      return 'Ключ удалён.';
-    });
-    line.textContent = 'Проверяю сохранённое подключение…';
-    restoreFunPay(user).then(saved => {
-      if (!view.isConnected || curUser?.id !== user) return;
-      if (saved) {
-        line.textContent = 'Подключено · профиль №' + saved.account;
-        toolbar(account).append(button('Удалить Golden Key', removeKey));
-        return;
-      }
-      line.textContent = '';
-      const instructions = node('p', 'stp-row-desc', 'Войди в свой аккаунт на funpay.com и скопируй значение cookie golden_key через ');
-      const extension = node('a', 'stp-link', 'EditThisCookie (V3)');
-      extension.href = 'https://chromewebstore.google.com/detail/editthiscookie-v3/ojfebgpkimhlhcblbalbfjblapadhbol';
-      extension.target = '_blank';
-      extension.rel = 'noopener noreferrer';
-      instructions.append(extension, ' или через инструменты разработчика (Application → Cookies). Ключ сохранится в этом браузере, пока ты его не удалишь.');
-      account.append(instructions);
-      const key = field(account, 'Golden Key', { type: 'password', limit: 512 });
-      toolbar(account).append(button('Проверить и подключить', () => run(async () => {
-        const token = key.value.trim();
-        if (!token) return 'Введи Golden Key.';
-        const data = await call('funpay.connect', {}, token);
-        if (!data.account || curUser?.id !== user) throw Error('FunPay не подтвердил подключение.');
-        await (await funpayStore()).save(user, { token, account: data.account });
-        if (curUser?.id !== user) return '';
-        key.value = '';
-        if (view.isConnected) detail('funpay');
-        return 'Подключено.';
-      }), true));
-    }).catch(error => {
-      if (view.isConnected && curUser?.id === user) {
-        line.textContent = error.message || 'Не удалось открыть сохранённое подключение.';
-        toolbar(account).append(button('Удалить Golden Key', removeKey));
-      }
-    });
-  }
   async function githubDetail(view, user) {
     await restoreGitHub(user).catch(() => {});
     if (!view.isConnected || curUser?.id !== user) return;
@@ -348,7 +264,7 @@
     if (existing?.token) {
       line.textContent = 'Подключено · ' + existing.login;
       toolbar(account).append(button('Отключить', () => run(async () => {
-        await (await funpayStore()).remove(user, 'github');
+        await (await githubStore()).remove(user);
         if (curUser?.id !== user) return;
         delete connections.github;
         detail('github');
@@ -363,7 +279,7 @@
         const profile = await call('github.connect', {}, credential);
         if (!view.isConnected || curUser?.id !== user) return;
         const saved = { token: credential, login: profile.login };
-        await (await funpayStore()).save(user, saved, 'github');
+        await (await githubStore()).save(user, saved);
         if (!view.isConnected || curUser?.id !== user) return;
         connections.github = saved;
         token.value = '';
@@ -505,30 +421,11 @@
     detail,
     icon,
     reset,
-    async containsFunPayKey(text) {
-      const user = checkOwner();
-      if (!user || String(text || '').length < 8) return false;
-      const key = (await restoreFunPay(user).catch(() => null))?.token;
-      return Boolean(key && String(text || '').includes(key));
-    },
     async chatAccess(id, write = false) {
       const user = checkOwner();
       if (!user) throw Error('Войди в HarmonyAI.');
       if (write && getSettings()['hmPluginWrite_' + id] === false) throw Error('Изменения отключены в настройках ' + plugins[id].title + '.');
       const disconnected = () => Object.assign(Error('Подключи ' + plugins[id].title + ' в настройках плагинов.'), { pluginId: id });
-      if (id === 'funpay') {
-        return { invoke: async (action, args) => {
-          if (action.startsWith('funpay.automation.')) {
-            if (curUser?.id !== user) throw Error('Сессия HarmonyAI изменилась.');
-            return call(action, args);
-          }
-          const saved = await restoreFunPay(user);
-          if (curUser?.id !== user) throw Error('Сессия HarmonyAI изменилась.');
-          if (!saved) throw disconnected();
-          if (getSettings().hmPluginWrite_funpay === false) throw Error('Изменения отключены в настройках FunPay.');
-          return call(action, args, saved.token);
-        } };
-      }
       if (id === 'github') await restoreGitHub(user).catch(() => {});
       const needsConnection = (id === 'gmail' && !connected(id)) || (id === 'github' && write && !connected(id)) ||
         (id === 'telegram' && !await telegramStored(user));

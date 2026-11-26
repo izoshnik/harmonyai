@@ -3778,7 +3778,7 @@ html:not([data-theme="light"]):not([data-theme="messenger"]) .msg-user{backgroun
       <div class="auth-switch">Уже зарегистрированы? <a href="#" onclick="toggleLoginHint();return false;">Войти</a></div>
       <div class="auth-hint" id="loginHint" style="display:none;"></div>
       <label class="auth-terms" id="authTermsWrap"><input type="checkbox" id="authTerms" onchange="hmTermsChanged()"><span>Я прочитал(а) и принимаю <a href="/legal/terms.html" target="_blank" rel="noopener noreferrer">Условия использования</a>, <a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Политику конфиденциальности</a> и <a href="/legal/ofera.html" target="_blank" rel="noopener noreferrer">Оферту</a></span></label>
-      <div class="auth-beta">Beta 0.8.123</div>
+      <div class="auth-beta">Beta 0.8.124</div>
     </div>
 
     <!-- Экран 2: Код подтверждения -->
@@ -3793,7 +3793,7 @@ html:not([data-theme="light"]):not([data-theme="messenger"]) .msg-user{backgroun
       <div class="auth-resend" id="btnResend" onclick="resendOTP()">Не пришел код? Отправить снова</div>
       <div class="auth-switch">Уже зарегистрированы? <a href="#" onclick="toggleLoginHint();return false;">Войти</a></div>
       <div class="auth-tos">Продолжая, вы соглашаетесь с <a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Политикой Конфиденциальности</a> и <a href="/legal/terms.html" target="_blank" rel="noopener noreferrer">Условиями Пользователя</a> HarmonyAI</div>
-      <div class="auth-beta">Beta 0.8.123</div>
+      <div class="auth-beta">Beta 0.8.124</div>
     </div>
 
   </div>
@@ -7537,10 +7537,6 @@ async function openChat(id,opts){
       if(Array.isArray(m.images)&&m.images.length>1)appendImagesToShell(shell.msg,m.images);
       else appendImageToShell(shell.msg,m.image);
       attachImageMessageActions(shell,imagePromptFromHistory(m));
-    }else if(m.funpayReply){
-      const shell=createAiBubbleShell({showActions:true,createdAt:m.createdAt,historyIndex:idx});
-      renderFunPayReply(shell.msg,txt||'',m.funpayReply.link);
-      if(m.funpayReply.factsOnly)shell.actions?.querySelector('.more-item')?.remove();
     }else{
       const result=addAiBubble(normalizeReplyNotation(txt||''),false,{createdAt:m.createdAt,historyIndex:idx});
       if(Array.isArray(m.sources)&&m.sources.length)result.then(shell=>hmAddSourcesPill(shell.wrap||shell.msg.closest('.msg-ai-wrap'),m.sources));
@@ -8400,7 +8396,7 @@ const RICH_SYSTEM=`
 {"title":"Тема","questions":[{"question":"Вопрос?","hint":"подсказка без ответа","options":[{"text":"вариант","correct":false,"explanation":"почему неверно"},{"text":"вариант","correct":true,"explanation":"почему верно"}]}]}
 \`\`\`
 Ровно один правильный вариант из 3–4, правдоподобные неверные, explanation у каждого. Вопросов — сколько попросили (по умолчанию 5).
-2) ГРАФИК — когда он помогает понять зависимость или данные:
+2) ГРАФИК — при явной просьбе построить функцию, для графического решения системы или когда график помогает проверить результат. Сначала реши задачу, отметь вычисленные точки, затем помести блок рядом с нужным шагом:
 \`\`\`chart
 {"type":"function","title":"…","x":[-10,10],"functions":[{"expr":"a*sin(b*x)","label":"y = a·sin(bx)"}],"params":[{"name":"a","label":"Амплитуда","min":0,"max":5,"step":0.1,"value":1}]}
 \`\`\`
@@ -8430,11 +8426,11 @@ expr — формула от x: + - * / ^, sin cos tan sqrt abs ln log exp, pi, 
 \`\`\`
 — события по времени. Текст вокруг блоков пиши как обычно: заголовки ###, жирные ключевые слова, короткие абзацы.
 9) ШКОЛЬНАЯ ЗАДАЧА (математика, геометрия, физика, химия) оформляй строго: **Дано:** (кратко, с обозначениями) → **Найти:** → **Решение:** (по шагам, каждая формула и вычисление отдельно, проверяй каждое число) → **Ответ:** (все искомые величины с единицами). К задаче по геометрии и физике ВСЕГДА добавляй чертёж, даже если не просили — после «Дано», перед «Решением».
-ЧЕРТЁЖ: сначала вычисли точные координаты из условия (стороны, углы, длины), затем
+ЧЕРТЁЖ: сначала выведи координаты из условия (стороны, углы, длины). Выбери одинаковый масштаб осей, вычисли место пересечения или проекцию, затем укажи её координаты отдельной вершиной. Равные отрезки обозначай одинаковым ticks, прямой угол отмечай right:true только при перпендикулярности. Чертёж без заданных размеров подпиши «схема, не в масштабе». Используй:
 \`\`\`figure
 {"title":"…","axes":false,"grid":false,"points":[{"id":"A","x":0,"y":0},{"id":"B","x":4,"y":0},{"id":"C","x":0,"y":3}],"polygons":[{"points":["A","B","C"]}],"segments":[{"from":"A","to":"B","label":"4 см","ticks":0},{"from":"C","to":"H","style":"dashed"}],"angles":[{"vertex":"A","from":"B","to":"C","right":true},{"vertex":"B","from":"C","to":"A","label":"37°"}],"circles":[{"center":"O","r":2}],"lines":[{"through":["A","B"],"type":"line|ray"}],"vectors":[{"from":"A","to":[2,2],"label":"F"}],"functions":[{"expr":"x^2-2","domain":[-3,3],"label":"y = x²−2"}],"texts":[{"x":1,"y":1,"text":"m"}]}
 \`\`\`
-Масштаб осей одинаковый — координаты должны соответствовать условию; подпиши всё, что дано и что ищем; axes/grid — для координатных задач и графиков. Силы, скорости — vectors из точки приложения. Тело на наклонной или горизонтальной плоскости — только так (направления посчитает интерфейс): {"title":"…","incline":{"angle":30,"forces":[{"type":"gravity","label":"mg"},{"type":"normal","label":"N"},{"type":"friction","label":"Fтр","dir":"up"},{"type":"pull","label":"F","dir":"up"}]}} (angle 0 — горизонтальный стол). Подписи — простой текст без $ и LaTeX (F₁, mg, Fтр, 30°, 4,8 см). Ключи, которые не нужны, не пиши.
+Масштаб осей одинаковый — координаты должны соответствовать условию; подпиши всё, что дано и что ищем; axes/grid — для координатных задач и графиков. Силы, скорости — vectors из точки приложения. Тело на наклонной или горизонтальной плоскости — только так (направления посчитает интерфейс): {"title":"…","incline":{"angle":30,"forces":[{"type":"gravity","label":"mg"},{"type":"normal","label":"N"},{"type":"friction","label":"Fтр","dir":"up"},{"type":"pull","label":"F","dir":"up"}]}} (angle 0 — горизонтальный стол). Для пружин springs: [{"from":[0,2],"to":[3,2],"label":"k₁"}], supports: [{"from":[0,0],"to":[0,3]}]. Границы, тело и соединительные линии задавай через segments/polygons, а последовательные пружины соединяй в общей точке. Подписи — простой текст без $ и LaTeX (F₁, mg, Fтр, 30°, 4,8 см). Ключи, которые не нужны, не пиши.
 Объёмные фигуры (стереометрия) — только через solid, вершины и невидимые рёбра построит интерфейс: {"title":"…","solid":{"type":"pyramid|prism|cube|box|tetra|cylinder|cone|sphere","n":4,"a":6,"b":6,"h":4,"r":2,"apothem":true,"heightLabel":"4 см","radiusLabel":"R"},"segments":[{"from":"A","to":"B","label":"6 см"},{"from":"S","to":"C","label":"√34"}]} — вершины основания A, B, C, D…, верх призмы A₁, B₁…, вершина пирамиды/конуса S, центр основания O, середина ребра (апофема) M; segments по этим именам добавляют подписи к рёбрам.
 10) ХИМИЯ — структурная формула вещества:
 \`\`\`molecule
@@ -8445,12 +8441,7 @@ expr — формула от x: + - * / ^, sin cos tan sqrt abs ln log exp, pi, 
 {"to":"адрес@если.известен","subject":"Тема","body":"Текст письма с приветствием, абзацами (\\n\\n) и подписью"}
 \`\`\`
 Пользователь отредактирует его и отправит кнопкой через Gmail, Mail.ru, Яндекс, Outlook или iCloud. Адрес не выдумывай: неизвестен — "to":"". Не дублируй текст письма вне блока.
-12) МАРШРУТ — по запросу пользователя выдели город, старт, финиш, обязательные остановки и способ передвижения. Если пункт нельзя однозначно определить, уточни его. Для карты передай адреса или названия с городом в порядке посещения.
-\`\`\`route
-{"mode":"walking","points":["Москва, Красная площадь","Москва, парк Зарядье"]}
-\`\`\`
-mode: driving, walking, transit или bicycling. До пяти точек. Время, расстояние и актуальные пробки показывает карта; не вычисляй и не выдумывай их в тексте. Для явного запрета на сеть дай только схему маршрута текстом.
-Для математических задач добавляй столько отдельных chart/figure, сколько нужно для решения. Несколько функций для сравнения или системы — в одном chart. У функции можно задать domain: [a,b] для ветви кусочной функции. Для параметрических и полярных кривых в figure используй parametric: [{"x":"cos(t)","y":"sin(t)","t":[0,6.283185]},{"r":"2*cos(3*t)","t":[0,6.283185]}]. Для неявного уравнения f(x,y)=0 используй figure с implicit: [{"expr":"x^2+y^2-4"}], x/y — диапазоны осей. Оси и масштаб проверяй по условию.
+Для математических задач добавляй столько отдельных chart/figure, сколько нужно для решения. Несколько функций для сравнения или системы — в одном chart. У функции можно задать domain: [a,b] для ветви кусочной функции. Для параметрических и полярных кривых в figure используй parametric: [{"x":"cos(t)","y":"sin(t)","t":[0,6.283185]},{"r":"2*cos(3*t)","t":[0,6.283185]}]. Для неявного уравнения f(x,y)=0 используй figure с implicit: [{"expr":"x^2+y^2-4"}], x/y — диапазоны осей. Используй xLabel/yLabel с единицами для физических зависимостей. Для графического решения систем передай все кривые на одних осях и отметь проверенные пересечения через points: [{"x":1,"y":2,"label":"A (1; 2)"}]. Для асимптот задай guides: [{"axis":"x","value":0,"label":"x = 0"}] и breaks: [0] у нужной функции. openStart/openEnd: true рисуют пустую граничную точку ветви с domain. Не соединяй ветви через исключённые значения.
 Системы уравнений пиши в отдельном $$…$$ с \\begin{cases} и \\end{cases}; строки системы разделяй \\\\. Выделяй итог через \\boxed{…}. Не заключай LaTeX в обратные кавычки.
 8) КНОПКИ — в конце содержательного ответа (не на приветствия и короткие реплики) 2–3 следующих шага:
 \`\`\`buttons
@@ -9350,25 +9341,6 @@ function addAiBubble(text,stream,opts={}){
     if(shell.actions)requestAnimationFrame(()=>setMessageActionsVisible(shell.actions,true));
     return {...result,...shell};
   });
-}
-
-function renderFunPayReply(el,text,link){
-  const body=document.createElement('div');
-  body.innerHTML=marked.parse(text);
-  el.replaceChildren(body);
-  el.dataset.raw=text;
-  if(/^https:\/\/funpay\.com\/lots\/(?:offer\?id=[1-9]\d{0,11}|[1-9]\d{0,11}\/trade)$/.test(link||'')){
-    const label=link.includes('/offer?')?'Открыть предложение FunPay':'Открыть раздел FunPay';
-    const footer=document.createElement('p');
-    const anchor=document.createElement('a');
-    anchor.href=link;
-    anchor.textContent=label;
-    anchor.target='_blank';
-    anchor.rel='noopener noreferrer';
-    footer.append(anchor);
-    body.append(footer);
-    el.dataset.raw+='\n\n['+label+']('+link+')';
-  }
 }
 
 /* Render Markdown + ABC */
@@ -10283,28 +10255,6 @@ function showContinueButton(wrap,msgEl,actionsEl){
 }
 async function regenMsg(item){
   const wrap=item.closest('.msg-ai-wrap');
-  const message=chatHistory[Number(wrap?.dataset.historyIndex)];
-  if(message?.funpayReply){
-    item.parentElement.classList.remove('open');
-    if(message.funpayReply.factsOnly||wrap.getAttribute('aria-busy')==='true')return;
-    const history=chatHistory;
-    const user=curUser?.id;
-    wrap.setAttribute('aria-busy','true');
-    try{
-      const reply=await hmUtil('plugins',{body:{action:'chat.response',mode:'funpay',
-        task:'Переформулируй предыдущий ответ FunPay, сохранив его смысл и факты.',evidence:message.content}});
-      if(chatHistory!==history||curUser?.id!==user||!wrap.isConnected)return;
-      if(!reply?.text){toast('Не удалось обновить ответ.');return;}
-      message.content=reply.text;
-      renderFunPayReply(wrap.querySelector('.msg-ai'),reply.text,message.funpayReply.link);
-      saveChat().catch(()=>{});
-    }catch(e){
-      if(chatHistory===history&&curUser?.id===user)toast('Не удалось обновить ответ.');
-    }finally{
-      wrap.removeAttribute('aria-busy');
-    }
-    return;
-  }
   if(wrap&&wrap.dataset.imgPrompt){
     item.parentElement.classList.remove('open');
     // Повтор во время генерации: останавливаем текущую и ждём, пока она закроется.
@@ -11512,7 +11462,6 @@ function toWireHistory(history,opts={}){
     if(forStorage&&m.catalogMp3)base.catalogMp3=m.catalogMp3;
     if(forStorage&&m.video)base.video=m.video;
     if(forStorage&&m.videoLabel)base.videoLabel=m.videoLabel;
-    if(forStorage&&m.funpayReply)base.funpayReply=m.funpayReply;
     if(forStorage&&m.tempMail)base.tempMail=m.tempMail;
     if(forStorage&&m.tempMailIntro)base.tempMailIntro=m.tempMailIntro;
     // Размышления модели («Думал N с») — чтобы блок открывался и после перезагрузки.
@@ -13369,7 +13318,6 @@ async function sendMsgInner(){
     view.finish('Открой [регистрацию GitHub](https://github.com/signup) или [вход в GitHub](https://github.com/login). После входа подключи токен в **Настройки → Плагины → GitHub**, чтобы команды чата могли обращаться к твоим репозиториям.');
     return;
   }
-  if(await window.HmChatPlugins?.hasFunPayKey(text)){toast('Ключ FunPay добавляется через Настройки → Плагины.');return;}
   const moderationPaused=chatHistory.findLast(m=>m.role==='assistant')?.content==='Поставлю задачу на паузу. Если извинишься за оскорбление, продолжим.';
   // Файл ещё дочитывается — молча ждём (в чате индикатор «читаю файл»).
   if(hmAttachmentsBusy()){
@@ -13461,7 +13409,7 @@ async function sendMsgInner(){
     await handleImageGeneration(text,{image:await hmImageForEdit(att)});
     return;
   }
-  const wantsImage=imageGenModeActive||(isImageRequest(text)&&!pendingAttachments.some(a=>a.kind==='image'));
+  const wantsImage=imageGenModeActive||(!window.HmRich?.isTechnicalVisualRequest(text)&&isImageRequest(text)&&!pendingAttachments.some(a=>a.kind==='image'));
 
   // Нотный стан в режиме «Изображение»: генерацию картинок нот блокируем — качество
   // получится плохое. Отключаем image-режим и уходим в обычный текстовый путь (ABC-нотация).
@@ -15968,7 +15916,7 @@ function renderAbout(){
       <div class="stp-about-hero">
         <div class="stp-about-logo"><svg width="26" height="26" viewBox="0 0 64 64"><path d="M18 14h8v18h12V14h8v36h-8V39H26v11h-8z" fill="currentColor"/></svg></div>
         <div class="stp-about-name">HarmonyAI</div>
-        <div class="stp-about-ver">Beta 0.8.123</div>
+        <div class="stp-about-ver">Beta 0.8.124</div>
       </div>
       <div class="stp-row" onclick="hmOpenDoc('/legal/privacy.html')" role="link" tabindex="0">
         <div class="stp-row-label"><div class="stp-row-title">Политика конфиденциальности</div></div>
@@ -17063,7 +17011,7 @@ function hmVideoFailText(d,query){
 }
 /* Сообщение с «@Плагин». true — обработано (ответ уже в чате). */
 async function hmPluginRoute(m,text){
-  if(window.HmChatPlugins&&['gmail','github','telegram','funpay'].includes(m.plugin))return window.HmChatPlugins.route(text,m.plugin);
+  if(window.HmChatPlugins&&['gmail','github','telegram'].includes(m.plugin))return window.HmChatPlugins.route(text,m.plugin);
   const rest=(m.rest||'').trim();
   if(m.plugin==='youtube'||m.plugin==='rutube'){
     if(!rest)return false;
@@ -17385,10 +17333,7 @@ function hmPlugin(action,intro){
     finish(md, options={}){
       clearInterval(timer);
       if(chatHistory!==history)return;
-      if(options.funpayReply){
-        renderFunPayReply(shell.msg,md,options.link);
-        if(options.factsOnly)shell.actions?.querySelector('.more-item')?.remove();
-      }else if(options.plain){
+      if(options.plain){
         const pre=document.createElement('pre');pre.className='hm-chat-plugin-result';pre.textContent=md;
         shell.msg.replaceChildren(pre);
         if(options.link){
@@ -17396,8 +17341,7 @@ function hmPlugin(action,intro){
         }
       }else renderMd(shell.msg,md);
       if(!options.plain)setMessageActionsVisible(shell.actions,true);
-      chatHistory.push({role:'assistant',content:options.historyContent||md,createdAt:messageNow(),
-        ...(options.funpayReply?{funpayReply:{link:options.link,factsOnly:options.factsOnly,outcome:options.funpayOutcome}}:{})});
+      chatHistory.push({role:'assistant',content:options.historyContent||md,createdAt:messageNow()});
       saveChat().catch(()=>{});
       scrollChat();
     },
