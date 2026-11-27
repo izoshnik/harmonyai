@@ -37,17 +37,10 @@ import { handler as memoryHandler } from '../lib/util-memory.js';
 import { handler as supportHandler } from '../lib/util-support.js';
 import { handler as tempmailHandler } from '../lib/util-tempmail.js';
 import { handler as pluginsHandler } from '../lib/util-plugins.js';
-import { funpayWorker } from '../lib/funpay-automation.js';
 import { unsubscribeHandler } from '../lib/mailer.js';
 import { handleIngestUrl, handleIngestText, handleIngestProxy, handleIngestDistill } from '../lib/textbook-ingestor.js';
 
-function mapsConfig(req, res) {
-  if (req.method !== 'GET') return res.status(405).end();
-  return res.status(200).json({ key: (process.env.YANDEX_MAPS_JS_KEY || '').trim() });
-}
-
 const OPS = {
-  'maps-config': mapsConfig,
   'intent': intentHandler,
   'music-intent': musicIntentHandler,
   'title': titleHandler,
@@ -61,7 +54,6 @@ const OPS = {
   'support': supportHandler,
   'tempmail': tempmailHandler,
   'plugins': pluginsHandler,
-  'funpay-worker': funpayWorker,
   'unsubscribe': unsubscribeHandler,
   'ingest-url': handleIngestUrl,
   'ingest-text': handleIngestText,

@@ -213,7 +213,7 @@
           }
         }
       });
-    }).catch(function () { ui.error('YouTube недоступен. Попробуйте вариант с Rutube ниже.'); });
+    }).catch(function () { ui.error('Встроенный плеер YouTube недоступен.'); });
     return {
       kind: 'yt',
       play: function () { if (p && p.playVideo) p.playVideo(); },
@@ -462,7 +462,15 @@
     };
     function showNote(msg, err) {
       note.hidden = !msg; note.textContent = msg || ''; note.classList.toggle('is-err', !!err);
-      if (err) { var more = $('.hv-more'); if (more && !more.hidden) more.open = true; }
+      if (!err) return;
+      var more = $('.hv-more'); if (more && !more.hidden) more.open = true;
+      if (cur.source === 'yt' && /^[A-Za-z0-9_-]{11}$/.test(cur.id)) {
+        var link=document.createElement('a');
+        link.href='https://www.youtube.com/watch?v='+cur.id;
+        link.target='_blank';link.rel='noopener noreferrer';
+        link.textContent='Открыть на YouTube';
+        note.append(' ',link);
+      }
     }
 
     function nextEpisode() {

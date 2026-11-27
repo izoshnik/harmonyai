@@ -799,7 +799,7 @@ function searchAddsNothing(query = '') {
                  ищем скрыто, без строки поиска и без «Источников»;
      false     — без поиска (болтовня, расчёты, код, творчество, тексты). */
 function asksToStayOffline(query) {
-  return /без\s+(?:использования\s+)?(?:интернет[а-яё]*|веб[- ]?поиска|поиска\s+в\s+сети)|не\s+(?:ищи|поискай|пользуйся|используй)[^.!?\n]{0,32}(?:интернет|сети|веб[- ]?поиск)|\b(?:without\s+(?:using\s+)?(?:the\s+)?internet|no\s+web\s+search|(?:do not|don't)\s+(?:browse|search\s+the\s+web))\b/iu.test(String(query || ''));
+  return /без\s+(?:использования\s+)?(?:интернет[а-яё]*|веб[- ]?поиска|поиска\s+в\s+(?:сети|интернет[а-яё]*))|не\s+(?:ищи|поискай|пользуйся|используй)[^.!?\n]{0,32}(?:интернет|сети|веб[- ]?поиск)|\b(?:without\s+(?:using\s+)?(?:the\s+)?internet|no\s+web\s+search|(?:do not|don't)\s+(?:browse|search\s+the\s+web))\b/iu.test(String(query || ''));
 }
 
 function asksToHideSearch(query) {
