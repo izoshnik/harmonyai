@@ -185,7 +185,7 @@
       }).join('')+'</span>';
     }).replace(new RegExp('\\\\boxed\\s*'+grp,'g'),'<span class="hm-tex-box">$1</span>');
     s=s.replace(/\^([A-Za-z0-9])/g,'<sup>$1</sup>').replace(/_([A-Za-z0-9])/g,'<sub>$1</sub>')
-     .replace(/\\(?:left|right|displaystyle|,|;|!)/g,'').replace(/\\text\{([^{}]*)\}|\\mathrm\{([^{}]*)\}/g,'$1$2')
+     .replace(/\\(?:left|right|[bB]igg?[lmr]?|displaystyle)(?![A-Za-z])|\\[,;!]/g,'').replace(/\\q?quad(?![A-Za-z])/g,' ').replace(/\\text\{([^{}]*)\}|\\mathrm\{([^{}]*)\}/g,'$1$2')
      .replace(/\\([A-Za-z]+)/g,function(m,w){return TEX_SYM[w]!=null?TEX_SYM[w]:w;})
      .replace(/[{}]/g,'');
     return s;
@@ -204,16 +204,29 @@
   }
   var katexP=null;
   function loadKatex(){
-    if(window.katex)return Promise.resolve(window.katex);
     if(katexP)return katexP;
-    katexP=new Promise(function(res,rej){
-      var base='https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/';
-      var css=document.createElement('link');css.rel='stylesheet';css.href=base+'katex.min.css';document.head.appendChild(css);
-      var s=document.createElement('script');s.src=base+'katex.min.js';s.async=true;
-      s.onload=function(){window.katex?res(window.katex):rej(new Error('katex'));};
-      s.onerror=function(){katexP=null;rej(new Error('katex'));};
-      document.head.appendChild(s);
-    });
+    function loadFrom(base){
+      return new Promise(function(resolve,reject){
+        var link=document.createElement('link');link.rel='stylesheet';link.href=base+'katex.min.css';
+        var script=document.createElement('script');script.src=base+'katex.min.js';script.async=true;
+        var loaded=0,settled=false;
+        var timer=setTimeout(fail,4500);
+        function fail(){
+          if(settled)return;
+          settled=true;clearTimeout(timer);link.remove();script.remove();reject(new Error('KaTeX'));
+        }
+        function ready(){
+          if(settled||++loaded<2)return;
+          if(!window.katex){fail();return;}
+          settled=true;clearTimeout(timer);resolve(window.katex);
+        }
+        link.onload=ready;script.onload=ready;link.onerror=fail;script.onerror=fail;
+        document.head.append(link,script);
+      });
+    }
+    katexP=loadFrom('https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/')
+      .catch(function(){return loadFrom('https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/');})
+      .catch(function(error){katexP=null;throw error;});
     return katexP;
   }
   /* Модели пишут в формулах «x₂», «x²», «−», «·» юникодом — KaTeX такие символы

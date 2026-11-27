@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseEpisode, detectVoice, baseTitle, titleMatches, fmtQuery, scoreItem, collectEpisodes, normalizeIntent, mapRutubeItem } from '../lib/video.js';
+import { parseEpisode, detectVoice, baseTitle, titleMatches, fmtQuery, scoreItem, collectEpisodes, normalizeIntent, mapRutubeItem, findVideos } from '../lib/video.js';
 
 test('сезон и серия из разных форматов', () => {
   assert.deepEqual(parseEpisode('Мандалорец 2 сезон 3 серия LostFilm'), { season: 2, episode: 3 });
@@ -51,4 +51,18 @@ test('Rutube: платное, скрытое, 18+ и заблокированн�
   assert.equal(v.episode, 2);
   assert.equal(v.embed, 'https://rutube.ru/play/embed/abc');
   assert.equal(v.channel, 'Канал');
+});
+
+test('an exact mission request never falls back to another launch', async t => {
+  let includeMatch=false;
+  t.mock.method(globalThis,'fetch',async()=>Response.json({results:[
+    {id:'a',title:'Старт корабля Прогресс МС-19',duration:114,hits:9999},
+    ...(includeMatch?[{id:'b',title:'Трансляция запуска «Союз МС‑28»',duration:3412}]:[])
+  ]}));
+  const args=[{kind:'video',title:'Запуск корабля'},{sources:{youtube:false},requestedText:'Найди «Союз МС-28»'}];
+  assert.equal((await findVideos(...args)).error,'not_found');
+  includeMatch=true;
+  const found=await findVideos(...args);
+  assert.equal(found.best.id,'b');
+  assert.equal(found.items.length,1);
 });

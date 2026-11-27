@@ -17121,6 +17121,13 @@ async function hmAgentRoute(text){
   if(!audios.length&&HM_VIDEO_LINK.test(text||''))return false;
   if(!audios.length&&!(hasText&&(recent.length||HM_AGENT_HINT.test(text))))return false;
   if(!window.MusicClient&&!audios.length&&!/лимит|остал|сброс/i.test(text||''))return false;
+  // Явная команда отправить файл на Яндекс должна выполняться как загрузка.
+  if((audios.length||recent.length)&&/(?<![а-яё])(?:загрузи(?:ть|те)?|залей(?:те)?|закинь(?:те)?|отправь(?:те)?|добавь(?:те)?)(?![а-яё])/iu.test(text||'')&&
+      /(?:яндекс\s*музык|я\.?\s?музык|yandex\s*music)/iu.test(text||'')&&
+      !/(?:убери|удали|вырежи|отдели|выдели)\s|минусовк/iu.test(text||'')){
+    await hmAgentRun('upload_track',{text,atts:pendingAttachments.slice()});
+    return true;
+  }
   /* «Убери вокал», «сделай минусовку», «оставь только голос» — разбор на партии
      сразу, без похода к модели: просьба понятна из текста. */
   if(hasText&&(audios.length||recent.length)&&window.HmStems&&window.HmStems.parse(text)){

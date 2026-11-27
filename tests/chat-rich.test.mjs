@@ -86,3 +86,25 @@ test('school charts and diagrams use the interactive renderer by default', () =>
   }
   assert.equal(rich.isTechnicalVisualRequest('Нарисуй кота на дереве'), false);
 });
+
+test('fallback LaTeX suppresses delimiter and space commands when CDN rendering is unavailable', () => {
+  const html=loadRich().mdToHtml('$$\\bigl(\\sqrt{7-x}\\bigr)\\qquad a$$');
+  const visible=html.replace(/data-tex="[^"]*"/g,'');
+  assert.doesNotMatch(visible,/bigl|bigr|qquad/);
+  assert.match(visible,/hm-tsqrt/);
+});
+
+test('explicit MP3 upload wins over a stem classifier false positive', async () => {
+  const app=readFileSync(new URL('../app.html',import.meta.url),'utf8');
+  const start=app.indexOf('async function hmAgentRoute(text)');
+  const script=app.slice(start,app.indexOf('/* ИИ ДОБАВЛЯЕТ ТРЕК',start));
+  const actions=[];
+  const route=vm.runInNewContext(script+';hmAgentRoute',{
+    pendingAttachments:[{kind:'audio',name:'test.mp3'}],
+    hmRecentAudioList:()=>[],window:{MusicClient:{},HmStems:{parse:()=>true}},
+    hmAgentRun:async action=>actions.push(action)
+  });
+  assert.equal(await route('Загрузи только приложенный тестовый MP3 в Яндекс Музыку. Это синтетический файл.'),true);
+  assert.equal(await route('Убери вокал из приложенного MP3.'),true);
+  assert.deepEqual(actions,['upload_track','separate_stems']);
+});
